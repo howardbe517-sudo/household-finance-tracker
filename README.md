@@ -35,6 +35,13 @@ apps-script/        One file per responsibility; each is pasted into Apps Script
   QA.gs             In-sheet QA (runQA)
   Main.gs           buildWorkbook, Finance Tracker menu, onEdit, maintenance helpers
   Api.gs            Web-app (doPost) scaffold for the future app
+  Import.gs         Bank-import engine: rules, classification, pairing, review import, split panel, rule dialog
+  Plaid.gs          Plaid feed: Hosted Link connect/repair, nightly sync, balances, layout check
+  Upgrade.gs        upgradeWorkbook(): schema upgrades for a live workbook, never deletes
+  Export.gs         Copy financial snapshot for AI (plain-text briefing) + ExportDialog.html
+  SplitPanel.html   Side panel to split a transaction into balanced children
+  RuleDialog.html   Dialog to make an Import Rule from a staged row
+  ConnectDialog.html  Dialog to connect a bank in three steps
   appsscript.json   Manifest (optional; for clasp users)
 handoffs/           Step-by-step handoff page specs (JSON), one per change
 tests/              run-tests.js executes the build against mock-sheet.js (a mock of the Sheets API)

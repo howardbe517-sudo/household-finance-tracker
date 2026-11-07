@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 12px; }
+  h2 { font-size: 15px; margin: 0 0 4px; color: #17324D; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  .box { background: #E8F0F7; border-radius: 8px; padding: 10px; margin: 10px 0; }
+  .box b { font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; font-size: 11px; color: #5F6B7A; font-weight: 600; padding: 2px; }
+  td { padding: 2px; vertical-align: top; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; padding: 5px; border: 1px solid #C9D2DC; border-radius: 6px; }
+  input.amt { text-align: right; }
+  button { font: inherit; font-weight: 600; padding: 8px 12px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  button.primary:disabled { background: #9AA5B1; border-color: #9AA5B1; cursor: default; }
+  button.link { border: none; background: none; color: #1F6F78; padding: 4px 0; text-decoration: underline; font-weight: 500; }
+  .remaining { display: flex; justify-content: space-between; align-items: baseline; margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: #FFF3CD; color: #7A4E00; }
+  .remaining.ok { background: #EAF6EE; color: #24563A; }
+  .remaining.over { background: #F8D5DA; color: #842029; }
+  .remaining b { font-size: 16px; }
+  .row-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .msg { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #EAF6EE; color: #24563A; }
+  .err { background: #F8D5DA; color: #842029; }
+  .x { color: #842029; cursor: pointer; font-weight: 700; padding: 6px 4px; }
+</style>
+</head>
+<body>
+  <h2>Split a transaction</h2>
+  <div id="app" class="muted">Loading the selected row…</div>
+
+<script>
+  var CTX = null, ROWS = [];
+  function money(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function load() {
+    google.script.run.withSuccessHandler(function (ctx) {
+      CTX = ctx;
+      if (!ctx.selected) {
+        document.getElementById('app').innerHTML = '<p>Click a row on <b>Import Staging</b> or <b>Transactions</b>, then press <b>Reload</b>.</p><button onclick="load()">Reload</button>';
+        return;
+      }
+      ROWS = [{ amount: '', category: '', subcategory: '', spendingType: 'Flexible', note: '' }];
+      render();
+    }).withFailureHandler(fail).getSplitContext();
+  }
+
+  function categories() { var seen = {}, out = []; CTX.taxonomy.forEach(function (t) { if (!seen[t.category]) { seen[t.category] = 1; out.push(t.category); } }); return out; }
+  function subcats(cat) { return CTX.taxonomy.filter(function (t) { return t.category === cat; }); }
+
+  function render() {
+    var s = CTX.selected;
+    var sum = ROWS.reduce(function (a, r) { return a + (Number(r.amount) || 0); }, 0);
+    var rem = Math.round((s.amount - sum) * 100) / 100;
+    var cls = rem === 0 && sum > 0 ? 'ok' : (rem < 0 ? 'over' : '');
+    var h = '<div class="box"><div class="muted">' + (s.source === 'staging' ? 'Import Staging · ' : 'Transactions · ') + esc(s.id) + '</div>' +
+      '<div>' + esc(s.description) + '</div><b>' + money(s.amount) + '</b>' + (s.isParent ? '<div class="muted">Already a Split Parent; new children are added to it.</div>' : '') + '</div>';
+    if (s.alreadyImported) h += '<div class="msg err">This staged row was already imported. Open its transaction on the Transactions tab to split it.</div>';
+    h += '<table><tr><th style="width:26%">Amount</th><th>Category</th><th>Subcategory</th><th></th></tr>';
+    ROWS.forEach(function (r, i) {
+      h += '<tr><td><input class="amt" type="number" step="0.01" min="0" value="' + esc(r.amount) + '" oninput="upd(' + i + ',\'amount\',this.value)"></td>' +
+        '<td><select onchange="upd(' + i + ',\'category\',this.value)"><option value="">—</option>' + categories().map(function (c) { return '<option' + (c === r.category ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></td>' +
+        '<td><select onchange="upd(' + i + ',\'subcategory\',this.value)"><option value="">—</option>' + subcats(r.category).map(function (t) { return '<option' + (t.subcategory === r.subcategory ? ' selected' : '') + '>' + esc(t.subcategory) + '</option>'; }).join('') + '</select></td>' +
+        '<td class="x" title="Remove line" onclick="del(' + i + ')">×</td></tr>' +
+        '<tr><td colspan="4" style="padding-bottom:8px"><select style="width:48%;display:inline-block" onchange="upd(' + i + ',\'spendingType\',this.value)">' + CTX.spendingTypes.map(function (t) { return '<option' + (t === r.spendingType ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select> ' +
+        '<input style="width:50%;display:inline-block" placeholder="note (optional)" value="' + esc(r.note) + '" oninput="upd(' + i + ',\'note\',this.value)"></td></tr>';
+    });
+    h += '</table><button class="link" onclick="add()">+ Add a line</button>';
+    h += '<div class="remaining ' + cls + '"><span>Remaining to assign</span><b>' + money(rem) + '</b></div>';
+    h += '<div class="row-actions"><button class="primary" id="save" ' + (cls === 'ok' && !s.alreadyImported ? '' : 'disabled') + ' onclick="save()">Save split</button><button onclick="load()">Reload</button></div>';
+    h += '<p class="muted">Children must add up to the original amount. Each child keeps the parent\'s date and account; the parent becomes Type = Split Parent and is excluded from spending.</p>';
+    h += '<div id="out"></div>';
+    document.getElementById('app').innerHTML = h;
+  }
+  function upd(i, k, v) {
+    ROWS[i][k] = v;
+    if (k === 'category') { ROWS[i].subcategory = ''; }
+    if (k === 'subcategory') { var t = CTX.taxonomy.filter(function (x) { return x.category === ROWS[i].category && x.subcategory === v; })[0]; if (t && t.spendingType) ROWS[i].spendingType = t.spendingType; }
+    render();
+  }
+  function add() { ROWS.push({ amount: '', category: '', subcategory: '', spendingType: 'Flexible', note: '' }); render(); }
+  function del(i) { ROWS.splice(i, 1); if (!ROWS.length) add(); else render(); }
+  function save() {
+    var btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Saving…';
+    var payload = { source: CTX.selected.source, id: CTX.selected.id, children: ROWS.filter(function (r) { return Number(r.amount) > 0 && r.category && r.subcategory; }).map(function (r) { return { amount: Number(r.amount), category: r.category, subcategory: r.subcategory, spendingType: r.spendingType, note: r.note }; }) };
+    if (payload.children.length !== ROWS.length) { fail({ message: 'Every line needs an amount, a category and a subcategory.' }); btn.disabled = false; btn.textContent = 'Save split'; return; }
+    google.script.run.withSuccessHandler(function (res) {
+      document.getElementById('out').innerHTML = '<div class="msg">Saved. Parent ' + esc(res.parentId) + ' with ' + res.children.length + ' children (difference ' + money(res.difference) + '). Select another row and press Reload to split again.</div>';
+    }).withFailureHandler(function (e) { fail(e); btn.disabled = false; btn.textContent = 'Save split'; }).saveSplitFromPanel(payload);
+  }
+  function fail(e) { var o = document.getElementById('out') || document.getElementById('app'); o.innerHTML += '<div class="msg err">' + esc(e && e.message || e) + '</div>'; }
+  load();
+</script>
+</body>
+</html>

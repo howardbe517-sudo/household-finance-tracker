@@ -79,15 +79,15 @@ function buildAccounts_(withSample) {
     rows.push({ id: 'ACC-004', name: 'Sample 401(k)', institution: 'Sample Retirement Co.', accountType: 'Retirement', owner: 'Ben', includeNW: 'Yes', startingBalance: 40000, currentBalance: 42000, lastUpdated: monthStart_(new Date()), notes: s });
     rows.push({ id: 'ACC-005', name: 'Sample Brokerage', institution: 'Sample Brokerage', accountType: 'Investment', owner: 'Valerie', includeNW: 'Yes', startingBalance: 6000, currentBalance: 6300, lastUpdated: monthStart_(new Date()), notes: s });
   }
-  const real = 'Real account — enter owner, balances and Last Updated.';
-  rows.push({ id: 'ACC-006', name: 'PayPal', institution: 'PayPal', accountType: 'Cash', includeNW: 'Yes', notes: real });
-  rows.push({ id: 'ACC-007', name: 'Independent Bank Checking', institution: 'Independent Bank', accountType: 'Checking', includeNW: 'Yes', notes: real });
-  rows.push({ id: 'ACC-008', name: 'Independent Bank Savings', institution: 'Independent Bank', accountType: 'Savings', includeNW: 'Yes', notes: real });
-  rows.push({ id: 'ACC-009', name: 'Independent Bank Credit Card', institution: 'Independent Bank', accountType: 'Credit Card', includeNW: 'Yes', notes: real + ' Link to a Debts row if you track its balance there.' });
-  rows.push({ id: 'ACC-010', name: 'Capital One Credit Card', institution: 'Capital One', accountType: 'Credit Card', includeNW: 'Yes', notes: real + ' Link to a Debts row if you track its balance there.' });
-  rows.push({ id: 'ACC-011', name: 'Acorns Account', institution: 'Acorns', accountType: 'Investment', includeNW: 'Yes', notes: real });
-  rows.push({ id: 'ACC-012', name: 'Fidelity Roth IRA', institution: 'Fidelity', accountType: 'Retirement', includeNW: 'Yes', notes: real });
-  rows.push({ id: 'ACC-013', name: 'HealthEquity HSA', institution: 'HealthEquity', accountType: 'HSA', includeNW: 'Yes', notes: real });
+  const real = 'Real account — enter owner, balances and Last Updated (or let the bank feed fill balances).';
+  rows.push({ id: 'ACC-006', name: 'PayPal', institution: 'PayPal', accountType: 'Cash', includeNW: 'Yes', notes: real, importTx: true });
+  rows.push({ id: 'ACC-007', name: 'Independent Bank Checking', institution: 'Independent Bank', accountType: 'Checking', includeNW: 'Yes', notes: real, importTx: true });
+  rows.push({ id: 'ACC-008', name: 'Independent Bank Savings', institution: 'Independent Bank', accountType: 'Savings', includeNW: 'Yes', notes: real, importTx: true });
+  rows.push({ id: 'ACC-009', name: 'Independent Bank Credit Card', institution: 'Independent Bank', accountType: 'Credit Card', includeNW: 'Yes', notes: real + ' Link to a Debts row if you track its balance there.', importTx: true });
+  rows.push({ id: 'ACC-010', name: 'Capital One Credit Card', institution: 'Capital One', accountType: 'Credit Card', includeNW: 'Yes', notes: real + ' Link to a Debts row if you track its balance there.', importTx: true });
+  rows.push({ id: 'ACC-011', name: 'Acorns Account', institution: 'Acorns', accountType: 'Investment', includeNW: 'Yes', notes: real + ' Balance only.', importTx: false });
+  rows.push({ id: 'ACC-012', name: 'Fidelity Roth IRA', institution: 'Fidelity', accountType: 'Retirement', includeNW: 'Yes', notes: real + ' Balance only.', importTx: false });
+  rows.push({ id: 'ACC-013', name: 'HealthEquity HSA', institution: 'HealthEquity', accountType: 'HSA', includeNW: 'Yes', notes: real + ' Balance only.', importTx: false });
   writeRows_(def, rows, def.firstRow);
   CF_BUILDERS.ACCOUNTS(sh, def);
 }
@@ -138,6 +138,7 @@ function buildAppSetup_(withSample) {
   section('Settings');
   kv('Change Log auto-capture (onEdit trigger)', true, { name: 'SETTING_CHANGE_LOG', checkbox: true });
   kv('Sample data present', !!withSample, { name: 'SETTING_SAMPLE_PRESENT', checkbox: true });
+  kv('Bank feed: auto-import detected transfers and card payments', true, { name: 'SETTING_AUTO_PAIRS', checkbox: true });
   kv('Week starts on (flexible-spending guidance)', 'Monday');
   kv('Last QA run', '', { name: 'QA_LAST_RUN', fmt: FORMATS.datetime });
   kv('Last QA result', '', { name: 'QA_LAST_RESULT' });
@@ -149,7 +150,7 @@ function buildAppSetup_(withSample) {
     'Never expose spreadsheet credentials to the browser. The Apps Script layer owns writes and validation; this Sheet stays the durable store and backup.',
     'The app reads and writes the RAW tables only (Income, Transactions, Recurring Payments, Savings & Reserves, Debts, Quarterly Debt Review, Accounts, Credit Scores, Monthly Budget, Monthly Plan, Monthly Review, Net Worth Snapshots, Import Staging, Change Log).',
     'Calculated sheets (Monthly Summary, Dashboard) and calculated columns (listed below) are read-only for the app.',
-    'Intended import path: Plaid → Import Staging → dedupe / classify / review → Transactions. Receipt AI then creates balanced split children under the imported parent.',
+    'Bank feed (3.1): Plaid → nightly sync (Plaid.gs) → Import Staging, classified by Import Rules (Import.gs). Rows wait for review unless their rule says Auto-import; detected transfers and card payments are auto-imported when the setting above is on. Import reviewed rows / the split panel create the Transactions rows. Plaid secrets live in Script Properties: PLAID_CLIENT_ID, PLAID_SECRET, PLAID_START_DATE, PLAID_ACCESS_TOKEN_<Connection ID>.',
     'Rows are located by their ID column; new rows go in the first empty row after the header (Apps Script helpers nextEmptyRow_/writeRows_ do this).',
     'Formulas in calculated columns are pre-filled to the "Last Formula Row" below. Use Finance Tracker → Extend formula rows when a table approaches that row.',
   ].forEach(line);
@@ -192,7 +193,13 @@ function buildAppSetup_(withSample) {
   r++;
 
   section('Menu: Finance Tracker');
-  ['Run QA checks — scans every tab for formula errors and re-computes key totals independently.',
+  ['Import reviewed rows — turns every Import Staging row ticked Reviewed? into a Transactions row.',
+    'Split the selected row… — side panel that splits a staged or recorded transaction into balanced children.',
+    'Make a rule from the selected row… — creates an Import Rules row from a staged transaction and applies it to waiting rows.',
+    'Re-apply rules to waiting rows — fills suggestions on unreviewed staged rows after rules change.',
+    'Bank feed → Status / Set history start date / Connect a bank / Finish connecting / Repair a connection / Sync now / nightly sync on-off.',
+    'Upgrade workbook (keeps data) — adds new tabs, columns and lists after a script update; never deletes rows.',
+    'Run QA checks — scans every tab for formula errors and re-computes key totals independently.',
     'Link income deposits — fills Source Income ID on Income-type transactions that match a paycheck by amount and date.',
     'Split a transaction… — turns a bank transaction into a Split Parent with balanced child rows.',
     'Record net worth snapshot — appends this month\'s row from the live helper on Net Worth Snapshots.',

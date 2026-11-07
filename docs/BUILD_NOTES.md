@@ -71,3 +71,51 @@ Generated relative to the build date (three previous months plus the current mon
 - Receipt OCR/AI (schema, Receipt Reference and the split helper are ready).
 - Real balances, owners, debts, funds, flexible targets and credit scores must be entered by the household.
 - The web app itself — `Api.gs` is a scaffold, not a deployed service.
+
+---
+
+# Addendum — 3.1 bank feed (2026-11-07)
+
+## What was added
+- **Import Rules** (`RULES`), **Connections** (`CONN`); new columns appended
+  to Accounts, Import Staging, Debts, Quarterly Debt Review, Monthly Summary
+  and Monthly Review; two headers renamed via `renamedFrom` (Monthly Summary
+  H → *Reviewed Household Debt*; Monthly Review K → *Household Debt Balance*)
+  so student loans can be totalled apart from household debt.
+- `Import.gs` (engine + owner actions), `Plaid.gs` (feed), `Upgrade.gs`
+  (schema upgrades for a live workbook), three HtmlService files (split
+  panel, rule dialog, connect dialog).
+
+## Decisions
+- **Hosted Link instead of embedding Plaid Link in Apps Script.** Apps Script
+  serves pages inside a sandboxed iframe on a different origin, which breaks
+  the OAuth redirect banks such as Capital One and Fidelity require. Hosted
+  Link runs on Plaid's own pages; the script only creates the session and,
+  when the owner says they are done, reads the result with
+  `/link/token/get` and exchanges the public token. No web-app deployment is
+  needed for the feed.
+- **Amount convention** follows Plaid: positive = money leaving the account,
+  negative = arriving, for both bank and card accounts. Transactions stores
+  magnitudes; Type carries direction.
+- **Pairing** happens across all open staged rows (not only the new batch),
+  within 3 days, exact amount; a row pairs at most once. A bank → credit card
+  pair becomes Debt Payment (linked debt) + Transfer; anything else becomes
+  Transfer + Transfer. Pairs auto-import when the App Setup setting is on.
+- **Nothing hard-deletes.** Bank removals mark the staged row Removed and
+  soft-delete the transaction; a posted charge supersedes its pending row
+  (status kept) and updates an already-imported transaction in place.
+- **Cursor is saved only after every write succeeded**, so a failed run is
+  simply retried from the same point.
+- **Layout check before every write** (`layoutCheck_`) — the same idea as the
+  Eval Tracker's layout check: a renamed header pauses the connection with a
+  message rather than writing into the wrong column.
+- **Upgrade never deletes.** New columns are only ever appended in
+  `Config.gs`, which is why the schema keeps the handoff's A:P / A:J order and
+  adds after it. A header that differs from both the schema and
+  `renamedFrom` stops the upgrade before any change.
+- **Student loans** are separated with a Debt Group rather than a flag so a
+  third group can be added later without another schema change. Net worth
+  deliberately keeps all debt.
+
+## Still open
+- First run in Google (see STATUS.md). Receipt AI. Web app.
