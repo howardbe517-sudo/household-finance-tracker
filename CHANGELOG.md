@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-07 — Trial limit is 20 connections, not 10
+- What changed: the owner's Plaid plan page reads "trial access for up to 20
+  connections", not the 10 the tracker assumed. The limit is now one constant
+  (`PLAID_TRIAL_LIMIT`, 20) used by Bank feed → Status and the connect
+  dialog's counter and warning colours; both now say that Plaid's own count
+  can be higher because it also counts attempts that never reached the Sheet
+  (the owner's first Fidelity attempt is one). The Connections tab note and
+  the docs say 20. Also: the connect dialog's "Saving and syncing…" button
+  is hidden once the save finishes instead of staying greyed out.
+- Files changed in `apps-script/`: `Config.gs`, `Plaid.gs`,
+  `ConnectDialog.html` (deployed on merge). Nothing to run afterwards; the
+  Connections tab's note text is refreshed by the next Upgrade workbook run
+  if at all, and is cosmetic.
+- Tested: Node (suite passes). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/trial-limit-20`
+
 ## 2026-11-07 — Finish connecting resumes on the account-matching step
 - What changed: the owner's Fidelity connection reached Plaid's Success page
   but the Sheet dialog had been closed, so Bank feed → Finish connecting

@@ -144,7 +144,8 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
 - Sample data is removed only through Clear sample data…, never by rebuilding
   a workbook that holds real rows. Schema changes reach a live workbook only
   through `upgradeWorkbook()`.
-- Each Plaid connection uses one of 10 free Trial slots permanently: never
+- Each Plaid connection uses one of the free Trial slots permanently
+  (`PLAID_TRIAL_LIMIT`, 20 on the owner's plan page): never
   disconnect-and-reconnect; repair with update mode; the connect dialog warns
   about institutions already connected. Plaid secrets and access tokens live
   only in Script Properties.

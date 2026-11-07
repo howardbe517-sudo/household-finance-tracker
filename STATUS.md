@@ -73,7 +73,8 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   Bank feed → Finish connecting once and matches the Roth IRA to ACC-012.
 
 ## Bank feed decision (2026-11-07)
-- Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no
+- Feed: **Plaid, free Trial plan** (capped at 20 connections per the owner's
+  dashboard, earlier believed to be 10; no
   time limit). The owner created the Plaid team (personal use, personal
   finances) and confirmed the plan reads Trial. Never submit a Production
   application: it permanently ends the Trial.
