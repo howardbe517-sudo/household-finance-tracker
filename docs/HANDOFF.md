@@ -1,6 +1,6 @@
 # Household Finance Tracker — Complete AI Rebuild Handoff
 
-> Original specification supplied at the start of the 3.0 rebuild (2026-11-07), preserved verbatim.
+> Original specification supplied at the start of the 3.0 rebuild (2026-11-07), preserved verbatim except the old spreadsheet ID, which is kept out of the repository.
 > Decisions made while implementing it are recorded in `BUILD_NOTES.md`.
 
 ## 1. Project purpose
@@ -30,7 +30,7 @@ Current workbook title:
 
 Current spreadsheet ID:
 
-`1N5XqSCweEvQxs10jwe3beFRpCKDGpUxF4OzcCTcIQe8`
+`<old spreadsheet ID — kept out of the repository; see AGENTS.md privacy rules>`
 
 Current schema version recorded in App Setup:
 

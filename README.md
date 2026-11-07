@@ -1,8 +1,8 @@
 # Household Finance Tracker
 
-A database-first household finance workbook for Google Sheets, built entirely by
-a versioned Google Apps Script so it can be recreated from scratch at any time
-and later serve as the backend for a web app.
+A database-first household finance workbook for Google Sheets, built and
+maintained by the Google Apps Script in this repository, so it can be recreated
+from scratch at any time and later serve as the backend for a web app.
 
 - **Raw tables** (Income, Transactions, Accounts, Debts, …) hold one record per
   row with stable IDs, first-of-month dates and soft deletion.
@@ -10,97 +10,73 @@ and later serve as the backend for a web app.
   Dashboard) are calculated from the raw tables and never duplicate data.
 - **The Sheet stays usable on its own** — before Plaid, receipt AI or any app.
 
-Schema version `3.0-rebuild-2026-11-07`. Full specification: [`docs/HANDOFF.md`](docs/HANDOFF.md).
-What changed and why: [`docs/BUILD_NOTES.md`](docs/BUILD_NOTES.md).
-Every table and column: [`docs/SCHEMA.md`](docs/SCHEMA.md).
+Code and fictional data only. `AGENTS.md` holds the rules every coding agent
+follows; `CLAUDE.md` imports it.
 
-## Create the workbook (about five minutes)
+| Read this | For |
+| --- | --- |
+| `PROJECT.md` | What the tool does, where it runs, sheet structure, code files, rules that must keep working |
+| `STATUS.md` | What works, known issues, what is next, tested here vs. still to test in Google |
+| `CHANGELOG.md` | Each change with the exact files to paste into Apps Script |
+| `docs/HANDOFF.md` | The original specification (schema `3.0-rebuild-2026-11-07`) |
+| `docs/BUILD_NOTES.md` | Decisions, defects fixed, additions, open items |
+| `docs/SCHEMA.md` | Generated data dictionary: every table, column, type, dropdown and formula |
 
-1. Go to [sheets.new](https://sheets.new) to create a blank Google Sheet. Name it anything (the script renames an "Untitled" sheet to *Household Finance Tracker*).
-2. In the Sheet: **Extensions → Apps Script**.
-3. In the editor, select everything in `Code.gs` and delete it.
-4. Open [`dist/HouseholdFinanceTracker.gs`](dist/HouseholdFinanceTracker.gs) in this repo, click **Raw**, select all, copy, and paste into `Code.gs`. Save (Ctrl/Cmd + S).
-5. In the toolbar's function dropdown choose **`buildWorkbookWithSample`** (or `buildWorkbookEmpty` for structure only) and click **Run**.
-6. Google will ask for permission the first time. Choose your account → *Advanced* → *Go to … (unsafe)* → *Allow*. The script only touches this spreadsheet.
-7. Wait one to two minutes (watch the *Execution log*). Switch back to the Sheet tab and reload it.
-8. You now have 20 tabs and a **Finance Tracker** menu. Start on **Start Here**, then run **Finance Tracker → Run QA checks**.
-
-If the run stops with "Exceeded maximum execution time", simply run it again — the build is idempotent.
-
-Prefer the command line? `clasp clone` / `clasp push` works with the `apps-script/` folder directly (`appsscript.json` is included).
-
-## What you get
-
-| Tab | Function |
-|---|---|
-| Start Here | Instructions, review cadence, getting-started checklist |
-| Dashboard | Monthly snapshot for the Selected Month + Current Flexible Spending for today's week |
-| Income | Paycheck database (authoritative for gross, deductions, take-home) |
-| Transactions | Master ledger, 32 columns A:AF, validation flags, split support, soft delete |
-| Recurring Payments | Expected bills/subscriptions with monthly-equivalent summaries |
-| Monthly Budget | Planned vs. actual by category (soft-deleted rows excluded) |
-| Monthly Plan | One flexible target per month, Monday–Sunday weekly guidance |
-| Monthly Summary | Calculated monthly results (read-only) |
-| Savings & Reserves | Funds fed by Savings transactions, drawn by linked expenses |
-| Debts / Quarterly Debt Review | Master debt table + quarterly balance snapshots, estimated interest |
-| Net Worth Snapshots | History plus a live tracked-net-worth helper |
-| Accounts | Your eight real accounts (balances blank) + tagged samples |
-| Monthly Review | Month-end review rows pulling figures from Monthly Summary |
-| Categories | Taxonomy and every dropdown list |
-| App Setup | Architecture, settings, generated data dictionary |
-| Sources | Guidance behind the design |
-| Import Staging / Change Log | Ready for Plaid and audit logging |
-| Credit Scores | Manual monthly history; Dashboard shows the latest per person |
-
-### Finance Tracker menu
-
-- **Run QA checks** — scans for formula errors and independently re-computes totals.
-- **Link income deposits to paychecks** — fills `Source Income ID` where exactly one paycheck matches.
-- **Split a transaction…** — turns a bank row into a Split Parent with balanced children.
-- **Record net worth snapshot** — appends this month's row from Accounts + Debts.
-- **Extend formula rows** — adds 500 calculated rows to every table.
-- **Clear sample data…** — removes every row tagged `SAMPLE`.
-- **Rebuild workbook (destructive)…** — wipes and rebuilds from the script.
-
-## Repository layout
+## Layout
 
 ```
-apps-script/        Source of truth (paste or clasp-push these)
-  00_Config.gs      Tabs, colors, lists, taxonomy, column schema, formula templates
-  10_Helpers.gs     Formula token resolver, table builder, validations, change log
-  20_Reference.gs   Categories, Accounts, App Setup, Sources, Start Here
-  30_Tables.gs      Conditional formatting, presentation sections, phase orchestration
-  60_Dashboard.gs   Dashboard
-  70_SampleData.gs  Tagged sample data generator
-  80_QA.gs          In-sheet QA
-  90_Main.gs        buildWorkbook, menu, onEdit, maintenance helpers
-  95_Api.gs         Web-app (doPost) scaffold for the future app
-  appsscript.json   Manifest (time zone, scopes, web app settings)
-dist/HouseholdFinanceTracker.gs   Single paste-ready bundle (generated)
-docs/HANDOFF.md     Original specification (verbatim)
-docs/BUILD_NOTES.md Decisions, fixes, additions, open items
-docs/SCHEMA.md      Generated data dictionary
-scripts/bundle.sh   Rebuilds dist/ from apps-script/
-scripts/gen-schema.js  Regenerates docs/SCHEMA.md from 00_Config.gs
-scripts/test-build.js  Runs the build under Node against a mock Sheets API
-scripts/mock-gas.js    The mock
+apps-script/        One file per responsibility; each is pasted into Apps Script under the same name
+  Config.gs         Tabs, colors, dropdown lists, taxonomy, column schema, formula templates (change the schema here only)
+  Helpers.gs        Formula token resolver, table builder, validations, named ranges, change log
+  Reference.gs      Categories, Accounts, App Setup, Sources, Start Here
+  Tables.gs         Conditional formatting, presentation sections, phase orchestration
+  Dashboard.gs      Dashboard
+  SampleData.gs     Fictional, date-relative sample data tagged SAMPLE
+  QA.gs             In-sheet QA (runQA)
+  Main.gs           buildWorkbook, Finance Tracker menu, onEdit, maintenance helpers
+  Api.gs            Web-app (doPost) scaffold for the future app
+  appsscript.json   Manifest (optional; for clasp users)
+handoffs/           Step-by-step handoff page specs (JSON), one per change
+tests/              run-tests.js executes the build against mock-sheet.js (a mock of the Sheets API)
+fixtures/           Fictional data policy (the sample data is generated, not stored)
+scripts/            build-handoff.js, gen-schema.js, safety-check.sh
+docs/               Specification, build notes, generated schema
 ```
+
+## How a change reaches Google
+
+1. An agent makes the change on a branch and opens a pull request. The pull
+   request runs the safety check and the Node tests.
+2. Review the diff and merge it.
+3. Open the handoff page the agent published (its spec is in `handoffs/`) and
+   follow the steps: it has a Copy button for every file that changed and the
+   checks to do in the Sheet. `CHANGELOG.md` lists the same files.
+4. Paste those complete files into the Apps Script editor and save.
+
+A fix made directly in the Apps Script editor is not finished until the same
+file has been pasted back here and committed.
+
+## First build
+
+The handoff page built from `handoffs/2026-11-07-initial-build.json` walks
+through it. In short: blank Sheet → Extensions → Apps Script → nine files pasted
+under their own names → run `buildWorkbookWithSample` → reload → Finance
+Tracker → Run QA checks. Never run the build on a Sheet that already holds real
+data (see `AGENTS.md` section 2).
 
 ## Development
 
 ```bash
-node scripts/test-build.js   # execute the build against the mock, check structure & formulas
-./scripts/bundle.sh          # regenerate dist/HouseholdFinanceTracker.gs
-node scripts/gen-schema.js   # regenerate docs/SCHEMA.md
+node tests/run-tests.js                                   # build against the mock; structure and formula checks
+node scripts/gen-schema.js                                # regenerate docs/SCHEMA.md from Config.gs
+bash scripts/safety-check.sh origin/main                  # what the pull-request check runs
+node scripts/build-handoff.js handoffs/<spec>.json out.html   # build a handoff page to publish
 ```
-
-Edit `apps-script/*.gs`, run the three commands, commit all of it. The bundle
-and schema are committed so the repo is always paste-ready.
 
 ## Connecting an app later
 
-`95_Api.gs` exposes `doPost` with `ping`, `list`, `append`, `update` and
-`softDelete`. Deploy it as a web app (execute as you, token-gated via
+`Api.gs` exposes `doPost` with `ping`, `list`, `append`, `update` and
+`softDelete`. Deploy it as a web app (execute as the owner, token-gated via
 `setApiToken()`), and the browser talks JSON to Apps Script, which owns all
 writes and validation. The app only ever touches raw tables; Monthly Summary,
 Dashboard and calculated columns are read-only. Details: App Setup tab and

@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 90_Main.gs
+ * Household Finance Tracker — Main.gs
  * Entry points: build/rebuild, custom menu, onEdit change-log trigger,
  * and the maintenance helpers (link deposits, split, snapshot, extend, clear sample).
  *
@@ -19,7 +19,7 @@ function buildWorkbook(options) {
   // Keep a scratch sheet so the spreadsheet is never empty while we rebuild.
   let scratch = ss.getSheetByName('_build');
   if (!scratch) scratch = ss.insertSheet('_build');
-  ss.getSheets().forEach(sh => { if (sh.getName() !== '_build') ss.deleteSheet(sh); });
+  ss.getSheets().forEach(sh => { if (sh.getName() !== '_build') ss.deleteSheet(sh); }); // SAFETY-APPROVED: buildWorkbook runs on a blank spreadsheet or after the owner confirms a full rebuild
   ss.getNamedRanges().forEach(nr => nr.remove());
   TAB_ORDER.forEach(name => ss.insertSheet(name));
 
@@ -42,7 +42,7 @@ function buildWorkbook(options) {
 
   // Tab order, cleanup
   TAB_ORDER.forEach((name, i) => { ss.setActiveSheet(ss.getSheetByName(name)); ss.moveActiveSheet(i + 1); });
-  ss.deleteSheet(ss.getSheetByName('_build'));
+  ss.deleteSheet(ss.getSheetByName('_build')); // SAFETY-APPROVED: removes the temporary _build scratch sheet only
   if (ss.getName().indexOf('Untitled') === 0) ss.rename(HFT.TITLE);
   ss.setActiveSheet(ss.getSheetByName(SHEETS.DASH));
   SpreadsheetApp.flush();
@@ -292,7 +292,7 @@ function clearSampleData() {
     while (i < rows.length) {
       let j = i;
       while (j + 1 < rows.length && rows[j + 1] === rows[j] - 1) j++;
-      sh.deleteRows(rows[j], j - i + 1);
+      sh.deleteRows(rows[j], j - i + 1); // SAFETY-APPROVED: clearSampleData removes only rows tagged SAMPLE, after the owner confirms
       i = j + 1;
     }
     // restore the formula/format rows that moved off the end

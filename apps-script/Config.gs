@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 00_Config.gs
+ * Household Finance Tracker — Config.gs
  *
  * Single source of truth for sheet names, colors, dropdown lists, the
  * category taxonomy and the column schema of every table. Everything else

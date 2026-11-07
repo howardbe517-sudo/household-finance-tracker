@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { makeGlobals, colLetter, parseA1 } = require('./mock-gas');
+const { makeGlobals, colLetter, parseA1 } = require('./mock-sheet');
 
 const SRC_DIR = path.join(__dirname, '..', 'apps-script');
 const files = fs.readdirSync(SRC_DIR).filter(f => f.endsWith('.gs')).sort();

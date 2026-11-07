@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 10_Helpers.gs
+ * Household Finance Tracker — Helpers.gs
  * Shared utilities: formula token resolution, table builder, validations,
  * formats, named ranges, row lookup/append, change-log writer.
  */
@@ -50,7 +50,7 @@ function colRef_(tableKey, colKey) {
   return q_(d.sheet) + '!$' + L + '$' + d.firstRow + ':$' + L;
 }
 
-/** Resolve formula tokens (see 00_Config.gs header). def/row may be null for off-table formulas. */
+/** Resolve formula tokens (see Config.gs header). def/row may be null for off-table formulas. */
 function resolveFormula_(tpl, def, row) {
   if (!tpl) return tpl;
   let f = tpl;
@@ -90,9 +90,9 @@ function getOrCreateSheet_(name) {
 function ensureSheetSize_(sh, rows, cols) {
   const maxR = sh.getMaxRows(), maxC = sh.getMaxColumns();
   if (maxR < rows) sh.insertRowsAfter(maxR, rows - maxR);
-  else if (maxR > rows) sh.deleteRows(rows + 1, maxR - rows);
+  else if (maxR > rows) sh.deleteRows(rows + 1, maxR - rows); // SAFETY-APPROVED: trims empty rows on a sheet being (re)built by buildWorkbook
   if (maxC < cols) sh.insertColumnsAfter(maxC, cols - maxC);
-  else if (maxC > cols) sh.deleteColumns(cols + 1, maxC - cols);
+  else if (maxC > cols) sh.deleteColumns(cols + 1, maxC - cols); // SAFETY-APPROVED: trims empty columns on a sheet being (re)built by buildWorkbook
 }
 
 function setNamedRange_(name, range) {
@@ -194,10 +194,10 @@ function buildTableSheet_(def) {
   if (def.keepExtras) {
     // Only the table columns are reset; helper areas to the right (e.g. reference lists) survive.
     const tableArea = sh.getRange(1, 1, sh.getMaxRows(), n);
-    tableArea.clear();
+    tableArea.clear(); // SAFETY-APPROVED: table area reset during buildWorkbook on a fresh sheet
     tableArea.clearDataValidations();
   } else {
-    sh.clear();
+    sh.clear(); // SAFETY-APPROVED: sheet reset during buildWorkbook on a fresh sheet
     sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   }
 

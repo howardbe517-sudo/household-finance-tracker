@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates docs/SCHEMA.md from apps-script/00_Config.gs so the data dictionary
+ * Generates docs/SCHEMA.md from apps-script/Config.gs so the data dictionary
  * can never drift from what the build script actually creates.
  * Run: node scripts/gen-schema.js
  */
@@ -11,7 +11,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const ctx = vm.createContext({});
-vm.runInContext(fs.readFileSync(path.join(root, 'apps-script', '00_Config.gs'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'apps-script', 'Config.gs'), 'utf8'), ctx);
 // top-level const/let live in the script's lexical scope, not on the context object, so read them back with an expression
 const { TABLES, BUILD_ORDER, LISTS, DERIVED_LISTS, TAXONOMY, SHEETS, HFT, APP_RULES, TX_VALIDATION_FORMULA } =
   vm.runInContext('({ TABLES, BUILD_ORDER, LISTS, DERIVED_LISTS, TAXONOMY, SHEETS, HFT, APP_RULES, TX_VALIDATION_FORMULA })', ctx);
@@ -31,8 +31,8 @@ const sourceOf = c => {
 const esc = s => String(s).replace(/\|/g, '\\|');
 
 let md = `# Data Dictionary — ${HFT.TITLE}\n\n`;
-md += `Schema version **${HFT.SCHEMA_VERSION}**. Generated from \`apps-script/00_Config.gs\` by \`scripts/gen-schema.js\` — do not edit by hand.\n\n`;
-md += `Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (\`Is Deleted\`), never removed. Formula templates below use \`[@key]\` (same row), \`[@@key]\` (same column, open range) and \`[TABLE.key]\` (another table's column, open range) — see \`00_Config.gs\`.\n\n`;
+md += `Schema version **${HFT.SCHEMA_VERSION}**. Generated from \`apps-script/Config.gs\` by \`scripts/gen-schema.js\` — do not edit by hand.\n\n`;
+md += `Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (\`Is Deleted\`), never removed. Formula templates below use \`[@key]\` (same row), \`[@@key]\` (same column, open range) and \`[TABLE.key]\` (another table's column, open range) — see \`Config.gs\`.\n\n`;
 
 md += `## Tables\n\n| Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |\n|---|---|---:|---:|---:|---|---:|---|\n`;
 BUILD_ORDER.forEach(k => { const d = TABLES[k]; md += `| ${k} | ${d.sheet} | ${d.headerRow} | ${d.firstRow} | ${d.lastRow} | ${d.idPattern} | ${d.columns.length} | ${d.logChanges ? 'yes' : 'no'} |\n`; });

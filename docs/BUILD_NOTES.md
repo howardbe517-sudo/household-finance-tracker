@@ -8,8 +8,8 @@ data dictionary).
 ## How the workbook is produced
 
 The workbook is built by a Google Apps Script bound to a blank spreadsheet
-(`apps-script/*.gs`, bundled into `dist/HouseholdFinanceTracker.gs`). The
-script is the single source of truth: `00_Config.gs` holds tab names, colors,
+(`apps-script/*.gs`, pasted into the editor as one file each). The
+script is the single source of truth: `Config.gs` holds tab names, colors,
 dropdown lists, the category taxonomy and the column schema of every table;
 every other module reads from it. The data dictionary on the App Setup tab and
 `docs/SCHEMA.md` are generated from the same object, so they cannot drift.
@@ -40,7 +40,7 @@ idempotent: re-running it wipes and recreates every tab.
 - **Validation Flag** — adds Missing Date / Type / Amount, Subcategory-Does-Not-Match-Category, Parent-Must-Be-Type-Split-Parent and Parent-Transaction-ID-Not-Found on top of the handoff's rules.
 - **Change Log** — a simple `onEdit` trigger appends one row per hand edit to any change-logged table (toggle: App Setup → "Change Log auto-capture"). It also stamps `Updated At`/`Updated By` on Transactions and sets `Deleted At` when `Is Deleted` is ticked.
 - **Menu "Finance Tracker"** — Run QA checks · Link income deposits · Split a transaction… · Record net worth snapshot · Extend formula rows · Clear sample data… · Rebuild workbook…
-- **API scaffold (`95_Api.gs`)** — `doPost` with `ping / list / append / update / softDelete`, token-gated, writes only to raw tables, never to calculated columns, and logs to Change Log. Untested against a live deployment; it is a starting point for the web app.
+- **API scaffold (`Api.gs`)** — `doPost` with `ping / list / append / update / softDelete`, token-gated, writes only to raw tables, never to calculated columns, and logs to Change Log. Untested against a live deployment; it is a starting point for the web app.
 
 ## Implementation choices worth knowing
 
@@ -63,11 +63,11 @@ Generated relative to the build date (three previous months plus the current mon
 
 `runQA()` (menu → Run QA checks; also run at the end of every build) scans every tab for `#REF!/#VALUE!/#DIV/0!/#N/A/#NAME?/#NUM!/#ERROR!`, verifies headers, validations and the no-merge rule for every table, then re-computes in plain JavaScript — from the raw rows, excluding soft-deleted ones — monthly spending/savings/debt/income/deposits, budget actuals, flexible spent and the current-week guidance, fund balances, debt balances, split balance, validation flags, Dashboard cards, payroll Federal Tax and totals for all three groups, the current-month label and latest credit scores, and compares them with the formula results.
 
-`scripts/test-build.js` runs the whole build under Node against an in-memory mock of the Sheets API (`scripts/mock-gas.js`). It catches runtime errors, unresolved tokens, unbalanced formulas, unknown function names, bad sheet references and schema mismatches. The mock does not evaluate formulas; formula correctness is what the in-sheet QA covers.
+`tests/run-tests.js` runs the whole build under Node against an in-memory mock of the Sheets API (`tests/mock-sheet.js`). It catches runtime errors, unresolved tokens, unbalanced formulas, unknown function names, bad sheet references and schema mismatches. The mock does not evaluate formulas; formula correctness is what the in-sheet QA covers.
 
 ## Still open (unchanged from the handoff)
 
 - Plaid integration (Import Staging is ready; nothing writes to it yet).
 - Receipt OCR/AI (schema, Receipt Reference and the split helper are ready).
 - Real balances, owners, debts, funds, flexible targets and credit scores must be entered by the household.
-- The web app itself — `95_Api.gs` is a scaffold, not a deployed service.
+- The web app itself — `Api.gs` is a scaffold, not a deployed service.

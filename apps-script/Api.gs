@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 95_Api.gs
+ * Household Finance Tracker — Api.gs
  * Web-app scaffold for the future browser UI.
  *
  *   Browser → JSON over HTTPS → doPost (this file) → raw Sheet tables

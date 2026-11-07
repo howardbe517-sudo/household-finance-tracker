@@ -1,8 +1,8 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.0-rebuild-2026-11-07**. Generated from `apps-script/00_Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.0-rebuild-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
-Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `00_Config.gs`.
+Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
 ## Tables
 
