@@ -3,8 +3,10 @@
 # Usage: scripts/safety-check.sh <base-ref>   (default: origin/main)
 set -u
 BASE="${1:-origin/main}"
+# The leading "+" diff marker is stripped so a line that begins with "@" (such
+# as CLAUDE.md's "@AGENTS.md" import) is not mistaken for an email address.
 ADDED=$(git diff --unified=0 "$BASE"...HEAD -- '*.gs' '*.html' '*.js' '*.json' '*.md' '*.csv' \
-  | grep -E '^\+' | grep -vE '^\+\+\+' || true)
+  | grep -E '^\+' | grep -vE '^\+\+\+' | sed 's/^+//' || true)
 FAIL=0
 
 RISKY='\.(clear|clearContent|clearContents|deleteRow|deleteRows|deleteColumn|deleteColumns|deleteSheet|setTrashed|removeFile|removeFolder)\('
