@@ -257,9 +257,18 @@ const fin = R(`finishHostedLink()`);
 if (fin.status === 'connected' && fin.connectionId === 'CONN-001' && fin.institution === 'Sample Bank' && fin.accounts.length === 2 && g.__props['PLAID_ACCESS_TOKEN_CONN-001'] === 'access-1' && !g.__props.PLAID_PENDING_LINK) ok('finishHostedLink: token exchanged, stored in Script Properties, Connections row CONN-001 created'); else bad('finishHostedLink: ' + JSON.stringify(fin) + ' props=' + JSON.stringify(Object.keys(g.__props)));
 const conn1 = R(`readTable_(TABLES.CONN)[0]`);
 if (conn1 && conn1.id === 'CONN-001' && conn1.itemId === 'item-1' && conn1.status === 'Pending' && !/access/.test(JSON.stringify(conn1))) ok('Connections row holds the item id, never the access token'); else bad('conn row: ' + JSON.stringify(conn1));
+// the unmapped connection is remembered until its accounts are matched (dialog resumes on step 3)
+const ctxPending = R(`getConnectContext()`);
+if (g.__props.PLAID_PENDING_MAP && ctxPending.pendingMapping && ctxPending.pendingMapping.connectionId === 'CONN-001' && ctxPending.pendingMapping.accounts.length === 2 && ctxPending.pendingMapping.existingAccounts.length > 0 && ctxPending.pendingMapping.mode === 'spending') ok('connect context resumes the unmapped connection (step 3) after the dialog was closed'); else bad('pendingMapping: ' + JSON.stringify(ctxPending.pendingMapping));
+R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_MAP')`);
+const ctxRebuilt = R(`getConnectContext()`);
+if (ctxRebuilt.pendingMapping && ctxRebuilt.pendingMapping.connectionId === 'CONN-001' && g.__props.PLAID_PENDING_MAP) ok('an older Pending connection is rebuilt from Plaid when nothing was remembered'); else bad('pendingMapping rebuild: ' + JSON.stringify(ctxRebuilt.pendingMapping));
+R(`finishConnectingPrompt()`);
+if (g.__dialogs && g.__dialogs.slice(-1)[0] && /Finish connecting Sample Bank/.test(g.__dialogs.slice(-1)[0])) ok('Finish connecting opens the dialog for the unmapped connection without a Plaid session'); else bad('finishConnectingPrompt dialogs: ' + JSON.stringify(g.__dialogs));
 const map = R(`finishAccountMapping({ connectionId:'CONN-001', institution:'Sample Bank', mappings:[ { externalId:'pa1', accountId:'ACC-007', name:'Everyday Checking', mask:'1111', type:'depository', subtype:'checking', importTx:true, current:1234.56 }, { externalId:'pa2', accountId:'new', name:'Rewards Card', mask:'2222', type:'credit', subtype:'credit card', importTx:true, current:420 } ] })`);
 const acc7 = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0]`);
 const acc14 = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.externalAccountId==='pa2'; })[0]`);
+if (!g.__props.PLAID_PENDING_MAP && R(`getConnectContext()`).pendingMapping === null) ok('mapping the accounts clears the remembered connection'); else bad('PLAID_PENDING_MAP still set after mapping');
 if (map.linked === 1 && map.created === 1 && acc7.externalAccountId === 'pa1' && acc7.connectionId === 'CONN-001' && acc7.importTx === true && acc14 && acc14.accountType === 'Credit Card' && acc14.connectionId === 'CONN-001') ok('account mapping: ACC-007 linked, new credit-card row created (' + acc14.id + ')'); else bad('finishAccountMapping: ' + JSON.stringify([map, acc7, acc14]));
 const s1 = map.synced;
 if (s1 && !s1.error && s1.added === 4 && s1.skippedBeforeStart === 1 && s1.balances === 2) ok('first sync: 2 pages read, 4 rows staged, 1 skipped before the start date, 2 balances updated'); else bad('first sync: ' + JSON.stringify(s1));

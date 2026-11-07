@@ -51,7 +51,7 @@
         },
         {
           "text": "Back in the dialog click **I've finished in Plaid**. Step 3 lists the three accounts. Match them: Checking → ACC-007, Savings → ACC-008, Credit Card → ACC-009. Leave **Import transactions** ticked for all three. Click **Save and run the first sync**.",
-          "note": "If it says \"not finished yet\", complete Plaid's steps and click again. If an account matches no row, choose Create a new Accounts row."
+          "note": "If it says \"not finished yet\", complete Plaid's steps and click again. If an account matches no row, choose Create a new Accounts row. If you closed this dialog after Plaid said Success, nothing is lost: run Bank feed → Finish connecting and it reopens on this matching step for that bank, using no new slot."
         },
         {
           "text": "The dialog reports how many transactions landed in Import Staging and how many balances were updated. Open **Connections**: CONN-001 Independent Bank, Status Active. Open **Accounts**: ACC-007/008/009 show External Account ID, Connection ID and a fresh Current Balance.",

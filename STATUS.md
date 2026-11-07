@@ -63,10 +63,14 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   connection is back, PayPal, Amex, Venmo; balance-only Acorns, Fidelity,
   HealthEquity); then Clear sample data; then real paychecks, funds, debts
   and the flexible target.
-- Pull request `claude/balance-only-via-auth`: Balance only connections ask
-  Plaid for `auth` (fallback `identity`) because Plaid rejects an empty
-  products list. HealthEquity has not yet connected; if Plaid flags it for
-  both, its balance has to be entered by hand on Accounts.
+- HealthEquity: Balance only (`auth`) now reaches Plaid's sign-in page, but
+  Plaid's log shows INTERNAL_SERVER_ERROR with a 0% success rate for the
+  institution (Classic integration outage on Plaid's side). Retry in a few
+  days; if it stays down, the HSA balance is entered by hand on ACC-013.
+- Fidelity: connected in Plaid (CONN-002, Pending) but the accounts were not
+  matched because Finish connecting opened on step 1. Pull request
+  `claude/finish-connecting-resume` fixes that; afterwards the owner runs
+  Bank feed → Finish connecting once and matches the Roth IRA to ACC-012.
 
 ## Bank feed decision (2026-11-07)
 - Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no

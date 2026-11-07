@@ -28,12 +28,12 @@
 <body>
   <div id="app" class="muted">Loading…</div>
 <script>
-  var C = null, MODE = 'spending', RESULT = null;
+  var C = null, MODE = 'spending', RESULT = null, RESUMED = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function show(h) { document.getElementById('app').innerHTML = h; }
   function msg(cls, text) { return '<div class="box ' + cls + '">' + text + '</div>'; }
 
-  google.script.run.withSuccessHandler(function (ctx) { C = ctx; step1(); }).withFailureHandler(function (e) { show(msg('err', esc(e.message || e))); }).getConnectContext();
+  google.script.run.withSuccessHandler(function (ctx) { C = ctx; if (ctx.pendingMapping) { RESULT = ctx.pendingMapping; MODE = RESULT.mode || 'spending'; RESUMED = true; step3(); } else { step1(); } }).withFailureHandler(function (e) { show(msg('err', esc(e.message || e))); }).getConnectContext();
 
   function step1() {
     var h = '<h3>Step 1 · What kind of account?</h3>';
@@ -71,7 +71,7 @@
   function step3() {
     var r = RESULT;
     var h = '<h3>Step 3 · Match the accounts</h3>';
-    h += msg('ok', '<b>' + esc(r.institution) + '</b> connected as ' + esc(r.connectionId) + '.') + (r.possibleDuplicate ? msg('warn', 'Another connection to this institution already exists. If this was a mistake, nothing can give the slot back, but you can still map the accounts.') : '');
+    h += msg('ok', '<b>' + esc(r.institution) + '</b> connected as ' + esc(r.connectionId) + '.' + (RESUMED ? ' Plaid finished earlier but the accounts were never matched; finish that here. No new slot is used.' : '')) + (r.possibleDuplicate ? msg('warn', 'Another connection to this institution already exists. If this was a mistake, nothing can give the slot back, but you can still map the accounts.') : '');
     h += '<p>For each account Plaid found, pick the row on your <b>Accounts</b> tab it belongs to, or create a new row. Tick <b>Import transactions</b> for spending accounts; leave it off for balance-only accounts.</p>';
     h += '<table><tr><th>Plaid account</th><th>Your Accounts row</th><th>Import transactions</th></tr>';
     var suggestedIds = {};
