@@ -3,7 +3,7 @@
   "key": "household-finance-tracker-2026-11-07-bank-import",
   "subtitle": "Adds the bank feed to your tracker: Import Rules, Connections, the review workflow, the split panel, student loans kept separate from household debt, a copy-for-AI financial snapshot, and the Plaid connection for all your accounts.",
   "intro": [
-    "Sixteen script files change or are new; `Helpers.gs` does not change. After pasting, you run **Upgrade workbook** once: it adds the new tabs and columns to your live Sheet and keeps every row you have entered. Nothing is deleted.",
+    "Seventeen script files change or are new — every file in the project. After pasting, you run **Upgrade workbook** once: it adds the new tabs and columns to your live Sheet and keeps every row you have entered. Nothing is deleted.",
     "Then you give the script your two Plaid keys (in the script's private settings, never in a cell), set the start date for history, and connect each bank from the **Bank feed** menu. Each bank uses one of the 10 free Plaid slots for good, so the page is careful about duplicates.",
     "**What does not change:** your transactions, paychecks, accounts, debts, funds, budgets, reviews, the Dashboard month you selected, and your settings. Two headers are renamed to make room for student loans: *Reviewed Debt Balance* → *Reviewed Household Debt* (Monthly Summary) and *Total Debt Balance* → *Household Debt Balance* (Monthly Review).",
     "**Privacy:** Plaid keys go into Script Properties only. Never paste them into chat, email or GitHub."
@@ -22,13 +22,14 @@
       "heading": "Replace the changed script files",
       "steps": [
         { "text": "Choose **Extensions → Apps Script**. Click **Code.gs** (your Config file). Click inside the code, press {{Ctrl}}+{{A}}, then {{Delete}}, and paste.", "file": "apps-script/Config.gs", "note": "This file carries the whole schema change. Paste it first. (You can rename Code.gs to Config via its ⋮ menu if you like; it changes nothing.)" },
+        { "text": "Click **Helpers.gs**. Select all, delete, and paste.", "file": "apps-script/Helpers.gs", "note": "Small change: reading a table no longer creates a missing tab, so QA can never collide with an upgrade in progress." },
         { "text": "Click **Reference.gs**. Select all, delete, and paste.", "file": "apps-script/Reference.gs" },
         { "text": "Click **Tables.gs**. Select all, delete, and paste.", "file": "apps-script/Tables.gs" },
         { "text": "Click **Dashboard.gs**. Select all, delete, and paste.", "file": "apps-script/Dashboard.gs" },
         { "text": "Click **SampleData.gs**. Select all, delete, and paste.", "file": "apps-script/SampleData.gs" },
         { "text": "Click **QA.gs**. Select all, delete, and paste.", "file": "apps-script/QA.gs" },
         { "text": "Click **Main.gs**. Select all, delete, and paste.", "file": "apps-script/Main.gs" },
-        { "text": "Click **Api.gs**. Select all, delete, and paste.", "file": "apps-script/Api.gs", "note": "Helpers.gs is unchanged; leave it alone." }
+        { "text": "Click **Api.gs**. Select all, delete, and paste.", "file": "apps-script/Api.gs" }
       ]
     },
     {
@@ -48,8 +49,8 @@
       "heading": "Upgrade the workbook (keeps your data)",
       "steps": [
         {
-          "text": "Click **Upgrade.gs**, choose **upgradeWorkbook** in the function dropdown, and click **Run**. Approve the permission prompt if one appears (the new code reaches out to Plaid and manages a daily trigger, so Google asks again).",
-          "note": "The Execution log ends with a short report: Added tab: Import Rules, Added tab: Connections, the columns added to Accounts, Import Staging, Debts, Quarterly Debt Review, Monthly Summary and Monthly Review, and the lists added. Takes well under a minute."
+          "text": "Click **Upgrade.gs**, choose **upgradeWorkbook** in the function dropdown, and click **Run** — once. Approve the permission prompt if one appears (the new code reaches out to Plaid and manages a daily trigger, so Google asks again). Do not start anything else from the menu until the log says Execution completed.",
+          "note": "The Execution log ends with a short report: Added tab: Import Rules, Added tab: Connections, the columns added to Accounts, Import Staging, Debts, Quarterly Debt Review, Monthly Summary and Monthly Review, and the lists added. Takes well under a minute. If you already ran an earlier version and saw \"A sheet with the name Import Rules already exists\", just run it again; it finishes what was left."
         },
         {
           "text": "Go back to the Sheet and reload it. Two new tabs sit between Import Staging and Change Log: **Import Rules** and **Connections**. The Finance Tracker menu now starts with *Import reviewed rows*, *Split the selected row…*, *Make a rule from the selected row…* and has a **Bank feed** submenu.",

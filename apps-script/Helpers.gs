@@ -241,9 +241,10 @@ function anchorCol_(def) {
   return 1;
 }
 
-/** Read a table as an array of objects keyed by column key, with __row. Skips empty rows. */
+/** Read a table as an array of objects keyed by column key, with __row. Skips empty rows. Reading never creates a tab. */
 function readTable_(def) {
-  const sh = getOrCreateSheet_(def.sheet);
+  const sh = ss_().getSheetByName(def.sheet);
+  if (!sh) return [];
   const last = Math.max(sh.getLastRow(), def.firstRow);
   const n = def.columns.length;
   if (last < def.firstRow) return [];
@@ -260,7 +261,8 @@ function readTable_(def) {
 }
 
 function findRowById_(def, id) {
-  const sh = getOrCreateSheet_(def.sheet);
+  const sh = ss_().getSheetByName(def.sheet);
+  if (!sh) return -1;
   const last = sh.getLastRow();
   if (last < def.firstRow) return -1;
   const ids = sh.getRange(def.firstRow, 1, last - def.firstRow + 1, 1).getValues();

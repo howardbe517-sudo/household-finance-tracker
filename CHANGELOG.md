@@ -53,11 +53,12 @@
     footnote. App Setup: setting *auto-import detected transfers and card
     payments*. Menu reorganized with a **Bank feed** submenu.
 - Files to paste into Apps Script: changed — `Config.gs` (as Code.gs),
+  `Helpers.gs` (reading a table no longer creates a missing tab),
   `Reference.gs`, `Tables.gs`, `Dashboard.gs`, `SampleData.gs`, `QA.gs`,
   `Main.gs`, `Api.gs`; new — `Import.gs`, `Plaid.gs`, `Upgrade.gs`,
   `Export.gs`, `SplitPanel.html`, `RuleDialog.html`, `ConnectDialog.html`,
-  `ExportDialog.html`. Unchanged: `Helpers.gs`. Then run `upgradeWorkbook`
-  once.
+  `ExportDialog.html`. Then run `upgradeWorkbook` once (it takes a lock, so
+  a second copy started early simply says to wait).
 - Sheet changes needed: none by hand (the upgrade adds them). Script
   Properties to add by hand: `PLAID_CLIENT_ID`, `PLAID_SECRET`; then Bank
   feed → Set history start date, Connect a bank (×9), Turn nightly sync on.
