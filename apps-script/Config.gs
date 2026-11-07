@@ -622,7 +622,7 @@ TABLES.RULES = {
 TABLES.CONN = {
   key: 'CONN', sheet: SHEETS.CONN, headerRow: 4, firstRow: 5, lastRow: 54,
   title: 'Connections — Bank Logins Feeding the Tracker',
-  note: 'One row per bank login connected through Plaid. Each uses one of the free Trial slots (20 on the owner's plan) permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script\'s Script Properties, never on this tab.',
+  note: 'One row per bank login connected through Plaid. Each uses one of the free Trial slots (20 on your plan) permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script\'s Script Properties, never on this tab.',
   idPrefix: 'CONN', idPattern: 'CONN-001', logChanges: true,
   columns: [
     { key: 'id', h: 'Connection ID', w: 110 },

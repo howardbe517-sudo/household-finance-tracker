@@ -318,7 +318,7 @@ Named range `TBL_RULES` covers the header row through the last formula row.
 
 ## Connections (`CONN`)
 
-One row per bank login connected through Plaid. Each uses one of the 10 free Trial slots permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script's Script Properties, never on this tab.
+One row per bank login connected through Plaid. Each uses one of the free Trial slots (20 on your plan) permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script's Script Properties, never on this tab.
 
 Named range `TBL_CONN` covers the header row through the last formula row.
 
