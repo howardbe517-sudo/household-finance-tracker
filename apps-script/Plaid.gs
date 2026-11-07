@@ -17,10 +17,14 @@
  */
 
 const PLAID_HOSTS = { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' };
-// balance: an empty products list — Plaid's balance-only connection, for institutions (HSAs, some
-// savings products) that offer neither transactions nor investment holdings through Plaid.
-const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'], balance: [] };
-const PLAID_PRODUCT_LABEL = { spending: 'transactions', investments: 'investments', balance: 'balance' };
+// Plaid refuses a Link token with no products ("must provide at least one product") and never
+// accepts "balance" as a product: Balance comes free with whatever else is asked for. So a
+// balance-only connection (HSAs, some savings products that offer neither transactions nor
+// holdings) asks for the cheapest product the institution is likely to allow: account details
+// (auth) first, account-holder details (identity) as the fallback. The sync never calls either;
+// it only reads /accounts/get for these connections.
+const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'], balance: ['auth'], balanceIdentity: ['identity'] };
+const PLAID_PRODUCT_LABEL = { spending: 'transactions', investments: 'investments', balance: 'balance', balanceIdentity: 'balance' };
 
 /* ---------- configuration ---------- */
 
@@ -125,7 +129,7 @@ function getConnectContext() {
 }
 
 /**
- * Step 1 of connecting: create a Hosted Link session. mode = 'spending' | 'investments'.
+ * Step 1 of connecting: create a Hosted Link session. mode = 'spending' | 'investments' | 'balance' | 'balanceIdentity'.
  * For a repair pass { connectionId } instead; Plaid then reopens the same connection (no new slot).
  */
 function startHostedLink(opts) {

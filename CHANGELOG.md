@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-07 — Balance only: ask Plaid for account details instead of nothing
+- What changed: the Balance only kind failed on its first real try with
+  Plaid's `INVALID_FIELD — must provide at least one product`. Plaid's API
+  definition confirms a Link token must name at least one product and never
+  accepts `balance` as one (Balance comes with whatever else is asked for).
+  The Balance only kind now asks for account details (`auth`), the product
+  most institutions allow, and the dialog offers account-holder details
+  (`identity`) as a fallback if Plaid flags the institution for that too.
+  The tracker never reads either; the sync still only reads balances for
+  these connections, which are still recorded as `balance` on Connections.
+- Files changed in `apps-script/`: `Plaid.gs`, `ConnectDialog.html`
+  (deployed on merge). Nothing to run afterwards.
+- Tested: Node (balance mode sends `auth` only; fallback sends `identity`
+  only; both recorded as balance connections). Not yet tried in Google
+  against HealthEquity; which product HealthEquity allows is unknown until
+  the owner tries.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/balance-only-via-auth`
+
 ## 2026-11-07 — Connect dialog: Balance only — any account type
 - What changed: a third kind of connection in Bank feed → Connect a bank…
   that asks Plaid for no products, so only the balance is read nightly.
