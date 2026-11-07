@@ -69,7 +69,7 @@ function qaReport_() {
   info(tx.length + ' transactions read (' + deletedCount + ' soft-deleted, excluded from every total below)');
 
   const summary = readTable_(tdef_('SUMMARY')).filter(r => r.month instanceof Date);
-  if (!summary.length) fail('Monthly Summary has no month rows'); else pass('Monthly Summary lists ' + summary.length + ' month(s)');
+  if (!summary.length) { if (!live.length && !inc.length) info('Monthly Summary has no month rows yet: it fills in as soon as Income or Transactions have rows.'); else fail('Monthly Summary has no month rows'); } else pass('Monthly Summary lists ' + summary.length + ' month(s)');
   summary.forEach(s => {
     const m = mk(s.month);
     const expSpend = sumWhere(live, t => mk(t.month) === m && t.type === 'Expense', 'amount') - sumWhere(live, t => mk(t.month) === m && t.type === 'Refund', 'amount');
