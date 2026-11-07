@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-11-07
+Last updated: 2026-11-07 (first build confirmed in Google)
 
 ## Works
 - The full build (`buildWorkbookWithSample` / `buildWorkbookEmpty`): 20 tabs,
@@ -17,8 +17,10 @@ Last updated: 2026-11-07
   calculated sheets (tested in Node; never deployed).
 
 ## Known issues
-- **Nothing has run in Google yet.** The first real build is the next step;
-  expect small formula or layout adjustments after the owner's first look.
+- The owner's Apps Script project holds the nine files under their repo
+  names, except that `Config.gs` is still the editor's default `Code.gs`.
+  Harmless; handoff pages should say "Code.gs (Config)" for that file until
+  it is renamed.
 - `buildWorkbook()` is a from-scratch builder. There is no upgrade path yet
   for a workbook that already holds real data; the first change requested
   after real data is entered must add one (see Next).
@@ -29,7 +31,7 @@ Last updated: 2026-11-07
   `extendTable_` when a table nears its cap.
 
 ## In progress
-- First build in Google and the owner's first review.
+- Owner's visual review of the Dashboard (QA checks logic, not looks).
 
 ## Bank feed decision (2026-11-07)
 - Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no
@@ -76,9 +78,15 @@ Last updated: 2026-11-07
   deposits; eight real accounts with blank balances; no credit scores; the
   helpers, onEdit, API append/soft-delete, and Clear sample data run and do
   what they should.
-- Still to test in Google: that every formula evaluates without error
-  (`runQA()` checks this at the end of the build and from the menu); the
-  Monthly Plan `LET` weekly guidance; the array formula that lists months on
-  Monthly Summary; SPARKLINE bars; the Dashboard's look (widths, merges,
-  colors); build time against the 6-minute limit; the menu dialogs (split,
-  clear sample data, rebuild); authorization prompts.
+- Confirmed in Google (owner's build, 2026-11-07, `runQA()` all PASS): no
+  formula errors on any of the 20 tabs; headers, validations and no-merge
+  rule on every table; Monthly Summary, Monthly Budget, Monthly Plan
+  (including the current-month `LET` weekly guidance), fund balances, debt
+  balances and split balance all match independent recomputation with the
+  soft-deleted row excluded; every paycheck linked to its deposit; Dashboard
+  cards, payroll headers and Federal Tax rows match Income; the flexible
+  section follows today's month; credit scores blank. The build itself
+  completed within the execution limit.
+- Still to test in Google: SPARKLINE bars once a credit score is entered;
+  the Dashboard's look (owner review); the menu dialogs (split, clear sample
+  data, rebuild, record snapshot) and the onEdit change-log capture in use.
