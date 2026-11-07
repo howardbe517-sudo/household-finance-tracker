@@ -63,8 +63,8 @@
       "heading": "Connect the rest",
       "steps": [
         {
-          "text": "Repeat **Connect a bank…** as a **Spending account** for Capital One (→ ACC-010), PayPal (→ ACC-006), **American Express** (Create a new Accounts row) and **Venmo** (Create a new Accounts row). Capital One and Amex send you to their own login pages inside Plaid; that is expected.",
-          "note": "If a connection fails halfway, use Bank feed → Repair a connection…, never Connect again for the same bank."
+          "text": "Repeat **Connect a bank…** as a **Spending account** for Capital One (→ ACC-010), PayPal (→ ACC-006), **American Express** (Create a new Accounts row) and **Venmo** (Create a new Accounts row). Capital One and Amex send you to their own login pages inside Plaid; that is expected. In step 3 the dialog now pre-selects your matching Accounts row when the bank and account type line up; check it before saving.",
+          "note": "Capital One also returns the auto loan as a second account: leave it on Create a new Accounts row with Import transactions unticked (balance only); the car payment itself is recorded from checking. If a connection fails halfway, use Bank feed → Repair a connection…, never Connect again for the same bank."
         },
         {
           "text": "Repeat **Connect a bank…** as **Investment, retirement or HSA account** for Acorns (→ ACC-011), Fidelity (→ ACC-012) and HealthEquity (→ ACC-013). Leave **Import transactions** unticked for these; they update balances only.",

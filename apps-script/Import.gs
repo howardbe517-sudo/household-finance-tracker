@@ -61,8 +61,15 @@ function classifyRow_(row, ctx) {
   const out = { suggestedType: '', suggestedCategory: '', suggestedSubcategory: '', suggestedSpendingType: '', suggestedPerson: '', suggestedFundId: '', suggestedDebtId: '', ruleId: '', status: IMPORT_STATUS.REVIEW, autoImport: false };
   const acct = ctx.accountsById[row.accountId] || {};
   const isCard = acct.accountType === 'Credit Card';
+  const isLoan = acct.accountType === 'Loan';
   const amount = Number(row.amount || 0);
   const rule = findRule_(ctx.rules || [], row);
+  if (isLoan && !rule) {
+    // Activity inside a loan account is never income or spending: a payment received is the
+    // loan's side of a Debt Payment (recorded from the paying account); interest is tracked on Debts.
+    out.suggestedType = 'Transfer';
+    return out;
+  }
   if (rule) {
     out.suggestedType = rule.type || (amount < 0 ? (isCard ? 'Refund' : 'Income') : 'Expense');
     out.suggestedCategory = rule.category || '';

@@ -184,7 +184,8 @@ function finishHostedLink() {
   const acc = plaidCall_('/accounts/get', { access_token: ex.access_token });
   const accounts = (acc.accounts || []).map(a => ({ externalId: a.account_id, name: a.official_name || a.name, mask: a.mask || '', type: a.type, subtype: a.subtype || '',
     current: a.balances ? a.balances.current : '' }));
-  const mine = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, taken: !!a.externalAccountId }));
+  const mine = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, institution: a.institution || '', taken: !!a.externalAccountId }));
+  accounts.forEach(a => { a.guessType = guessAccountType_(a.type, a.subtype); });
   return { status: 'connected', connectionId: connId, institution, accounts, existingAccounts: mine, possibleDuplicate: sameInstitution };
 }
 
@@ -203,8 +204,7 @@ function finishAccountMapping(p) {
   let nextNum = parseInt(nextId_(accDef, 3).split('-')[1], 10);
   (p.mappings || []).forEach(m => {
     if (m.accountId === 'skip') return;
-    const typeMap = { depository: { checking: 'Checking', savings: 'Savings', hsa: 'HSA', 'cash management': 'Cash', paypal: 'Cash', prepaid: 'Cash' }, credit: { 'credit card': 'Credit Card', paypal: 'Credit Card' }, investment: { ira: 'Retirement', roth: 'Retirement', '401k': 'Retirement', hsa: 'HSA' }, loan: {} };
-    const guessType = (typeMap[m.type] || {})[m.subtype] || ({ depository: 'Checking', credit: 'Credit Card', investment: 'Investment', loan: 'Loan' }[m.type] || 'Other');
+    const guessType = guessAccountType_(m.type, m.subtype);
     const now = new Date();
     if (m.accountId && m.accountId !== 'new' && byId[m.accountId]) {
       const r = byId[m.accountId];
@@ -225,6 +225,12 @@ function finishAccountMapping(p) {
   setConnectionStatus_(p.connectionId, 'Active', 'Accounts mapped: ' + linked + ' linked, ' + created + ' created.', '');
   const synced = syncConnectionById_(p.connectionId);
   return { linked, created, synced };
+}
+
+/** Plaid account type/subtype → the tracker's Account Type. */
+function guessAccountType_(type, subtype) {
+  const typeMap = { depository: { checking: 'Checking', savings: 'Savings', hsa: 'HSA', 'cash management': 'Cash', paypal: 'Cash', prepaid: 'Cash' }, credit: { 'credit card': 'Credit Card', paypal: 'Credit Card' }, investment: { ira: 'Retirement', roth: 'Retirement', '401k': 'Retirement', '403B': 'Retirement', hsa: 'HSA' }, loan: {} };
+  return (typeMap[type] || {})[subtype] || ({ depository: 'Checking', credit: 'Credit Card', investment: 'Investment', loan: 'Loan' }[type] || 'Other');
 }
 
 /** Finance Tracker → Bank feed → Repair a connection… (update mode; never a new slot). */

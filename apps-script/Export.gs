@@ -168,7 +168,16 @@ function buildSnapshotText_(d) {
   L.push('');
 
   /* Debts */
-  const latestBal = (debt) => { const rows = d.qdr.filter(q => q.debtId === debt.id && q.quarterEnd instanceof Date).sort((a, b) => b.quarterEnd - a.quarterEnd); const q = rows[0]; const end = (q && q.endingBalance !== '' && q.endingBalance !== null) ? Number(q.endingBalance) : (q ? Math.max(Number(q.beginning || 0) - Number(q.payments || 0) + Number(q.interestFees || 0) + Number(q.adjustments || 0), 0) : 0); return rows.length ? { bal: end, asOf: q.quarterEnd } : { bal: Number(debt.originalBalance || 0), asOf: null }; };
+  const accountsById = {}; d.accounts.forEach(a => { accountsById[a.id] = a; });
+  const latestBal = (debt) => {
+    const rows = d.qdr.filter(q => q.debtId === debt.id && q.quarterEnd instanceof Date).sort((a, b) => b.quarterEnd - a.quarterEnd);
+    const q = rows[0];
+    const acc = debt.linkedAccount ? accountsById[debt.linkedAccount] : null;
+    const live = acc && acc.currentBalance !== '' && acc.currentBalance !== null && (!q || (acc.lastUpdated instanceof Date && acc.lastUpdated >= q.quarterEnd));
+    if (live) return { bal: Number(acc.currentBalance), asOf: acc.lastUpdated instanceof Date ? acc.lastUpdated : null, source: 'linked account' };
+    const end = (q && q.endingBalance !== '' && q.endingBalance !== null) ? Number(q.endingBalance) : (q ? Math.max(Number(q.beginning || 0) - Number(q.payments || 0) + Number(q.interestFees || 0) + Number(q.adjustments || 0), 0) : 0);
+    return rows.length ? { bal: end, asOf: q.quarterEnd, source: 'review' } : { bal: Number(debt.originalBalance || 0), asOf: null, source: 'original' };
+  };
   const debtRows = d.debts.map(x => Object.assign({ latest: latestBal(x) }, x));
   const groupOf = (x) => x.group || (x.debtType === 'Student Loan' ? 'Student Loans' : 'Household');
   L.push('## Debts');
