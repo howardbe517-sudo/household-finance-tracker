@@ -52,10 +52,53 @@ function upgradeWorkbookLocked_() {
   if (conflicts.length) throw new Error('Upgrade stopped before changing anything. These headers differ from the schema:\n' + conflicts.join('\n') + '\nRestore the header text (or tell me which change was intended) and run the upgrade again.');
 
   // 2. reference lists first (dropdowns depend on them)
-  report.push(...upgradeLists_());
+  report.push(...withRetry_('reference lists', () => upgradeLists_()));
+  SpreadsheetApp.flush();
 
-  // 3. tables
+  // 3. tables, one at a time, letting the Sheet recalculate between them
   BUILD_ORDER.forEach(key => {
+    toast_('Upgrading ' + tdef_(key).sheet + '…', 'Upgrade workbook');
+    withRetry_(tdef_(key).sheet, () => upgradeTable_(key, report));
+    SpreadsheetApp.flush();
+  });
+
+  // 4. documentation + dashboard tabs (rebuilt; settings and inputs preserved)
+  const settings = readSettings_();
+  withRetry_('App Setup', () => { buildAppSetup_(settings.samplePresent); restoreSettings_(settings); });
+  const dash = readDashboardInputs_();
+  withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
+  withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
+  withRetry_('Sources', () => buildSources_());
+  report.push('Refreshed App Setup, Dashboard, Start Here and Sources (settings kept).');
+
+  // 5. tab order
+  TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });
+  ss.setActiveSheet(ss.getSheetByName(SHEETS.DASH));
+  SpreadsheetApp.flush();
+  report.unshift('Schema ' + HFT.SCHEMA_VERSION + ' · script ' + HFT.BUILD_VERSION);
+  return report;
+}
+
+/** Run fn; if the Spreadsheet service times out, wait and try again (up to 3 attempts). */
+function withRetry_(label, fn) {
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try { return fn(); } catch (e) {
+      lastErr = e;
+      const msg = String(e && e.message || e);
+      if (!/timed out|Service error|Internal error|Too many simultaneous/i.test(msg)) throw e;
+      Logger.log('Retrying ' + label + ' after: ' + msg);
+      SpreadsheetApp.flush();
+      Utilities.sleep(2000 * attempt);
+    }
+  }
+  throw new Error(label + ' kept timing out (' + String(lastErr && lastErr.message || lastErr) + '). Reload the Sheet, wait a minute, and run Upgrade workbook again; it continues where it stopped.');
+}
+
+/** Upgrade one table in place (idempotent). */
+function upgradeTable_(key, report) {
+  const ss = ss_();
+  {
     const def = tdef_(key);
     let sh = ss.getSheetByName(def.sheet);
     // A sheet created empty by a dropdown reference (idsRange_) counts as new.
@@ -86,25 +129,7 @@ function upgradeWorkbookLocked_() {
     setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, needCols));
     if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
     if (addedCols.length) report.push(def.sheet + ': added column(s) ' + addedCols.join(', '));
-  });
-
-  // 4. documentation + dashboard tabs (rebuilt; settings and inputs preserved)
-  const settings = readSettings_();
-  buildAppSetup_(settings.samplePresent);
-  restoreSettings_(settings);
-  const dash = readDashboardInputs_();
-  buildDashboard_();
-  restoreDashboardInputs_(dash);
-  buildStartHere_(settings.samplePresent);
-  buildSources_();
-  report.push('Refreshed App Setup, Dashboard, Start Here and Sources (settings kept).');
-
-  // 5. tab order
-  TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });
-  ss.setActiveSheet(ss.getSheetByName(SHEETS.DASH));
-  SpreadsheetApp.flush();
-  report.unshift('Schema ' + HFT.SCHEMA_VERSION + ' · script ' + HFT.BUILD_VERSION);
-  return report;
+  }
 }
 
 /**
