@@ -140,13 +140,19 @@ function qaReport_() {
     else pass('Fund ' + f.id + ' ' + f.name + ': current ' + money(exp) + ' (+' + money(contrib) + ' / −' + money(wd) + ')');
   });
 
-  /* 7. debts vs quarterly review */
+  /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
   const qdr = readTable_(tdef_('QDR')).filter(q => q.quarterEnd instanceof Date);
+  const accById = {};
+  readTable_(tdef_('ACCOUNTS')).forEach(a => { accById[a.id] = a; });
   readTable_(tdef_('DEBTS')).forEach(d => {
     const rows = qdr.filter(q => q.debtId === d.id).sort((a, b) => b.quarterEnd - a.quarterEnd);
-    const exp = rows.length ? Number(rows[0].endingBalance || 0) : Number(d.originalBalance || 0);
-    if (!near(d.latestBalance, exp)) fail('Debt ' + d.id + ': Latest Balance ' + money(d.latestBalance) + ' ≠ ' + money(exp));
-    else pass('Debt ' + d.id + ' ' + d.name + ': latest balance ' + money(exp) + (rows.length ? ' from ' + mk(rows[0].quarterEnd) : ' (no review yet)'));
+    const acc = d.linkedAccount ? accById[d.linkedAccount] : null;
+    const qDate = rows.length ? rows[0].quarterEnd : null;
+    const liveOk = acc && acc.currentBalance !== '' && acc.currentBalance !== null && (!qDate || (acc.lastUpdated instanceof Date && acc.lastUpdated >= qDate));
+    const exp = liveOk ? Number(acc.currentBalance) : (rows.length ? Number(rows[0].endingBalance || 0) : Number(d.originalBalance || 0));
+    const src = liveOk ? 'live balance of ' + acc.id : (rows.length ? 'review ' + mk(rows[0].quarterEnd) : 'original balance (no review yet)');
+    if (!near(d.latestBalance, exp)) fail('Debt ' + d.id + ': Latest Balance ' + money(d.latestBalance) + ' ≠ ' + money(exp) + ' (' + src + ')');
+    else pass('Debt ' + d.id + ' ' + d.name + ': latest balance ' + money(exp) + ' from ' + src);
   });
 
   /* 8. splits */

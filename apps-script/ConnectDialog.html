@@ -70,11 +70,17 @@
     h += msg('ok', '<b>' + esc(r.institution) + '</b> connected as ' + esc(r.connectionId) + '.') + (r.possibleDuplicate ? msg('warn', 'Another connection to this institution already exists. If this was a mistake, nothing can give the slot back, but you can still map the accounts.') : '');
     h += '<p>For each account Plaid found, pick the row on your <b>Accounts</b> tab it belongs to, or create a new row. Tick <b>Import transactions</b> for spending accounts; leave it off for balance-only accounts.</p>';
     h += '<table><tr><th>Plaid account</th><th>Your Accounts row</th><th>Import transactions</th></tr>';
+    var suggestedIds = {};
     r.accounts.forEach(function (a, i) {
       var isSpend = (a.type === 'depository' || a.type === 'credit');
-      h += '<tr><td><b>' + esc(a.name) + '</b>' + (a.mask ? ' ····' + esc(a.mask) : '') + '<br><span class="muted">' + esc(a.type) + (a.subtype ? ' · ' + esc(a.subtype) : '') + (a.current !== '' && a.current != null ? ' · $' + Number(a.current).toFixed(2) : '') + '</span></td>' +
-        '<td><select id="map' + i + '"><option value="new">Create a new Accounts row</option><option value="skip">Skip this account</option>' +
-        r.existingAccounts.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.taken ? ' disabled' : '') + '>' + esc(x.id) + ' · ' + esc(x.name) + (x.taken ? ' (already linked)' : '') + '</option>'; }).join('') + '</select></td>' +
+      // Suggest the existing row whose institution and type match (e.g. Capital One + credit card → your Capital One card row).
+      var inst = String(r.institution || '').toLowerCase().split(' ')[0];
+      var match = r.existingAccounts.filter(function (x) { return !x.taken && !suggestedIds[x.id] && x.accountType === a.guessType && String(x.institution || '').toLowerCase().indexOf(inst) >= 0; })[0];
+      if (match) suggestedIds[match.id] = true;
+      h += '<tr><td><b>' + esc(a.name) + '</b>' + (a.mask ? ' ····' + esc(a.mask) : '') + '<br><span class="muted">' + esc(a.type) + (a.subtype ? ' · ' + esc(a.subtype) : '') + (a.current !== '' && a.current != null ? ' · $' + Number(a.current).toFixed(2) : '') + (a.type === 'loan' ? ' · balance only' : '') + '</span></td>' +
+        '<td><select id="map' + i + '">' + (match ? '' : '<option value="new" selected>Create a new Accounts row</option>') +
+        r.existingAccounts.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.taken ? ' disabled' : '') + (match && match.id === x.id ? ' selected' : '') + '>' + esc(x.id) + ' · ' + esc(x.name) + (x.taken ? ' (already linked)' : (match && match.id === x.id ? ' (suggested)' : '')) + '</option>'; }).join('') +
+        (match ? '<option value="new">Create a new Accounts row</option>' : '') + '<option value="skip">Skip this account</option></select></td>' +
         '<td style="text-align:center"><input type="checkbox" id="imp' + i + '"' + (isSpend && MODE === 'spending' ? ' checked' : '') + '></td></tr>';
     });
     h += '</table><div class="actions"><button class="primary" id="savemap" onclick="saveMap()">Save and run the first sync</button></div><div id="out"></div>';

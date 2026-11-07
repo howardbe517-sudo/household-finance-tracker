@@ -494,10 +494,13 @@ TABLES.DEBTS = {
     { key: 'minPayment', h: 'Minimum Payment', w: 110, fmt: C.cur },
     { key: 'dueDay', h: 'Due Day', w: 75, fmt: C.int },
     { key: 'latestBalance', h: 'Latest Balance', w: 115, fmt: C.cur,
-      f: '=IF([@id]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])=0,N([@originalBalance]),SUMIFS([QDR.endingBalance],[QDR.debtId],[@id],[QDR.quarterEnd],MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id]))))' },
+      f: '=IF([@id]="","",LET(q,MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id]),ab,IFERROR(INDEX([ACCOUNTS.currentBalance],MATCH([@linkedAccount],[ACCOUNTS.id],0)),""),ad,IFERROR(N(INDEX([ACCOUNTS.lastUpdated],MATCH([@linkedAccount],[ACCOUNTS.id],0))),0),' +
+         'IF(AND([@linkedAccount]<>"",ISNUMBER(ab),ad>=q),ab,IF(q=0,N([@originalBalance]),SUMIFS([QDR.endingBalance],[QDR.debtId],[@id],[QDR.quarterEnd],q)))))',
+      note: 'Changed in 3.1: when the debt is linked to an account whose balance is newer than the last quarterly review (e.g. a card or loan synced by the bank feed), that live balance is shown; otherwise the latest review; otherwise the original balance.' },
     { key: 'balanceAsOf', h: 'Balance As Of', w: 110, fmt: C.date,
-      f: '=IF([@id]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])=0,"No review yet",MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])))',
-      note: 'Added in the 3.0 rebuild: date of the review that supplied Latest Balance.' },
+      f: '=IF([@id]="","",LET(q,MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id]),ab,IFERROR(INDEX([ACCOUNTS.currentBalance],MATCH([@linkedAccount],[ACCOUNTS.id],0)),""),ad,IFERROR(N(INDEX([ACCOUNTS.lastUpdated],MATCH([@linkedAccount],[ACCOUNTS.id],0))),0),' +
+         'IF(AND([@linkedAccount]<>"",ISNUMBER(ab),ad>=q),IF(ad=0,"Linked account",ad),IF(q=0,"No review yet",q))))',
+      note: 'Date of the balance shown: the linked account\'s Last Updated, or the review\'s Quarter End.' },
     { key: 'targetPayoff', h: 'Target Payoff Date', w: 115, fmt: C.date, v: { date: true } },
     { key: 'linkedAccount', h: 'Linked Account ID', w: 115, v: { idsOf: 'ACCOUNTS' } },
     { key: 'notes', h: 'Notes', w: 220 },

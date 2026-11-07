@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 2026-11-07 — First real Plaid connection: fixes from what it surfaced
+- What changed: the owner connected Capital One through Plaid (the first
+  live run of the feed: Hosted Link, token exchange, account mapping and the
+  first sync all worked). Plaid returned two accounts, a credit card and the
+  auto loan, and three things needed fixing:
+  - A payment received inside a **loan account** was classified as Income.
+    Activity in a Loan account is now suggested as Transfer (never income or
+    spending); the loan's balance is what matters.
+  - The connect dialog's step 3 now **pre-selects the owner's existing
+    Accounts row** when the institution and account type match (e.g. Capital
+    One + credit card → the existing Capital One card row), instead of
+    defaulting to "Create a new row". Loan accounts are labelled "balance
+    only".
+  - **Debts · Latest Balance** now uses the linked account's live balance
+    when it is newer than the last quarterly review (so a card or loan synced
+    nightly shows today's balance), then the review, then the original
+    balance. Balance As Of shows which. QA and the AI snapshot follow the same
+    rule.
+- Files changed in `apps-script/`: `Config.gs`, `Import.gs`, `Plaid.gs`,
+  `ConnectDialog.html`, `QA.gs`, `Export.gs` (deployed automatically on
+  merge; the Debts formula change is applied by Finance Tracker → Upgrade
+  workbook, which rewrites changed formulas only).
+- Tested: Node tests (loan classification, live-balance fallback in the
+  snapshot) pass. Confirmed in Google: the full connect flow and first sync
+  for one institution; Independent Bank was down on Plaid's side at the time.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/bank-feed-first-run-fixes`
+
 ## 2026-11-07 — Automatic deploy: merging to main pushes the code into the Sheet
 - What changed: `.github/workflows/deploy.yml` runs the Node tests and then
   `clasp push -f` from `apps-script/` into the Apps Script project on every

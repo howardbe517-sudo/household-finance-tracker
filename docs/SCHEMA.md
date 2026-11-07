@@ -208,8 +208,8 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | G | Interest Rate (APR) | `apr` | percent | input |  |
 | H | Minimum Payment | `minPayment` | currency | input |  |
 | I | Due Day | `dueDay` | integer | input |  |
-| J | Latest Balance | `latestBalance` | currency | calculated | `=IF([@id]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])=0,N([@originalBalance]),SUMIFS([QDR.endingBalance],[QDR.debtId],[@id],[QDR.quarterEnd],MAXIFS(…` |
-| K | Balance As Of | `balanceAsOf` | date | calculated | `=IF([@id]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])=0,"No review yet",MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id])))` — Added in the 3.0 rebuild: date of the review that supplied Latest Balance. |
+| J | Latest Balance | `latestBalance` | currency | calculated | `=IF([@id]="","",LET(q,MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id]),ab,IFERROR(INDEX([ACCOUNTS.currentBalance],MATCH([@linkedAccount],[ACCOUNTS.id],0)),""),ad,…` — Changed in 3.1: when the debt is linked to an account whose balance is newer than the last quarterly review (e.g. a card or loan synced by the bank feed), that live balance is shown; otherwise the latest review; otherwise the original balance. |
+| K | Balance As Of | `balanceAsOf` | date | calculated | `=IF([@id]="","",LET(q,MAXIFS([QDR.quarterEnd],[QDR.debtId],[@id]),ab,IFERROR(INDEX([ACCOUNTS.currentBalance],MATCH([@linkedAccount],[ACCOUNTS.id],0)),""),ad,…` — Date of the balance shown: the linked account's Last Updated, or the review's Quarter End. |
 | L | Target Payoff Date | `targetPayoff` | date | input (date) |  |
 | M | Linked Account ID | `linkedAccount` | text | dropdown: Accounts IDs |  |
 | N | Notes | `notes` | text | input |  |

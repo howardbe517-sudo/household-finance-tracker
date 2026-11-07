@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-11-07 (bank feed built; not yet run in Google)
+Last updated: 2026-11-07 (bank feed deployed and first bank connected)
 
 ## Works
 - The full build (`buildWorkbookWithSample` / `buildWorkbookEmpty`): now 22
@@ -31,12 +31,22 @@ Last updated: 2026-11-07 (bank feed built; not yet run in Google)
   from entered columns; tested in Node against the sample data.
 - Earlier: menu helpers, onEdit change log, API scaffold, in-sheet QA.
 
+## Confirmed in Google (2026-11-07)
+- `upgradeWorkbook` on the live workbook: completed; a second run reported
+  nothing left to add. All QA checks pass on the deployed 3.1 code.
+- Automatic deploy: the first merge pushed 18 files with clasp.
+- Plaid, first live connection (Capital One): Hosted Link → token exchange →
+  account mapping → first sync all worked; a transaction landed in Import
+  Staging and the balance was written. Capital One returned the credit card
+  and the auto loan.
+- Plaid reported Independent Bank (MI) as down ("Connectivity down") at the
+  time; to be retried. No slot is used by a failed attempt.
+
 ## Known issues
-- **The 3.1 build has not run in Google yet.** First the owner pastes the
-  files and runs `upgradeWorkbook`; then the Plaid flow runs for real for the
-  first time. Expect adjustments, especially around Hosted Link's response
-  shape (`/link/token/get` → `link_sessions[].results.item_add_results`) and
-  whether Fidelity needs an access request on the Trial plan.
+- The owner's Accounts tab has a duplicate card row (ACC-014) created by the
+  first mapping before the pre-select fix; it is neutralised (not linked,
+  Include in Net Worth = No) and the owner can delete the row by hand.
+- Fidelity may need an access request on the Trial plan; unknown until tried.
 - `upgradeWorkbook()` does not add sample Import Rules / staged rows to an
   existing workbook (only a fresh build has them). The owner's first review
   will use real rows from the first sync.
@@ -49,8 +59,12 @@ Last updated: 2026-11-07 (bank feed built; not yet run in Google)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
-- Pull request `claude/bank-import-plaid` (16 files to paste); handoff page
-  `handoffs/2026-11-07-bank-import.json`.
+- Connecting the remaining institutions (Independent Bank once Plaid's
+  connection is back, PayPal, Amex, Venmo; balance-only Acorns, Fidelity,
+  HealthEquity); then Clear sample data; then real paychecks, funds, debts
+  and the flexible target.
+- Pull request `claude/bank-feed-first-run-fixes` (loan classification,
+  dialog pre-select, live debt balances).
 
 ## Bank feed decision (2026-11-07)
 - Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no
