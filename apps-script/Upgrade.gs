@@ -129,6 +129,10 @@ function upgradeTable_(key, report) {
     setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, needCols));
     if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
     if (addedCols.length) report.push(def.sheet + ': added column(s) ' + addedCols.join(', '));
+    // Presentation strips hold no entered data, so they are simply redrawn to the current design.
+    if (key === 'DEBTS') buildDebtsTop_(sh, def);
+    if (key === 'RECUR') buildRecurringTop_(sh, def);
+    if (key === 'NW') buildNetWorthHelper_(sh, def);
   }
 }
 

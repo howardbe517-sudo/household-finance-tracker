@@ -318,6 +318,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 1); del('Quarterly Debt Review', 11, 1);
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
+  ssx.getSheetByName('Debts').getRange(4, 1).setValue('Total Latest Balance');
   ['LIST_DEBT_GROUPS', 'LIST_MATCH_TYPES', 'LIST_STAGING_STATUSES', 'LIST_CONNECTION_STATUSES', 'TBL_RULES', 'TBL_CONN'].forEach(n => { const nr = ssx.namedRanges.get(n); if (nr) nr.remove(); });
   const rep = R(`upgradeWorkbook()`);
   const repText = rep.join('\n');
@@ -339,6 +340,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const namesAfter = ssx.getSheets().map(s => s.getName());
   if (JSON.stringify(namesAfter) === JSON.stringify(TAB_ORDER)) ok('tab order restored after upgrade'); else bad('tab order after upgrade: ' + namesAfter.join(' | '));
   if (ssx.getRangeByName('SETTING_CHANGE_LOG').getValue() === true && ssx.getRangeByName('SETTING_AUTO_PAIRS').getValue() === true) ok('settings preserved through the App Setup rebuild'); else bad('settings lost in upgrade');
+  if (ssx.getSheetByName('Debts').getRange(4, 1).getValue() === 'Household Debt (excl. student loans)') ok('upgrade redraws the Debts KPI band to the current design'); else bad('Debts band not redrawn: ' + ssx.getSheetByName('Debts').getRange(4, 1).getValue());
   const rep2 = R(`upgradeWorkbook()`).join('\n');
   if (!/added column|Added tab|Added list/.test(rep2)) ok('running the upgrade again changes nothing'); else bad('second upgrade not idempotent: ' + rep2);
   ssx.getSheetByName('Transactions').getRange(4, 2).setValue('Day');
