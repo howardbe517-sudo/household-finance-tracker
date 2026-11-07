@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-07 — Connect dialog: Balance only — any account type
+- What changed: a third kind of connection in Bank feed → Connect a bank…
+  that asks Plaid for no products, so only the balance is read nightly.
+  Needed for HealthEquity, which Plaid flags "not supported" for both
+  transactions and investment holdings, and useful for any institution that
+  refuses the other two kinds. Connections rows record `balance` as the
+  product; the sync already treats non-transaction connections as
+  balance-only (`/accounts/get`).
+- Files changed in `apps-script/`: `Plaid.gs`, `ConnectDialog.html`
+  (deployed on merge). Nothing to run afterwards.
+- Tested: Node (the balance-only link token sends an empty products list).
+  Not yet tried in Google against HealthEquity.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/balance-only-connections`
+
 ## 2026-11-07 — Upgrade: quieter formula comparison; presentation strips redrawn
 - What changed: `upgradeWorkbook` compared stored formulas character for
   character, but Google drops the quotes around one-word tab names

@@ -17,7 +17,10 @@
  */
 
 const PLAID_HOSTS = { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' };
-const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'] };
+// balance: an empty products list — Plaid's balance-only connection, for institutions (HSAs, some
+// savings products) that offer neither transactions nor investment holdings through Plaid.
+const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'], balance: [] };
+const PLAID_PRODUCT_LABEL = { spending: 'transactions', investments: 'investments', balance: 'balance' };
 
 /* ---------- configuration ---------- */
 
@@ -137,7 +140,7 @@ function startHostedLink(opts) {
     if (!token) throw new Error('No access token stored for ' + opts.connectionId + '.');
     body.access_token = token; // update (repair) mode: same Item, no new slot
   } else {
-    const mode = opts.mode === 'investments' ? 'investments' : 'spending';
+    const mode = PLAID_PRODUCTS[opts.mode] ? opts.mode : 'spending';
     body.products = PLAID_PRODUCTS[mode];
     if (mode === 'spending') body.transactions = { days_requested: daysRequested_() };
   }
@@ -176,7 +179,7 @@ function finishHostedLink() {
   plaidProps_().deleteProperty(PLAID_PROPS.PENDING_LINK);
   const sameInstitution = existing.filter(c => c.institution === institution && c.id !== connId).length > 0;
   if (!dup) {
-    writeRows_(connDef, [{ id: connId, institution, itemId: ex.item_id, products: PLAID_PRODUCTS[pending.mode === 'investments' ? 'investments' : 'spending'].join(', '),
+    writeRows_(connDef, [{ id: connId, institution, itemId: ex.item_id, products: PLAID_PRODUCT_LABEL[pending.mode] || 'transactions',
       status: 'Pending', lastResult: 'Connected; map the accounts to finish.', lastError: '', syncCursor: '', addedOn: new Date(),
       notes: sameInstitution ? 'Possible duplicate: another connection to this institution already exists. Each uses a Trial slot.' : '' }]);
     appendChangeLog_({ table: 'CONN', recordId: connId, field: '(row)', newValue: institution, action: 'Insert', user: userEmail_() || 'connect-dialog' });
