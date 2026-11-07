@@ -37,8 +37,9 @@
 
   function step1() {
     var h = '<h3>Step 1 · What kind of account?</h3>';
-    h += '<label class="choice"><input type="radio" name="m" value="spending" checked onchange="MODE=this.value"><div><b>Spending account</b> — bank, credit card, PayPal, Venmo<small>Transactions and balances are imported. Uses ' + C.daysRequested + ' days of history' + (C.startDate ? ' (from ' + esc(C.startDate) + ')' : ' (no start date set — use Bank feed → Set history start date first)') + '.</small></div></label>';
+    h += '<label class="choice"><input type="radio" name="m" value="spending" checked onchange="MODE=this.value"><div><b>Spending account</b> — bank, credit card, PayPal, Venmo<small>Transactions and balances are imported. Uses ' + C.daysRequested + ' days of history' + (C.startDate ? ' (from ' + esc(C.startDate) + ')' : ' (no start date set — use Bank feed → Set history start date first)') + '. Card interest rates, minimum payments and due dates are read too where the bank offers them.</small></div></label>';
     h += '<label class="choice"><input type="radio" name="m" value="investments" onchange="MODE=this.value"><div><b>Investment or retirement account</b> — Acorns, Fidelity<small>Holdings and balances, for net worth. No transactions are imported.</small></div></label>';
+    h += '<label class="choice"><input type="radio" name="m" value="loans" onchange="MODE=this.value"><div><b>Loan or student loan servicer</b> — Nelnet, MOHELA, Aidvantage, EdFinancial, Navient, or any lender<small>Balance, interest rate, minimum payment, due date and repayment plan each night. A Debts row is matched or created for every loan, so totals and PSLF progress need no typing.</small></div></label>';
     h += '<label class="choice"><input type="radio" name="m" value="balance" onchange="MODE=this.value"><div><b>Balance only — any account type</b> — HealthEquity HSA, or any institution Plaid flags as "not supported" for the other two<small>Only the current balance is read, each night. Plaid insists on being asked for at least one kind of data, so this asks for <b>account details</b>, which most institutions allow. If Plaid flags the institution for that too, come back and pick <b>account-holder details</b> below instead; neither is ever read by the tracker.</small>' +
       '<small style="margin-top:6px">Ask Plaid for: <select id="balvia" onclick="event.stopPropagation()"><option value="balance">Account details (try this first)</option><option value="balanceIdentity">Account-holder details (if the first is flagged)</option></select></small></div></label>';
     h += '<div class="box' + (C.slotsUsed >= C.slotLimit ? ' err' : C.slotsUsed >= C.slotLimit - 2 ? ' warn' : '') + '"><b>' + C.slotsUsed + ' of ' + C.slotLimit + '</b> free-plan connections used (the Plaid dashboard\'s own count can be higher: it also counts attempts that never reached the Sheet).' + (C.connections.length ? '<ul>' + C.connections.map(function (c) { return '<li>' + esc(c.id) + ' · ' + esc(c.institution) + ' · ' + esc(c.status) + '</li>'; }).join('') + '</ul><span class="muted">If your bank is already in this list, close this window and use <b>Bank feed → Repair a connection</b> instead. Connecting it again would use another slot for good.</span>' : '') + '</div>';
@@ -73,6 +74,8 @@
     var h = '<h3>Step 3 · Match the accounts</h3>';
     h += msg('ok', '<b>' + esc(r.institution) + '</b> connected as ' + esc(r.connectionId) + '.' + (RESUMED ? ' Plaid finished earlier but the accounts were never matched; finish that here. No new slot is used.' : '')) + (r.possibleDuplicate ? msg('warn', 'Another connection to this institution already exists. If this was a mistake, nothing can give the slot back, but you can still map the accounts.') : '');
     h += '<p>For each account Plaid found, pick the row on your <b>Accounts</b> tab it belongs to, or create a new row. Tick <b>Import transactions</b> for spending accounts; leave it off for balance-only accounts.</p>';
+    var hasLoan = r.accounts.some(function (a) { return a.type === 'loan'; });
+    if (hasLoan) h += '<p><b>Whose loans are these?</b> <select id="owner">' + (C.owners || ['Ben', 'Valerie', 'Household']).map(function (o) { return '<option' + (o === 'Household' && MODE !== 'loans' ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select> <span class="muted">Each loan gets a Debts row (an empty row you already made for this person and loan type is used first).</span></p>';
     h += '<table><tr><th>Plaid account</th><th>Your Accounts row</th><th>Import transactions</th></tr>';
     var suggestedIds = {};
     r.accounts.forEach(function (a, i) {
@@ -94,11 +97,13 @@
   function saveMap() {
     var b = document.getElementById('savemap'); b.disabled = true; b.textContent = 'Saving and syncing… this can take a minute';
     var mappings = RESULT.accounts.map(function (a, i) { return { externalId: a.externalId, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype, current: a.current, accountId: document.getElementById('map' + i).value, importTx: document.getElementById('imp' + i).checked }; });
+    var ownerEl = document.getElementById('owner');
     google.script.run.withSuccessHandler(function (res) {
       var s = res.synced || {};
       b.style.display = 'none'; // the save is finished; only Close remains
-      document.getElementById('out').innerHTML = msg('ok', 'Done. ' + res.linked + ' account(s) linked, ' + res.created + ' created. First sync: ' + (s.error ? 'error — ' + esc(s.error) : esc(s.added) + ' new transaction(s) in Import Staging, ' + esc(s.autoImported) + ' auto-imported, ' + esc(s.balances) + ' balance(s) updated.') + '<br>Turn on <b>Bank feed → Nightly sync</b> if you have not yet.') + '<div class="actions"><button onclick="google.script.host.close()">Close</button></div>';
-    }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); b.disabled = false; b.textContent = 'Save and run the first sync'; }).finishAccountMapping({ connectionId: RESULT.connectionId, institution: RESULT.institution, mappings: mappings });
+      var dbt = res.debts && (res.debts.reused || res.debts.created) ? ' Debts rows: ' + res.debts.reused + ' matched, ' + res.debts.created + ' created.' : '';
+      document.getElementById('out').innerHTML = msg('ok', 'Done. ' + res.linked + ' account(s) linked, ' + res.created + ' created.' + dbt + ' First sync: ' + (s.error ? 'error — ' + esc(s.error) : esc(s.added) + ' new transaction(s) in Import Staging, ' + esc(s.autoImported) + ' auto-imported, ' + esc(s.balances) + ' balance(s) updated.') + '<br>Turn on <b>Bank feed → Nightly sync</b> if you have not yet.') + '<div class="actions"><button onclick="google.script.host.close()">Close</button></div>';
+    }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); b.disabled = false; b.textContent = 'Save and run the first sync'; }).finishAccountMapping({ connectionId: RESULT.connectionId, institution: RESULT.institution, mappings: mappings, owner: ownerEl ? ownerEl.value : '' });
   }
 </script>
 </body>

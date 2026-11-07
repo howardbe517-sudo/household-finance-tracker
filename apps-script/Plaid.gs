@@ -23,8 +23,10 @@ const PLAID_HOSTS = { production: 'https://production.plaid.com', sandbox: 'http
 // holdings) asks for the cheapest product the institution is likely to allow: account details
 // (auth) first, account-holder details (identity) as the fallback. The sync never calls either;
 // it only reads /accounts/get for these connections.
-const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'], balance: ['auth'], balanceIdentity: ['identity'] };
-const PLAID_PRODUCT_LABEL = { spending: 'transactions', investments: 'investments', balance: 'balance', balanceIdentity: 'balance' };
+// loans: a lender or student loan servicer. Liabilities gives the balance plus rate, minimum payment,
+// due date and (for student loans) repayment plan and status; the sync writes those to Debts.
+const PLAID_PRODUCTS = { spending: ['transactions'], investments: ['investments'], balance: ['auth'], balanceIdentity: ['identity'], loans: ['liabilities'] };
+const PLAID_PRODUCT_LABEL = { spending: 'transactions', investments: 'investments', balance: 'balance', balanceIdentity: 'balance', loans: 'liabilities' };
 
 /* ---------- configuration ---------- */
 
@@ -126,7 +128,8 @@ function getConnectContext() {
   const conns = readTable_(tdef_('CONN')).map(c => ({ id: c.id, institution: c.institution, status: c.status, products: c.products }));
   const pendingMapping = pendingMapping_();
   const accounts = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, externalAccountId: a.externalAccountId, connectionId: a.connectionId }));
-  return { connections: conns, slotsUsed: conns.length, slotLimit: PLAID_TRIAL_LIMIT, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_(), pendingMapping };
+  const owners = (LISTS.filter(l => l.key === 'OWNERS')[0] || { values: [] }).values;
+  return { connections: conns, slotsUsed: conns.length, slotLimit: PLAID_TRIAL_LIMIT, owners, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_(), pendingMapping };
 }
 
 /**
@@ -147,7 +150,11 @@ function startHostedLink(opts) {
   } else {
     const mode = PLAID_PRODUCTS[opts.mode] ? opts.mode : 'spending';
     body.products = PLAID_PRODUCTS[mode];
-    if (mode === 'spending') body.transactions = { days_requested: daysRequested_() };
+    if (mode === 'spending') {
+      body.transactions = { days_requested: daysRequested_() };
+      // card APRs, minimum payments and due dates where the bank offers them; banks that do not are still listed
+      body.required_if_supported_products = ['liabilities'];
+    }
   }
   const res = plaidCall_('/link/token/create', body);
   plaidProps_().setProperty(PLAID_PROPS.PENDING_LINK, JSON.stringify({ link_token: res.link_token, mode: opts.mode || 'spending', connectionId: opts.connectionId || '', created: new Date().toISOString() }));
@@ -167,6 +174,7 @@ function finishHostedLink() {
     const finished = sessions.some(s => s.finished_at) || !!done;
     if (!finished) return { status: 'not_finished' };
     setConnectionStatus_(pending.connectionId, 'Active', 'Repaired ' + new Date().toISOString().slice(0, 10), '');
+    setConnectionField_(pending.connectionId, 'liabilities', ''); // ask the lender again after a repair
     plaidProps_().deleteProperty(PLAID_PROPS.PENDING_LINK);
     const synced = syncConnectionById_(pending.connectionId);
     return { status: 'repaired', connectionId: pending.connectionId, synced };
@@ -215,7 +223,7 @@ function existingAccountsForMapping_() {
 
 /** The Connections product label → the dialog's kind of connection. */
 function modeFromProducts_(label) {
-  return { transactions: 'spending', investments: 'investments', balance: 'balance' }[String(label || '').trim()] || 'spending';
+  return { transactions: 'spending', investments: 'investments', balance: 'balance', liabilities: 'loans' }[String(label || '').trim()] || 'spending';
 }
 
 /**
@@ -251,6 +259,7 @@ function finishAccountMapping(p) {
   const byId = {}; rows.forEach(r => { byId[r.id] = r; });
   let linked = 0, created = 0;
   const newRows = [];
+  const loans = []; // [accountId, mapping] for every loan account, so a Debts row can be linked
   let nextNum = parseInt(nextId_(accDef, 3).split('-')[1], 10);
   (p.mappings || []).forEach(m => {
     if (m.accountId === 'skip') return;
@@ -258,6 +267,7 @@ function finishAccountMapping(p) {
     const now = new Date();
     if (m.accountId && m.accountId !== 'new' && byId[m.accountId]) {
       const r = byId[m.accountId];
+      if (m.type === 'loan' || m.type === 'credit') loans.push([r.id, m, r.name]);
       sh.getRange(r.__row, colIndex_(accDef, 'externalAccountId')).setValue(m.externalId);
       sh.getRange(r.__row, colIndex_(accDef, 'connectionId')).setValue(p.connectionId);
       sh.getRange(r.__row, colIndex_(accDef, 'importTx')).setValue(m.importTx === true);
@@ -265,18 +275,65 @@ function finishAccountMapping(p) {
       appendChangeLog_({ table: 'ACCOUNTS', recordId: r.id, field: 'External Account ID', oldValue: r.externalAccountId, newValue: m.externalId, action: 'Update', user: userEmail_() || 'connect-dialog' });
       linked++;
     } else {
-      newRows.push({ id: 'ACC-' + String(nextNum++).padStart(3, '0'), name: m.name + (m.mask ? ' ····' + m.mask : ''), institution: p.institution || '', accountType: guessType,
+      const newId = 'ACC-' + String(nextNum++).padStart(3, '0');
+      if (m.type === 'loan' || m.type === 'credit') loans.push([newId, m, m.name + (m.mask ? ' ····' + m.mask : '')]);
+      newRows.push({ id: newId, name: m.name + (m.mask ? ' ····' + m.mask : ''), institution: p.institution || '', accountType: guessType,
         owner: '', includeNW: 'Yes', startingBalance: '', currentBalance: m.current === '' || m.current === null || m.current === undefined ? '' : Number(m.current), lastUpdated: now,
         notes: 'Created by the bank feed on ' + now.toISOString().slice(0, 10), externalAccountId: m.externalId, connectionId: p.connectionId, importTx: m.importTx === true, lastSynced: now });
       created++;
     }
   });
   if (newRows.length) { writeRows_(accDef, newRows); newRows.forEach(r => appendChangeLog_({ table: 'ACCOUNTS', recordId: r.id, field: '(row)', newValue: r.name, action: 'Insert', user: userEmail_() || 'connect-dialog' })); }
-  setConnectionStatus_(p.connectionId, 'Active', 'Accounts mapped: ' + linked + ' linked, ' + created + ' created.', '');
+  const debts = { linked: 0, reused: 0, created: 0, none: 0 };
+  loans.forEach(l => { debts[ensureDebtRowForLoan_(l[0], l[1], l[2], p)]++; });
+  setConnectionStatus_(p.connectionId, 'Active', 'Accounts mapped: ' + linked + ' linked, ' + created + ' created.' + (debts.reused || debts.created ? ' Debts rows: ' + debts.reused + ' matched, ' + debts.created + ' created.' : ''), '');
   const rawMap = plaidProps_().getProperty(PLAID_PROPS.PENDING_MAP);
   if (rawMap) { try { if (JSON.parse(rawMap).connectionId === p.connectionId) plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } catch (e) { plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } }
   const synced = syncConnectionById_(p.connectionId);
-  return { linked, created, synced };
+  return { linked, created, debts, synced };
+}
+
+/**
+ * Every loan account the feed brings in gets a Debts row, so its balance, rate and payments flow
+ * into the debt totals without typing. Reuses an empty row the owner already made for it (same
+ * owner and debt type, no linked account, no balance) before creating one. A credit card only
+ * reuses an empty Credit Card row whose lender matches the institution (cards paid in full each
+ * month need no Debts row, so none is created).
+ * Returns 'linked' (a row already pointed at this account), 'reused', 'created' or 'none'.
+ */
+function ensureDebtRowForLoan_(accountId, m, accountName, p) {
+  const def = tdef_('DEBTS');
+  syncLastRow_(def);
+  const debts = readTable_(def);
+  if (debts.some(d => d.linkedAccount === accountId)) return 'linked';
+  const sub = String(m.subtype || '').toLowerCase();
+  const isCard = m.type === 'credit';
+  const isStudent = /student/.test(sub);
+  const debtType = isCard ? 'Credit Card' : isStudent ? 'Student Loan' : /auto/.test(sub) ? 'Auto Loan' : /mortgage|home/.test(sub) ? 'Mortgage' : 'Personal Loan';
+  const owner = p.owner || 'Household';
+  const group = isStudent ? 'Student Loans' : 'Household';
+  const today = new Date().toISOString().slice(0, 10);
+  const sh = getOrCreateSheet_(def.sheet);
+  const instWord = String(p.institution || '').toLowerCase().split(' ')[0];
+  const empty = (d) => !d.linkedAccount && d.debtType === debtType && !(Number(d.originalBalance) > 0);
+  const placeholder = isCard
+    ? debts.filter(d => empty(d) && instWord && String(d.lender || '').toLowerCase().indexOf(instWord) >= 0)[0]
+    : debts.filter(d => empty(d) && String(d.owner || '') === owner)[0];
+  if (!placeholder && isCard) return 'none';
+  if (placeholder) {
+    const put = (key, val) => sh.getRange(placeholder.__row, colIndex_(def, key)).setValue(val);
+    put('linkedAccount', accountId);
+    if (!placeholder.lender) put('lender', p.institution || '');
+    if (!placeholder.group) put('group', group);
+    put('notes', (placeholder.notes ? placeholder.notes + ' ' : '') + 'Linked to ' + accountName + ' by the bank feed on ' + today + '.');
+    appendChangeLog_({ table: 'DEBTS', recordId: placeholder.id, field: 'Linked Account ID', oldValue: '', newValue: accountId, action: 'Update', user: userEmail_() || 'connect-dialog' });
+    return 'reused';
+  }
+  const id = nextId_(def, 3);
+  writeRows_(def, [{ id, name: accountName, debtType, lender: p.institution || '', owner, group, linkedAccount: accountId,
+    notes: 'Created by the bank feed on ' + today + '. The balance comes from the linked account; rate, minimum payment, due day and original principal arrive with the sync where the lender provides them.' }]);
+  appendChangeLog_({ table: 'DEBTS', recordId: id, field: '(row)', newValue: accountName, action: 'Insert', user: userEmail_() || 'connect-dialog' });
+  return 'created';
 }
 
 /** Plaid account type/subtype → the tracker's Account Type. */
@@ -424,6 +481,7 @@ function syncConnection_(conn) {
       const res = plaidCall_('/accounts/get', { access_token: token });
       summary.balances = updateBalances_(res.accounts, accountMap);
     }
+    if (products.indexOf('transactions') >= 0 || products.indexOf('liabilities') >= 0) summary.liabilities = syncLiabilities_(conn, token, accountMap);
     setConnectionStatus_(conn.id, 'Active', summarizeSync_(summary), '');
   } catch (e) {
     summary.error = String(e && e.message || e);
@@ -437,13 +495,110 @@ function syncConnection_(conn) {
 function summarizeSync_(s) {
   if (!s) return '';
   if (s.error) return 'Error: ' + s.error;
-  return s.added + ' new, ' + s.updated + ' updated, ' + s.removed + ' removed, ' + s.autoImported + ' auto-imported, ' + s.balances + ' balance(s)' + (s.skippedBeforeStart ? ', ' + s.skippedBeforeStart + ' before start date' : '');
+  return s.added + ' new, ' + s.updated + ' updated, ' + s.removed + ' removed, ' + s.autoImported + ' auto-imported, ' + s.balances + ' balance(s)' + (s.liabilities ? ', ' + s.liabilities + ' debt row(s) updated from the lender' : '') + (s.skippedBeforeStart ? ', ' + s.skippedBeforeStart + ' before start date' : '');
+}
+
+/* ---------- lender data (Plaid Liabilities) → Debts ---------- */
+
+function setConnectionField_(connId, key, value) {
+  const def = tdef_('CONN');
+  const r = findRowById_(def, connId);
+  if (r < 0) return;
+  getOrCreateSheet_(def.sheet).getRange(r, colIndex_(def, key)).setValue(value);
+}
+
+/**
+ * Reads /liabilities/get for a connection and writes what the lender reports into every Debts row
+ * linked to one of its accounts: Interest Rate (APR), Minimum Payment, Due Day, Next Payment Due,
+ * Last Payment, Loan Status / Plan, and Original Balance when it was blank. Returns the number of
+ * Debts rows updated. A login whose institution does not offer Liabilities is marked once on the
+ * Connections tab and not asked again (Repair clears the mark).
+ */
+function syncLiabilities_(conn, token, accountMap) {
+  if (String(conn.liabilities || '').indexOf('Not available') === 0) return 0;
+  let res;
+  try { res = plaidCall_('/liabilities/get', { access_token: token }); }
+  catch (e) { setConnectionField_(conn.id, 'liabilities', 'Not available: ' + (e.plaidCode || String(e.message || e)).slice(0, 160)); return 0; }
+  const li = res.liabilities || {};
+  const def = tdef_('DEBTS');
+  syncLastRow_(def);
+  const debts = readTable_(def);
+  const sh = getOrCreateSheet_(def.sheet);
+  const byAccount = {};
+  debts.forEach(d => { if (d.linkedAccount) (byAccount[d.linkedAccount] = byAccount[d.linkedAccount] || []).push(d); });
+  const now = new Date();
+  let n = 0;
+  const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? undefined : Number(v);
+  const dateOf = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : undefined; };
+  const dayOf = (iso) => { const d = dateOf(iso); return d ? d.getDate() : undefined; };
+  const lastPay = (x) => (x.last_payment_date || x.last_payment_amount != null) ? [x.last_payment_date || '', x.last_payment_amount != null ? '$' + Number(x.last_payment_amount).toFixed(2) : ''].filter(Boolean).join(' · ') : undefined;
+  const write = (d, vals) => {
+    Object.keys(vals).forEach(k => { if (vals[k] !== undefined) sh.getRange(d.__row, colIndex_(def, k)).setValue(vals[k]); });
+    sh.getRange(d.__row, colIndex_(def, 'feedUpdated')).setValue(now);
+    n++;
+  };
+  const rowsFor = (plaidAccountId) => { const acc = accountMap[plaidAccountId]; return acc ? (byAccount[acc.id] || []) : []; };
+  (li.credit || []).forEach(c => rowsFor(c.account_id).forEach(d => {
+    const apr = (c.aprs || []).filter(a => a.apr_type === 'purchase_apr')[0] || (c.aprs || [])[0];
+    write(d, { apr: apr && num(apr.apr_percentage) !== undefined ? num(apr.apr_percentage) / 100 : undefined, minPayment: num(c.minimum_payment_amount), dueDay: dayOf(c.next_payment_due_date),
+      nextDue: dateOf(c.next_payment_due_date), lastPayment: lastPay(c), loanStatus: c.is_overdue === true ? 'Overdue' : (c.is_overdue === false ? 'Current' : undefined) });
+  }));
+  (li.student || []).forEach(s => rowsFor(s.account_id).forEach(d => {
+    const plan = s.repayment_plan ? (s.repayment_plan.description || s.repayment_plan.type || '') : '';
+    const status = s.loan_status ? (s.loan_status.type || '') : '';
+    write(d, { apr: num(s.interest_rate_percentage) !== undefined ? num(s.interest_rate_percentage) / 100 : undefined, minPayment: num(s.minimum_payment_amount), dueDay: dayOf(s.next_payment_due_date),
+      nextDue: dateOf(s.next_payment_due_date), lastPayment: lastPay(s), loanStatus: [plan, status, s.is_overdue === true ? 'overdue' : ''].filter(Boolean).join(' · ') || undefined,
+      originalBalance: !(Number(d.originalBalance) > 0) ? num(s.origination_principal_amount) : undefined });
+  }));
+  (li.mortgage || []).forEach(mo => rowsFor(mo.account_id).forEach(d => {
+    write(d, { apr: mo.interest_rate && num(mo.interest_rate.percentage) !== undefined ? num(mo.interest_rate.percentage) / 100 : undefined, minPayment: num(mo.next_monthly_payment), dueDay: dayOf(mo.next_payment_due_date),
+      nextDue: dateOf(mo.next_payment_due_date), lastPayment: lastPay(mo), originalBalance: !(Number(d.originalBalance) > 0) ? num(mo.origination_principal_amount) : undefined });
+  }));
+  const found = (li.credit || []).length + (li.student || []).length + (li.mortgage || []).length;
+  setConnectionField_(conn.id, 'liabilities', found ? (n ? 'Yes' : 'Yes (no Debts row is linked to these accounts yet)') : 'Yes (nothing reported for these accounts)');
+  return n;
+}
+
+/* ---------- month rows that should always exist ---------- */
+
+/**
+ * Makes sure Monthly Plan has a row for the current month (target carried from the latest month
+ * that has one) and Monthly Budget has this month's category rows (copied from the latest month
+ * that has any). Runs with every sync; safe to run any time.
+ */
+function ensureMonthRows_() {
+  const cur = monthStart_(new Date());
+  const same = (a, b) => a instanceof Date && b instanceof Date && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+  const label = (d) => Utilities.formatDate(d, 'America/Detroit', 'MMMM yyyy');
+  const out = { plan: false, budget: 0 };
+  const planDef = tdef_('PLAN');
+  syncLastRow_(planDef);
+  const plans = readTable_(planDef).filter(r => r.month instanceof Date);
+  if (!plans.some(r => same(r.month, cur))) {
+    const last = plans.filter(r => r.month < cur).sort((a, b) => b.month - a.month)[0];
+    writeRows_(planDef, [{ month: cur, target: last ? last.target : '', notes: last ? 'Added automatically; target carried from ' + label(last.month) + '.' : 'Added automatically. Enter the Monthly Flexible Target.' }]);
+    appendChangeLog_({ table: 'PLAN', recordId: 'PLAN-' + Utilities.formatDate(cur, 'America/Detroit', 'yyyyMM'), field: '(row)', newValue: label(cur), action: 'Insert', user: 'bank-feed' });
+    out.plan = true;
+  }
+  const budDef = tdef_('BUDGET');
+  syncLastRow_(budDef);
+  const buds = readTable_(budDef).filter(r => r.month instanceof Date);
+  if (!buds.some(r => same(r.month, cur))) {
+    const lastMonth = buds.filter(r => r.month < cur).map(r => r.month).sort((a, b) => b - a)[0];
+    if (lastMonth) {
+      const rows = buds.filter(r => same(r.month, lastMonth)).map(r => ({ month: cur, category: r.category, planned: r.planned, notes: 'Carried forward automatically from ' + label(lastMonth) + '.' }));
+      writeRows_(budDef, rows);
+      out.budget = rows.length;
+    }
+  }
+  return out;
 }
 
 /** Nightly trigger and Finance Tracker → Bank feed → Sync now. */
 function syncAllConnections() {
   const conns = readTable_(tdef_('CONN')).filter(c => c.status === 'Active' || c.status === 'Needs Attention');
   const results = conns.map(syncConnection_);
+  try { ensureMonthRows_(); } catch (e) { Logger.log('ensureMonthRows_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   Logger.log(lines.join('\n'));
   return results;

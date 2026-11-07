@@ -144,6 +144,14 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
 - Sample data is removed only through Clear sample data…, never by rebuilding
   a workbook that holds real rows. Schema changes reach a live workbook only
   through `upgradeWorkbook()`.
+- Lender data (Plaid Liabilities) is read with every sync for spending and
+  loan connections and written into the Debts rows linked to those accounts
+  (rate, minimum payment, due day, next due, last payment, status, original
+  principal). Loan accounts always get a Debts row (`ensureDebtRowForLoan_`).
+  PSLF counts are not available from Plaid; the owner types the official
+  count and date, and formulas count months paid since.
+- `ensureMonthRows_` (run by every sync) keeps a Monthly Plan row and the
+  Monthly Budget rows for the current month in place.
 - Each Plaid connection uses one of the free Trial slots permanently
   (`PLAID_TRIAL_LIMIT`, 20 on the owner's plan page): never
   disconnect-and-reconnect; repair with update mode; the connect dialog warns

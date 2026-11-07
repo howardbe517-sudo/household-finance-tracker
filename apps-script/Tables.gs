@@ -233,11 +233,13 @@ function buildDebtsTop_(sh, def) {
     ['Estimated Monthly Interest (all)', R('=SUM([@@estMonthlyInterest])'), FORMATS.currency],
     ['Total Minimum Payments (all)', R('=SUM([@@minPayment])'), FORMATS.currency],
     ['Current Quarter Ends', '=DATE(YEAR(TODAY()),CEILING(MONTH(TODAY())/3)*3+1,0)', FORMATS.date],
+    // PSLF: the lowest estimated count among each person's student loans (the loan furthest from 120)
+    ['PSLF Progress (of 120)', R('=IFERROR(TEXTJOIN(" · ",TRUE,MAP(UNIQUE(FILTER([@@owner],([@@group]="Student Loans")*([@@pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([@@pslfEstimated],[@@owner],o,[@@group],"Student Loans")&"/120"))),"No count entered")'), '@', 11],
   ];
   kpis.forEach((k, i) => {
     const c = 1 + i * 2;
-    sh.getRange(4, c, 1, 2).merge().setValue(k[0]).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center');
-    sh.getRange(5, c, 1, 2).merge().setFormula(k[1]).setNumberFormat(k[2]).setFontSize(14).setFontWeight('bold').setHorizontalAlignment('center')
+    sh.getRange(4, c, 1, 2).breakApart().merge().setValue(k[0]).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center');
+    sh.getRange(5, c, 1, 2).breakApart().merge().setFormula(k[1]).setNumberFormat(k[2]).setFontSize(k[3] || 14).setFontWeight('bold').setHorizontalAlignment('center')
       .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
   sh.setRowHeight(5, 34);

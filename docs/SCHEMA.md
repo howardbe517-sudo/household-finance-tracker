@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.1-bank-import-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.2-liabilities-pslf-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -14,12 +14,12 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
-| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 17 | yes |
+| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 26 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
 | CREDIT | Credit Scores | 4 | 5 | 304 | CS-20261107-B-001 | 8 | yes |
 | STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
 | RULES | Import Rules | 4 | 5 | 204 | RULE-001 | 17 | yes |
-| CONN | Connections | 4 | 5 | 54 | CONN-001 | 12 | yes |
+| CONN | Connections | 4 | 5 | 54 | CONN-001 | 13 | yes |
 | LOG | Change Log | 4 | 5 | 1004 | CHG-20261107-153000-a1b2 | 10 | no |
 | BUDGET | Monthly Budget | 4 | 5 | 504 | BUD-202611-HOUS | 8 | yes |
 | PLAN | Monthly Plan | 4 | 5 | 124 | PLAN-202611 | 8 | yes |
@@ -193,7 +193,7 @@ Named range `TBL_FUNDS` covers the header row through the last formula row.
 
 ## Debts (`DEBTS`)
 
-One row per debt. Latest Balance is pulled from the newest Quarterly Debt Review for the debt (falls back to Original Balance until a review exists). Interest figures are estimates (balance × APR); statements may differ because most lenders accrue daily.
+One row per debt. Latest Balance comes from the linked account's nightly balance when there is one, else the newest Quarterly Debt Review, else Original Balance. For linked cards and loans the bank feed also fills the rate, minimum payment, due day and next due date. PSLF: type the official count from studentaid.gov now and then; the tracker counts payments since.
 
 Named range `TBL_DEBTS` covers the header row through the last formula row.
 
@@ -216,6 +216,15 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | O | Estimated Monthly Interest | `estMonthlyInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr])/12)` |
 | P | Estimated Annual Interest | `estAnnualInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr]))` |
 | Q | Debt Group | `group` | text | dropdown: LIST_DEBT_GROUPS | Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both. |
+| R | Next Payment Due | `nextDue` | date | input | Added in 3.2: written by the bank feed (Plaid Liabilities) where the lender provides it. The feed also fills Interest Rate, Minimum Payment and Due Day for linked cards and loans. |
+| S | Last Payment (feed) | `lastPayment` | text | input | Added in 3.2: date and amount of the last payment the lender reported. |
+| T | Loan Status / Plan | `loanStatus` | text | input | Added in 3.2: repayment plan and status reported by a student loan servicer; Current or Overdue for a card. |
+| U | PSLF Official Count | `pslfOfficial` | integer | input | Added in 3.2: the qualifying-payment count shown on studentaid.gov the last time you checked. Entered by hand (there is no feed for it); the tracker counts payments made since. |
+| V | PSLF Count As Of | `pslfAsOf` | date | input (date) | Added in 3.2: the date that official count was read. |
+| W | Payments Since Count | `pslfSince` | integer | calculated | `=IF(OR([@id]="",[@pslfOfficial]=""),"",IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.debtId]=[@id],[TX.type]="Debt Payment",[TX.isDeleted]<>TRUE,[TX.date]>N([@ps…` — Added in 3.2: months with a Debt Payment to this debt after the as-of date (one per month, as PSLF counts them). |
+| X | PSLF Estimated Count | `pslfEstimated` | integer | calculated | `=IF(OR([@id]="",[@pslfOfficial]=""),"",N([@pslfOfficial])+N([@pslfSince]))` — Added in 3.2: official count + payments since. An estimate until studentaid.gov confirms it. |
+| Y | PSLF Remaining (of 120) | `pslfRemaining` | integer | calculated | `=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))` |
+| Z | Feed Updated | `feedUpdated` | datetime | input | Added in 3.2: when the bank feed last wrote lender data to this row. |
 
 ## Quarterly Debt Review (`QDR`)
 
@@ -336,6 +345,7 @@ Named range `TBL_CONN` covers the header row through the last formula row.
 | J | Sync Cursor | `syncCursor` | text | input |  |
 | K | Added On | `addedOn` | date | input |  |
 | L | Notes | `notes` | text | input |  |
+| M | Liabilities Feed | `liabilities` | text | input | Added in 3.2: whether Plaid supplies rates, minimum payments and due dates for this login (Yes, or Not available with the reason). |
 
 ## Change Log (`LOG`)
 
