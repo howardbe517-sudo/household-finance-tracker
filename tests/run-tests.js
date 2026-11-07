@@ -308,11 +308,11 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
 /* 11. upgrade path: an older workbook gains the 3.1 tabs, columns and lists without losing rows */
 (function () {
   const ssx = g.__ss;
-  const del = (sheet, start, n) => ssx.getSheetByName(sheet).deleteColumns(start, n);
+  const del = (sheet, start, n) => ssx.getSheetByName(sheet).deleteColumns(start, n); // SAFETY-APPROVED: test only, on the in-memory mock, to simulate an older workbook
   const snapshotAcc = R(`readTable_(TABLES.ACCOUNTS).map(function(a){ return [a.id, a.name, a.currentBalance]; })`);
   const txCount = R(`readTable_(TABLES.TX).length`);
-  ssx.deleteSheet(ssx.getSheetByName('Import Rules'));
-  ssx.deleteSheet(ssx.getSheetByName('Connections'));
+  ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
+  ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
   del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 1); del('Quarterly Debt Review', 11, 1);
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
