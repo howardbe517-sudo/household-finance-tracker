@@ -171,6 +171,7 @@ function makeGlobals() {
   const logs = [];
   const alerts = [];
   const dialogs = [];
+  const mails = [];
   const props = {};
   const triggers = [];
   const fetches = [];
@@ -215,7 +216,8 @@ function makeGlobals() {
       formatDate(d, tz, fmt) { const p = n => String(n).padStart(2, '0'); return fmt.replace('yyyy', d.getFullYear()).replace('MMMM', d.toLocaleString('en-US', { month: 'long' })).replace('MM', p(d.getMonth() + 1)).replace('dd', p(d.getDate())).replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes())).replace('ss', p(d.getSeconds())).replace("'T'", 'T'); },
       getUuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); },
     },
-    Session: { getScriptTimeZone: () => 'America/Detroit', getActiveUser: () => ({ getEmail: () => 'tester@example.com' }) },
+    Session: { getScriptTimeZone: () => 'America/Detroit', getActiveUser: () => ({ getEmail: () => 'tester@example.com' }), getEffectiveUser: () => ({ getEmail: () => 'tester@example.com' }) },
+    MailApp: { sendEmail: (to, subject, body) => { mails.push({ to, subject, body }); } },
     Logger: { log: (m) => logs.push(String(m)) },
     PropertiesService: { getScriptProperties: () => ({ getProperty(k) { return Object.prototype.hasOwnProperty.call(props, k) ? props[k] : null; }, setProperty(k, v) { props[k] = String(v); return this; }, deleteProperty(k) { delete props[k]; return this; }, getProperties() { return Object.assign({}, props); } }) },
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) },
@@ -228,7 +230,7 @@ function makeGlobals() {
       newTrigger: (fn) => { const b = { timeBased: () => b, everyDays: () => b, atHour: () => b, create: () => { const t = trig(fn); triggers.push(t); return t; } }; return b; },
     },
     console,
-    __ss: ss, __logs: logs, __alerts: alerts, __dialogs: dialogs, __props: props, __triggers: triggers, __fetches: fetches, __fetchHandler: fetchHandler,
+    __ss: ss, __logs: logs, __alerts: alerts, __dialogs: dialogs, __mails: mails, __props: props, __triggers: triggers, __fetches: fetches, __fetchHandler: fetchHandler,
   };
   return g;
 }

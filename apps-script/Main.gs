@@ -83,6 +83,7 @@ function onOpen() {
       .addItem('Turn nightly sync off', 'disableNightlySync'))
     .addSeparator()
     .addItem('Copy financial snapshot for AI…', 'exportSnapshot')
+    .addItem('Show reminders', 'showReminders')
     .addItem('Run QA checks', 'runQA')
     .addItem('Link income deposits to paychecks', 'linkIncomeDeposits')
     .addItem('Record net worth snapshot', 'recordNetWorthSnapshot')

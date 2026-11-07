@@ -59,6 +59,10 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/goals-and-reminders`: Financial Goals boxes on the
+  Dashboard (K:N) and a Reminders box + monthly reminder email for stale
+  PSLF counts. After merge: Upgrade workbook, then Sync now (approve the
+  email permission).
 - Pull request `claude/liabilities-pslf-automation` (schema 3.2): lender
   data into Debts, loan-servicer connections with automatic Debts rows,
   PSLF estimate, self-adding month rows. After merge: Upgrade workbook, then
