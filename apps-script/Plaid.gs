@@ -599,6 +599,7 @@ function syncAllConnections() {
   const conns = readTable_(tdef_('CONN')).filter(c => c.status === 'Active' || c.status === 'Needs Attention');
   const results = conns.map(syncConnection_);
   try { ensureMonthRows_(); } catch (e) { Logger.log('ensureMonthRows_: ' + (e && e.message || e)); }
+  try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   Logger.log(lines.join('\n'));
   return results;
@@ -609,4 +610,53 @@ function syncNow() {
   const results = syncAllConnections();
   alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r)).join('\n') : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
+}
+
+/* ---------- reminders: the few things that still need a hand ---------- */
+
+/**
+ * What is due for the owner to do by hand. Today that is one thing: a student loan's PSLF
+ * official count that was never entered, or was last confirmed more than the App Setup setting
+ * (default 12 months) ago. Returns [{ key, text }].
+ */
+function dueReminders_() {
+  const ss = ss_();
+  const monthsRange = ss.getRangeByName('SETTING_PSLF_REMINDER_MONTHS');
+  const months = monthsRange && Number(monthsRange.getValue()) > 0 ? Number(monthsRange.getValue()) : 12;
+  const cutoff = addMonths_(monthStart_(new Date()), -months);
+  const out = [];
+  readTable_(tdef_('DEBTS')).filter(d => d.group === 'Student Loans').forEach(d => {
+    const asOf = d.pslfAsOf instanceof Date ? d.pslfAsOf : null;
+    if (asOf && asOf >= cutoff) return;
+    out.push({ key: 'pslf:' + d.id, text: 'PSLF count for ' + d.name + ': ' + (asOf ? 'last confirmed ' + Utilities.formatDate(asOf, 'America/Detroit', 'MMM d, yyyy') : 'never entered') + '. Read it on studentaid.gov and update PSLF Official Count and PSLF Count As Of on Debts.' });
+  });
+  return out;
+}
+
+/** Finance Tracker → Show reminders. */
+function showReminders() {
+  const due = dueReminders_();
+  alert_('Reminders', due.length ? due.map(r => '• ' + r.text).join('\n\n') : 'Nothing due. The Dashboard\'s Reminders box shows the same list.');
+}
+
+/**
+ * Emails the owner the due reminders, at most once every 30 days, when App Setup's Email
+ * reminders setting is on. Runs at the end of every sync. Returns the number of emails sent.
+ */
+function sendReminders_() {
+  const ss = ss_();
+  const onRange = ss.getRangeByName('SETTING_REMINDER_EMAIL');
+  if (onRange && onRange.getValue() !== true) return 0;
+  const due = dueReminders_();
+  if (!due.length) return 0;
+  const props = plaidProps_();
+  const last = props.getProperty('REMINDER_LAST_SENT');
+  if (last && (Date.now() - new Date(last).getTime()) < 30 * 86400000) return 0;
+  const to = (Session.getEffectiveUser && Session.getEffectiveUser().getEmail()) || userEmail_();
+  if (!to) return 0;
+  const body = 'Hello,\n\nThe Household Finance Tracker has ' + due.length + ' reminder(s):\n\n' + due.map(r => '• ' + r.text).join('\n\n') +
+    '\n\nOpen the Sheet: ' + ss.getUrl() + '\n\nThis email is sent at most once a month while something is due. Turn it off on App Setup (Email reminders).';
+  MailApp.sendEmail(to, 'Finance Tracker: ' + due.length + ' reminder(s)', body);
+  props.setProperty('REMINDER_LAST_SENT', new Date().toISOString());
+  return 1;
 }

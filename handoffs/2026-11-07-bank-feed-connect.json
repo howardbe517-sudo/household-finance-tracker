@@ -16,8 +16,12 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, and redraws the Debts band and Dashboard. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, the Financial Goals and Reminders panel on the Dashboard, and two settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
+        },
+        {
+          "text": "Run **Finance Tracker → Bank feed → Sync now**. Google asks you to approve one new permission (sending email, for reminders); approve it. The sync then reports each connection, and Capital One may now show debt rows updated from the lender.",
+          "note": "Until that approval is given once, the nightly sync cannot run. Everything else works without it."
         },
         {
           "text": "Run **Finance Tracker → Run QA checks**. Expect PASS throughout, including the new Import Staging / Import Rules / Connections lines.",
@@ -94,6 +98,10 @@
         {
           "text": "After the first paycheck and loan payment arrive, confirm the loan payments are recorded as **Debt Payment** with the right **Debt ID** (the rule you make from the first one does this every month). That is what the PSLF count reads.",
           "note": "If a servicer takes both people's payments from the same checking account, make one rule per servicer description and set the Debt ID on it."
+        },
+        {
+          "text": "Reminders take care of the rest: the **Reminders** box under the goals on the Dashboard lists any loan whose PSLF count is missing or older than the setting on App Setup (**PSLF count reminder after (months)**, 12 to start). While something is listed, the nightly sync emails you once a month. **Finance Tracker → Show reminders** shows the same list any time.",
+          "note": "Change the months on App Setup if you want it sooner (6) or later. Untick Email reminders there to stop the emails and keep the box."
         }
       ]
     },
@@ -115,6 +123,15 @@
         {
           "text": "Choose **Finance Tracker → Import reviewed rows**. Ticked rows become transactions; anything missing a category is listed with the reason and stays. The Dashboard's top-right note shows how many rows are still waiting.",
           "note": "Then try Finance Tracker → Copy financial snapshot for AI… and paste it into a Claude project."
+        }
+      ]
+    },
+    {
+      "heading": "Financial goals",
+      "steps": [
+        {
+          "text": "On the **Dashboard**, scroll right to the **Financial Goals** panel next to the cards. Click into **Goal 1**'s big box and type the goal in your own words, as long as you like; the box wraps and grows with the text. Use the five boxes however suits you.",
+          "note": "These boxes are yours: upgrades keep the text. When you later want goals split into monthly, yearly and five-year targets, tell me and we build that on top."
         }
       ]
     }

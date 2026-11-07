@@ -74,7 +74,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -348,6 +348,19 @@ const curBud = R(`(function(){ const cur = monthStart_(new Date()); return readT
 if (mr.plan === true && curPlan.length === 1 && curPlan[0].target === prevTarget && prevTarget && mr.budget > 0 && curBud === mr.budget) ok('month rows: this month\'s Plan row added with last month\'s target and ' + mr.budget + ' Budget rows carried forward'); else bad('ensureMonthRows_: ' + JSON.stringify([mr, curPlan, prevTarget, curBud]));
 const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
+// goals panel and reminders on the Dashboard
+const dashSh = g.__ss.getSheetByName(SHEETS.DASH);
+if (dashSh.getRange('K1').getValue() === 'Financial Goals' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && /studentaid\.gov/.test(g.__ss.getRangeByName('DASH_REMINDERS').getFormula())) ok('Dashboard has five Financial Goals boxes and a calculated Reminders box'); else bad('goals panel: ' + JSON.stringify([dashSh.getRange('K1').getValue(), g.__ss.namedRanges.has('GOAL_1'), g.__ss.getRangeByName('DASH_REMINDERS') && g.__ss.getRangeByName('DASH_REMINDERS').getFormula()]));
+const due1 = R(`dueReminders_()`);
+if (due1.length === 2 && due1.every(r => /never entered/.test(r.text) && /^pslf:/.test(r.key))) ok('reminders: the two servicer loans with no PSLF count are due; the sample loan (count 3 months old) is not'); else bad('dueReminders_: ' + JSON.stringify(due1));
+R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(1)`);
+if (R(`dueReminders_()`).length === 3) ok('a shorter reminder setting also flags the sample loan\'s older count'); else bad('reminder months setting ignored');
+R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12)`);
+const sent1 = R(`sendReminders_()`), sent2 = R(`sendReminders_()`);
+if (sent1 === 1 && sent2 === 0 && g.__mails.length === 1 && g.__mails[0].to === 'tester@example.com' && /2 reminder/.test(g.__mails[0].subject) && !/access-|PLAID_/.test(g.__mails[0].body) && g.__props.REMINDER_LAST_SENT) ok('reminder email sent to the owner once, then throttled for 30 days'); else bad('sendReminders_: ' + JSON.stringify([sent1, sent2, g.__mails]));
+R(`PropertiesService.getScriptProperties().deleteProperty('REMINDER_LAST_SENT'); ss_().getRangeByName('SETTING_REMINDER_EMAIL').setValue(false)`);
+if (R(`sendReminders_()`) === 0 && g.__mails.length === 1) ok('reminder email respects the App Setup switch'); else bad('email switch ignored');
+R(`ss_().getRangeByName('SETTING_REMINDER_EMAIL').setValue(true)`);
 // back to the bank connection for the remaining checks
 linkPhase = 1;
 // layout check pauses the sync
@@ -394,7 +407,11 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
   ssx.getSheetByName('Debts').getRange(4, 1).setValue('Total Latest Balance');
   ['LIST_DEBT_GROUPS', 'LIST_MATCH_TYPES', 'LIST_STAGING_STATUSES', 'LIST_CONNECTION_STATUSES', 'TBL_RULES', 'TBL_CONN'].forEach(n => { const nr = ssx.namedRanges.get(n); if (nr) nr.remove(); });
+  ssx.getRangeByName('GOAL_2').setValue('Pay off the car by next summer.');
+  ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(6);
   const rep = R(`upgradeWorkbook()`);
+  if (ssx.getRangeByName('GOAL_2').getValue() === 'Pay off the car by next summer.' && ssx.getRangeByName('GOAL_1').getValue() === '' && ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue() === 6) ok('upgrade keeps the Financial Goals text and the reminder setting'); else bad('goals/setting lost in upgrade: ' + JSON.stringify([ssx.getRangeByName('GOAL_2').getValue(), ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue()]));
+  ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12);
   const repText = rep.join('\n');
   let good = true;
   Object.values(TABLES).forEach(def => {

@@ -243,6 +243,8 @@ function readSettings_() {
     changeLog: get('SETTING_CHANGE_LOG', true),
     samplePresent: get('SETTING_SAMPLE_PRESENT', false) === true,
     autoPairs: get('SETTING_AUTO_PAIRS', true),
+    pslfMonths: get('SETTING_PSLF_REMINDER_MONTHS', 12),
+    reminderEmail: get('SETTING_REMINDER_EMAIL', true),
     qaRun: get('QA_LAST_RUN', ''),
     qaResult: get('QA_LAST_RESULT', ''),
   };
@@ -254,6 +256,8 @@ function restoreSettings_(s) {
   set('SETTING_CHANGE_LOG', s.changeLog);
   set('SETTING_SAMPLE_PRESENT', s.samplePresent);
   set('SETTING_AUTO_PAIRS', s.autoPairs);
+  set('SETTING_PSLF_REMINDER_MONTHS', s.pslfMonths);
+  set('SETTING_REMINDER_EMAIL', s.reminderEmail);
   set('QA_LAST_RUN', s.qaRun);
   set('QA_LAST_RESULT', s.qaResult);
 }
@@ -261,9 +265,13 @@ function restoreSettings_(s) {
 function readDashboardInputs_() {
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (!sh) return null;
+  const ss = ss_();
+  const goals = [];
+  for (let n = 1; n <= DASH.GOALS_COUNT; n++) { const r = ss.getRangeByName('GOAL_' + n); goals.push(r ? r.getValue() : ''); }
   return {
     month: sh.getRange(DASH.SELECTED_MONTH).getValue(),
     checks: sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).getValues(),
+    goals,
   };
 }
 
@@ -272,4 +280,5 @@ function restoreDashboardInputs_(d) {
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (d.month instanceof Date) sh.getRange(DASH.SELECTED_MONTH).setValue(d.month);
   if (d.checks) sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).setValues(d.checks.map(r => [r[0] === true]));
+  (d.goals || []).forEach((g, i) => { if (g !== '' && g !== null && g !== undefined) sh.getRange(goalBoxRange_(i + 1)).setValue(g); });
 }

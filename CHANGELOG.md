@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 2026-11-07 — Financial Goals on the Dashboard; reminders for the few things still typed by hand
+- What changed:
+  - **Financial Goals**: a panel to the right of the Dashboard cards (columns
+    K:N) with five large text boxes (four rows tall, wrapped, 12-point) under
+    a "Financial Goals" title. The boxes are named `GOAL_1`…`GOAL_5`, are
+    left unprotected, and Upgrade workbook carries their text through the
+    Dashboard rebuild. Monthly / yearly breakdowns are left for later, as
+    asked.
+  - **Reminders**: a calculated box under the goals lists what needs a hand.
+    Today that is a student loan whose PSLF official count was never entered
+    or was last confirmed more than N months ago (App Setup setting *PSLF
+    count reminder after (months)*, default 12). The nightly sync emails the
+    owner the same list at most once every 30 days while something is due
+    (App Setup setting *Email reminders*, on by default); Finance Tracker →
+    **Show reminders** shows it any time.
+  - The manifest gains the send-mail scope, so Google asks the owner to
+    approve the new permission once.
+- Files changed in `apps-script/`: `Dashboard.gs`, `Upgrade.gs`,
+  `Reference.gs`, `Plaid.gs`, `Main.gs`, `appsscript.json` (deployed on
+  merge). Then run Finance Tracker → Upgrade workbook once (rebuilds the
+  Dashboard with the panel and App Setup with the two settings), then Bank
+  feed → Sync now once and approve the email permission when Google asks.
+- Tested: Node (panel and named ranges built; due reminders computed from
+  Debts; the months setting honoured; email sent once then throttled; the
+  App Setup switch respected; goals text and the setting survive an
+  upgrade). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/goals-and-reminders`
+
 ## 2026-11-07 — Lender data flows into Debts; loan servicers connect; PSLF progress; month rows add themselves
 - What changed (the owner asked for as little typing as possible):
   - **Lender data → Debts.** The nightly sync now also reads Plaid Liabilities
