@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-07 — Clear sample data no longer breaks the live net-worth box; QA on an empty workbook
+- What changed: the owner ran Clear sample data and QA then reported two
+  problems. (1) Deleting the three sample Net Worth Snapshots rows removed
+  whole rows, which took the live "Current Tracked Net Worth" box in columns
+  M:N with them (its total became `#REF!`). `buildNetWorthHelper_` now resets
+  its area before drawing so it can be redrawn over a shifted strip, and
+  `clearSampleData` redraws it after deleting Net Worth rows. (2) "Monthly
+  Summary has no month rows" was reported as FAIL although the tab fills
+  itself from Income and Transactions; with neither entered it is now an
+  INFO line.
+- Files changed in `apps-script/`: `Tables.gs`, `Main.gs`, `QA.gs` (deployed
+  on merge). Then run Finance Tracker → Upgrade workbook once: it redraws the
+  net-worth box on the owner's Net Worth Snapshots tab.
+- Tested: Node (clearSampleData leaves the box intact with its formulas; QA
+  reports the empty summary as INFO with no raw rows and FAIL otherwise).
+  Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/clear-sample-nw-helper`
+
 ## 2026-11-07 — Trial limit is 20 connections, not 10
 - What changed: the owner's Plaid plan page reads "trial access for up to 20
   connections", not the 10 the tracker assumed. The limit is now one constant

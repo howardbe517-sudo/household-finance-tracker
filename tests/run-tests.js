@@ -388,6 +388,18 @@ const left = vm.runInContext("readTable_(TABLES.TX).filter(r => r.createdBy === 
 const realLeft = vm.runInContext("readTable_(TABLES.ACCOUNTS).filter(a => /^ACC-0(0[6-9]|1[0-3])$/.test(a.id)).length", ctx);
 const stagedLeft = vm.runInContext("readTable_(TABLES.STAGING).filter(s => String(s.notes).indexOf('SAMPLE') === 0).length", ctx);
 if (left === 0 && realLeft === 8 && stagedLeft === 0) ok('clearSampleData() removes tagged rows (incl. sample rules and staged rows) and keeps the 8 real accounts'); else bad(`clearSampleData left ${left} sample tx, ${stagedLeft} sample staged rows, ${realLeft} real accounts`);
+// the live net-worth box on Net Worth Snapshots survives the row deletions
+const nwSh = g.__ss.getSheetByName(SHEETS.NW), nwC = TABLES.NW.columns.length + 2;
+const nwF5 = nwSh.getRange(5, nwC + 1).getFormula(), nwF8 = nwSh.getRange(8, nwC + 1).getFormula(), nwL5 = nwSh.getRange(5, nwC).getValue();
+if (/^=SUMIFS\(/.test(nwF5) && nwL5 === 'Tracked Assets' && nwF8.indexOf('#REF') < 0 && /5-.*6-.*7$/.test(nwF8)) ok('clearSampleData() redraws the live net-worth box after deleting Net Worth rows'); else bad('net-worth helper after clearSampleData: ' + JSON.stringify([nwL5, nwF5, nwF8]));
+// an empty Monthly Summary (the mock never evaluates its formulas) is a FAIL only while Income or Transactions hold rows
+const qaAfterClear = R(`qaReport_()`);
+const hasRawRows = R(`readTable_(TABLES.TX).filter(t => t.isDeleted !== true).length + readTable_(TABLES.INCOME).length`) > 0;
+const summaryLine = qaAfterClear.lines.filter(l => /Monthly Summary has no month rows/.test(l))[0] || '';
+if (hasRawRows ? /^FAIL/.test(summaryLine) : /^INFO.*yet/.test(summaryLine)) ok('QA reports an empty Monthly Summary as ' + (hasRawRows ? 'a failure while raw rows exist' : 'information when nothing is entered yet')); else bad('QA after clear: ' + summaryLine + ' (raw rows: ' + hasRawRows + ')');
+R(`(function(){ const d = tdef_('TX'); const sh = ss_().getSheetByName(d.sheet); const n = readTable_(d).length; if (n) sh.getRange(d.firstRow, 1, n, d.columns.length).setValues(Array.from({length:n}, () => Array(d.columns.length).fill(''))); const di = tdef_('INCOME'); const shi = ss_().getSheetByName(di.sheet); const ni = readTable_(di).length; if (ni) shi.getRange(di.firstRow, 1, ni, di.columns.length).setValues(Array.from({length:ni}, () => Array(di.columns.length).fill(''))); })()`); // test-only: blank the mock's remaining rows to model an empty workbook
+const qaEmpty = R(`qaReport_()`);
+if (qaEmpty.lines.some(l => /^INFO.*Monthly Summary has no month rows yet/.test(l))) ok('QA treats an empty Monthly Summary as information when no income or transactions exist'); else bad('QA on empty workbook: ' + qaEmpty.lines.filter(l => /Monthly Summary has/.test(l)).join(' | '));
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll mock checks passed.');
 process.exit(failures ? 1 : 0);

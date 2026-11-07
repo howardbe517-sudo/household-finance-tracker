@@ -59,6 +59,10 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Sample data cleared by the owner on 2026-11-07 (QA then: 2 problems, both
+  fixed by `claude/clear-sample-nw-helper`; Upgrade workbook redraws the
+  net-worth box). Connected: Capital One (CONN-001), Fidelity (CONN-002).
+  Plaid's dashboard shows 3 of 20 connections (one orphaned Fidelity attempt).
 - Connecting the remaining institutions (Independent Bank once Plaid's
   connection is back, PayPal, Amex, Venmo; balance-only Acorns, Fidelity,
   HealthEquity); then Clear sample data; then real paychecks, funds, debts

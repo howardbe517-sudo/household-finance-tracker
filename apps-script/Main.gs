@@ -318,6 +318,7 @@ function clearSampleData() {
     applyColumnRules_(def, def.lastRow - k + 1, def.lastRow);
     setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, def.columns.length));
     if (CF_BUILDERS[def.key]) CF_BUILDERS[def.key](sh, def);
+    if (def.key === 'NW') buildNetWorthHelper_(sh, def); // deleting rows took the live net-worth box with them; redraw it
     removed[def.sheet] = k;
   });
   const flag = ss_().getRangeByName('SETTING_SAMPLE_PRESENT');

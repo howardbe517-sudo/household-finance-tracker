@@ -248,6 +248,11 @@ function buildDebtsTop_(sh, def) {
 function buildNetWorthHelper_(sh, def) {
   const F = (t) => resolveFormula_(t, null, null);
   const c = def.columns.length + 2; // leave one blank column
+  // Redrawable: if rows were deleted (clearSampleData) the strip may have shifted up and its note
+  // merge moved; unmerge and reset the area before writing it again. No cell holding entered
+  // data lives in these two columns.
+  sh.getRange(4, c, 8, 2).breakApart().setFontStyle('normal').setFontSize(10).setFontColor(null).setWrap(false).setFontWeight('normal').setBackground(null);
+  for (let r = 5; r <= 11; r++) sh.setRowHeight(r, 21);
   sh.setColumnWidth(c, 260); sh.setColumnWidth(c + 1, 130);
   styleSectionBar_(sh.getRange(4, c, 1, 2), 'Current Tracked Net Worth (live)');
   const rows = [
