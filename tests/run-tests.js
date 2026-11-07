@@ -348,6 +348,9 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ssx.getSheetByName('Transactions').getRange(4, 2).setValue('Date');
 })();
 
+/* 11b. formula comparison ignores Google's quote normalization */
+if (R(`sameFormula_("=SUMIFS(Income!$G$5:$G,Income!$C$5:$C,$B$3)", "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$3)")`) === true && R(`sameFormula_("=SUMIFS('Import Staging'!$Q$5:$Q,1)", "=SUMIFS('Import Staging'!$Q$5:$Q,1)")`) === true && R(`sameFormula_("=A1+1", "=A1+2")`) === false) ok('upgrade treats Income!A1 and \'Income\'!A1 as the same formula, keeps multi-word quotes, still detects real changes'); else bad('sameFormula_ comparison wrong');
+
 /* 12. financial snapshot for AI */
 const snap = R(`getSnapshotText()`);
 const must = ['# Household Finance Snapshot', '## Income (paychecks)', '## Monthly cash flow', '## Spending by category', '## Savings & reserves', '## Debts', 'Student loans:', '## Accounts and net worth', 'tracked net worth', '## Recurring obligations', '## Credit scores', '## Data quality notes', 'SAMPLE data'];

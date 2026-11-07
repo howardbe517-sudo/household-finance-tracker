@@ -161,7 +161,7 @@ function upgradeColumnRules_(def, sh, hdrBefore) {
     }
     if (c.f) {
       const want = resolveFormula_(c.f, def, def.firstRow);
-      if (sh.getRange(def.firstRow, col).getFormula() !== want) {
+      if (!sameFormula_(sh.getRange(def.firstRow, col).getFormula(), want)) {
         const formulas = [];
         for (let r = def.firstRow; r <= def.lastRow; r++) formulas.push([resolveFormula_(c.f, def, r)]);
         rng.setFormulas(formulas);
@@ -169,13 +169,23 @@ function upgradeColumnRules_(def, sh, hdrBefore) {
       }
     } else if (c.arrayFormula) {
       const want = resolveFormula_(c.arrayFormula, def, def.firstRow);
-      if (sh.getRange(def.firstRow, col).getFormula() !== want) { sh.getRange(def.firstRow, col).setFormula(want); changed.push(c.h); }
+      if (!sameFormula_(sh.getRange(def.firstRow, col).getFormula(), want)) { sh.getRange(def.firstRow, col).setFormula(want); changed.push(c.h); }
     } else if (c.v && !sh.getRange(def.firstRow, col).getDataValidation()) {
       const dv = buildValidation_(c.v); if (dv) rng.setDataValidation(dv);
     }
   });
   return changed;
 }
+
+/**
+ * Google rewrites a stored formula slightly: quotes around one-word tab names are dropped
+ * ('Income'!$C$5 becomes Income!$C$5). Compare formulas with that normalized away so an
+ * unchanged formula is not rewritten on every upgrade.
+ */
+function normalizeFormula_(f) {
+  return String(f || '').replace(/'([A-Za-z0-9_]+)'!/g, '$1!').replace(/\s+/g, ' ').trim();
+}
+function sameFormula_(a, b) { return normalizeFormula_(a) === normalizeFormula_(b); }
 
 /** Add any dropdown list that has no named range yet (new lists go after the existing ones). */
 function upgradeLists_() {
