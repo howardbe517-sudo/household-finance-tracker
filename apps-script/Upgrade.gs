@@ -22,6 +22,18 @@ function upgradeWorkbook() {
 }
 
 function upgradeWorkbook_() {
+  // One upgrade at a time: a second copy started while the first is still
+  // running would try to create tabs the first one has just made.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(3000)) throw new Error('An upgrade is already running. Wait for the "Running script" banner to disappear, then run Upgrade workbook once.');
+  try {
+    return upgradeWorkbookLocked_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function upgradeWorkbookLocked_() {
   const ss = ss_();
   const report = [];
   // 1. dry pass: every existing header must match the schema
@@ -49,7 +61,7 @@ function upgradeWorkbook_() {
     // A sheet created empty by a dropdown reference (idsRange_) counts as new.
     if (sh && sh.getRange(def.headerRow, 1).getValue() === '' && sh.getLastRow() === 0) { sh = null; }
     if (!sh) {
-      sh = buildTableSheet_(def);
+      sh = buildTableSheet_(def); // getOrCreateSheet_ reuses an existing tab of that name; it never duplicates
       if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
       report.push('Added tab: ' + def.sheet);
       return;

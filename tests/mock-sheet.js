@@ -217,7 +217,7 @@ function makeGlobals() {
     Session: { getScriptTimeZone: () => 'America/Detroit', getActiveUser: () => ({ getEmail: () => 'tester@example.com' }) },
     Logger: { log: (m) => logs.push(String(m)) },
     PropertiesService: { getScriptProperties: () => ({ getProperty(k) { return Object.prototype.hasOwnProperty.call(props, k) ? props[k] : null; }, setProperty(k, v) { props[k] = String(v); return this; }, deleteProperty(k) { delete props[k]; return this; }, getProperties() { return Object.assign({}, props); } }) },
-    LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) },
     ContentService: { createTextOutput: (t) => ({ _t: t, setMimeType() { return this; }, getContent() { return this._t; } }), MimeType: { JSON: 'JSON' } },
     UrlFetchApp,
     HtmlService: { createHtmlOutputFromFile: (name) => htmlOut('<file:' + name + '>'), createHtmlOutput: (html) => htmlOut(html) },
