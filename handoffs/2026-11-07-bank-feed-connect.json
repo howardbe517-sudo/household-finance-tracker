@@ -67,8 +67,8 @@
           "note": "Capital One also returns the auto loan as a second account: leave it on Create a new Accounts row with Import transactions unticked (balance only); the car payment itself is recorded from checking. If a connection fails halfway, use Bank feed → Repair a connection…, never Connect again for the same bank."
         },
         {
-          "text": "Repeat **Connect a bank…** as **Investment, retirement or HSA account** for Acorns (→ ACC-011), Fidelity (→ ACC-012) and HealthEquity (→ ACC-013). Leave **Import transactions** unticked for these; they update balances only.",
-          "note": "If Fidelity shows a request-access message inside Plaid, approve it and try again in a day. Bank feed → Status should end at 9 of 10."
+          "text": "Repeat **Connect a bank…** as **Investment or retirement account** for Acorns (→ ACC-011) and Fidelity (→ ACC-012), and as **Balance only — any account type** for HealthEquity (→ ACC-013). Leave **Import transactions** unticked for these; they update balances only.",
+          "note": "Plaid offers HealthEquity's balance but not its transactions or holdings, which is why the first two kinds say \"not supported\" for it. If any institution shows a red flag in Plaid's search list, that kind is not available for it: try Balance only. If Fidelity shows a request-access message, approve it and try again in a day. Bank feed → Status should end at 9 of 10."
         },
         {
           "text": "Choose **Bank feed → Turn nightly sync on**. The feed then runs every morning around 5 AM; **Bank feed → Sync now** runs it any time.",
