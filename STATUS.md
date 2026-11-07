@@ -17,10 +17,10 @@ Last updated: 2026-11-07 (first build confirmed in Google)
   calculated sheets (tested in Node; never deployed).
 
 ## Known issues
-- The owner's Apps Script project still holds the code as one file
-  (`Code.gs`, pasted from the retired single-file bundle). The first change
-  that ships will have the owner replace it with the nine named files so
-  later updates touch only the file that changed.
+- The owner's Apps Script project holds the nine files under their repo
+  names, except that `Config.gs` is still the editor's default `Code.gs`.
+  Harmless; handoff pages should say "Code.gs (Config)" for that file until
+  it is renamed.
 - `buildWorkbook()` is a from-scratch builder. There is no upgrade path yet
   for a workbook that already holds real data; the first change requested
   after real data is entered must add one (see Next).
