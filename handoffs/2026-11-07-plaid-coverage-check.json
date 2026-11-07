@@ -1,0 +1,78 @@
+{
+  "title": "Plaid Coverage Check",
+  "key": "household-finance-tracker-2026-11-07-plaid-coverage-check",
+  "subtitle": "Confirms Plaid can reach all six of your financial institutions and sets up the free Plaid account the tracker will use. Nothing is connected yet and no slot is used.",
+  "intro": [
+    "Plaid's free Trial plan is capped at **10 connected institutions, ever**; you need 6. Creating the account uses none of them. A slot is used only when a bank is actually connected, which happens later, from a page I will build.",
+    "**Privacy:** never paste Plaid keys, secrets or tokens into a chat, an email or GitHub. When the time comes they go into the script's hidden Script Properties, and I will show you exactly where. Today you only need to report yes/no answers.",
+    "Your six logins: **Independent Bank** (one login covers Checking, Savings and the credit card), **Capital One**, **PayPal**, **Acorns**, **Fidelity**, **HealthEquity**."
+  ],
+  "sections": [
+    {
+      "heading": "Check that every institution is covered",
+      "steps": [
+        {
+          "text": "Open [plaid.com/docs/institutions](https://plaid.com/docs/institutions/) in your browser. Scroll to the coverage explorer (a search box that lists institutions and the products each one supports).",
+          "note": "No account is needed for this page. If the page asks you to sign in instead, skip to the next section, create the account, and come back."
+        },
+        {
+          "text": "Search `Independent Bank`. Several banks share that name; find the one from **Michigan** (Grand Rapids / Ionia; website independentbank.com). Write down whether it appears and whether **Transactions** and **Balance** are listed for it.",
+          "note": "This is the one that matters most: three accounts and almost all of your spending. If it is not listed at all, stop here and tell me; we would switch the plan to SimpleFIN or CSV and nothing else on this page is needed yet."
+        },
+        {
+          "text": "Search `Capital One`. Confirm it appears with **Transactions** and **Balance**.",
+          "note": "Expected: yes. Capital One is one of Plaid's named OAuth banks."
+        },
+        {
+          "text": "Search `PayPal`. Write down whether it appears and which products are listed."
+        },
+        {
+          "text": "Search `Acorns`. Write down whether it appears and which products are listed (for this one **Balance** or **Investments** is enough; we only need its balance).",
+          "note": "If it is missing, the tracker still works: Acorns is a balance-only account for net worth, and you can type its balance at your quarterly review. Tell me either way."
+        },
+        {
+          "text": "Search `Fidelity`. Confirm **Fidelity Investments** appears and whether **Balance** or **Investments** is listed.",
+          "note": "Fidelity is supported, but Plaid sometimes requires a one-click access request per account; we will see that inside the dashboard later."
+        },
+        {
+          "text": "Search `HealthEquity`. Write down whether it appears and which products are listed.",
+          "note": "Like Acorns, a balance-only account; missing is inconvenient, not fatal."
+        }
+      ]
+    },
+    {
+      "heading": "Create the free Plaid account",
+      "steps": [
+        {
+          "text": "Go to [dashboard.plaid.com/signup](https://dashboard.plaid.com/signup). Sign up with your personal email (the same Google account that owns the tracker Sheet is simplest). For the company or team name you can use your own name or something like `Howard Household`. If asked about the use case, choose personal finance / budgeting.",
+          "note": "Do **not** sign up with a work email; the account belongs to your household."
+        },
+        {
+          "text": "Verify your email when Plaid's message arrives, then sign in to the dashboard.",
+          "note": "If Plaid shows the two-factor setup, use an authenticator app and save the recovery codes somewhere safe, as with GitHub."
+        },
+        {
+          "text": "In the dashboard, open the team or billing settings and confirm the plan shown is **Trial** (the page may say up to 10 Items at no cost). Take a screenshot or note the wording.",
+          "note": "If instead it offers to \"Apply for Production access\", do **not** click it. Applying permanently ends Trial eligibility. We stay on Trial on purpose."
+        },
+        {
+          "text": "Look for a page listing **OAuth institutions**. Search it for **Fidelity** and **Capital One** and note what it says next to each (for example \"Available\", \"Request access\", or a button).",
+          "note": "If Fidelity shows a **Request access** button, click it; that is the one-click request mentioned above. It is not a bank connection and uses no slot."
+        },
+        {
+          "text": "Stop there. Do not create keys, do not connect any bank, do not run the Quickstart. The next page I build will tell you exactly which keys to copy into the script's Script Properties and how.",
+          "note": "Keys and secrets never go into chat or GitHub."
+        }
+      ]
+    },
+    {
+      "heading": "Tell me what you found",
+      "steps": [
+        {
+          "text": "Send me the six yes/no answers with the products listed, in any form, like: `Independent Bank (MI): yes, Transactions + Balance · Capital One: yes · PayPal: yes · Acorns: no · Fidelity: yes, Request access clicked · HealthEquity: yes, Balance`. Also confirm the plan reads **Trial**.",
+          "note": "With that I know whether to build the Plaid sync as planned, or switch the feed to SimpleFIN while keeping everything else the same."
+        }
+      ]
+    }
+  ]
+}
