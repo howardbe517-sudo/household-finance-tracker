@@ -31,6 +31,29 @@ Last updated: 2026-11-07
 ## In progress
 - First build in Google and the owner's first review.
 
+## Bank feed decision (2026-11-07)
+- Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no
+  time limit; the owner needs 6). The owner created the Plaid team
+  (personal use, personal finances) and confirmed the plan reads Trial.
+  Never submit a Production application: it permanently ends the Trial.
+- Coverage confirmed by the owner in Plaid's institution directory:
+  Independent Bank (Michigan), Capital One, PayPal, Acorns, Fidelity,
+  HealthEquity all present. PayPal has no Auth product, which the tracker
+  does not use. Transactions + Balance for Independent Bank (3 accounts),
+  Capital One and PayPal; Balance (or Investments) only for Acorns, Fidelity
+  and HealthEquity.
+- Not yet done, on purpose: no bank connected, no API keys created. Slots
+  are consumed only when a bank is connected and are never returned, so the
+  connect page must block duplicate connections and repairs must use
+  Plaid's update mode, never remove-and-reconnect.
+- Plan for the Plaid conversation: upgradeWorkbook() adding Accounts ·
+  External Account ID, Import Staging · Pending Transaction ID and a
+  Connections tab; staging → review → Transactions promotion with
+  transfer-pair and credit-card-payment rules; nightly /transactions/sync
+  per connection with a header check that pauses on a changed layout;
+  balances for the three balance-only accounts; a connect-a-bank page
+  served by Apps Script; Plaid keys and access tokens in Script Properties.
+
 ## Next
 - After the first look in Google: fix anything the QA report or the owner
   flags, then update this file with what was confirmed.
