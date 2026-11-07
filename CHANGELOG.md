@@ -7,7 +7,8 @@
   dialog's counter and warning colours; both now say that Plaid's own count
   can be higher because it also counts attempts that never reached the Sheet
   (the owner's first Fidelity attempt is one). The Connections tab note and
-  the docs say 20.
+  the docs say 20. Also: the connect dialog's "Saving and syncing…" button
+  is hidden once the save finishes instead of staying greyed out.
 - Files changed in `apps-script/`: `Config.gs`, `Plaid.gs`,
   `ConnectDialog.html` (deployed on merge). Nothing to run afterwards; the
   Connections tab's note text is refreshed by the next Upgrade workbook run

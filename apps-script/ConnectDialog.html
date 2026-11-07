@@ -96,6 +96,7 @@
     var mappings = RESULT.accounts.map(function (a, i) { return { externalId: a.externalId, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype, current: a.current, accountId: document.getElementById('map' + i).value, importTx: document.getElementById('imp' + i).checked }; });
     google.script.run.withSuccessHandler(function (res) {
       var s = res.synced || {};
+      b.style.display = 'none'; // the save is finished; only Close remains
       document.getElementById('out').innerHTML = msg('ok', 'Done. ' + res.linked + ' account(s) linked, ' + res.created + ' created. First sync: ' + (s.error ? 'error — ' + esc(s.error) : esc(s.added) + ' new transaction(s) in Import Staging, ' + esc(s.autoImported) + ' auto-imported, ' + esc(s.balances) + ' balance(s) updated.') + '<br>Turn on <b>Bank feed → Nightly sync</b> if you have not yet.') + '<div class="actions"><button onclick="google.script.host.close()">Close</button></div>';
     }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); b.disabled = false; b.textContent = 'Save and run the first sync'; }).finishAccountMapping({ connectionId: RESULT.connectionId, institution: RESULT.institution, mappings: mappings });
   }
