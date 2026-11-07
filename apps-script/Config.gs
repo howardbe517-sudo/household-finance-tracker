@@ -622,7 +622,7 @@ TABLES.RULES = {
 TABLES.CONN = {
   key: 'CONN', sheet: SHEETS.CONN, headerRow: 4, firstRow: 5, lastRow: 54,
   title: 'Connections — Bank Logins Feeding the Tracker',
-  note: 'One row per bank login connected through Plaid. Each uses one of the 10 free Trial slots permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script\'s Script Properties, never on this tab.',
+  note: 'One row per bank login connected through Plaid. Each uses one of the free Trial slots (20 on the owner's plan) permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script\'s Script Properties, never on this tab.',
   idPrefix: 'CONN', idPattern: 'CONN-001', logChanges: true,
   columns: [
     { key: 'id', h: 'Connection ID', w: 110 },
@@ -793,6 +793,9 @@ TABLES.NW = {
 const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
+// Plaid's free Trial cap on connected institutions (the dashboard's "connections"), as shown on the owner's plan page.
+const PLAID_TRIAL_LIMIT = 20;
+
 const PLAID_PROPS = {
   CLIENT_ID: 'PLAID_CLIENT_ID',
   SECRET: 'PLAID_SECRET',

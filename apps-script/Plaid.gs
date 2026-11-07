@@ -91,7 +91,7 @@ function plaidStatus() {
     'PLAID_ENV: ' + (p.getProperty(PLAID_PROPS.ENV) || 'production (default)'),
     'History start date: ' + (p.getProperty(PLAID_PROPS.START_DATE) || 'not set (defaults to 90 days)'),
     'Nightly sync trigger: ' + (trig ? 'on' : 'off'),
-    'Connections: ' + conns.length + ' of 10 Trial slots' + (conns.length ? '\n' + conns.map(c => '  ' + c.id + ' ' + c.institution + ' — ' + c.status + (c.lastSync instanceof Date ? ' (last sync ' + Utilities.formatDate(c.lastSync, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') + ')' : '')).join('\n') : ''),
+    'Connections: ' + conns.length + ' of ' + PLAID_TRIAL_LIMIT + ' Trial slots (the Plaid dashboard also counts connections that never reached the Sheet)' + (conns.length ? '\n' + conns.map(c => '  ' + c.id + ' ' + c.institution + ' — ' + c.status + (c.lastSync instanceof Date ? ' (last sync ' + Utilities.formatDate(c.lastSync, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') + ')' : '')).join('\n') : ''),
   ];
   alert_('Bank feed status', lines.join('\n'));
   return lines;
@@ -126,7 +126,7 @@ function getConnectContext() {
   const conns = readTable_(tdef_('CONN')).map(c => ({ id: c.id, institution: c.institution, status: c.status, products: c.products }));
   const pendingMapping = pendingMapping_();
   const accounts = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, externalAccountId: a.externalAccountId, connectionId: a.connectionId }));
-  return { connections: conns, slotsUsed: conns.length, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_(), pendingMapping };
+  return { connections: conns, slotsUsed: conns.length, slotLimit: PLAID_TRIAL_LIMIT, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_(), pendingMapping };
 }
 
 /**

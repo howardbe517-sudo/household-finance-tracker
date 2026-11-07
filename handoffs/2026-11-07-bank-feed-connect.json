@@ -3,7 +3,7 @@
   "key": "household-finance-tracker-2026-11-07-bank-feed-connect",
   "subtitle": "Give the script your two Plaid keys, set the history start date, connect each bank once, turn on the nightly sync, and do your first review. The code is already in your Sheet (deployed from GitHub) and the workbook upgrade has already run.",
   "intro": [
-    "Everything here happens inside the Sheet and the Plaid dashboard; there is nothing to paste. Each bank uses one of the 10 free Plaid slots for good, so connect each institution exactly once and use **Repair** for problems.",
+    "Everything here happens inside the Sheet and the Plaid dashboard; there is nothing to paste. Each bank uses one of the 20 free Plaid slots for good, so connect each institution exactly once and use **Repair** for problems.",
     "**Privacy:** the two Plaid keys go into the script's Script Properties only — never into a cell, a chat, an email or GitHub.",
     "Do the bank sign-ins at home or on cellular, not on public Wi-Fi."
   ],
@@ -33,7 +33,7 @@
           "note": "Spelling matters: capitals and underscores exactly as shown. These two boxes are the only place the keys ever live."
         },
         {
-          "text": "Back in the Sheet choose **Finance Tracker → Bank feed → Status**. It should say PLAID_CLIENT_ID: set, PLAID_SECRET: set, 0 of 10 connections.",
+          "text": "Back in the Sheet choose **Finance Tracker → Bank feed → Status**. It should say PLAID_CLIENT_ID: set, PLAID_SECRET: set, 0 of 20 connections.",
           "note": "\"missing\" means a property name is misspelled. The status never shows the values themselves."
         },
         {
@@ -68,7 +68,7 @@
         },
         {
           "text": "Repeat **Connect a bank…** as **Investment or retirement account** for Acorns (→ ACC-011) and Fidelity (→ ACC-012), and as **Balance only — any account type** for HealthEquity (→ ACC-013), leaving *Ask Plaid for* on **Account details (try this first)**. Leave **Import transactions** unticked for these; they update balances only.",
-          "note": "Plaid will not open a connection that asks for nothing, so Balance only asks for account details, which the tracker never reads. If HealthEquity shows a red flag in Plaid's search for that too, close Plaid's tab, click Back, pick **Account-holder details** in the Ask Plaid for box and try once more. If it is flagged for both, Plaid cannot connect it: type the HSA balance into ACC-013's Current Balance on Accounts when you review it instead. Failed attempts use no slot. If Fidelity shows a request-access message, approve it and try again in a day. Bank feed → Status should end at 9 of 10."
+          "note": "Plaid will not open a connection that asks for nothing, so Balance only asks for account details, which the tracker never reads. If HealthEquity shows a red flag in Plaid's search for that too, close Plaid's tab, click Back, pick **Account-holder details** in the Ask Plaid for box and try once more. If it is flagged for both, Plaid cannot connect it: type the HSA balance into ACC-013's Current Balance on Accounts when you review it instead. Failed attempts use no slot. If Fidelity shows a request-access message, approve it and try again in a day. Bank feed → Status should end at 9 of 20."
         },
         {
           "text": "Choose **Bank feed → Turn nightly sync on**. The feed then runs every morning around 5 AM; **Bank feed → Sync now** runs it any time.",
