@@ -63,8 +63,10 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   connection is back, PayPal, Amex, Venmo; balance-only Acorns, Fidelity,
   HealthEquity); then Clear sample data; then real paychecks, funds, debts
   and the flexible target.
-- Pull request `claude/bank-feed-first-run-fixes` (loan classification,
-  dialog pre-select, live debt balances).
+- Pull request `claude/balance-only-via-auth`: Balance only connections ask
+  Plaid for `auth` (fallback `identity`) because Plaid rejects an empty
+  products list. HealthEquity has not yet connected; if Plaid flags it for
+  both, its balance has to be entered by hand on Accounts.
 
 ## Bank feed decision (2026-11-07)
 - Feed: **Plaid, free Trial plan** (capped at 10 connected institutions, no

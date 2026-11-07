@@ -301,10 +301,15 @@ R(`disableNightlySync()`);
 if (g.__triggers.length === 0) ok('nightly trigger removed'); else bad('trigger not removed');
 const statusLines = R(`plaidStatus()`);
 if (statusLines.join('\n').indexOf('test-secret') < 0 && /PLAID_SECRET: set/.test(statusLines.join('\n'))) ok('status never reveals secret values'); else bad('plaidStatus leaked: ' + statusLines.join(' | '));
-// balance-only connections send an empty products list
+// balance-only connections: Plaid requires at least one product, so they ask for auth (or identity as the fallback), never transactions
 R(`startHostedLink({ mode:'balance' })`);
 const balPayload = g.__fetches.slice(-1)[0].payload;
-if (Array.isArray(balPayload.products) && balPayload.products.length === 0 && !balPayload.transactions) ok('balance-only connection asks Plaid for no products (Balance comes with every connection)'); else bad('balance mode payload: ' + JSON.stringify(balPayload));
+if (JSON.stringify(balPayload.products) === '["auth"]' && !balPayload.transactions) ok('balance-only connection asks Plaid for auth only (Plaid rejects an empty products list)'); else bad('balance mode payload: ' + JSON.stringify(balPayload));
+R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`);
+R(`startHostedLink({ mode:'balanceIdentity' })`);
+const balIdPayload = g.__fetches.slice(-1)[0].payload;
+if (JSON.stringify(balIdPayload.products) === '["identity"]' && !balIdPayload.transactions && R(`JSON.parse(PropertiesService.getScriptProperties().getProperty('PLAID_PENDING_LINK')).mode`) === 'balanceIdentity') ok('balance-only fallback asks Plaid for identity only'); else bad('balanceIdentity payload: ' + JSON.stringify(balIdPayload));
+if (R(`PLAID_PRODUCT_LABEL.balanceIdentity`) === 'balance') ok('identity fallback is still recorded as a balance connection'); else bad('balanceIdentity label');
 R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`);
 // repair flow uses update mode (access_token, no products)
 R(`startHostedLink({ connectionId:'CONN-001' })`);
