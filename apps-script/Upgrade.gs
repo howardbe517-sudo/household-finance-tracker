@@ -80,8 +80,9 @@ function upgradeWorkbookLocked_() {
       addedCols.push(renamed ? c.h + ' (renamed from "' + c.renamedFrom + '")' : c.h);
     });
     styleHeader_(sh.getRange(def.headerRow, 1, 1, needCols));
-    // formulas, formats and validations for every row, including the new columns (idempotent)
-    applyColumnRules_(def, def.firstRow, def.lastRow);
+    // Full rules only for new columns; existing columns get a formula rewrite only when the template changed.
+    const changedFormulas = upgradeColumnRules_(def, sh, hdr);
+    if (changedFormulas.length) report.push(def.sheet + ': updated formula(s) ' + changedFormulas.join(', '));
     setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, needCols));
     if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
     if (addedCols.length) report.push(def.sheet + ': added column(s) ' + addedCols.join(', '));
@@ -104,6 +105,51 @@ function upgradeWorkbookLocked_() {
   SpreadsheetApp.flush();
   report.unshift('Schema ' + HFT.SCHEMA_VERSION + ' · script ' + HFT.BUILD_VERSION);
   return report;
+}
+
+/**
+ * Apply formats, validations and formulas only where needed:
+ *  - a column whose header was missing (new, or renamed) gets everything for every row;
+ *  - an existing calculated column is rewritten only if its first-row formula differs from the template;
+ *  - an existing input column is left alone (one validation check, no rewrite).
+ * Keeps the upgrade well inside the 6-minute limit on a full workbook.
+ */
+function upgradeColumnRules_(def, sh, hdrBefore) {
+  const n = def.lastRow - def.firstRow + 1;
+  const changed = [];
+  def.columns.forEach((c, i) => {
+    const col = i + 1;
+    const isNew = hdrBefore[i] !== c.h;
+    const rng = sh.getRange(def.firstRow, col, n, 1);
+    if (isNew) {
+      if (c.fmt) setFormat_(rng, c.fmt);
+      if (c.v) { const dv = buildValidation_(c.v); if (dv) rng.setDataValidation(dv); }
+      if (c.f) {
+        const formulas = [];
+        for (let r = def.firstRow; r <= def.lastRow; r++) formulas.push([resolveFormula_(c.f, def, r)]);
+        rng.setFormulas(formulas);
+        rng.setBackground('#FAFBFC');
+      }
+      if (c.arrayFormula) { sh.getRange(def.firstRow, col).setFormula(resolveFormula_(c.arrayFormula, def, def.firstRow)); rng.setBackground('#FAFBFC'); }
+      rng.setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+      return;
+    }
+    if (c.f) {
+      const want = resolveFormula_(c.f, def, def.firstRow);
+      if (sh.getRange(def.firstRow, col).getFormula() !== want) {
+        const formulas = [];
+        for (let r = def.firstRow; r <= def.lastRow; r++) formulas.push([resolveFormula_(c.f, def, r)]);
+        rng.setFormulas(formulas);
+        changed.push(c.h);
+      }
+    } else if (c.arrayFormula) {
+      const want = resolveFormula_(c.arrayFormula, def, def.firstRow);
+      if (sh.getRange(def.firstRow, col).getFormula() !== want) { sh.getRange(def.firstRow, col).setFormula(want); changed.push(c.h); }
+    } else if (c.v && !sh.getRange(def.firstRow, col).getDataValidation()) {
+      const dv = buildValidation_(c.v); if (dv) rng.setDataValidation(dv);
+    }
+  });
+  return changed;
 }
 
 /** Add any dropdown list that has no named range yet (new lists go after the existing ones). */
