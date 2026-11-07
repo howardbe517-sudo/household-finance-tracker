@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 14px 18px; }
+  h3 { margin: 14px 0 6px; font-size: 14px; color: #17324D; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  .box { background: #E8F0F7; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+  .warn { background: #FFF3CD; color: #7A4E00; }
+  .ok { background: #EAF6EE; color: #24563A; }
+  .err { background: #F8D5DA; color: #842029; }
+  .choice { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border: 1px solid #C9D2DC; border-radius: 8px; margin-top: 8px; cursor: pointer; }
+  .choice small { display: block; color: #5F6B7A; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  button:disabled { opacity: .6; cursor: default; }
+  a.big { display: inline-block; margin: 8px 0; padding: 10px 16px; background: #1F6F78; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; font-size: 11px; color: #5F6B7A; padding: 4px; }
+  td { padding: 4px; border-top: 1px solid #E6ECF2; vertical-align: middle; }
+  select { font: inherit; padding: 5px; border: 1px solid #C9D2DC; border-radius: 6px; max-width: 260px; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  ul { margin: 6px 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+  <div id="app" class="muted">Loading…</div>
+<script>
+  var C = null, MODE = 'spending', RESULT = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function show(h) { document.getElementById('app').innerHTML = h; }
+  function msg(cls, text) { return '<div class="box ' + cls + '">' + text + '</div>'; }
+
+  google.script.run.withSuccessHandler(function (ctx) { C = ctx; step1(); }).withFailureHandler(function (e) { show(msg('err', esc(e.message || e))); }).getConnectContext();
+
+  function step1() {
+    var h = '<h3>Step 1 · What kind of account?</h3>';
+    h += '<label class="choice"><input type="radio" name="m" value="spending" checked onchange="MODE=this.value"><div><b>Spending account</b> — bank, credit card, PayPal, Venmo<small>Transactions and balances are imported. Uses ' + C.daysRequested + ' days of history' + (C.startDate ? ' (from ' + esc(C.startDate) + ')' : ' (no start date set — use Bank feed → Set history start date first)') + '.</small></div></label>';
+    h += '<label class="choice"><input type="radio" name="m" value="investments" onchange="MODE=this.value"><div><b>Investment, retirement or HSA account</b> — Acorns, Fidelity, HealthEquity<small>Balances only, for net worth. No transactions are imported.</small></div></label>';
+    h += '<div class="box' + (C.slotsUsed >= 10 ? ' err' : C.slotsUsed >= 8 ? ' warn' : '') + '"><b>' + C.slotsUsed + ' of 10</b> free-plan connections used.' + (C.connections.length ? '<ul>' + C.connections.map(function (c) { return '<li>' + esc(c.id) + ' · ' + esc(c.institution) + ' · ' + esc(c.status) + '</li>'; }).join('') + '</ul><span class="muted">If your bank is already in this list, close this window and use <b>Bank feed → Repair a connection</b> instead. Connecting it again would use another slot for good.</span>' : '') + '</div>';
+    h += '<div class="actions"><button class="primary" ' + (C.slotsUsed >= 10 ? 'disabled' : '') + ' onclick="start()">Continue</button><button onclick="google.script.host.close()">Cancel</button></div>';
+    show(h);
+  }
+
+  function start() {
+    show('<p>Preparing Plaid…</p>');
+    google.script.run.withSuccessHandler(function (res) {
+      var h = '<h3>Step 2 · Sign in to your bank in Plaid\'s window</h3>';
+      h += '<p>Click the button below. Plaid opens in a new tab, you search for your bank and sign in there (Plaid never shows us your password). When Plaid says you are done, close that tab and come back here.</p>';
+      h += '<a class="big" href="' + esc(res.url) + '" target="_blank" rel="noopener">Open Plaid to connect your bank</a>';
+      h += '<p class="muted">The link works for 30 minutes. If a bank asks you to pick accounts, pick every account you want in the tracker.</p>';
+      h += '<div class="actions"><button class="primary" onclick="finish()">I\'ve finished in Plaid</button><button onclick="google.script.host.close()">Cancel</button></div><div id="out"></div>';
+      show(h);
+    }).withFailureHandler(function (e) { show(msg('err', esc(e.message || e)) + '<div class="actions"><button onclick="step1()">Back</button></div>'); }).startHostedLink({ mode: MODE });
+  }
+
+  function finish() {
+    document.getElementById('out').innerHTML = '<p class="muted">Checking with Plaid…</p>';
+    google.script.run.withSuccessHandler(function (res) {
+      if (res.status === 'not_finished') { document.getElementById('out').innerHTML = msg('warn', 'Plaid has not reported a finished connection yet. Complete the steps in Plaid\'s tab, then click the button again.'); return; }
+      RESULT = res; step3();
+    }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); }).finishHostedLink();
+  }
+
+  function step3() {
+    var r = RESULT;
+    var h = '<h3>Step 3 · Match the accounts</h3>';
+    h += msg('ok', '<b>' + esc(r.institution) + '</b> connected as ' + esc(r.connectionId) + '.') + (r.possibleDuplicate ? msg('warn', 'Another connection to this institution already exists. If this was a mistake, nothing can give the slot back, but you can still map the accounts.') : '');
+    h += '<p>For each account Plaid found, pick the row on your <b>Accounts</b> tab it belongs to, or create a new row. Tick <b>Import transactions</b> for spending accounts; leave it off for balance-only accounts.</p>';
+    h += '<table><tr><th>Plaid account</th><th>Your Accounts row</th><th>Import transactions</th></tr>';
+    r.accounts.forEach(function (a, i) {
+      var isSpend = (a.type === 'depository' || a.type === 'credit');
+      h += '<tr><td><b>' + esc(a.name) + '</b>' + (a.mask ? ' ····' + esc(a.mask) : '') + '<br><span class="muted">' + esc(a.type) + (a.subtype ? ' · ' + esc(a.subtype) : '') + (a.current !== '' && a.current != null ? ' · $' + Number(a.current).toFixed(2) : '') + '</span></td>' +
+        '<td><select id="map' + i + '"><option value="new">Create a new Accounts row</option><option value="skip">Skip this account</option>' +
+        r.existingAccounts.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.taken ? ' disabled' : '') + '>' + esc(x.id) + ' · ' + esc(x.name) + (x.taken ? ' (already linked)' : '') + '</option>'; }).join('') + '</select></td>' +
+        '<td style="text-align:center"><input type="checkbox" id="imp' + i + '"' + (isSpend && MODE === 'spending' ? ' checked' : '') + '></td></tr>';
+    });
+    h += '</table><div class="actions"><button class="primary" id="savemap" onclick="saveMap()">Save and run the first sync</button></div><div id="out"></div>';
+    show(h);
+  }
+
+  function saveMap() {
+    var b = document.getElementById('savemap'); b.disabled = true; b.textContent = 'Saving and syncing… this can take a minute';
+    var mappings = RESULT.accounts.map(function (a, i) { return { externalId: a.externalId, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype, current: a.current, accountId: document.getElementById('map' + i).value, importTx: document.getElementById('imp' + i).checked }; });
+    google.script.run.withSuccessHandler(function (res) {
+      var s = res.synced || {};
+      document.getElementById('out').innerHTML = msg('ok', 'Done. ' + res.linked + ' account(s) linked, ' + res.created + ' created. First sync: ' + (s.error ? 'error — ' + esc(s.error) : esc(s.added) + ' new transaction(s) in Import Staging, ' + esc(s.autoImported) + ' auto-imported, ' + esc(s.balances) + ' balance(s) updated.') + '<br>Turn on <b>Bank feed → Nightly sync</b> if you have not yet.') + '<div class="actions"><button onclick="google.script.host.close()">Close</button></div>';
+    }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); b.disabled = false; b.textContent = 'Save and run the first sync'; }).finishAccountMapping({ connectionId: RESULT.connectionId, institution: RESULT.institution, mappings: mappings });
+  }
+</script>
+</body>
+</html>

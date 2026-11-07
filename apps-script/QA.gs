@@ -171,6 +171,22 @@ function qaReport_() {
   const unlinked = inc.filter(i => i.linkedTx === 'Unlinked');
   info(inc.length + ' paychecks; ' + unlinked.length + ' without a linked deposit transaction');
 
+  /* 10b. bank import tables */
+  const staged = readTable_(tdef_('STAGING'));
+  const txIds = {}; tx.forEach(t => { txIds[t.id] = true; });
+  const badImported = staged.filter(s => s.status === IMPORT_STATUS.IMPORTED && !(s.importedTxId && txIds[s.importedTxId]));
+  if (badImported.length) fail(badImported.length + ' Import Staging row(s) say Imported but point to no transaction: ' + badImported.slice(0, 3).map(s => s.importId).join(', '));
+  else pass('Import Staging: ' + staged.length + ' staged row(s); every Imported row points to a real transaction');
+  const waiting = staged.filter(s => s.status === IMPORT_STATUS.REVIEW || s.status === IMPORT_STATUS.SPLIT).length;
+  const rules = readTable_(tdef_('RULES'));
+  const ruleProblems = rules.filter(r => r.active !== false && (!r.pattern || !r.type || ((r.type === 'Expense' || r.type === 'Refund') && r.splitRequired !== true && (!r.category || !r.subcategory || !r.spendingType))));
+  if (ruleProblems.length) fail(ruleProblems.length + ' Import Rule(s) incomplete: ' + ruleProblems.slice(0, 3).map(r => r.id).join(', ')); else pass('Import Rules: ' + rules.length + ' rule(s), all complete');
+  const conns = readTable_(tdef_('CONN'));
+  const connErrors = conns.filter(c => c.lastError);
+  if (connErrors.length) fail(connErrors.length + ' connection(s) report an error: ' + connErrors.map(c => c.id + ' — ' + String(c.lastError).slice(0, 80)).join('; '));
+  else info(conns.length + ' bank connection(s)' + (conns.length ? '; ' + conns.filter(c => c.status === 'Active').length + ' active' : ''));
+  info(waiting + ' staged row(s) awaiting review');
+
   /* 11. dashboard */
   const dash = ss.getSheetByName(SHEETS.DASH);
   if (!dash) fail('Dashboard missing');
@@ -204,6 +220,8 @@ function qaReport_() {
     if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');
     if (fedProblems.length) fail('Payroll Federal Tax / totals: ' + fedProblems.join('; ')); else pass('Payroll Deductions: Federal Tax and Total rows match Income for Ben, Valerie and Household');
 
+    const awaiting = dash.getRange('F3').getFormula();
+    if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard shows the awaiting-review count from Import Staging'); else fail('Dashboard awaiting-review line missing');
     const flexLabel = dash.getRange('A' + DASH.FLEX_BAR).getDisplayValue();
     const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
     if (flexLabel.indexOf(expLabel) < 0) fail('Current Flexible Spending label "' + flexLabel + '" does not name the current month'); else pass('Current Flexible Spending follows today\'s month (' + expLabel + ')');

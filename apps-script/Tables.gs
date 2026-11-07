@@ -85,9 +85,33 @@ CF_BUILDERS.LOG = (sh, def) => { sh.setConditionalFormatRules([]); };
 CF_BUILDERS.NW = (sh, def) => { sh.setConditionalFormatRules([]); };
 
 CF_BUILDERS.STAGING = (sh, def) => {
+  const st = cellRef_(def, 'status');
   sh.setConditionalFormatRules([
-    cfRule_(rowRange_(sh, def), '=' + cellRef_(def, 'duplicate') + '=TRUE', COLORS.OVER_FILL, COLORS.OVER_FONT),
+    cfRule_(rowRange_(sh, def), '=OR(' + st + '="Imported",' + st + '="Superseded",' + st + '="Removed",' + st + '="Ignored")', null, COLORS.DELETED_TEXT),
+    cfRule_(rowRange_(sh, def), '=AND(' + cellRef_(def, 'duplicate') + '=TRUE,' + st + '<>"Imported")', COLORS.OVER_FILL, COLORS.OVER_FONT),
+    cfRule_(colRange_(sh, def, 'status'), '=' + st + '="Needs Split"', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
+    cfRule_(colRange_(sh, def, 'status'), '=' + st + '="Needs Review"', COLORS.UNCATEGORIZED, COLORS.OVER_FONT),
+    cfRule_(colRange_(sh, def, 'status'), '=' + st + '="Ready"', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
     cfRule_(colRange_(sh, def, 'reviewed'), '=' + cellRef_(def, 'reviewed') + '=TRUE', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
+    cfRule_(colRange_(sh, def, 'suggestedCategory'), '=AND(' + cellRef_(def, 'importId') + '<>"",' + cellRef_(def, 'suggestedCategory') + '="",OR(' + st + '="Needs Review",' + st + '=""))', COLORS.UNCATEGORIZED, COLORS.OVER_FONT),
+  ].concat(categoryCellRules_(sh, def, 'suggestedCategory')));
+};
+
+CF_BUILDERS.RULES = (sh, def) => {
+  sh.setConditionalFormatRules([
+    cfRule_(rowRange_(sh, def), '=AND(' + cellRef_(def, 'id') + '<>"",' + cellRef_(def, 'active') + '<>TRUE)', null, COLORS.DELETED_TEXT),
+    cfRule_(colRange_(sh, def, 'autoImport'), '=' + cellRef_(def, 'autoImport') + '=TRUE', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
+    cfRule_(colRange_(sh, def, 'splitRequired'), '=' + cellRef_(def, 'splitRequired') + '=TRUE', COLORS.WARN_FILL, COLORS.WARN_FONT),
+  ].concat(categoryCellRules_(sh, def, 'category')));
+};
+
+CF_BUILDERS.CONN = (sh, def) => {
+  const st = cellRef_(def, 'status');
+  sh.setConditionalFormatRules([
+    cfRule_(colRange_(sh, def, 'status'), '=' + st + '="Active"', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
+    cfRule_(colRange_(sh, def, 'status'), '=' + st + '="Needs Attention"', COLORS.OVER_FILL, COLORS.OVER_FONT, { bold: true }),
+    cfRule_(colRange_(sh, def, 'status'), '=OR(' + st + '="Pending",' + st + '="Disconnected")', COLORS.WARN_FILL, COLORS.WARN_FONT),
+    cfRule_(colRange_(sh, def, 'lastError'), '=' + cellRef_(def, 'lastError') + '<>""', COLORS.OVER_FILL, COLORS.OVER_FONT),
   ]);
 };
 
@@ -203,10 +227,11 @@ function buildDebtsTop_(sh, def) {
   sh.setRowHeight(1, 32);
   styleNoteRow_(sh, 2, def.note, W);
   const kpis = [
-    ['Total Latest Balance', R('=SUM([@@latestBalance])'), FORMATS.currency],
-    ['Estimated Monthly Interest', R('=SUM([@@estMonthlyInterest])'), FORMATS.currency],
-    ['Estimated Annual Interest', R('=SUM([@@estAnnualInterest])'), FORMATS.currency],
-    ['Total Minimum Payments', R('=SUM([@@minPayment])'), FORMATS.currency],
+    ['Household Debt (excl. student loans)', R('=SUMIFS([@@latestBalance],[@@group],"<>Student Loans")'), FORMATS.currency],
+    ['Student Loans', R('=SUMIFS([@@latestBalance],[@@group],"Student Loans")'), FORMATS.currency],
+    ['All Debt', R('=SUM([@@latestBalance])'), FORMATS.currency],
+    ['Estimated Monthly Interest (all)', R('=SUM([@@estMonthlyInterest])'), FORMATS.currency],
+    ['Total Minimum Payments (all)', R('=SUM([@@minPayment])'), FORMATS.currency],
     ['Current Quarter Ends', '=DATE(YEAR(TODAY()),CEILING(MONTH(TODAY())/3)*3+1,0)', FORMATS.date],
   ];
   kpis.forEach((k, i) => {
@@ -257,7 +282,7 @@ function buildCoreTables_() {
 }
 
 function buildInfrastructureTables_() {
-  ['STAGING', 'LOG'].forEach(key => {
+  ['STAGING', 'RULES', 'CONN', 'LOG'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     CF_BUILDERS[key](sh, def);

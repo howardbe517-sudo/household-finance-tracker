@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.0-rebuild-2026-11-07',
-  BUILD_VERSION: '1.0.0',
+  SCHEMA_VERSION: '3.1-bank-import-2026-11-07',
+  BUILD_VERSION: '1.1.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -42,6 +42,8 @@ const SHEETS = {
   SETUP: 'App Setup',
   SOURCES: 'Sources',
   STAGING: 'Import Staging',
+  RULES: 'Import Rules',
+  CONN: 'Connections',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -50,7 +52,8 @@ const TAB_ORDER = [
   SHEETS.START, SHEETS.DASH, SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR,
   SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY, SHEETS.FUNDS, SHEETS.DEBTS,
   SHEETS.QDR, SHEETS.NW, SHEETS.ACCOUNTS, SHEETS.REVIEW, SHEETS.CATS,
-  SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.LOG, SHEETS.CREDIT,
+  SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
+  SHEETS.LOG, SHEETS.CREDIT,
 ];
 
 const COLORS = {
@@ -108,7 +111,7 @@ const LISTS = [
   { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
   { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
-  { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Other'] },
+  { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Tax Debt', 'Other'] },
   { key: 'FREQUENCIES', header: 'Frequencies', values: ['Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Semiannual', 'Annual'] },
   { key: 'RECURRING_GROUPS', header: 'Recurring Groups', values: ['Housing', 'Utilities', 'Loans', 'Insurance', 'Subscriptions', 'Memberships', 'Other'] },
   { key: 'PAYMENT_TYPES', header: 'Payment Types', values: ['Bill', 'Subscription', 'Loan Payment', 'Insurance Premium', 'Membership', 'Transfer', 'Other'] },
@@ -120,6 +123,10 @@ const LISTS = [
   { key: 'SCORE_MODELS', header: 'Score Models', values: ['FICO 8', 'FICO 9', 'FICO 10', 'VantageScore 3.0', 'VantageScore 4.0', 'Other'] },
   { key: 'YES_NO', header: 'Yes/No', values: ['Yes', 'No'] },
   { key: 'LOG_ACTIONS', header: 'Change Log Actions', values: ['Insert', 'Update', 'Soft Delete', 'Restore', 'Import', 'Split', 'Bulk Edit'] },
+  { key: 'DEBT_GROUPS', header: 'Debt Groups', values: ['Household', 'Student Loans'] },
+  { key: 'MATCH_TYPES', header: 'Rule Match Types', values: ['Contains', 'Starts With', 'Exact'] },
+  { key: 'STAGING_STATUSES', header: 'Import Statuses', values: ['Needs Review', 'Needs Split', 'Ready', 'Imported', 'Ignored', 'Superseded', 'Removed'] },
+  { key: 'CONNECTION_STATUSES', header: 'Connection Statuses', values: ['Active', 'Needs Attention', 'Disconnected', 'Pending'] },
 ];
 
 /** Lists derived by formula from the taxonomy table on the Categories tab. */
@@ -307,6 +314,14 @@ TABLES.ACCOUNTS = {
     { key: 'currentBalance', h: 'Current Balance', w: 120, fmt: C.cur },
     { key: 'lastUpdated', h: 'Last Updated', w: 110, fmt: C.date, v: { date: true } },
     { key: 'notes', h: 'Notes', w: 280 },
+    { key: 'externalAccountId', h: 'External Account ID', w: 200,
+      note: 'Added in 3.1: the bank feed\'s own ID for this account (Plaid account_id). Filled when a connection is finished; links synced transactions to this row.' },
+    { key: 'connectionId', h: 'Connection ID', w: 110, v: { idsOf: 'CONN' },
+      note: 'Added in 3.1: the Connections row (bank login) this account belongs to.' },
+    { key: 'importTx', h: 'Import Transactions?', w: 110, v: { checkbox: true },
+      note: 'Added in 3.1: ticked = the sync lands this account\'s transactions in Import Staging; unticked = balance only (Acorns, Fidelity, HSA).' },
+    { key: 'lastSynced', h: 'Last Synced', w: 130, fmt: C.dt,
+      note: 'Added in 3.1: when the bank feed last updated this balance.' },
   ],
 };
 
@@ -488,6 +503,8 @@ TABLES.DEBTS = {
     { key: 'notes', h: 'Notes', w: 220 },
     { key: 'estMonthlyInterest', h: 'Estimated Monthly Interest', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@latestBalance])*N([@apr])/12)' },
     { key: 'estAnnualInterest', h: 'Estimated Annual Interest', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@latestBalance])*N([@apr]))' },
+    { key: 'group', h: 'Debt Group', w: 110, v: { list: 'DEBT_GROUPS' },
+      note: 'Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both.' },
   ],
 };
 
@@ -510,6 +527,9 @@ TABLES.QDR = {
     { key: 'trackedPayments', h: 'Tracked Payments (Transactions)', w: 150, fmt: C.cur,
       f: '=IF(OR([@id]="",[@quarterEnd]="",[@debtId]=""),"",SUMIFS([TX.amount],[TX.debtId],[@debtId],[TX.type],"Debt Payment",[TX.date],">"&EDATE([@quarterEnd],-3),[TX.date],"<="&[@quarterEnd],[TX.isDeleted],"<>TRUE"))',
       note: 'Added in the 3.0 rebuild: Debt Payment transactions in the quarter, for reconciling against statement payments.' },
+    { key: 'group', h: 'Debt Group', w: 110,
+      f: '=IF([@debtId]="","",IFERROR(INDEX([DEBTS.group],MATCH([@debtId],[DEBTS.id],0)),"Household"))',
+      note: 'Added in 3.1: copied from the Debts row so monthly totals can keep student loans separate.' },
   ],
 };
 
@@ -554,6 +574,65 @@ TABLES.STAGING = {
     { key: 'duplicate', h: 'Duplicate?', w: 85,
       f: '=IF([@importId]="","",IF([@importedTxId]<>"",FALSE,OR(COUNTIF([@^fingerprint],[@fingerprint])>1,COUNTIFS([TX.accountId],[@accountId],[TX.date],[@date],[TX.amount],[@amount],[TX.isDeleted],"<>TRUE")>0)))' },
     { key: 'importedTxId', h: 'Imported Transaction ID', w: 140, v: { idsOf: 'TX' } },
+    { key: 'notes', h: 'Notes', w: 220 },
+    { key: 'status', h: 'Status', w: 110, v: { list: 'STAGING_STATUSES' },
+      note: 'Added in 3.1: Needs Review → tick Reviewed? → Import reviewed rows → Imported. Needs Split rows go through the split panel. Superseded = replaced by the posted version of a pending charge.' },
+    { key: 'suggestedType', h: 'Suggested Type', w: 110, v: { list: 'TRANSACTION_TYPES' }, note: 'Added in 3.1.' },
+    { key: 'suggestedPerson', h: 'Suggested Person', w: 110, v: { list: 'OWNERS' }, note: 'Added in 3.1.' },
+    { key: 'suggestedFundId', h: 'Suggested Fund ID', w: 110, v: { idsOf: 'FUNDS' }, note: 'Added in 3.1.' },
+    { key: 'suggestedDebtId', h: 'Suggested Debt ID', w: 110, v: { idsOf: 'DEBTS' }, note: 'Added in 3.1.' },
+    { key: 'ruleId', h: 'Matched Rule ID', w: 110, v: { idsOf: 'RULES' }, note: 'Added in 3.1: the Import Rules row that filled the suggestions.' },
+    { key: 'merchantName', h: 'Merchant (from bank)', w: 160, note: 'Added in 3.1: the cleaned merchant name the bank feed supplies; used by rules.' },
+    { key: 'bankCategory', h: 'Bank Category', w: 160, note: 'Added in 3.1: the feed\'s own category guess, for reference only.' },
+    { key: 'pendingTxId', h: 'Pending Transaction ID', w: 170, note: 'Added in 3.1: for a posted charge, the ID of the pending charge it replaces.' },
+    { key: 'pairedImportId', h: 'Paired Import ID', w: 120, note: 'Added in 3.1: the other side of a detected transfer or card payment.' },
+    { key: 'importedAt', h: 'Imported At', w: 130, fmt: C.dt, note: 'Added in 3.1.' },
+  ],
+};
+
+TABLES.RULES = {
+  key: 'RULES', sheet: SHEETS.RULES, headerRow: 4, firstRow: 5, lastRow: 204,
+  title: 'Import Rules — How Bank Descriptions Become Categories',
+  note: 'One row per pattern. A synced transaction whose description or merchant matches gets the Type, Category, Subcategory and Spending Type below. Auto-import? sends it straight to Transactions; otherwise it waits in Import Staging pre-filled. Split Required? always holds it for the split panel. Make rules from Import Staging with Finance Tracker → Make a rule from this row.',
+  idPrefix: 'RULE', idPattern: 'RULE-001', logChanges: true,
+  columns: [
+    { key: 'id', h: 'Rule ID', w: 95 },
+    { key: 'pattern', h: 'Match Text', w: 220 },
+    { key: 'matchType', h: 'Match Type', w: 100, v: { list: 'MATCH_TYPES' } },
+    { key: 'accountId', h: 'Account ID (optional)', w: 120, v: { idsOf: 'ACCOUNTS' } },
+    { key: 'type', h: 'Type', w: 110, v: { list: 'TRANSACTION_TYPES' } },
+    { key: 'category', h: 'Category', w: 130, v: { derived: 'ALL_CATEGORIES' } },
+    { key: 'subcategory', h: 'Subcategory', w: 170, v: { derived: 'ALL_SUBCATEGORIES' } },
+    { key: 'spendingType', h: 'Spending Type', w: 120, v: { list: 'SPENDING_TYPES' } },
+    { key: 'person', h: 'Person', w: 95, v: { list: 'OWNERS' } },
+    { key: 'fundId', h: 'Fund ID', w: 95, v: { idsOf: 'FUNDS' } },
+    { key: 'debtId', h: 'Debt ID', w: 95, v: { idsOf: 'DEBTS' } },
+    { key: 'autoImport', h: 'Auto-import?', w: 90, v: { checkbox: true } },
+    { key: 'splitRequired', h: 'Split Required?', w: 100, v: { checkbox: true } },
+    { key: 'active', h: 'Active?', w: 70, v: { checkbox: true } },
+    { key: 'matches', h: 'Matches', w: 80, fmt: C.int, f: '=IF([@id]="","",COUNTIF([STAGING.ruleId],[@id]))' },
+    { key: 'createdAt', h: 'Created At', w: 130, fmt: C.dt },
+    { key: 'notes', h: 'Notes', w: 220 },
+  ],
+};
+
+TABLES.CONN = {
+  key: 'CONN', sheet: SHEETS.CONN, headerRow: 4, firstRow: 5, lastRow: 54,
+  title: 'Connections — Bank Logins Feeding the Tracker',
+  note: 'One row per bank login connected through Plaid. Each uses one of the 10 free Trial slots permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script\'s Script Properties, never on this tab.',
+  idPrefix: 'CONN', idPattern: 'CONN-001', logChanges: true,
+  columns: [
+    { key: 'id', h: 'Connection ID', w: 110 },
+    { key: 'institution', h: 'Institution', w: 200 },
+    { key: 'itemId', h: 'Plaid Item ID', w: 220 },
+    { key: 'products', h: 'Products', w: 150 },
+    { key: 'status', h: 'Status', w: 120, v: { list: 'CONNECTION_STATUSES' } },
+    { key: 'accountsLinked', h: 'Accounts Linked', w: 100, fmt: C.int, f: '=IF([@id]="","",COUNTIF([ACCOUNTS.connectionId],[@id]))' },
+    { key: 'lastSync', h: 'Last Sync', w: 130, fmt: C.dt },
+    { key: 'lastResult', h: 'Last Result', w: 260 },
+    { key: 'lastError', h: 'Last Error', w: 300 },
+    { key: 'syncCursor', h: 'Sync Cursor', w: 120 },
+    { key: 'addedOn', h: 'Added On', w: 110, fmt: C.date },
     { key: 'notes', h: 'Notes', w: 220 },
   ],
 };
@@ -640,8 +719,9 @@ TABLES.SUMMARY = {
       f: '=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"))' },
     { key: 'cashRemaining', h: 'Cash Remaining', w: 110, fmt: C.cur, f: '=IF([@month]="","",[@income]-[@spending]-[@cashSavings]-[@debtPayments])' },
     { key: 'cashSavingsRate', h: 'Cash Savings Rate', w: 105, fmt: C.pct, f: '=IF(OR([@month]="",N([@income])=0),"",[@cashSavings]/[@income])' },
-    { key: 'reviewedDebt', h: 'Reviewed Debt Balance', w: 120, fmt: C.cur,
-      f: '=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0)))))' },
+    { key: 'reviewedDebt', h: 'Reviewed Household Debt', w: 120, fmt: C.cur, renamedFrom: 'Reviewed Debt Balance',
+      f: '=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0)),[QDR.group],"<>Student Loans")))',
+      note: 'Changed in 3.1: excludes debts in the Student Loans group (see the Student Loan Balance column).' },
     { key: 'netWorthSnapshot', h: 'Net Worth Snapshot', w: 120, fmt: C.cur,
       f: '=IF([@month]="","",IFERROR(INDEX([NW.netWorth],MATCH([@month],[NW.month],0)),""))' },
     { key: 'retirement', h: 'Retirement Savings', w: 110, fmt: C.cur, f: '=IF([@month]="","",SUMIFS([INCOME.retirement],[INCOME.month],[@month]))' },
@@ -651,6 +731,9 @@ TABLES.SUMMARY = {
     { key: 'txIncomeDeposits', h: 'Transaction Income Deposits', w: 130, fmt: C.cur,
       f: '=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Income",[TX.isDeleted],"<>TRUE"))' },
     { key: 'incomeReconciliation', h: 'Income Reconciliation', w: 120, fmt: C.cur, f: '=IF([@month]="","",[@txIncomeDeposits]-[@income])' },
+    { key: 'studentLoans', h: 'Student Loan Balance', w: 120, fmt: C.cur,
+      f: '=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0)),[QDR.group],"Student Loans")))',
+      note: 'Added in 3.1: the Student Loans group from the latest Quarterly Debt Review, kept apart from household debt.' },
   ],
 };
 
@@ -670,13 +753,16 @@ TABLES.REVIEW = {
     { key: 'debtPayments', h: 'Debt Payments', w: 105, fmt: C.cur, f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.debtPayments],MATCH([@month],[SUMMARY.month],0)),""))' },
     { key: 'cashRemaining', h: 'Cash Remaining', w: 110, fmt: C.cur, f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.cashRemaining],MATCH([@month],[SUMMARY.month],0)),""))' },
     { key: 'savingsRate', h: 'Cash Savings Rate', w: 105, fmt: C.pct, f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.cashSavingsRate],MATCH([@month],[SUMMARY.month],0)),""))' },
-    { key: 'totalDebt', h: 'Total Debt Balance', w: 115, fmt: C.cur, f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.reviewedDebt],MATCH([@month],[SUMMARY.month],0)),""))' },
+    { key: 'totalDebt', h: 'Household Debt Balance', w: 115, fmt: C.cur, renamedFrom: 'Total Debt Balance', f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.reviewedDebt],MATCH([@month],[SUMMARY.month],0)),""))',
+      note: 'Changed in 3.1: household debt only; student loans have their own column.' },
     { key: 'wentWell', h: 'What Went Well', w: 240 },
     { key: 'adjust', h: 'What to Adjust', w: 240 },
     { key: 'focus', h: 'Next Month Focus', w: 240 },
     { key: 'reviewedBy', h: 'Reviewed By', w: 100, v: { list: 'OWNERS' } },
     { key: 'reviewedOn', h: 'Reviewed On', w: 105, fmt: C.date, v: { date: true } },
     { key: 'notes', h: 'Notes', w: 200 },
+    { key: 'studentLoans', h: 'Student Loan Balance', w: 120, fmt: C.cur, f: '=IF([@month]="","",IFERROR(INDEX([SUMMARY.studentLoans],MATCH([@month],[SUMMARY.month],0)),""))',
+      note: 'Added in 3.1.' },
   ],
 };
 
@@ -701,7 +787,17 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+
+/** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
+const PLAID_PROPS = {
+  CLIENT_ID: 'PLAID_CLIENT_ID',
+  SECRET: 'PLAID_SECRET',
+  ENV: 'PLAID_ENV',                 // production (the free Trial runs against production)
+  START_DATE: 'PLAID_START_DATE',   // yyyy-mm-dd; transactions before this date are not imported
+  TOKEN_PREFIX: 'PLAID_ACCESS_TOKEN_', // + Connection ID
+  PENDING_LINK: 'PLAID_PENDING_LINK',  // JSON of the hosted Link session in progress
+};
 
 /** Formats */
 const FORMATS = {

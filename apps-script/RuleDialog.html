@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 14px 18px; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  .box { background: #E8F0F7; border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  label { display: block; font-size: 11px; color: #5F6B7A; font-weight: 600; margin-top: 10px; }
+  input[type=text], select { width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border: 1px solid #C9D2DC; border-radius: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .check { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; }
+  .check input { margin-top: 3px; }
+  .check small { display: block; color: #5F6B7A; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  .msg { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: #EAF6EE; color: #24563A; }
+  .err { background: #F8D5DA; color: #842029; }
+</style>
+</head>
+<body>
+  <div id="app" class="muted">Loading…</div>
+<script>
+  var C = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function opts(list, sel, labelFn) { return '<option value="">—</option>' + list.map(function (v) { var val = typeof v === 'string' ? v : v.id; var lab = labelFn ? labelFn(v) : val; return '<option value="' + esc(val) + '"' + (val === sel ? ' selected' : '') + '>' + esc(lab) + '</option>'; }).join(''); }
+  function categories() { var seen = {}, out = []; C.taxonomy.forEach(function (t) { if (!seen[t.category]) { seen[t.category] = 1; out.push(t.category); } }); return out; }
+  function subcats(cat) { return C.taxonomy.filter(function (t) { return t.category === cat; }).map(function (t) { return t.subcategory; }); }
+
+  google.script.run.withSuccessHandler(function (ctx) { C = ctx; render(); }).withFailureHandler(fail).getRuleDialogContext();
+
+  function render() {
+    var r = C.row;
+    var acct = C.accounts.filter(function (a) { return a.id === r.accountId; })[0];
+    var h = '<div class="box"><div class="muted">' + esc(r.importId) + (acct ? ' · ' + esc(acct.name) : '') + '</div><div>' + esc(r.rawDescription) + (r.merchantName ? ' <span class="muted">(' + esc(r.merchantName) + ')</span>' : '') + '</div><b>$' + esc(Math.abs(Number(r.amount || 0)).toFixed(2)) + '</b></div>';
+    h += '<div class="grid"><div><label>When the description or merchant…</label><select id="matchType"><option>Contains</option><option>Starts With</option><option>Exact</option></select></div>' +
+         '<div><label>…this text</label><input type="text" id="pattern" value="' + esc(C.suggestedPattern) + '"></div></div>';
+    h += '<div class="check"><input type="checkbox" id="scoped"' + (r.accountId ? '' : ' disabled') + '><div>Only for this account' + (acct ? ' (' + esc(acct.name) + ')' : '') + '<small>Untick to apply the rule to every account.</small></div></div>';
+    h += '<div class="grid"><div><label>Type</label><select id="type">' + opts(C.lists.TRANSACTION_TYPES.filter(function (t) { return t !== 'Split Parent'; }), r.suggestedType || 'Expense') + '</select></div>' +
+         '<div><label>Spending Type</label><select id="spendingType">' + opts(C.lists.SPENDING_TYPES, r.suggestedSpendingType) + '</select></div>' +
+         '<div><label>Category</label><select id="category" onchange="onCat()">' + opts(categories(), r.suggestedCategory) + '</select></div>' +
+         '<div><label>Subcategory</label><select id="subcategory" onchange="onSub()">' + opts(subcats(r.suggestedCategory), r.suggestedSubcategory) + '</select></div>' +
+         '<div><label>Person</label><select id="person">' + opts(C.lists.OWNERS, r.suggestedPerson) + '</select></div>' +
+         '<div><label>Fund (Savings / fund-paid purchases)</label><select id="fundId">' + opts(C.funds, r.suggestedFundId, function (f) { return f.id + ' ' + f.name; }) + '</select></div>' +
+         '<div><label>Debt (Debt Payment)</label><select id="debtId">' + opts(C.debts, r.suggestedDebtId, function (d) { return d.id + ' ' + d.name; }) + '</select></div></div>';
+    h += '<div class="check"><input type="checkbox" id="autoImport"><div>Always auto-import<small>Matching transactions go straight into Transactions with these values. Leave off to keep them in Import Staging, pre-filled, for your review.</small></div></div>';
+    h += '<div class="check"><input type="checkbox" id="splitRequired"><div>Split required<small>For Meijer, Walmart, Target, Costco: matching rows always wait for the split panel. Category here is just the default for the first line.</small></div></div>';
+    h += '<div class="actions"><button class="primary" id="save" onclick="save()">Save rule</button><button onclick="google.script.host.close()">Cancel</button></div><div id="out"></div>';
+    document.getElementById('app').innerHTML = h;
+    if (r.accountId) document.getElementById('scoped').checked = false;
+  }
+  function onCat() { var cat = document.getElementById('category').value; document.getElementById('subcategory').innerHTML = opts(subcats(cat), ''); }
+  function onSub() { var cat = document.getElementById('category').value, sub = document.getElementById('subcategory').value; var t = C.taxonomy.filter(function (x) { return x.category === cat && x.subcategory === sub; })[0]; if (t && t.spendingType) document.getElementById('spendingType').value = t.spendingType; }
+  function v(id) { var el = document.getElementById(id); return el.type === 'checkbox' ? el.checked : el.value; }
+  function save() {
+    var p = { pattern: v('pattern').trim(), matchType: v('matchType'), accountId: v('scoped') ? C.row.accountId : '', type: v('type'), category: v('category'), subcategory: v('subcategory'),
+      spendingType: v('spendingType'), person: v('person'), fundId: v('fundId'), debtId: v('debtId'), autoImport: v('autoImport'), splitRequired: v('splitRequired') };
+    if (!p.pattern) return fail({ message: 'Enter the text to match.' });
+    if (!p.type) return fail({ message: 'Choose a Type.' });
+    if ((p.type === 'Expense' || p.type === 'Refund') && !p.splitRequired && (!p.category || !p.subcategory || !p.spendingType)) return fail({ message: 'An Expense or Refund rule needs Category, Subcategory and Spending Type (unless Split required is ticked).' });
+    if (p.type === 'Savings' && !p.fundId) return fail({ message: 'A Savings rule needs a Fund.' });
+    if (p.type === 'Debt Payment' && !p.debtId) return fail({ message: 'A Debt Payment rule needs a Debt.' });
+    var b = document.getElementById('save'); b.disabled = true; b.textContent = 'Saving…';
+    google.script.run.withSuccessHandler(function (res) {
+      document.getElementById('out').innerHTML = '<div class="msg">Rule ' + esc(res.ruleId) + ' saved and applied to ' + res.updatedRows + ' waiting row(s). You can close this window.</div>';
+      b.textContent = 'Saved';
+    }).withFailureHandler(function (e) { fail(e); b.disabled = false; b.textContent = 'Save rule'; }).saveRuleFromDialog(p);
+  }
+  function fail(e) { var o = document.getElementById('out') || document.getElementById('app'); o.innerHTML = '<div class="msg err">' + esc(e && e.message || e) + '</div>'; }
+</script>
+</body>
+</html>

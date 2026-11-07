@@ -55,6 +55,8 @@ function buildDashboard_() {
     .setBorder(true, true, true, true, false, false, COLORS.NAVY, SpreadsheetApp.BorderStyle.SOLID)
     .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).setHelpText('Enter any date in the month you want to view; use the first of the month.').build());
   mergePut('C3:E3', '="Showing "&TEXT(' + SEL + ',"mmmm yyyy")&IF(' + SEL + '<>' + CUR_MONTH + ',"  (not the current month)","")').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
+  mergePut('F3:I3', F('=IFERROR(LET(n,COUNTIF([STAGING.status],"Needs Review")+COUNTIF([STAGING.status],"Needs Split"),IF(n=0,"Import Staging: nothing awaiting review",n&" imported transaction(s) awaiting review on Import Staging")),"")'))
+    .setFontSize(9).setHorizontalAlignment('right').setFontColor(COLORS.MUTED_TEXT);
 
   /* --- four cards --- */
   const cards = [
@@ -172,6 +174,7 @@ function buildDashboard_() {
     cfRule_(sh.getRange('F39:F46'), '=F39="Funded"', COLORS.UNDER_FILL, COLORS.UNDER_FONT, { bold: true }),
     cfRule_(sh.getRange('F39:F46'), '=OR(F39="Behind",F39="Past Target Date")', COLORS.OVER_FILL, COLORS.OVER_FONT),
     cfRule_(sh.getRange('B11:D13'), '=AND(B11=0,$B$3<>"")', null, COLORS.MUTED_TEXT),
+    cfRule_(sh.getRange('F3:I3'), '=ISNUMBER(SEARCH("awaiting review on",F3))', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
   ]);
 
   /* --- Savings & Reserves + checklist --- */
@@ -209,7 +212,7 @@ function buildDashboard_() {
   sh.getRange('G38:I46').setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
   /* --- footnote --- */
-  mergePut('A48:I48', F('="Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab — latest reviewed total: "&TEXT(SUM([DEBTS.latestBalance]),"$#,##0")&". Balances are kept off the everyday Dashboard on purpose."'))
+  mergePut('A48:I48', F('="Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab — household debt "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"<>Student Loans"),"$#,##0")&" · student loans "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"Student Loans"),"$#,##0")&". Balances are kept off the everyday Dashboard on purpose."'))
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
   /* --- protection: warning-only, except inputs --- */

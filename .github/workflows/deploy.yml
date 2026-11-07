@@ -1,0 +1,42 @@
+name: Deploy to Apps Script
+# Merging to main pushes apps-script/ into the Sheet's Apps Script project with clasp.
+# Needs two repository secrets (see handoffs/2026-11-07-auto-deploy-setup.json):
+#   CLASPRC_JSON    the contents of ~/.clasprc.json after `clasp login` on the owner's computer
+#   CLASP_SCRIPT_ID the Apps Script project's Script ID (Project Settings in the editor)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-script/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-apps-script
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests must pass before anything is deployed
+        run: node tests/run-tests.js
+      - name: Install clasp
+        run: npm install -g @google/clasp@2.4.2
+      - name: Write credentials (from secrets, never committed)
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          CLASP_SCRIPT_ID: ${{ secrets.CLASP_SCRIPT_ID }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then echo "::error::Repository secret CLASPRC_JSON is missing (see the auto-deploy setup page)"; exit 1; fi
+          if [ -z "$CLASP_SCRIPT_ID" ]; then echo "::error::Repository secret CLASP_SCRIPT_ID is missing (see the auto-deploy setup page)"; exit 1; fi
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          printf '{"scriptId":"%s","rootDir":"apps-script"}' "$CLASP_SCRIPT_ID" > .clasp.json
+      - name: Push every file in apps-script/ to the project
+        run: clasp push -f
+      - name: Summary
+        run: echo "Deployed $(git rev-parse --short HEAD) to Apps Script. Reload the Sheet to pick up the new menu." >> "$GITHUB_STEP_SUMMARY"

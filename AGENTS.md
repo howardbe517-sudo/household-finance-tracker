@@ -101,28 +101,39 @@ jargon, and ask clarifying questions when something is unclear.
 - Say clearly what was tested here and what still needs testing in Google.
   Never describe untested Google behavior as verified.
 
-## 6. Handoff page (required after every change the owner must paste)
+## 6. How code reaches the Sheet, and the handoff page
 
-The owner pastes files by hand, so a change is not finished until there is a
-step-by-step handoff page.
+Code is deployed automatically: merging to `main` runs
+`.github/workflows/deploy.yml`, which runs the tests and then pushes every
+file in `apps-script/` into the Sheet's Apps Script project with `clasp`
+(secrets `CLASPRC_JSON` and `CLASP_SCRIPT_ID` live in the repository's Actions
+secrets, never in files). The owner no longer pastes files. If the deploy
+fails, say so and fix it; never ask the owner to paste as a workaround unless
+they choose to.
+
+A change is still not finished until there is a step-by-step handoff page for
+whatever the owner must do *in the Sheet* after the deploy: run
+`upgradeWorkbook` after a schema change, set a Script Property, connect a
+bank, check a result.
 
 - Build it with `node scripts/build-handoff.js <spec.json> <out.html>` and
   publish the HTML with the Artifact tool. Keep the spec in `handoffs/`
   (for example `handoffs/<date>-<topic>.json`) so it is in the pull request.
-- The page walks through every click in order, one step per card, with a
-  checkbox: which Sheet and project to open, which file to click, select all
-  and delete, then a **Copy <file> (N lines)** button holding the whole file,
-  the last line number to expect after pasting, any function to run from the
-  editor, and how to check the result in the Sheet using the sample data.
+- One step per card with a checkbox: which tab to open, which menu item to
+  run, what to type where, and how to check the result. Use the `file` field
+  only for a file the owner must paste by hand (rare now).
 - Start with a named version in Version history as a restore point whenever
   the Sheet already holds data. Say what does not change.
 - Give the owner the artifact link in the final message with a short summary
   of what the change does for them. Never make them assemble the steps from
   `CHANGELOG.md`.
+- A schema change (anything in `TABLES` or `LISTS` in `Config.gs`) must be
+  deliverable by `upgradeWorkbook()` on a live workbook: append columns, use
+  `renamedFrom` for a renamed header, never remove or reorder.
 
 ## 7. Git workflow
 
 - Never commit directly to `main`. Work on a branch and open a pull request.
 - One pull request per change, with a plain-language summary and the list of
-  files to paste into Apps Script.
-- The owner reviews the diff and merges.
+  files that changed in `apps-script/` (the deploy pushes them all).
+- The owner reviews the diff and merges; the merge deploys.

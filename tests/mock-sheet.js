@@ -130,6 +130,8 @@ class Spreadsheet {
   setNamedRange(name, range) { this.namedRanges.set(name, new NamedRange(this, name, range)); }
   getRangeByName(name) { const nr = this.namedRanges.get(name); return nr ? nr.range : null; }
   setActiveSheet(s) { this.active = s; return s; }
+  getActiveSheet() { return this.active; }
+  getActiveRange() { return this.activeRange || null; }
   moveActiveSheet(pos) { this.sheets = this.sheets.filter(s => s !== this.active); this.sheets.splice(pos - 1, 0, this.active); }
   getId() { return 'MOCK_SPREADSHEET_ID'; }
   getName() { return this.name; } rename(n) { this.name = n; }
@@ -168,13 +170,35 @@ function makeGlobals() {
   const ss = new Spreadsheet();
   const logs = [];
   const alerts = [];
+  const dialogs = [];
+  const props = {};
+  const triggers = [];
+  const fetches = [];
   const ui = {
     ButtonSet: { OK: 'OK', OK_CANCEL: 'OK_CANCEL', YES_NO: 'YES_NO', YES_NO_CANCEL: 'YES_NO_CANCEL' },
     Button: { OK: 'OK', CANCEL: 'CANCEL', YES: 'YES', NO: 'NO' },
     alert(title, msg) { alerts.push([title, msg]); return 'YES'; },
-    prompt() { return { getSelectedButton: () => 'CANCEL', getResponseText: () => '' }; },
-    createMenu() { const m = { addItem: () => m, addSeparator: () => m, addToUi: () => m }; return m; },
+    promptAnswer: null,
+    prompt(title, msg) { const a = ui.promptAnswer; return { getSelectedButton: () => (a === null ? 'CANCEL' : 'OK'), getResponseText: () => (a === null ? '' : String(a)) }; },
+    createMenu() { const m = { addItem: () => m, addSeparator: () => m, addSubMenu: () => m, addToUi: () => m }; return m; },
+    showSidebar(h) { dialogs.push(['sidebar', h]); },
+    showModalDialog(h, t) { dialogs.push(['modal', t]); },
   };
+  // UrlFetchApp: tests register a handler (url, payloadObj) => ({ code, body })
+  const fetchHandler = { fn: null };
+  const UrlFetchApp = {
+    fetch(url, opts) {
+      const payload = opts && opts.payload ? JSON.parse(opts.payload) : {};
+      fetches.push({ url, payload });
+      if (!fetchHandler.fn) throw new Error('Mock: no UrlFetchApp handler registered for ' + url);
+      const res = fetchHandler.fn(url, payload);
+      const code = res.code || 200;
+      const text = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
+      return { getResponseCode: () => code, getContentText: () => text };
+    },
+  };
+  const htmlOut = (content) => { const o = { _c: content, setWidth() { return o; }, setHeight() { return o; }, setTitle() { return o; }, getContent() { return content; } }; return o; };
+  const trig = (fn) => ({ getHandlerFunction: () => fn, getUniqueId: () => fn + '-' + triggers.length });
   const g = {
     SpreadsheetApp: {
       getActiveSpreadsheet: () => ss,
@@ -187,16 +211,24 @@ function makeGlobals() {
       flush() {},
     },
     Utilities: {
+      sleep() {},
       formatDate(d, tz, fmt) { const p = n => String(n).padStart(2, '0'); return fmt.replace('yyyy', d.getFullYear()).replace('MMMM', d.toLocaleString('en-US', { month: 'long' })).replace('MM', p(d.getMonth() + 1)).replace('dd', p(d.getDate())).replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes())).replace('ss', p(d.getSeconds())).replace("'T'", 'T'); },
       getUuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); },
     },
     Session: { getScriptTimeZone: () => 'America/Detroit', getActiveUser: () => ({ getEmail: () => 'tester@example.com' }) },
     Logger: { log: (m) => logs.push(String(m)) },
-    PropertiesService: { getScriptProperties: () => ({ _p: {}, getProperty(k) { return this._p[k] || null; }, setProperty(k, v) { this._p[k] = v; } }) },
-    LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty(k) { return Object.prototype.hasOwnProperty.call(props, k) ? props[k] : null; }, setProperty(k, v) { props[k] = String(v); return this; }, deleteProperty(k) { delete props[k]; return this; }, getProperties() { return Object.assign({}, props); } }) },
+    LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) },
     ContentService: { createTextOutput: (t) => ({ _t: t, setMimeType() { return this; }, getContent() { return this._t; } }), MimeType: { JSON: 'JSON' } },
+    UrlFetchApp,
+    HtmlService: { createHtmlOutputFromFile: (name) => htmlOut('<file:' + name + '>'), createHtmlOutput: (html) => htmlOut(html) },
+    ScriptApp: {
+      getProjectTriggers: () => triggers.slice(),
+      deleteTrigger: (t) => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
+      newTrigger: (fn) => { const b = { timeBased: () => b, everyDays: () => b, atHour: () => b, create: () => { const t = trig(fn); triggers.push(t); return t; } }; return b; },
+    },
     console,
-    __ss: ss, __logs: logs, __alerts: alerts,
+    __ss: ss, __logs: logs, __alerts: alerts, __dialogs: dialogs, __props: props, __triggers: triggers, __fetches: fetches, __fetchHandler: fetchHandler,
   };
   return g;
 }

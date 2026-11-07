@@ -204,9 +204,9 @@ function sampleDataset_() {
 
   /* ---- Debts & Quarterly Debt Review ---- */
   const debts = [
-    { id: 'DEBT-001', name: 'Sample Student Loan', debtType: 'Student Loan', lender: 'Sample Loan Servicer', owner: 'Ben', originalBalance: 18000, apr: 0.062, minPayment: 220, dueDay: 25 },
-    { id: 'DEBT-002', name: 'Sample Auto Loan', debtType: 'Auto Loan', lender: 'Sample Auto Finance', owner: 'Household', originalBalance: 14500, apr: 0.059, minPayment: 310, dueDay: 12 },
-    { id: 'DEBT-003', name: 'Sample Credit Card', debtType: 'Credit Card', lender: 'Sample Card Co.', owner: 'Household', originalBalance: 2400, apr: 0.2299, minPayment: 75, dueDay: 20, linkedAccount: 'ACC-003' },
+    { id: 'DEBT-001', name: 'Sample Student Loan', debtType: 'Student Loan', lender: 'Sample Loan Servicer', owner: 'Ben', originalBalance: 18000, apr: 0.062, minPayment: 220, dueDay: 25, group: 'Student Loans' },
+    { id: 'DEBT-002', name: 'Sample Auto Loan', debtType: 'Auto Loan', lender: 'Sample Auto Finance', owner: 'Household', originalBalance: 14500, apr: 0.059, minPayment: 310, dueDay: 12, group: 'Household' },
+    { id: 'DEBT-003', name: 'Sample Credit Card', debtType: 'Credit Card', lender: 'Sample Card Co.', owner: 'Household', originalBalance: 2400, apr: 0.2299, minPayment: 75, dueDay: 20, linkedAccount: 'ACC-003', group: 'Household' },
   ].map(d => Object.assign({ notes: S + ' — replace with real debts' }, d));
 
   const qEnds = lastQuarterEnds_(3);
@@ -266,11 +266,52 @@ function writeSampleData_() {
   writeRows_(tdef_('PLAN'), d.plans, tdef_('PLAN').firstRow);
   writeRows_(tdef_('REVIEW'), d.reviews, tdef_('REVIEW').firstRow);
   writeRows_(tdef_('NW'), d.netWorth, tdef_('NW').firstRow);
+  writeSampleImportData_();
   return d;
 }
 
+/**
+ * Sample Import Rules and staged bank rows so the review workflow can be tried
+ * before any bank is connected. Rows are classified by the real engine but
+ * nothing is promoted: the owner does that from the menu.
+ */
+function writeSampleImportData_() {
+  const S = HFT.SAMPLE_TAG;
+  const today = todayMidnight_();
+  const d = (n) => new Date(today.getFullYear(), today.getMonth(), today.getDate() - n);
+  const rules = [
+    { id: 'RULE-001', pattern: 'SAMPLE ELECTRIC CO', matchType: 'Contains', type: 'Expense', category: 'Housing', subcategory: 'Electric', spendingType: 'Fixed', person: 'Household', autoImport: true, splitRequired: false, active: true, createdAt: today, notes: S + ' — a bill that imports itself' },
+    { id: 'RULE-002', pattern: 'SAMPLE EMPLOYER A PAYROLL', matchType: 'Contains', accountId: 'ACC-001', type: 'Income', category: 'Income', subcategory: 'Salary', person: 'Ben', autoImport: true, splitRequired: false, active: true, createdAt: today, notes: S + ' — paycheck matched by source, not amount' },
+    { id: 'RULE-003', pattern: 'SAMPLE SUPERSTORE', matchType: 'Contains', type: 'Expense', category: 'Food', subcategory: 'Groceries', spendingType: 'Flexible', person: 'Household', autoImport: false, splitRequired: true, active: true, createdAt: today, notes: S + ' — mixed basket, always split' },
+    { id: 'RULE-004', pattern: 'SAMPLE FUEL', matchType: 'Contains', type: 'Expense', category: 'Transportation', subcategory: 'Fuel', spendingType: 'Flexible', person: 'Household', autoImport: false, splitRequired: false, active: true, createdAt: today, notes: S + ' — pre-filled, waits for a glance' },
+  ];
+  writeRows_(tdef_('RULES'), rules, tdef_('RULES').firstRow);
+  const ctx = importContext_();
+  const staged = [
+    { externalTxId: 'sample-plaid-0001', accountId: 'ACC-001', date: d(2), rawDescription: 'SAMPLE ELECTRIC CO ONLINE PMT', merchantName: 'Sample Electric Co', amount: 142.18, pending: false, bankCategory: 'RENT_AND_UTILITIES / GAS_AND_ELECTRICITY' },
+    { externalTxId: 'sample-plaid-0002', accountId: 'ACC-003', date: d(1), rawDescription: 'SAMPLE SUPERSTORE #0412', merchantName: 'Sample Superstore', amount: 86.4, pending: false, bankCategory: 'GENERAL_MERCHANDISE / SUPERSTORES' },
+    { externalTxId: 'sample-plaid-0003', accountId: 'ACC-003', date: d(1), rawDescription: 'SQ *SAMPLE COFFEE BAR', merchantName: 'Sample Coffee Bar', amount: 6.75, pending: true, bankCategory: 'FOOD_AND_DRINK / COFFEE' },
+    { externalTxId: 'sample-plaid-0004', accountId: 'ACC-001', date: d(3), rawDescription: 'VENMO *SAMPLE PERSON', merchantName: 'Venmo', amount: 40, pending: false, bankCategory: 'TRANSFER_OUT / ACCOUNT_TRANSFER' },
+    { externalTxId: 'sample-plaid-0005', accountId: 'ACC-001', date: d(4), rawDescription: 'SAMPLE FUEL STATION 22', merchantName: 'Sample Fuel', amount: 51.3, pending: false, bankCategory: 'TRANSPORTATION / GAS' },
+    { externalTxId: 'sample-plaid-0006', accountId: 'ACC-001', date: d(5), rawDescription: 'ONLINE PAYMENT TO SAMPLE CARD', merchantName: '', amount: 350, pending: false, bankCategory: 'LOAN_PAYMENTS / CREDIT_CARD_PAYMENT' },
+    { externalTxId: 'sample-plaid-0007', accountId: 'ACC-003', date: d(4), rawDescription: 'PAYMENT RECEIVED - THANK YOU', merchantName: '', amount: -350, pending: false, bankCategory: 'LOAN_PAYMENTS / CREDIT_CARD_PAYMENT' },
+  ];
+  const def = tdef_('STAGING');
+  let n = 1;
+  const rows = staged.map(it => {
+    const row = Object.assign({ importId: 'IMP-' + String(n++).padStart(6, '0'), provider: 'Plaid (sample)', notes: S + ' — staged bank row', reviewed: false, importedTxId: '', pairedImportId: '', importedAt: '', pendingTxId: '' }, it);
+    Object.assign(row, classifyRow_(row, ctx));
+    delete row.autoImport;
+    return row;
+  });
+  const pairs = pairTransfers_(rows, ctx);
+  pairs.forEach(applyPair_);
+  rows.forEach(r => { delete r.pairKind; });
+  writeRows_(def, rows, def.firstRow);
+}
+
 /** Tables whose sample rows can be identified by a Notes column starting with SAMPLE. */
-const SAMPLE_TABLES = ['TX', 'INCOME', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS'];
+const SAMPLE_TABLES = ['TX', 'INCOME', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS', 'STAGING', 'RULES'];
 
 function isSampleRow_(def, row) {
   const notes = String(row.notes || '');

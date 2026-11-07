@@ -18,7 +18,7 @@
  * The API never writes to Monthly Summary, Dashboard or any calculated column.
  */
 
-const API_WRITABLE = ['INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'ACCOUNTS', 'CREDIT', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'STAGING'];
+const API_WRITABLE = ['INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'ACCOUNTS', 'CREDIT', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'STAGING', 'RULES', 'CONN'];
 const API_REQUIRED = {
   INCOME: ['payDate', 'person', 'gross'],
   TX: ['date', 'amount', 'type'],
@@ -33,6 +33,8 @@ const API_REQUIRED = {
   REVIEW: ['month'],
   NW: ['month'],
   STAGING: ['provider', 'date', 'amount'],
+  RULES: ['pattern', 'type'],
+  CONN: ['institution'],
 };
 const API_ID_WIDTH = { TX: 6, STAGING: 6, INCOME: 4 };
 

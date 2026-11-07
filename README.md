@@ -35,6 +35,13 @@ apps-script/        One file per responsibility; each is pasted into Apps Script
   QA.gs             In-sheet QA (runQA)
   Main.gs           buildWorkbook, Finance Tracker menu, onEdit, maintenance helpers
   Api.gs            Web-app (doPost) scaffold for the future app
+  Import.gs         Bank-import engine: rules, classification, pairing, review import, split panel, rule dialog
+  Plaid.gs          Plaid feed: Hosted Link connect/repair, nightly sync, balances, layout check
+  Upgrade.gs        upgradeWorkbook(): schema upgrades for a live workbook, never deletes
+  Export.gs         Copy financial snapshot for AI (plain-text briefing) + ExportDialog.html
+  SplitPanel.html   Side panel to split a transaction into balanced children
+  RuleDialog.html   Dialog to make an Import Rule from a staged row
+  ConnectDialog.html  Dialog to connect a bank in three steps
   appsscript.json   Manifest (optional; for clasp users)
 handoffs/           Step-by-step handoff page specs (JSON), one per change
 tests/              run-tests.js executes the build against mock-sheet.js (a mock of the Sheets API)
@@ -48,13 +55,15 @@ docs/               Specification, build notes, generated schema
 1. An agent makes the change on a branch and opens a pull request. The pull
    request runs the safety check and the Node tests.
 2. Review the diff and merge it.
-3. Open the handoff page the agent published (its spec is in `handoffs/`) and
-   follow the steps: it has a Copy button for every file that changed and the
-   checks to do in the Sheet. `CHANGELOG.md` lists the same files.
-4. Paste those complete files into the Apps Script editor and save.
+3. The **Deploy to Apps Script** action runs the tests again and pushes every
+   file in `apps-script/` into the Sheet's script project with `clasp`
+   (one-time setup: `handoffs/2026-11-07-auto-deploy-setup.json`).
+4. Open the handoff page the agent published (its spec is in `handoffs/`) for
+   whatever must be done in the Sheet afterwards — usually *Finance Tracker →
+   Upgrade workbook (keeps data)* after a schema change, plus any checks.
 
-A fix made directly in the Apps Script editor is not finished until the same
-file has been pasted back here and committed.
+A fix made directly in the Apps Script editor is overwritten by the next
+deploy, so it is not finished until the same change is committed here.
 
 ## First build
 

@@ -1,0 +1,101 @@
+{
+  "title": "Connect the Banks",
+  "key": "household-finance-tracker-2026-11-07-bank-feed-connect",
+  "subtitle": "Give the script your two Plaid keys, set the history start date, connect each bank once, turn on the nightly sync, and do your first review. The code is already in your Sheet (deployed from GitHub) and the workbook upgrade has already run.",
+  "intro": [
+    "Everything here happens inside the Sheet and the Plaid dashboard; there is nothing to paste. Each bank uses one of the 10 free Plaid slots for good, so connect each institution exactly once and use **Repair** for problems.",
+    "**Privacy:** the two Plaid keys go into the script's Script Properties only — never into a cell, a chat, an email or GitHub.",
+    "Do the bank sign-ins at home or on cellular, not on public Wi-Fi."
+  ],
+  "sections": [
+    {
+      "heading": "Check the deploy landed",
+      "steps": [
+        {
+          "text": "Reload the Sheet. The **Finance Tracker** menu should start with *Import reviewed rows* and contain a **Bank feed** submenu. Open **Import Rules** and **Connections**: both tabs exist (between Import Staging and Change Log) with blue header rows.",
+          "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
+        },
+        {
+          "text": "Run **Finance Tracker → Run QA checks**. Expect PASS throughout, including the new Import Staging / Import Rules / Connections lines.",
+          "note": "If anything says FAIL, send me the line."
+        }
+      ]
+    },
+    {
+      "heading": "Give the script your Plaid keys",
+      "steps": [
+        {
+          "text": "In a new browser tab open [dashboard.plaid.com](https://dashboard.plaid.com) and sign in. In the left sidebar choose **Developers → Keys**. You need two values: **client_id** and the **Production** secret (the free Trial runs against Production; do not use the Sandbox secret).",
+          "note": "Keep this tab open; you will copy from it twice."
+        },
+        {
+          "text": "In the Sheet choose **Extensions → Apps Script**, then click the gear **Project Settings**. Scroll to **Script Properties** → **Add script property**. Property `PLAID_CLIENT_ID`, Value: your client_id. **Add script property** again: Property `PLAID_SECRET`, Value: the Production secret. Click **Save script properties**.",
+          "note": "Spelling matters: capitals and underscores exactly as shown. These two boxes are the only place the keys ever live."
+        },
+        {
+          "text": "Back in the Sheet choose **Finance Tracker → Bank feed → Status**. It should say PLAID_CLIENT_ID: set, PLAID_SECRET: set, 0 of 10 connections.",
+          "note": "\"missing\" means a property name is misspelled. The status never shows the values themselves."
+        },
+        {
+          "text": "Choose **Bank feed → Set history start date…** and enter the first day you want imported as yyyy-mm-dd (for example the first of this month).",
+          "note": "Set it before connecting the first bank: it also decides how much history Plaid is asked for. Transactions before that day are ignored."
+        }
+      ]
+    },
+    {
+      "heading": "Connect Independent Bank first",
+      "steps": [
+        {
+          "text": "Choose **Bank feed → Connect a bank…**. Leave **Spending account** selected, click **Continue**, then **Open Plaid to connect your bank**. In Plaid's tab search `Independent Bank`, pick the Michigan one, sign in, select all three accounts (checking, savings, credit card). When Plaid says you are done, close that tab.",
+          "note": "Plaid never shows us your bank password; the sign-in happens on Plaid's and the bank's own pages."
+        },
+        {
+          "text": "Back in the dialog click **I've finished in Plaid**. Step 3 lists the three accounts. Match them: Checking → ACC-007, Savings → ACC-008, Credit Card → ACC-009. Leave **Import transactions** ticked for all three. Click **Save and run the first sync**.",
+          "note": "If it says \"not finished yet\", complete Plaid's steps and click again. If an account matches no row, choose Create a new Accounts row."
+        },
+        {
+          "text": "The dialog reports how many transactions landed in Import Staging and how many balances were updated. Open **Connections**: CONN-001 Independent Bank, Status Active. Open **Accounts**: ACC-007/008/009 show External Account ID, Connection ID and a fresh Current Balance.",
+          "note": "A long Last Error on Connections is something to send me."
+        }
+      ]
+    },
+    {
+      "heading": "Connect the rest",
+      "steps": [
+        {
+          "text": "Repeat **Connect a bank…** as a **Spending account** for Capital One (→ ACC-010), PayPal (→ ACC-006), **American Express** (Create a new Accounts row) and **Venmo** (Create a new Accounts row). Capital One and Amex send you to their own login pages inside Plaid; that is expected.",
+          "note": "If a connection fails halfway, use Bank feed → Repair a connection…, never Connect again for the same bank."
+        },
+        {
+          "text": "Repeat **Connect a bank…** as **Investment, retirement or HSA account** for Acorns (→ ACC-011), Fidelity (→ ACC-012) and HealthEquity (→ ACC-013). Leave **Import transactions** unticked for these; they update balances only.",
+          "note": "If Fidelity shows a request-access message inside Plaid, approve it and try again in a day. Bank feed → Status should end at 9 of 10."
+        },
+        {
+          "text": "Choose **Bank feed → Turn nightly sync on**. The feed then runs every morning around 5 AM; **Bank feed → Sync now** runs it any time.",
+          "note": "Approve the permission prompt if Google asks."
+        }
+      ]
+    },
+    {
+      "heading": "Your weekly review, with real rows",
+      "steps": [
+        {
+          "text": "Open **Import Staging**. New rows have Status **Needs Review**. Fill or fix Suggested Type / Category / Subcategory / Spending Type with the dropdowns, then tick **Reviewed?** on each row you are happy with.",
+          "note": "Transfers between your own accounts and credit-card payments are detected and imported automatically (Status Imported, Paired Import ID filled). Turn that off on App Setup if you ever want to see them first."
+        },
+        {
+          "text": "For a bill, subscription or paycheck that is always the same, click its row and choose **Finance Tracker → Make a rule from the selected row…**, check the match text, tick **Always auto-import**, save. The rule applies to every waiting row that matches and every future one.",
+          "note": "For a paycheck: Type Income, the person, Always auto-import. The amount is not part of the rule."
+        },
+        {
+          "text": "For Meijer, Walmart, Target or Costco, make a rule with **Split required** ticked instead. Those rows then show **Needs Split**: click one and choose **Finance Tracker → Split the selected row…**, add a line per category until Remaining reads $0.00, then **Save split**.",
+          "note": "The receipt-photo version of this is the next phase."
+        },
+        {
+          "text": "Choose **Finance Tracker → Import reviewed rows**. Ticked rows become transactions; anything missing a category is listed with the reason and stays. The Dashboard's top-right note shows how many rows are still waiting.",
+          "note": "Then try Finance Tracker → Copy financial snapshot for AI… and paste it into a Claude project."
+        }
+      ]
+    }
+  ]
+}

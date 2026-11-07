@@ -33,16 +33,18 @@ the App Setup tab; both are generated from `Config.gs`.
 | Monthly Plan | One flexible target per month, Monday–Sunday guidance | 4 | Weekly columns calculate for the current month only |
 | Monthly Summary | Calculated monthly results, read-only | 4 | Month list is one array formula; warning-only protection |
 | Savings & Reserves | Funds fed by Savings transactions | 4 | |
-| Debts | Master debt table with estimated interest | 7 | KPI band rows 4–5; Latest Balance from Quarterly Debt Review |
+| Debts | Master debt table with estimated interest | 7 | KPI band rows 4–5 (Household Debt · Student Loans · All Debt …); Latest Balance from Quarterly Debt Review; Debt Group column keeps student loans separate |
 | Quarterly Debt Review | Quarterly balance snapshots | 4 | |
 | Net Worth Snapshots | History + live tracked-net-worth helper | 4 | Helper in columns M:N |
-| Accounts | Bank, card, investment, retirement, asset accounts | 4 | ACC-006…ACC-013 are the real accounts (blank balances) |
+| Accounts | Bank, card, investment, retirement, asset accounts | 4 | ACC-006…ACC-013 are the real accounts; 3.1 adds External Account ID, Connection ID, Import Transactions?, Last Synced |
 | Monthly Review | Month-end review rows | 4 | Figures pulled from Monthly Summary |
 | Categories | Taxonomy A:H + every dropdown list from column J | 4 | Named ranges `LIST_<KEY>` |
 | App Setup | Architecture, settings, generated data dictionary | — | Named cells `SETTING_CHANGE_LOG`, `SETTING_SAMPLE_PRESENT`, `QA_LAST_RUN`, `QA_LAST_RESULT` |
 | Sources | Guidance behind the design | 4 | |
-| Import Staging | Landing table for Plaid / CSV imports | 4 | Fingerprint and Duplicate? calculated |
-| Change Log | Append-only audit history | 4 | Written by onEdit and the API |
+| Import Staging | Landing table for the bank feed; the owner's weekly review happens here | 4 | A:P from the handoff; 3.1 adds Status, suggested Type/Person/Fund/Debt, Matched Rule, Merchant, Bank Category, Pending Transaction ID, Paired Import ID, Imported At |
+| Import Rules | Bank-description patterns → Type/Category/Subcategory/Spending Type, Auto-import?, Split Required? | 4 | Made from staged rows via the rule dialog |
+| Connections | One row per bank login connected through Plaid | 4 | Item id, status, last sync/result/error, cursor; tokens live in Script Properties |
+| Change Log | Append-only audit history | 4 | Written by onEdit, the import engine and the API |
 | Credit Scores | Manual monthly history | 4 | No scores pre-filled |
 
 ## Code files
@@ -57,26 +59,69 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/QA.gs` | `runQA()` — error scan, structure checks, independent recomputation of totals |
 | `apps-script/Main.gs` | `buildWorkbook()`, the Finance Tracker menu, `onEdit` change-log capture, maintenance helpers (link deposits, split, snapshot, extend rows, clear sample data) |
 | `apps-script/Api.gs` | Web-app scaffold (`doGet`/`doPost`: ping, list, append, update, softDelete) for the future app |
+| `apps-script/Import.gs` | Bank-import engine: rule matching, classification, transfer/card-payment pairing, pending→posted, removals, review import, rule dialog and split panel server functions |
+| `apps-script/Plaid.gs` | Plaid client (UrlFetchApp), Hosted Link connect/repair flow, account mapping, nightly sync, balances, layout check, status, triggers |
+| `apps-script/Upgrade.gs` | `upgradeWorkbook()`: brings a live workbook to the current schema without touching rows |
+| `apps-script/Export.gs` + `ExportDialog.html` | *Copy financial snapshot for AI*: plain-text briefing built from entered columns, with a Copy button |
+| `apps-script/SplitPanel.html` | Side panel: split a staged or recorded transaction into balanced children |
+| `apps-script/RuleDialog.html` | Dialog: make an Import Rule from the selected staged row |
+| `apps-script/ConnectDialog.html` | Dialog: connect a bank in three steps (kind → Plaid → map accounts) |
 | `apps-script/appsscript.json` | Manifest (time zone, scopes, web-app settings); optional, for clasp users |
 
-## Settings (Script Properties, set by hand)
+## Settings (Script Properties, set by hand or by the connect flow)
 | Property | Meaning | Example (fictional) |
 | --- | --- | --- |
+| `PLAID_CLIENT_ID` | From the Plaid dashboard (Developers → Keys) | `5f1e…` |
+| `PLAID_SECRET` | The **Production** secret (the free Trial runs against Production) | `a9c3…` |
+| `PLAID_ENV` | `production` (default) or `sandbox` | `production` |
+| `PLAID_START_DATE` | First day imported; also sets how much history Plaid is asked for at connect time | `2026-11-01` |
+| `PLAID_ACCESS_TOKEN_<Connection ID>` | Written by the connect flow, one per bank login; never typed by hand | `access-production-…` |
+| `PLAID_PENDING_LINK` | Transient: the Hosted Link session in progress | (JSON) |
 | `API_TOKEN` | Shared secret the web app must send; set by running `setApiToken()` | `3f9a…` (shown once) |
 
-Everything else is read from the spreadsheet itself. In-sheet settings live on
-App Setup: Change Log auto-capture (checkbox) and Sample data present.
+In-sheet settings live on App Setup: Change Log auto-capture, Sample data
+present, and *Bank feed: auto-import detected transfers and card payments*.
 
 ## Triggers and menus (set up by hand)
-- Simple trigger `onOpen`: adds the **Finance Tracker** menu (Run QA checks ·
-  Link income deposits to paychecks · Split a transaction… · Record net worth
-  snapshot · Extend formula rows · Clear sample data… · Rebuild workbook…).
+- Simple trigger `onOpen`: adds the **Finance Tracker** menu — Import reviewed
+  rows · Split the selected row… · Make a rule from the selected row… ·
+  Re-apply rules to waiting rows · **Bank feed ▸** (Status · Set history start
+  date… · Connect a bank… · Finish connecting · Repair a connection… · Sync
+  now · nightly sync on/off) · Run QA checks · Link income deposits · Record
+  net worth snapshot · Upgrade workbook (keeps data) · Extend formula rows ·
+  Clear sample data… · Rebuild workbook….
 - Simple trigger `onEdit`: when a hand edit lands in a change-logged table,
   appends a Change Log row (if the App Setup checkbox is on) and stamps
   Updated At / Updated By on Transactions; ticking Is Deleted sets Deleted At.
-  No trigger setup is needed.
+- Installable time trigger `syncAllConnections` (daily, ~5 AM
+  America/Detroit): created by *Bank feed → Turn nightly sync on*, removed
+  by *Turn nightly sync off*.
 - Web app: deploy `Api.gs` as a web app (execute as the owner) only when the
-  app is built; run `setApiToken()` once first.
+  app is built; run `setApiToken()` once first. Plaid does not use the web
+  app: Hosted Link runs on Plaid's own pages.
+
+## Bank feed: how a transaction travels
+1. Nightly, `syncAllConnections` calls `/transactions/sync` per Active
+   connection (cursor-based; only accounts with *Import Transactions?* ticked
+   are staged; balances are written for every mapped account).
+2. `ingestItems_` lands new rows in Import Staging, classified by Import
+   Rules (`classifyRow_`): a matching rule fills the suggestions; Auto-import
+   rules make the row Ready, Split-required rules make it Needs Split;
+   otherwise Needs Review. Rows dated before `PLAID_START_DATE` are skipped.
+3. `pairTransfers_` pairs opposite movements between two owned accounts
+   within 3 days: both sides Transfer, or (bank → credit card linked to a
+   Debts row) Debt Payment + Transfer. Pairs are auto-imported when the App
+   Setup setting is on.
+4. Auto-import rows become Transactions at once (`promoteRows_`); the rest
+   wait. The owner edits suggestions, ticks Reviewed?, runs *Import reviewed
+   rows*; Needs Split rows go through the split panel.
+5. A posted charge carrying `pending_transaction_id` supersedes its pending
+   row (review work and status carried over; an already-imported pending
+   row's transaction is updated in place). A transaction the bank removes is
+   marked Removed and its transaction soft-deleted.
+6. Before every write the layout check compares headers to the schema; a
+   mismatch pauses that connection with a message in Last Error and the
+   cursor is not advanced, so nothing is lost.
 
 ## Rules that must keep working
 - Income is authoritative for paycheck gross, deductions and take-home;
@@ -94,16 +139,33 @@ App Setup: Change Log auto-capture (checkbox) and Sample data present.
 - Monthly Summary and the Dashboard are read-only for the app; the app writes
   only to raw tables and never to calculated columns.
 - Debt stays off the everyday Dashboard apart from the one-line footnote.
+  Student loans (Debt Group = Student Loans) are totalled separately from
+  household debt everywhere except net worth, which counts all debt.
 - Sample data is removed only through Clear sample data…, never by rebuilding
-  a workbook that holds real rows.
+  a workbook that holds real rows. Schema changes reach a live workbook only
+  through `upgradeWorkbook()`.
+- Each Plaid connection uses one of 10 free Trial slots permanently: never
+  disconnect-and-reconnect; repair with update mode; the connect dialog warns
+  about institutions already connected. Plaid secrets and access tokens live
+  only in Script Properties.
+- Nothing reaches Transactions from the bank feed without either a rule that
+  says Auto-import, a detected transfer/card-payment pair (setting), or the
+  owner ticking Reviewed?.
 
 ## Manual setup steps in Google
 1. Create a blank Google Sheet (sheets.new).
 2. Extensions → Apps Script. Rename `Code.gs` to `Config` and paste
-   `apps-script/Config.gs`; add a Script file for each remaining file in
-   `apps-script/` with the same name and paste its contents. Save.
+   `apps-script/Config.gs`; add a Script file for each remaining `.gs` file
+   and an HTML file for each `.html` file in `apps-script/`, with the same
+   names, and paste their contents. Save.
 3. Choose `buildWorkbookWithSample` (or `buildWorkbookEmpty`) and Run; approve
    the permissions. It takes one to two minutes.
 4. Reload the Sheet. Start on **Start Here**, then Finance Tracker → Run QA
    checks. The step-by-step version of this is the handoff page built from
    `handoffs/2026-11-07-initial-build.json`.
+5. Bank feed: Project Settings → Script Properties → add `PLAID_CLIENT_ID` and
+   `PLAID_SECRET`; Bank feed → Set history start date…; Connect a bank… once
+   per institution (spending vs. investment kind); Turn nightly sync on. The
+   step-by-step version is `handoffs/2026-11-07-bank-import.json`.
+6. Later script updates: paste the changed files, then Finance Tracker →
+   Upgrade workbook (keeps data). Never rebuild a workbook holding real data.

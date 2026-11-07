@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 14px 18px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+  p { margin: 0 0 8px; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  .actions { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  button.copied { background: #EAF6EE; color: #24563A; border-color: #24563A; }
+  textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; border: 1px solid #C9D2DC; border-radius: 8px; padding: 10px; resize: none; white-space: pre; }
+  .err { color: #842029; }
+</style>
+</head>
+<body>
+  <p>A plain-text briefing of the household's finances, built from the raw tables just now. Paste it into a Claude project (or any chat) and ask your questions. It includes first names, balances, debts and rates — treat it like a bank statement.</p>
+  <div class="actions">
+    <button class="primary" id="copy" disabled onclick="copyText()">Copy snapshot</button>
+    <button onclick="load()">Refresh</button>
+    <span class="muted" id="meta">Building…</span>
+  </div>
+  <textarea id="out" readonly spellcheck="false"></textarea>
+<script>
+  function load() {
+    document.getElementById('meta').textContent = 'Building…';
+    document.getElementById('copy').disabled = true;
+    google.script.run.withSuccessHandler(function (text) {
+      var ta = document.getElementById('out'); ta.value = text;
+      document.getElementById('meta').textContent = text.split('\n').length + ' lines · ' + Math.round(text.length / 1000) + ' k characters';
+      document.getElementById('copy').disabled = false;
+    }).withFailureHandler(function (e) { document.getElementById('meta').innerHTML = '<span class="err">' + String(e && e.message || e).replace(/</g, '&lt;') + '</span>'; }).getSnapshotText();
+  }
+  function copyText() {
+    var ta = document.getElementById('out'), btn = document.getElementById('copy');
+    function done() { btn.classList.add('copied'); btn.textContent = 'Copied — now paste into Claude'; setTimeout(function () { btn.classList.remove('copied'); btn.textContent = 'Copy snapshot'; }, 4000); }
+    function fallback() { ta.focus(); ta.select(); try { if (document.execCommand('copy')) return done(); } catch (e) {} btn.textContent = 'Press Ctrl+C / Cmd+C to copy the selected text'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback); else fallback();
+  }
+  load();
+</script>
+</body>
+</html>

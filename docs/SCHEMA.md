@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.0-rebuild-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.1-bank-import-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -9,20 +9,22 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
-| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 10 | yes |
+| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 14 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
-| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 16 | yes |
-| QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 10 | yes |
+| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 17 | yes |
+| QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
 | CREDIT | Credit Scores | 4 | 5 | 304 | CS-20261107-B-001 | 8 | yes |
-| STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 16 | no |
+| STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
+| RULES | Import Rules | 4 | 5 | 204 | RULE-001 | 17 | yes |
+| CONN | Connections | 4 | 5 | 54 | CONN-001 | 12 | yes |
 | LOG | Change Log | 4 | 5 | 1004 | CHG-20261107-153000-a1b2 | 10 | no |
 | BUDGET | Monthly Budget | 4 | 5 | 504 | BUD-202611-HOUS | 8 | yes |
 | PLAN | Monthly Plan | 4 | 5 | 124 | PLAN-202611 | 8 | yes |
-| SUMMARY | Monthly Summary | 4 | 5 | 124 | (month date) | 14 | no |
-| REVIEW | Monthly Review | 4 | 5 | 124 | REV-202611 | 17 | yes |
+| SUMMARY | Monthly Summary | 4 | 5 | 124 | (month date) | 15 | no |
+| REVIEW | Monthly Review | 4 | 5 | 124 | REV-202611 | 18 | yes |
 | NW | Net Worth Snapshots | 4 | 5 | 124 | NW-202611 | 11 | yes |
 
 Non-table tabs: Start Here, Dashboard, App Setup, Sources.
@@ -62,6 +64,10 @@ Named range `TBL_ACCOUNTS` covers the header row through the last formula row.
 | H | Current Balance | `currentBalance` | currency | input |  |
 | I | Last Updated | `lastUpdated` | date | input (date) |  |
 | J | Notes | `notes` | text | input |  |
+| K | External Account ID | `externalAccountId` | text | input | Added in 3.1: the bank feed's own ID for this account (Plaid account_id). Filled when a connection is finished; links synced transactions to this row. |
+| L | Connection ID | `connectionId` | text | dropdown: Connections IDs | Added in 3.1: the Connections row (bank login) this account belongs to. |
+| M | Import Transactions? | `importTx` | text | checkbox | Added in 3.1: ticked = the sync lands this account's transactions in Import Staging; unticked = balance only (Acorns, Fidelity, HSA). |
+| N | Last Synced | `lastSynced` | datetime | input | Added in 3.1: when the bank feed last updated this balance. |
 
 ## Income (`INCOME`)
 
@@ -209,6 +215,7 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | N | Notes | `notes` | text | input |  |
 | O | Estimated Monthly Interest | `estMonthlyInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr])/12)` |
 | P | Estimated Annual Interest | `estAnnualInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr]))` |
+| Q | Debt Group | `group` | text | dropdown: LIST_DEBT_GROUPS | Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both. |
 
 ## Quarterly Debt Review (`QDR`)
 
@@ -228,6 +235,7 @@ Named range `TBL_QDR` covers the header row through the last formula row.
 | H | Ending Balance | `endingBalance` | currency | calculated | `=IF([@id]="","",MAX(N([@beginning])-N([@payments])+N([@interestFees])+N([@adjustments]),0))` |
 | I | Notes | `notes` | text | input |  |
 | J | Tracked Payments (Transactions) | `trackedPayments` | currency | calculated | `=IF(OR([@id]="",[@quarterEnd]="",[@debtId]=""),"",SUMIFS([TX.amount],[TX.debtId],[@debtId],[TX.type],"Debt Payment",[TX.date],">"&EDATE([@quarterEnd],-3),[TX…` — Added in the 3.0 rebuild: Debt Payment transactions in the quarter, for reconciling against statement payments. |
+| K | Debt Group | `group` | text | calculated | `=IF([@debtId]="","",IFERROR(INDEX([DEBTS.group],MATCH([@debtId],[DEBTS.id],0)),"Household"))` — Added in 3.1: copied from the Debts row so monthly totals can keep student loans separate. |
 
 ## Credit Scores (`CREDIT`)
 
@@ -270,6 +278,64 @@ Named range `TBL_STAGING` covers the header row through the last formula row.
 | N | Duplicate? | `duplicate` | text | calculated | `=IF([@importId]="","",IF([@importedTxId]<>"",FALSE,OR(COUNTIF([@^fingerprint],[@fingerprint])>1,COUNTIFS([TX.accountId],[@accountId],[TX.date],[@date],[TX.am…` |
 | O | Imported Transaction ID | `importedTxId` | text | dropdown: Transactions IDs |  |
 | P | Notes | `notes` | text | input |  |
+| Q | Status | `status` | text | dropdown: LIST_STAGING_STATUSES | Added in 3.1: Needs Review → tick Reviewed? → Import reviewed rows → Imported. Needs Split rows go through the split panel. Superseded = replaced by the posted version of a pending charge. |
+| R | Suggested Type | `suggestedType` | text | dropdown: LIST_TRANSACTION_TYPES | Added in 3.1. |
+| S | Suggested Person | `suggestedPerson` | text | dropdown: LIST_OWNERS | Added in 3.1. |
+| T | Suggested Fund ID | `suggestedFundId` | text | dropdown: Savings & Reserves IDs | Added in 3.1. |
+| U | Suggested Debt ID | `suggestedDebtId` | text | dropdown: Debts IDs | Added in 3.1. |
+| V | Matched Rule ID | `ruleId` | text | dropdown: Import Rules IDs | Added in 3.1: the Import Rules row that filled the suggestions. |
+| W | Merchant (from bank) | `merchantName` | text | input | Added in 3.1: the cleaned merchant name the bank feed supplies; used by rules. |
+| X | Bank Category | `bankCategory` | text | input | Added in 3.1: the feed's own category guess, for reference only. |
+| Y | Pending Transaction ID | `pendingTxId` | text | input | Added in 3.1: for a posted charge, the ID of the pending charge it replaces. |
+| Z | Paired Import ID | `pairedImportId` | text | input | Added in 3.1: the other side of a detected transfer or card payment. |
+| AA | Imported At | `importedAt` | datetime | input | Added in 3.1. |
+
+## Import Rules (`RULES`)
+
+One row per pattern. A synced transaction whose description or merchant matches gets the Type, Category, Subcategory and Spending Type below. Auto-import? sends it straight to Transactions; otherwise it waits in Import Staging pre-filled. Split Required? always holds it for the split panel. Make rules from Import Staging with Finance Tracker → Make a rule from this row.
+
+Named range `TBL_RULES` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Rule ID | `id` | text | input |  |
+| B | Match Text | `pattern` | text | input |  |
+| C | Match Type | `matchType` | text | dropdown: LIST_MATCH_TYPES |  |
+| D | Account ID (optional) | `accountId` | text | dropdown: Accounts IDs |  |
+| E | Type | `type` | text | dropdown: LIST_TRANSACTION_TYPES |  |
+| F | Category | `category` | text | dropdown: LIST_ALL_CATEGORIES |  |
+| G | Subcategory | `subcategory` | text | dropdown: LIST_ALL_SUBCATEGORIES |  |
+| H | Spending Type | `spendingType` | text | dropdown: LIST_SPENDING_TYPES |  |
+| I | Person | `person` | text | dropdown: LIST_OWNERS |  |
+| J | Fund ID | `fundId` | text | dropdown: Savings & Reserves IDs |  |
+| K | Debt ID | `debtId` | text | dropdown: Debts IDs |  |
+| L | Auto-import? | `autoImport` | text | checkbox |  |
+| M | Split Required? | `splitRequired` | text | checkbox |  |
+| N | Active? | `active` | text | checkbox |  |
+| O | Matches | `matches` | integer | calculated | `=IF([@id]="","",COUNTIF([STAGING.ruleId],[@id]))` |
+| P | Created At | `createdAt` | datetime | input |  |
+| Q | Notes | `notes` | text | input |  |
+
+## Connections (`CONN`)
+
+One row per bank login connected through Plaid. Each uses one of the 10 free Trial slots permanently, so repairs always use the Repair action (never disconnect and reconnect). Access tokens are kept in the script's Script Properties, never on this tab.
+
+Named range `TBL_CONN` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Connection ID | `id` | text | input |  |
+| B | Institution | `institution` | text | input |  |
+| C | Plaid Item ID | `itemId` | text | input |  |
+| D | Products | `products` | text | input |  |
+| E | Status | `status` | text | dropdown: LIST_CONNECTION_STATUSES |  |
+| F | Accounts Linked | `accountsLinked` | integer | calculated | `=IF([@id]="","",COUNTIF([ACCOUNTS.connectionId],[@id]))` |
+| G | Last Sync | `lastSync` | datetime | input |  |
+| H | Last Result | `lastResult` | text | input |  |
+| I | Last Error | `lastError` | text | input |  |
+| J | Sync Cursor | `syncCursor` | text | input |  |
+| K | Added On | `addedOn` | date | input |  |
+| L | Notes | `notes` | text | input |  |
 
 ## Change Log (`LOG`)
 
@@ -339,13 +405,14 @@ Named range `TBL_SUMMARY` covers the header row through the last formula row.
 | E | Debt Payments | `debtPayments` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"))` |
 | F | Cash Remaining | `cashRemaining` | currency | calculated | `=IF([@month]="","",[@income]-[@spending]-[@cashSavings]-[@debtPayments])` |
 | G | Cash Savings Rate | `cashSavingsRate` | percent | calculated | `=IF(OR([@month]="",N([@income])=0),"",[@cashSavings]/[@income])` |
-| H | Reviewed Debt Balance | `reviewedDebt` | currency | calculated | `=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarter…` |
+| H | Reviewed Household Debt | `reviewedDebt` | currency | calculated | `=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarter…` — Changed in 3.1: excludes debts in the Student Loans group (see the Student Loan Balance column). |
 | I | Net Worth Snapshot | `netWorthSnapshot` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([NW.netWorth],MATCH([@month],[NW.month],0)),""))` |
 | J | Retirement Savings | `retirement` | currency | calculated | `=IF([@month]="","",SUMIFS([INCOME.retirement],[INCOME.month],[@month]))` |
 | K | Total Savings | `totalSavings` | currency | calculated | `=IF([@month]="","",[@cashSavings]+[@retirement])` |
 | L | Total Savings Rate of Gross | `totalSavingsRate` | percent | calculated | `=IF(OR([@month]="",SUMIFS([INCOME.gross],[INCOME.month],[@month])=0),"",[@totalSavings]/SUMIFS([INCOME.gross],[INCOME.month],[@month]))` |
 | M | Transaction Income Deposits | `txIncomeDeposits` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Income",[TX.isDeleted],"<>TRUE"))` |
 | N | Income Reconciliation | `incomeReconciliation` | currency | calculated | `=IF([@month]="","",[@txIncomeDeposits]-[@income])` |
+| O | Student Loan Balance | `studentLoans` | currency | calculated | `=IF([@month]="","",IF(MAXIFS([QDR.quarterEnd],[QDR.quarterEnd],"<="&EOMONTH([@month],0))=0,"",SUMIFS([QDR.endingBalance],[QDR.quarterEnd],MAXIFS([QDR.quarter…` — Added in 3.1: the Student Loans group from the latest Quarterly Debt Review, kept apart from household debt. |
 
 ## Monthly Review (`REVIEW`)
 
@@ -365,13 +432,14 @@ Named range `TBL_REVIEW` covers the header row through the last formula row.
 | H | Debt Payments | `debtPayments` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.debtPayments],MATCH([@month],[SUMMARY.month],0)),""))` |
 | I | Cash Remaining | `cashRemaining` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.cashRemaining],MATCH([@month],[SUMMARY.month],0)),""))` |
 | J | Cash Savings Rate | `savingsRate` | percent | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.cashSavingsRate],MATCH([@month],[SUMMARY.month],0)),""))` |
-| K | Total Debt Balance | `totalDebt` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.reviewedDebt],MATCH([@month],[SUMMARY.month],0)),""))` |
+| K | Household Debt Balance | `totalDebt` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.reviewedDebt],MATCH([@month],[SUMMARY.month],0)),""))` — Changed in 3.1: household debt only; student loans have their own column. |
 | L | What Went Well | `wentWell` | text | input |  |
 | M | What to Adjust | `adjust` | text | input |  |
 | N | Next Month Focus | `focus` | text | input |  |
 | O | Reviewed By | `reviewedBy` | text | dropdown: LIST_OWNERS |  |
 | P | Reviewed On | `reviewedOn` | date | input (date) |  |
 | Q | Notes | `notes` | text | input |  |
+| R | Student Loan Balance | `studentLoans` | currency | calculated | `=IF([@month]="","",IFERROR(INDEX([SUMMARY.studentLoans],MATCH([@month],[SUMMARY.month],0)),""))` — Added in 3.1. |
 
 ## Net Worth Snapshots (`NW`)
 
@@ -416,7 +484,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
 | FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |
-| DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Other |
+| DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
 | FREQUENCIES | Frequencies | Weekly, Biweekly, Monthly, Quarterly, Semiannual, Annual |
 | RECURRING_GROUPS | Recurring Groups | Housing, Utilities, Loans, Insurance, Subscriptions, Memberships, Other |
 | PAYMENT_TYPES | Payment Types | Bill, Subscription, Loan Payment, Insurance Premium, Membership, Transfer, Other |
@@ -428,6 +496,10 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | SCORE_MODELS | Score Models | FICO 8, FICO 9, FICO 10, VantageScore 3.0, VantageScore 4.0, Other |
 | YES_NO | Yes/No | Yes, No |
 | LOG_ACTIONS | Change Log Actions | Insert, Update, Soft Delete, Restore, Import, Split, Bulk Edit |
+| DEBT_GROUPS | Debt Groups | Household, Student Loans |
+| MATCH_TYPES | Rule Match Types | Contains, Starts With, Exact |
+| STAGING_STATUSES | Import Statuses | Needs Review, Needs Split, Ready, Imported, Ignored, Superseded, Removed |
+| CONNECTION_STATUSES | Connection Statuses | Active, Needs Attention, Disconnected, Pending |
 
 Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_EXPENSE_CATEGORIES`, `LIST_ALL_SUBCATEGORIES`.
 
