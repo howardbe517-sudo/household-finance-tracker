@@ -1,0 +1,68 @@
+{
+  "title": "Auto-Deploy Setup",
+  "key": "household-finance-tracker-2026-11-07-auto-deploy-setup",
+  "subtitle": "One-time setup so that merging a pull request deploys the code straight into your Sheet's Apps Script project. After this, no more pasting files.",
+  "intro": [
+    "Google's command-line tool **clasp** can push a folder of script files into an Apps Script project. You install it once on your computer, sign in to Google once, and give GitHub two pieces of information. From then on a GitHub Action runs on every merge: it runs the tests, then pushes every file in `apps-script/` to your project.",
+    "About ten minutes. Done on your own computer (not on public Wi-Fi, since step 5 copies a credential).",
+    "**What the credential is:** signing in with clasp creates a small file that lets clasp edit Apps Script projects in your Google account. You will store it as a GitHub *secret* (encrypted, never shown again, only readable by the Action). If you ever want to cancel it, remove **clasp** at myaccount.google.com → Security → Third-party apps, and delete the secret.",
+    "**What does not change:** your Sheet, its data, and the Plaid setup. The first deploy will rename the project's `Code.gs` to `Config.gs` to match the repository; nothing else is visibly different."
+  ],
+  "sections": [
+    {
+      "heading": "Install the tool",
+      "steps": [
+        {
+          "text": "Install Node.js if you do not have it: open [nodejs.org](https://nodejs.org), download the **LTS** version, run the installer with the defaults.",
+          "note": "To check whether you already have it: open Terminal (Mac: press {{Cmd}}+{{Space}}, type `Terminal`, press {{Enter}}) and run `node -v`. A version number means you are set."
+        },
+        {
+          "text": "In Terminal run: `npm install -g @google/clasp@2.4.2`",
+          "note": "Copy the line exactly, including `@2.4.2`; that is the version the GitHub Action uses, and newer versions store the sign-in differently. If Mac says permission denied, run `sudo npm install -g @google/clasp@2.4.2` and type your Mac password."
+        },
+        {
+          "text": "Turn on the Apps Script API for your Google account: open [script.google.com/home/usersettings](https://script.google.com/home/usersettings), sign in with the same Google account that owns the Sheet, and switch **Google Apps Script API** to **On**.",
+          "note": "Without this, clasp is refused even when signed in."
+        },
+        {
+          "text": "In Terminal run: `clasp login`. A browser window opens: choose the same Google account, click **Allow**. Terminal then says *Authorization successful* and *Default credentials saved to ~/.clasprc.json*.",
+          "note": "If the browser does not open by itself, Terminal prints a link; paste it into your browser."
+        }
+      ]
+    },
+    {
+      "heading": "Give GitHub the two secrets",
+      "steps": [
+        {
+          "text": "Copy the credential to your clipboard. Mac: `cat ~/.clasprc.json | pbcopy`. Windows (PowerShell): `Get-Content $env:USERPROFILE\\.clasprc.json | Set-Clipboard`.",
+          "note": "Nothing appears on screen; the text is on the clipboard. Do not paste it anywhere except the GitHub secret in the next step."
+        },
+        {
+          "text": "Open [github.com/howardbe517-sudo/household-finance-tracker/settings/secrets/actions](https://github.com/howardbe517-sudo/household-finance-tracker/settings/secrets/actions). Click **New repository secret**. Name: `CLASPRC_JSON` (exactly). Secret: paste. Click **Add secret**.",
+          "note": "If GitHub asks for your password or 2FA here, that is normal for the settings area."
+        },
+        {
+          "text": "Get the Script ID: open your Sheet → **Extensions → Apps Script** → click the gear **Project Settings** in the left sidebar → under **IDs**, click **Copy** next to **Script ID**.",
+          "note": "It is a long string of letters, numbers, dashes and underscores. It identifies the project, not your account; it still belongs in a secret rather than in the code."
+        },
+        {
+          "text": "Back on the GitHub secrets page click **New repository secret** again. Name: `CLASP_SCRIPT_ID`. Secret: paste the Script ID. **Add secret**.",
+          "note": "You should now see two secrets listed: CLASPRC_JSON and CLASP_SCRIPT_ID."
+        }
+      ]
+    },
+    {
+      "heading": "First automatic deploy",
+      "steps": [
+        {
+          "text": "Tell me the secrets are in. I merge the open pull request; the **Deploy to Apps Script** action runs for about a minute. You can watch it at [github.com/howardbe517-sudo/household-finance-tracker/actions](https://github.com/howardbe517-sudo/household-finance-tracker/actions): a green check means the code is in your project.",
+          "note": "A red X means a secret is missing or mistyped; the log says which. Fix the secret and I re-run it."
+        },
+        {
+          "text": "Reload the Sheet. The Finance Tracker menu starts with **Import reviewed rows** and has a **Bank feed** submenu. In the Apps Script editor the file list now shows **Config.gs** instead of Code.gs, plus Import, Plaid, Upgrade, Export and the four HTML files — all placed by the deploy.",
+          "note": "From now on, every change reaches your Sheet this way. Handoff pages will only describe what to click in the Sheet."
+        }
+      ]
+    }
+  ]
+}

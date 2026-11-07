@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-07 — Automatic deploy: merging to main pushes the code into the Sheet
+- What changed: `.github/workflows/deploy.yml` runs the Node tests and then
+  `clasp push -f` from `apps-script/` into the Apps Script project on every
+  merge to `main` (and on demand). Two repository secrets are required:
+  `CLASPRC_JSON` (from `clasp login` on the owner's computer) and
+  `CLASP_SCRIPT_ID`. The manifest `appsscript.json` now lists every scope the
+  script uses (spreadsheets, UI, email, triggers, external requests for
+  Plaid). `AGENTS.md` and `README.md` describe the new flow; handoff pages
+  now cover only in-Sheet steps.
+- Files to paste into Apps Script: none from now on. One-time setup:
+  `handoffs/2026-11-07-auto-deploy-setup.json`. The first deploy renames the
+  project's `Code.gs` to `Config.gs` (clasp mirrors the repository).
+- Tested: workflow syntax; `clasp push` itself can only be exercised by the
+  first real run.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/bank-import-plaid`
+
 ## 2026-11-07 — Bank feed: Plaid connection, Import Rules, review workflow, split panel, student loans kept separate
 - What changed:
   - **Import Rules** tab: one row per bank-description pattern (Contains /
