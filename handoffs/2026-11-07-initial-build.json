@@ -1,0 +1,116 @@
+{
+  "title": "Finance Tracker First Build",
+  "key": "household-finance-tracker-2026-11-07-initial-build",
+  "subtitle": "Creates the Household Finance Tracker from scratch in a brand-new Google Sheet: 20 tabs, every formula and dropdown, sample data tagged SAMPLE, and the Finance Tracker menu.",
+  "intro": [
+    "This is a **new, blank Sheet**, so there is nothing to back up and nothing you have typed can be lost. Each step has a checkbox; the page remembers what you have ticked.",
+    "Nine files go into the Sheet's Apps Script project, one file each. For every file: make a Script file with that exact name, click inside it, select all, delete, paste, and check that the last line number matches the number on the **Copy** button. Then run **buildWorkbookWithSample** once from the editor.",
+    "The build takes one to two minutes. It ends with a QA check that recomputes the key totals and compares them with the formulas; the result shows on the **App Setup** tab and in the Finance Tracker menu. Tell me what it says.",
+    "**What is sample data:** every sample row has `SAMPLE` in its Notes. Your eight real accounts (PayPal, Independent Bank Checking, Savings and Credit Card, Capital One, Acorns, Fidelity Roth IRA, HealthEquity HSA) are included with blank owners and balances for you to fill in. No credit scores, real debts or balances are invented."
+  ],
+  "sections": [
+    {
+      "heading": "Make the Sheet",
+      "steps": [
+        {
+          "text": "In your personal Google account, open [sheets.new](https://sheets.new). A blank Sheet opens. You can leave it named \"Untitled spreadsheet\"; the script renames it **Household Finance Tracker**.",
+          "note": "Keep this browser tab open; you will come back to it after the files are pasted."
+        },
+        {
+          "text": "Choose **Extensions → Apps Script**. A second tab opens with one file, **Code.gs**, on the left.",
+          "note": "If Google asks you to pick an account, pick the same personal account the Sheet is in."
+        }
+      ]
+    },
+    {
+      "heading": "Paste the nine files (same names, one file each)",
+      "steps": [
+        {
+          "text": "Click **Code.gs** in the file list on the left. Hover over it, click the **⋮** (three dots) that appears, choose **Rename**, type `Config`, and press {{Enter}}. Then click inside the code, press {{Ctrl}}+{{A}}, then {{Delete}}, and paste.",
+          "file": "apps-script/Config.gs",
+          "note": "This file holds the whole schema (tabs, colors, dropdown lists, categories, every column). Paste it first."
+        },
+        {
+          "text": "Click the **+** next to **Files**, choose **Script**, type `Helpers`, and press {{Enter}}. Click inside the new file, select all, delete, and paste.",
+          "file": "apps-script/Helpers.gs",
+          "note": "Google adds \".gs\" itself; type only the name."
+        },
+        {
+          "text": "Click **+ → Script**, name it `Reference`, select all, delete, and paste.",
+          "file": "apps-script/Reference.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `Tables`, select all, delete, and paste.",
+          "file": "apps-script/Tables.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `Dashboard`, select all, delete, and paste.",
+          "file": "apps-script/Dashboard.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `SampleData`, select all, delete, and paste.",
+          "file": "apps-script/SampleData.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `QA`, select all, delete, and paste.",
+          "file": "apps-script/QA.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `Main`, select all, delete, and paste.",
+          "file": "apps-script/Main.gs"
+        },
+        {
+          "text": "Click **+ → Script**, name it `Api`, select all, delete, paste, and save everything with {{Ctrl}}+{{S}}.",
+          "file": "apps-script/Api.gs",
+          "note": "The file list should now show exactly nine files: Config, Helpers, Reference, Tables, Dashboard, SampleData, QA, Main, Api. If any name has a typo, rename it; the names do not affect how the code runs, but they keep future updates easy to follow."
+        }
+      ]
+    },
+    {
+      "heading": "Run the build",
+      "steps": [
+        {
+          "text": "Click **Main.gs** in the file list. In the toolbar above the code, open the function dropdown (it may say *Select function*) and choose **buildWorkbookWithSample**. Click **Run**.",
+          "note": "If the dropdown does not list it, save with {{Ctrl}}+{{S}} and look again."
+        },
+        {
+          "text": "Google asks for permission the first time: click **Review permissions**, pick your account, click **Advanced**, then **Go to Untitled project (unsafe)**, then **Allow**.",
+          "note": "The \"unsafe\" wording appears for any personal script. It only has access to this one spreadsheet, and the code is what you just pasted."
+        },
+        {
+          "text": "Watch the **Execution log** at the bottom. The run takes one to two minutes and ends with \"Build finished in … QA: …\" followed by \"Execution completed\".",
+          "note": "If it stops with \"Exceeded maximum execution time\", run **buildWorkbookWithSample** again; it starts over cleanly. If it stops with any other red error, copy the message and send it to me."
+        }
+      ]
+    },
+    {
+      "heading": "Check it in the Sheet",
+      "steps": [
+        {
+          "text": "Go back to the Sheet's browser tab and reload it. You should see 20 tabs along the bottom, starting **Start Here, Dashboard, Income, Transactions, Recurring Payments …** and ending **… Import Staging, Change Log, Credit Scores**, plus a **Finance Tracker** menu next to Help.",
+          "note": "The Sheet opens on the Dashboard. If the menu is missing, reload once more."
+        },
+        {
+          "text": "Open the **Finance Tracker** menu and click **Run QA checks**. A window lists every check with PASS or FAIL. Expect PASS everywhere; the one flagged transaction (\"SAMPLE MERCHANT 1234\", intentionally uncategorized) is reported as intentional.",
+          "note": "Send me the first few lines of that window, or a screenshot. The result is also written on **App Setup** next to \"Last QA result\"."
+        },
+        {
+          "text": "On the **Dashboard**, the four cards show this month's Gross, Take-Home, Spending and Total Savings from the sample paychecks and transactions. Income by Person shows Ben (cream), Valerie (peach) and Household (blue-gray). Credit Scores say **No score yet** for both. Payroll Deductions has three groups, each with **Deduction | Amount | % of Gross** and a Federal Tax row with a number in it.",
+          "note": "Change **B3** (Selected Month) to last month: the cards and payroll numbers change. **Current Flexible Spending** does not; it always follows today's week."
+        },
+        {
+          "text": "Open **Transactions** and scroll to last month: find **Sample Target — mixed purchase** (142.50, Type Split Parent, shown in gray italics) with three child rows under it. Its **Split Difference** (column AE) is 0.00. Near the top of this month, **SAMPLE MERCHANT 1234** has a red **Missing Category; Missing Spending Type** flag in column Z.",
+          "note": "Category cells carry their category color; whole rows stay white. One grocery row is struck through: that is the soft-deleted duplicate, excluded from every total."
+        },
+        {
+          "text": "Try the model: on **Transactions**, in the first empty row, type a Date (today), Description `Test groceries`, Amount `20`, Type **Expense**, Category **Food**, Subcategory **Groceries**, Spending Type **Flexible**. Then look at **Monthly Plan**: this month's Flexible Spent went up by 20 and Amount Available went down by 20. **Monthly Summary** Spending went up by 20. The Dashboard Spending card did too.",
+          "note": "Then tick **Is Deleted** on that row: every one of those numbers goes back. That is how deletion works in this workbook; rows are never removed."
+        },
+        {
+          "text": "Clear the Is Deleted box again if you want to keep the test row, or leave it ticked. Either way, open **Start Here** and read the Getting started checklist; those are your next steps for real data.",
+          "note": "Do not run **Rebuild workbook** once you have typed real data; it wipes every tab. **Clear sample data…** is the safe way to remove the SAMPLE rows when you are ready."
+        }
+      ]
+    }
+  ]
+}

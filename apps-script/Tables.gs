@@ -1,7 +1,7 @@
 /**
- * Household Finance Tracker — 30_Tables.gs
+ * Household Finance Tracker — Tables.gs
  * Phases 2–4: core raw tables, import infrastructure and derived reporting tables.
- * The generic builder (10_Helpers.gs) lays down headers/formulas/validations;
+ * The generic builder (Helpers.gs) lays down headers/formulas/validations;
  * this file adds conditional formatting, presentation sections and helpers.
  */
 

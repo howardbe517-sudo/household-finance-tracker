@@ -1,4 +1,36 @@
-node_modules/
+# Never commit spreadsheet exports, statements or data files
+*.xlsx
+*.xls
+*.xlsm
+*.ods
+*.numbers
+*.csv
+*.tsv
+*.pdf
+*.docx
+*.zip
+*.qfx
+*.ofx
+# Fictional fixtures are the only data allowed
+!**/fixtures/*.csv
+!**/fixtures/*.json
+# Local configuration and credentials
+.env
+.env.*
+*.local.*
+.clasprc.json
 .clasp.json
+creds.json
+credentials*.json
+# Screenshots and exports
+*.png
+*.jpg
+*.jpeg
+exports/
+data/
+node_modules/
 .DS_Store
-*.log
+# Built handoff pages live in the scratchpad, not the repo (the spec is committed)
+handoffs/*.html
+# Test output
+tests/out/

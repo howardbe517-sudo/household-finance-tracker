@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 80_QA.gs
+ * Household Finance Tracker — QA.gs
  * Phase 6: QA. Re-computes key totals in plain JavaScript from the raw
  * tables and compares them with what the sheet formulas produced, scans
  * every tab for formula errors, and checks structural rules.

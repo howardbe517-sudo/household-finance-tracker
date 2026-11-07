@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 60_Dashboard.gs
+ * Household Finance Tracker — Dashboard.gs
  * Phase 5: Dashboard. Built last; a summary only, never a second database.
  *
  * Layout (columns A:I)
@@ -28,7 +28,7 @@ function buildDashboard_() {
   const sh = getOrCreateSheet_(SHEETS.DASH);
   const F = (t) => resolveFormula_(t, null, null);
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
-  sh.clear();
+  sh.clear(); // SAFETY-APPROVED: Dashboard is rebuilt from scratch by buildWorkbook; it holds no entered data
   sh.clearConditionalFormatRules();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());

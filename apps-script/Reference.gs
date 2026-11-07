@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 20_Reference.gs
+ * Household Finance Tracker — Reference.gs
  * Phase 1: reference tables and documentation tabs.
  *   Categories (taxonomy + dropdown lists), Accounts, App Setup, Sources, Start Here
  */
@@ -20,7 +20,7 @@ function buildCategories_() {
   LISTS.forEach(list => {
     sh.getRange(4, col).setValue(list.header);
     sh.getRange(4, col).setBackground(COLORS.TEAL).setFontColor(COLORS.WHITE).setFontWeight('bold').setWrap(true);
-    sh.getRange(LIST_FIRST_ROW, col, listSpan, 1).clearContent();
+    sh.getRange(LIST_FIRST_ROW, col, listSpan, 1).clearContent(); // SAFETY-APPROVED: reference-list column reset during buildWorkbook
     sh.getRange(LIST_FIRST_ROW, col, list.values.length, 1).setValues(list.values.map(v => [v]));
     sh.setColumnWidth(col, 150);
     setNamedRange_('LIST_' + list.key, sh.getRange(LIST_FIRST_ROW, col, listSpan, 1));
@@ -29,7 +29,7 @@ function buildCategories_() {
   DERIVED_LISTS.forEach(list => {
     sh.getRange(4, col).setValue(list.header);
     sh.getRange(4, col).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold').setWrap(true);
-    sh.getRange(LIST_FIRST_ROW, col, listSpan, 1).clearContent();
+    sh.getRange(LIST_FIRST_ROW, col, listSpan, 1).clearContent(); // SAFETY-APPROVED: derived-list column reset during buildWorkbook
     sh.getRange(LIST_FIRST_ROW, col).setFormula(list.formula);
     sh.setColumnWidth(col, 170);
     setNamedRange_('LIST_' + list.key, sh.getRange(LIST_FIRST_ROW, col, listSpan, 1));
@@ -97,7 +97,7 @@ function buildAccounts_(withSample) {
 function buildAppSetup_(withSample) {
   const ss = ss_();
   const sh = getOrCreateSheet_(SHEETS.SETUP);
-  sh.clear();
+  sh.clear(); // SAFETY-APPROVED: App Setup is a documentation tab rebuilt by buildWorkbook
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   ensureSheetSize_(sh, 160, 8);
   const W = 8;
@@ -145,7 +145,7 @@ function buildAppSetup_(withSample) {
 
   section('Architecture');
   [
-    'Browser / web UI  →  validated JSON  →  Google Apps Script web app (doPost in 95_Api.gs)  →  these Sheet tables.',
+    'Browser / web UI  →  validated JSON  →  Google Apps Script web app (doPost in Api.gs)  →  these Sheet tables.',
     'Never expose spreadsheet credentials to the browser. The Apps Script layer owns writes and validation; this Sheet stays the durable store and backup.',
     'The app reads and writes the RAW tables only (Income, Transactions, Recurring Payments, Savings & Reserves, Debts, Quarterly Debt Review, Accounts, Credit Scores, Monthly Budget, Monthly Plan, Monthly Review, Net Worth Snapshots, Import Staging, Change Log).',
     'Calculated sheets (Monthly Summary, Dashboard) and calculated columns (listed below) are read-only for the app.',
@@ -209,7 +209,7 @@ function buildAppSetup_(withSample) {
 
 function buildSources_() {
   const sh = getOrCreateSheet_(SHEETS.SOURCES);
-  sh.clear();
+  sh.clear(); // SAFETY-APPROVED: Sources is a documentation tab rebuilt by buildWorkbook
   ensureSheetSize_(sh, 40, 3);
   sh.setColumnWidth(1, 240); sh.setColumnWidth(2, 360); sh.setColumnWidth(3, 520);
   styleTitleRow_(sh, 1, 'Sources — Financial Guidance Used in the Design', 3);
@@ -235,7 +235,7 @@ function buildSources_() {
 
 function buildStartHere_(withSample) {
   const sh = getOrCreateSheet_(SHEETS.START);
-  sh.clear();
+  sh.clear(); // SAFETY-APPROVED: Start Here is a documentation tab rebuilt by buildWorkbook (also after Clear sample data)
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   ensureSheetSize_(sh, 120, 3);
   sh.setColumnWidth(1, 36); sh.setColumnWidth(2, 720); sh.setColumnWidth(3, 320);

@@ -1,0 +1,25 @@
+name: Checks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check added lines
+        run: bash scripts/safety-check.sh "origin/${{ github.base_ref }}"
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build against the mock sheet
+        run: node tests/run-tests.js
+      - name: Schema doc is up to date
+        run: node scripts/gen-schema.js && git diff --exit-code -- docs/SCHEMA.md

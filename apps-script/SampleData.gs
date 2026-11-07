@@ -1,5 +1,5 @@
 /**
- * Household Finance Tracker — 70_SampleData.gs
+ * Household Finance Tracker — SampleData.gs
  * Clearly-tagged sample data that exercises every acceptance scenario.
  * Dates are generated relative to the build date so the Dashboard's
  * "current month / current week" sections always have something to show.
