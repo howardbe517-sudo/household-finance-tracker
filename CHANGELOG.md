@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-07 — Upgrade: quieter formula comparison; presentation strips redrawn
+- What changed: `upgradeWorkbook` compared stored formulas character for
+  character, but Google drops the quotes around one-word tab names
+  (`'Income'!$C$5` → `Income!$C$5`), so unchanged formulas were rewritten on
+  every run and listed in the report. The comparison now normalizes quotes
+  and whitespace. The upgrade also redraws the Debts KPI band, the Recurring
+  Payments summary and the Net Worth helper (presentation areas with no
+  entered data), which it previously left at their old design — the owner's
+  Debts band still showed the pre-3.1 labels.
+- Files changed in `apps-script/`: `Upgrade.gs` (deployed on merge). Then run
+  Finance Tracker → Upgrade workbook once to redraw the Debts band.
+- Tested: Node (formula comparison; upgrade test checks the redrawn band).
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/upgrade-formula-compare`
+
 ## 2026-11-07 — First real Plaid connection: fixes from what it surfaced
 - What changed: the owner connected Capital One through Plaid (the first
   live run of the feed: Hosted Link, token exchange, account mapping and the
