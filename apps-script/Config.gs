@@ -800,6 +800,7 @@ const PLAID_PROPS = {
   START_DATE: 'PLAID_START_DATE',   // yyyy-mm-dd; transactions before this date are not imported
   TOKEN_PREFIX: 'PLAID_ACCESS_TOKEN_', // + Connection ID
   PENDING_LINK: 'PLAID_PENDING_LINK',  // JSON of the hosted Link session in progress
+  PENDING_MAP: 'PLAID_PENDING_MAP',    // JSON of a connected bank whose accounts are not yet mapped
 };
 
 /** Formats */

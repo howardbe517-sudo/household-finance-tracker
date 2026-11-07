@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-07 — Finish connecting resumes on the account-matching step
+- What changed: the owner's Fidelity connection reached Plaid's Success page
+  but the Sheet dialog had been closed, so Bank feed → Finish connecting
+  exchanged the token and created CONN-002 (Pending), then opened the connect
+  dialog on step 1 instead of the account matching, and forgot the accounts
+  it had just read. A connected bank whose accounts are not yet matched is now
+  remembered in Script Properties (`PLAID_PENDING_MAP`); the connect dialog
+  and Finish connecting open straight on step 3 for it, with a note that no
+  new slot is used. A Pending connection from before this change is rebuilt
+  from Plaid (`/accounts/get`) the same way. Matching the accounts clears it.
+- Files changed in `apps-script/`: `Config.gs`, `Plaid.gs`,
+  `ConnectDialog.html` (deployed on merge). Then Bank feed → Finish
+  connecting once to match Fidelity's account to ACC-012.
+- Tested: Node (context resumes the unmapped connection; an older Pending
+  row is rebuilt; Finish connecting opens the dialog without a Plaid
+  session; mapping clears the memory). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/finish-connecting-resume`
+
 ## 2026-11-07 — Balance only: ask Plaid for account details instead of nothing
 - What changed: the Balance only kind failed on its first real try with
   Plaid's `INVALID_FIELD — must provide at least one product`. Plaid's API

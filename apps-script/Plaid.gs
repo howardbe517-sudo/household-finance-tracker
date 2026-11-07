@@ -124,8 +124,9 @@ function connectBank() {
 /** Data for the connect dialog. */
 function getConnectContext() {
   const conns = readTable_(tdef_('CONN')).map(c => ({ id: c.id, institution: c.institution, status: c.status, products: c.products }));
+  const pendingMapping = pendingMapping_();
   const accounts = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, externalAccountId: a.externalAccountId, connectionId: a.connectionId }));
-  return { connections: conns, slotsUsed: conns.length, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_() };
+  return { connections: conns, slotsUsed: conns.length, accounts, startDate: plaidProps_().getProperty(PLAID_PROPS.START_DATE) || '', daysRequested: daysRequested_(), pendingMapping };
 }
 
 /**
@@ -188,12 +189,54 @@ function finishHostedLink() {
       notes: sameInstitution ? 'Possible duplicate: another connection to this institution already exists. Each uses a Trial slot.' : '' }]);
     appendChangeLog_({ table: 'CONN', recordId: connId, field: '(row)', newValue: institution, action: 'Insert', user: userEmail_() || 'connect-dialog' });
   }
-  const acc = plaidCall_('/accounts/get', { access_token: ex.access_token });
+  return buildMapping_(connId, institution, pending.mode || 'spending', sameInstitution);
+}
+
+/**
+ * Reads the connection's accounts from Plaid and remembers them in Script Properties until the
+ * owner has matched them to Accounts rows, so closing the dialog early (or reloading the Sheet)
+ * never loses a connected bank: the dialog and Bank feed → Finish connecting pick it up again.
+ */
+function buildMapping_(connId, institution, mode, possibleDuplicate) {
+  const token = accessToken_(connId);
+  if (!token) throw new Error('No access token stored for ' + connId + '.');
+  const acc = plaidCall_('/accounts/get', { access_token: token });
   const accounts = (acc.accounts || []).map(a => ({ externalId: a.account_id, name: a.official_name || a.name, mask: a.mask || '', type: a.type, subtype: a.subtype || '',
-    current: a.balances ? a.balances.current : '' }));
-  const mine = readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, institution: a.institution || '', taken: !!a.externalAccountId }));
-  accounts.forEach(a => { a.guessType = guessAccountType_(a.type, a.subtype); });
-  return { status: 'connected', connectionId: connId, institution, accounts, existingAccounts: mine, possibleDuplicate: sameInstitution };
+    current: a.balances ? a.balances.current : '', guessType: guessAccountType_(a.type, a.subtype) }));
+  const result = { status: 'connected', connectionId: connId, institution, mode: mode || 'spending', accounts, possibleDuplicate: !!possibleDuplicate };
+  plaidProps_().setProperty(PLAID_PROPS.PENDING_MAP, JSON.stringify(result));
+  result.existingAccounts = existingAccountsForMapping_();
+  return result;
+}
+
+function existingAccountsForMapping_() {
+  return readTable_(tdef_('ACCOUNTS')).map(a => ({ id: a.id, name: a.name, accountType: a.accountType, institution: a.institution || '', taken: !!a.externalAccountId }));
+}
+
+/** The Connections product label → the dialog's kind of connection. */
+function modeFromProducts_(label) {
+  return { transactions: 'spending', investments: 'investments', balance: 'balance' }[String(label || '').trim()] || 'spending';
+}
+
+/**
+ * A connected bank still waiting for its accounts to be matched, or null. Remembered in Script
+ * Properties by buildMapping_; failing that, rebuilt from a Connections row that is still Pending
+ * (an older connection made before this was remembered).
+ */
+function pendingMapping_() {
+  const raw = plaidProps_().getProperty(PLAID_PROPS.PENDING_MAP);
+  let m = null;
+  if (raw) {
+    try { m = JSON.parse(raw); } catch (e) { m = null; }
+    if (m && !accessToken_(m.connectionId)) { plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); m = null; }
+  }
+  if (!m) {
+    const conn = readTable_(tdef_('CONN')).filter(c => String(c.status) === 'Pending' && accessToken_(c.id))[0];
+    if (conn) return buildMapping_(conn.id, conn.institution, modeFromProducts_(conn.products), false);
+    return null;
+  }
+  m.existingAccounts = existingAccountsForMapping_();
+  return m;
 }
 
 /**
@@ -230,6 +273,8 @@ function finishAccountMapping(p) {
   });
   if (newRows.length) { writeRows_(accDef, newRows); newRows.forEach(r => appendChangeLog_({ table: 'ACCOUNTS', recordId: r.id, field: '(row)', newValue: r.name, action: 'Insert', user: userEmail_() || 'connect-dialog' })); }
   setConnectionStatus_(p.connectionId, 'Active', 'Accounts mapped: ' + linked + ' linked, ' + created + ' created.', '');
+  const rawMap = plaidProps_().getProperty(PLAID_PROPS.PENDING_MAP);
+  if (rawMap) { try { if (JSON.parse(rawMap).connectionId === p.connectionId) plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } catch (e) { plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } }
   const synced = syncConnectionById_(p.connectionId);
   return { linked, created, synced };
 }
@@ -256,10 +301,16 @@ function repairConnection() {
 
 /** Finance Tracker → Bank feed → Finish connecting (after Plaid's window was closed). */
 function finishConnectingPrompt() {
-  const res = finishHostedLink();
-  if (res.status === 'not_finished') { alert_('Not finished yet', 'Plaid has not reported a completed connection. Finish the steps in Plaid\'s window, then run this again.'); return; }
-  if (res.status === 'repaired') { alert_('Connection repaired', res.connectionId + ' is active again. ' + summarizeSync_(res.synced)); return; }
-  // a fresh connection needs the mapping dialog
+  let res;
+  if (plaidProps_().getProperty(PLAID_PROPS.PENDING_LINK)) {
+    res = finishHostedLink();
+    if (res.status === 'not_finished') { alert_('Not finished yet', 'Plaid has not reported a completed connection. Finish the steps in Plaid\'s window, then run this again.'); return; }
+    if (res.status === 'repaired') { alert_('Connection repaired', res.connectionId + ' is active again. ' + summarizeSync_(res.synced)); return; }
+  } else {
+    res = pendingMapping_(); // a bank that connected earlier but whose accounts were never matched
+    if (!res) { alert_('Nothing to finish', 'No connection is waiting. Every connected bank has its accounts matched; use Connect a bank… to add another.'); return; }
+  }
+  // the dialog opens straight on step 3 (the pending mapping is remembered in Script Properties)
   const ui = ui_();
   const html = HtmlService.createHtmlOutputFromFile('ConnectDialog').setWidth(620).setHeight(700);
   ui.showModalDialog(html, 'Finish connecting ' + res.institution);
