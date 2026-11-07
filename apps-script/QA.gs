@@ -153,6 +153,14 @@ function qaReport_() {
     const src = liveOk ? 'live balance of ' + acc.id : (rows.length ? 'review ' + mk(rows[0].quarterEnd) : 'original balance (no review yet)');
     if (!near(d.latestBalance, exp)) fail('Debt ' + d.id + ': Latest Balance ' + money(d.latestBalance) + ' ≠ ' + money(exp) + ' (' + src + ')');
     else pass('Debt ' + d.id + ' ' + d.name + ': latest balance ' + money(exp) + ' from ' + src);
+    if (d.pslfOfficial !== '' && d.pslfOfficial !== null && d.pslfOfficial !== undefined) {
+      const asOf = d.pslfAsOf instanceof Date ? d.pslfAsOf.getTime() : 0;
+      const months = {};
+      live.filter(t => t.debtId === d.id && t.type === 'Debt Payment' && t.date instanceof Date && t.date.getTime() > asOf).forEach(t => { months[mk(t.month)] = true; });
+      const since = Object.keys(months).length, est = Number(d.pslfOfficial) + since;
+      if (Number(d.pslfSince) === since && Number(d.pslfEstimated) === est && Number(d.pslfRemaining) === Math.max(120 - est, 0)) pass('Debt ' + d.id + ': PSLF ' + est + ' of 120 (official ' + d.pslfOfficial + ' + ' + since + ' month(s) paid since)');
+      else fail('Debt ' + d.id + ': PSLF count mismatch (sheet ' + d.pslfEstimated + ' = ' + d.pslfOfficial + ' + ' + d.pslfSince + '; recomputed ' + est + ' = ' + d.pslfOfficial + ' + ' + since + ')');
+    }
   });
 
   /* 8. splits */

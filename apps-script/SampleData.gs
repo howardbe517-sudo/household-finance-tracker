@@ -204,7 +204,7 @@ function sampleDataset_() {
 
   /* ---- Debts & Quarterly Debt Review ---- */
   const debts = [
-    { id: 'DEBT-001', name: 'Sample Student Loan', debtType: 'Student Loan', lender: 'Sample Loan Servicer', owner: 'Ben', originalBalance: 18000, apr: 0.062, minPayment: 220, dueDay: 25, group: 'Student Loans' },
+    { id: 'DEBT-001', name: 'Sample Student Loan', debtType: 'Student Loan', lender: 'Sample Loan Servicer', owner: 'Ben', originalBalance: 18000, apr: 0.062, minPayment: 220, dueDay: 25, group: 'Student Loans', pslfOfficial: 48, pslfAsOf: dateIn_(sampleMonths_()[0], 1), loanStatus: 'SAMPLE · Income-driven · repayment' },
     { id: 'DEBT-002', name: 'Sample Auto Loan', debtType: 'Auto Loan', lender: 'Sample Auto Finance', owner: 'Household', originalBalance: 14500, apr: 0.059, minPayment: 310, dueDay: 12, group: 'Household' },
     { id: 'DEBT-003', name: 'Sample Credit Card', debtType: 'Credit Card', lender: 'Sample Card Co.', owner: 'Household', originalBalance: 2400, apr: 0.2299, minPayment: 75, dueDay: 20, linkedAccount: 'ACC-003', group: 'Household' },
   ].map(d => Object.assign({ notes: S + ' — replace with real debts' }, d));

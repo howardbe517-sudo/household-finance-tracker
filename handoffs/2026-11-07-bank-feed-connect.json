@@ -1,7 +1,7 @@
 {
   "title": "Connect the Banks",
   "key": "household-finance-tracker-2026-11-07-bank-feed-connect",
-  "subtitle": "Give the script your two Plaid keys, set the history start date, connect each bank once, turn on the nightly sync, and do your first review. The code is already in your Sheet (deployed from GitHub) and the workbook upgrade has already run.",
+  "subtitle": "Give the script your two Plaid keys, set the history start date, connect each bank once, turn on the nightly sync, and do your first review. The code is already in your Sheet (deployed from GitHub). After the November 7 merge, run Upgrade workbook once so the new Debts columns exist.",
   "intro": [
     "Everything here happens inside the Sheet and the Plaid dashboard; there is nothing to paste. Each bank uses one of the 20 free Plaid slots for good, so connect each institution exactly once and use **Repair** for problems.",
     "**Privacy:** the two Plaid keys go into the script's Script Properties only — never into a cell, a chat, an email or GitHub.",
@@ -14,6 +14,10 @@
         {
           "text": "Reload the Sheet. The **Finance Tracker** menu should start with *Import reviewed rows* and contain a **Bank feed** submenu. Open **Import Rules** and **Connections**: both tabs exist (between Import Staging and Change Log) with blue header rows.",
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
+        },
+        {
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, and redraws the Debts band and Dashboard. Your rows are untouched.",
+          "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
           "text": "Run **Finance Tracker → Run QA checks**. Expect PASS throughout, including the new Import Staging / Import Rules / Connections lines.",
@@ -71,8 +75,25 @@
           "note": "Plaid will not open a connection that asks for nothing, so Balance only asks for account details, which the tracker never reads. If HealthEquity shows a red flag in Plaid's search for that too, close Plaid's tab, click Back, pick **Account-holder details** in the Ask Plaid for box and try once more. If it is flagged for both, Plaid cannot connect it: type the HSA balance into ACC-013's Current Balance on Accounts when you review it instead. Failed attempts use no slot. If Fidelity shows a request-access message, approve it and try again in a day. Bank feed → Status should end at 9 of 20."
         },
         {
+          "text": "Repeat **Connect a bank…** as **Loan or student loan servicer** for each of your two student loan servicers (the company whose website you sign in to and pay: for example Nelnet, MOHELA, Aidvantage, EdFinancial). In step 3 choose **Whose loans are these?** (Ben or Valerie), leave every row on Create a new Accounts row, Import transactions unticked, and save.",
+          "note": "Every loan the servicer lists becomes a Debts row under Student Loans: your empty Student loan row for that person is used first, the rest are created. The first sync fills balance, interest rate, minimum payment, due day, repayment plan and original principal. Two slots (11 of 20 when everything is connected)."
+        },
+        {
           "text": "Choose **Bank feed → Turn nightly sync on**. The feed then runs every morning around 5 AM; **Bank feed → Sync now** runs it any time.",
           "note": "Approve the permission prompt if Google asks."
+        }
+      ]
+    },
+    {
+      "heading": "PSLF progress (the one thing with no feed)",
+      "steps": [
+        {
+          "text": "Sign in to studentaid.gov, open your loan details and note the **qualifying payment count** for each person's loans. On **Debts**, type it into **PSLF Official Count** on that person's loan rows and today's date into **PSLF Count As Of**.",
+          "note": "Plaid cannot supply this number. From here the tracker counts each month you make a payment to that loan and shows PSLF Estimated Count and PSLF Remaining (of 120); the Debts band and the Dashboard footnote show the lowest loan per person. Re-check studentaid.gov every six months or so and update the count and date: the estimate resets to the official figure."
+        },
+        {
+          "text": "After the first paycheck and loan payment arrive, confirm the loan payments are recorded as **Debt Payment** with the right **Debt ID** (the rule you make from the first one does this every month). That is what the PSLF count reads.",
+          "note": "If a servicer takes both people's payments from the same checking account, make one rule per servicer description and set the Debt ID on it."
         }
       ]
     },

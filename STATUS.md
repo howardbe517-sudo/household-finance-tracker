@@ -59,6 +59,13 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/liabilities-pslf-automation` (schema 3.2): lender
+  data into Debts, loan-servicer connections with automatic Debts rows,
+  PSLF estimate, self-adding month rows. After merge: Upgrade workbook, then
+  Sync now; connect the two student loan servicers as the Loan kind.
+- Owner's standing request (2026-11-07): automate everything possible; the
+  only typing left by design is the PSLF official count from studentaid.gov
+  (no feed exists), the tax debt balance, and credit scores.
 - Sample data cleared by the owner on 2026-11-07 (QA then: 2 problems, both
   fixed by `claude/clear-sample-nw-helper`; Upgrade workbook redraws the
   net-worth box). Connected: Capital One (CONN-001), Fidelity (CONN-002).

@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.1-bank-import-2026-11-07',
-  BUILD_VERSION: '1.1.0',
+  SCHEMA_VERSION: '3.2-liabilities-pslf-2026-11-07',
+  BUILD_VERSION: '1.2.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -481,7 +481,7 @@ TABLES.FUNDS = {
 TABLES.DEBTS = {
   key: 'DEBTS', sheet: SHEETS.DEBTS, headerRow: 7, firstRow: 8, lastRow: 57,
   title: 'Debts — Master Debt Table',
-  note: 'One row per debt. Latest Balance is pulled from the newest Quarterly Debt Review for the debt (falls back to Original Balance until a review exists). Interest figures are estimates (balance × APR); statements may differ because most lenders accrue daily.',
+  note: 'One row per debt. Latest Balance comes from the linked account\'s nightly balance when there is one, else the newest Quarterly Debt Review, else Original Balance. For linked cards and loans the bank feed also fills the rate, minimum payment, due day and next due date. PSLF: type the official count from studentaid.gov now and then; the tracker counts payments since.',
   idPrefix: 'DEBT', idPattern: 'DEBT-001', logChanges: true, presentationRows: true,
   columns: [
     { key: 'id', h: 'Debt ID', w: 90 },
@@ -508,6 +508,20 @@ TABLES.DEBTS = {
     { key: 'estAnnualInterest', h: 'Estimated Annual Interest', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@latestBalance])*N([@apr]))' },
     { key: 'group', h: 'Debt Group', w: 110, v: { list: 'DEBT_GROUPS' },
       note: 'Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both.' },
+    { key: 'nextDue', h: 'Next Payment Due', w: 110, fmt: C.date,
+      note: 'Added in 3.2: written by the bank feed (Plaid Liabilities) where the lender provides it. The feed also fills Interest Rate, Minimum Payment and Due Day for linked cards and loans.' },
+    { key: 'lastPayment', h: 'Last Payment (feed)', w: 150, note: 'Added in 3.2: date and amount of the last payment the lender reported.' },
+    { key: 'loanStatus', h: 'Loan Status / Plan', w: 180, note: 'Added in 3.2: repayment plan and status reported by a student loan servicer; Current or Overdue for a card.' },
+    { key: 'pslfOfficial', h: 'PSLF Official Count', w: 110, fmt: C.int,
+      note: 'Added in 3.2: the qualifying-payment count shown on studentaid.gov the last time you checked. Entered by hand (there is no feed for it); the tracker counts payments made since.' },
+    { key: 'pslfAsOf', h: 'PSLF Count As Of', w: 110, fmt: C.date, v: { date: true }, note: 'Added in 3.2: the date that official count was read.' },
+    { key: 'pslfSince', h: 'Payments Since Count', w: 110, fmt: C.int,
+      f: '=IF(OR([@id]="",[@pslfOfficial]=""),"",IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.debtId]=[@id],[TX.type]="Debt Payment",[TX.isDeleted]<>TRUE,[TX.date]>N([@pslfAsOf])))),0))',
+      note: 'Added in 3.2: months with a Debt Payment to this debt after the as-of date (one per month, as PSLF counts them).' },
+    { key: 'pslfEstimated', h: 'PSLF Estimated Count', w: 110, fmt: C.int, f: '=IF(OR([@id]="",[@pslfOfficial]=""),"",N([@pslfOfficial])+N([@pslfSince]))',
+      note: 'Added in 3.2: official count + payments since. An estimate until studentaid.gov confirms it.' },
+    { key: 'pslfRemaining', h: 'PSLF Remaining (of 120)', w: 120, fmt: C.int, f: '=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))' },
+    { key: 'feedUpdated', h: 'Feed Updated', w: 130, fmt: C.dt, note: 'Added in 3.2: when the bank feed last wrote lender data to this row.' },
   ],
 };
 
@@ -637,6 +651,7 @@ TABLES.CONN = {
     { key: 'syncCursor', h: 'Sync Cursor', w: 120 },
     { key: 'addedOn', h: 'Added On', w: 110, fmt: C.date },
     { key: 'notes', h: 'Notes', w: 220 },
+    { key: 'liabilities', h: 'Liabilities Feed', w: 220, note: 'Added in 3.2: whether Plaid supplies rates, minimum payments and due dates for this login (Yes, or Not available with the reason).' },
   ],
 };
 

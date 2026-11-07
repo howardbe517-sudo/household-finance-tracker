@@ -1,5 +1,52 @@
 # CHANGELOG
 
+## 2026-11-07 — Lender data flows into Debts; loan servicers connect; PSLF progress; month rows add themselves
+- What changed (the owner asked for as little typing as possible):
+  - **Lender data → Debts.** The nightly sync now also reads Plaid Liabilities
+    for every spending and loan connection and writes what the lender reports
+    into each Debts row linked to one of its accounts: Interest Rate (APR),
+    Minimum Payment, Due Day, and new columns **Next Payment Due**, **Last
+    Payment (feed)**, **Loan Status / Plan** and **Feed Updated**; Original
+    Balance is filled from the loan's origination principal when blank. New
+    spending connections ask for Liabilities only where the bank supports it
+    (`required_if_supported_products`, so no bank disappears from Plaid's
+    list). A bank that offers none is marked once in the new Connections
+    column **Liabilities Feed** and not asked again; Repair clears the mark.
+  - **Loan or student loan servicer** is a fourth kind of connection in
+    Connect a bank (`products: ['liabilities']`). Step 3 asks whose loans
+    they are; every loan account gets a Debts row (an empty row the owner
+    already made for that person and loan type is reused first, otherwise one
+    is created, linked, grouped under Student Loans). Loan accounts in any
+    kind of connection get the same treatment.
+  - **PSLF progress.** Plaid no longer supplies PSLF counts (its field was
+    tied to FedLoan), so Debts gains **PSLF Official Count** and **PSLF Count
+    As Of** (typed from studentaid.gov now and then) plus calculated
+    **Payments Since Count** (months with a Debt Payment to that debt after
+    the as-of date), **PSLF Estimated Count** and **PSLF Remaining (of 120)**.
+    The Debts band shows PSLF progress per person (the lowest loan), the
+    Dashboard debt footnote repeats it, the AI snapshot lists it per loan and
+    QA recomputes it.
+  - **Month rows add themselves.** Each sync makes sure Monthly Plan has a
+    row for the current month (target carried from the latest month) and
+    Monthly Budget has this month's category rows (copied from the latest
+    month that has any).
+- Files changed in `apps-script/`: `Config.gs` (schema 3.2: Debts +9
+  columns, Connections +1), `Plaid.gs`, `ConnectDialog.html`, `Tables.gs`,
+  `Dashboard.gs`, `Export.gs`, `QA.gs`, `SampleData.gs` (deployed on merge).
+  Then run Finance Tracker → **Upgrade workbook** once (adds the columns,
+  redraws the Debts band and Dashboard), then **Bank feed → Sync now** (first
+  lender data for Capital One, if Capital One offers it).
+- Tested: Node (card APR / minimum / due day / next due / last payment to
+  the linked Debts row; "not available" marked once; spending token asks for
+  liabilities if supported; loan token asks for liabilities only; servicer
+  connect → two loans → placeholder reused + one row created → first sync
+  writes rate, minimum, principal, plan, status; PSLF formulas on feed-made
+  rows; Debts band KPI; month rows added once; upgrade of a pre-3.2 workbook).
+  Not yet tried in Google: everything above, including whether Plaid's
+  existing Capital One connection returns Liabilities without new consent.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/liabilities-pslf-automation`
+
 ## 2026-11-07 — Clear sample data no longer breaks the live net-worth box; QA on an empty workbook
 - What changed: the owner ran Clear sample data and QA then reported two
   problems. (1) Deleting the three sample Net Worth Snapshots rows removed

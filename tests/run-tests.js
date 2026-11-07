@@ -36,7 +36,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 22 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('22 tabs in the specified order (20 from the handoff + Import Rules + Connections)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 12 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -74,7 +74,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -227,13 +227,21 @@ if (parentTx && parentTx.type === 'Split Parent' && parentTx.splitRole === 'Pare
 const todayIso = new Date().toISOString().slice(0, 10);
 const dIso = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 R(`PropertiesService.getScriptProperties().setProperty('PLAID_CLIENT_ID','test-client'); PropertiesService.getScriptProperties().setProperty('PLAID_SECRET','test-secret'); PropertiesService.getScriptProperties().setProperty('PLAID_START_DATE','${dIso(30)}')`);
-let syncPhase = 1;
+let syncPhase = 1, linkPhase = 1, liabilitiesOn = false;
 g.__fetchHandler.fn = (url, payload) => {
   if (!payload.client_id || !payload.secret) return { code: 400, body: { error_code: 'INVALID_API_KEYS', error_message: 'missing keys' } };
-  if (url.endsWith('/link/token/create')) return { body: { link_token: 'lt-1', hosted_link_url: 'https://secure.plaid.com/hl/test', expiration: '2026-12-31T00:00:00Z' } };
-  if (url.endsWith('/link/token/get')) return { body: { link_sessions: [{ finished_at: todayIso, results: { item_add_results: [{ public_token: 'public-1', institution: { institution_id: 'ins_1', name: 'Sample Bank' } }] } }] } };
-  if (url.endsWith('/item/public_token/exchange')) return { body: { access_token: 'access-1', item_id: 'item-1' } };
+  if (url.endsWith('/link/token/create')) return { body: { link_token: linkPhase === 2 ? 'lt-2' : 'lt-1', hosted_link_url: 'https://secure.plaid.com/hl/test', expiration: '2026-12-31T00:00:00Z' } };
+  if (url.endsWith('/link/token/get')) return { body: { link_sessions: [{ finished_at: todayIso, results: { item_add_results: [payload.link_token === 'lt-2' ? { public_token: 'public-2', institution: { institution_id: 'ins_2', name: 'Sample Loan Servicer' } } : { public_token: 'public-1', institution: { institution_id: 'ins_1', name: 'Sample Bank' } }] } }] } };
+  if (url.endsWith('/item/public_token/exchange')) return { body: payload.public_token === 'public-2' ? { access_token: 'access-2', item_id: 'item-2' } : { access_token: 'access-1', item_id: 'item-1' } };
+  if (url.endsWith('/accounts/get') && payload.access_token === 'access-2') return { body: { accounts: [{ account_id: 'sl1', name: 'Direct Loan - Subsidized', mask: '0001', type: 'loan', subtype: 'student', balances: { current: 5200 } }, { account_id: 'sl2', name: 'Direct Loan - Unsubsidized', mask: '0002', type: 'loan', subtype: 'student', balances: { current: 7300 } }] } };
   if (url.endsWith('/accounts/get')) return { body: { accounts: [{ account_id: 'pa1', name: 'Everyday Checking', mask: '1111', type: 'depository', subtype: 'checking', balances: { current: 1234.56 } }, { account_id: 'pa2', name: 'Rewards Card', mask: '2222', type: 'credit', subtype: 'credit card', balances: { current: 420 } }] } };
+  if (url.endsWith('/liabilities/get')) {
+    if (payload.access_token === 'access-2') return { body: { liabilities: { credit: [], mortgage: [], student: [
+      { account_id: 'sl1', interest_rate_percentage: 5.5, minimum_payment_amount: 120, next_payment_due_date: dIso(-12), origination_principal_amount: 8000, repayment_plan: { type: 'income based', description: 'Income-Based Repayment' }, loan_status: { type: 'repayment' }, last_payment_amount: 120, last_payment_date: dIso(18), is_overdue: false },
+      { account_id: 'sl2', interest_rate_percentage: 6.8, minimum_payment_amount: 150, next_payment_due_date: dIso(-12), origination_principal_amount: 9000, repayment_plan: { type: 'income based', description: 'Income-Based Repayment' }, loan_status: { type: 'repayment' }, is_overdue: false } ] } } };
+    if (!liabilitiesOn) return { code: 400, body: { error_code: 'PRODUCTS_NOT_SUPPORTED', error_message: 'not supported here' } };
+    return { body: { liabilities: { credit: [{ account_id: 'pa2', aprs: [{ apr_type: 'cash_advance_apr', apr_percentage: 29.99 }, { apr_type: 'purchase_apr', apr_percentage: 24.99 }], minimum_payment_amount: 35, next_payment_due_date: dIso(-20), last_payment_amount: 200, last_payment_date: dIso(2), is_overdue: false }], student: [], mortgage: [] } } };
+  }
   if (url.endsWith('/transactions/sync')) {
     if (payload.access_token !== 'access-1') return { code: 400, body: { error_code: 'INVALID_ACCESS_TOKEN', error_message: 'bad token' } };
     const accounts = [{ account_id: 'pa1', balances: { current: 1200.1 } }, { account_id: 'pa2', balances: { current: 480.25 } }];
@@ -265,10 +273,13 @@ const ctxRebuilt = R(`getConnectContext()`);
 if (ctxRebuilt.pendingMapping && ctxRebuilt.pendingMapping.connectionId === 'CONN-001' && g.__props.PLAID_PENDING_MAP) ok('an older Pending connection is rebuilt from Plaid when nothing was remembered'); else bad('pendingMapping rebuild: ' + JSON.stringify(ctxRebuilt.pendingMapping));
 R(`finishConnectingPrompt()`);
 if (g.__dialogs && g.__dialogs.slice(-1)[0] && /Finish connecting Sample Bank/.test(g.__dialogs.slice(-1)[0])) ok('Finish connecting opens the dialog for the unmapped connection without a Plaid session'); else bad('finishConnectingPrompt dialogs: ' + JSON.stringify(g.__dialogs));
+R(`writeRows_(tdef_('DEBTS'), [{ id: nextId_(tdef_('DEBTS'), 3), name: 'Rewards Card balance', debtType: 'Credit Card', lender: 'Sample Bank', owner: 'Household', group: 'Household' }])`); // an empty card row the owner made
 const map = R(`finishAccountMapping({ connectionId:'CONN-001', institution:'Sample Bank', mappings:[ { externalId:'pa1', accountId:'ACC-007', name:'Everyday Checking', mask:'1111', type:'depository', subtype:'checking', importTx:true, current:1234.56 }, { externalId:'pa2', accountId:'new', name:'Rewards Card', mask:'2222', type:'credit', subtype:'credit card', importTx:true, current:420 } ] })`);
 const acc7 = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0]`);
 const acc14 = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.externalAccountId==='pa2'; })[0]`);
 if (!g.__props.PLAID_PENDING_MAP && R(`getConnectContext()`).pendingMapping === null) ok('mapping the accounts clears the remembered connection'); else bad('PLAID_PENDING_MAP still set after mapping');
+const cardRow = R(`readTable_(TABLES.DEBTS).filter(function(d){ return d.name==='Rewards Card balance'; })[0]`);
+if (map.debts && map.debts.reused === 1 && cardRow && cardRow.linkedAccount === acc14.id) ok('the owner\'s empty Credit Card row for this bank was linked to the new card account'); else bad('card placeholder: ' + JSON.stringify([map.debts, cardRow]));
 if (map.linked === 1 && map.created === 1 && acc7.externalAccountId === 'pa1' && acc7.connectionId === 'CONN-001' && acc7.importTx === true && acc14 && acc14.accountType === 'Credit Card' && acc14.connectionId === 'CONN-001') ok('account mapping: ACC-007 linked, new credit-card row created (' + acc14.id + ')'); else bad('finishAccountMapping: ' + JSON.stringify([map, acc7, acc14]));
 const s1 = map.synced;
 if (s1 && !s1.error && s1.added === 4 && s1.skippedBeforeStart === 1 && s1.balances === 2) ok('first sync: 2 pages read, 4 rows staged, 1 skipped before the start date, 2 balances updated'); else bad('first sync: ' + JSON.stringify(s1));
@@ -276,7 +287,7 @@ const st2 = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.provider=
 const byExt = {}; st2.forEach(s => { byExt[s.externalTxId] = s; });
 if (byExt.t1 && byExt.t1.status === 'Imported' && byExt.t1.ruleId === 'RULE-001') ok('auto-import rule promoted the utility bill straight to Transactions'); else bad('t1: ' + JSON.stringify(byExt.t1));
 if (byExt.t2 && byExt.t2.status === 'Needs Split' && byExt.t2.accountId === acc14.id) ok('split-required merchant held in staging on the new card account'); else bad('t2: ' + JSON.stringify(byExt.t2));
-if (byExt.t4 && byExt.t5 && byExt.t4.pairedImportId === byExt.t5.importId && byExt.t4.suggestedType === 'Transfer' && byExt.t5.suggestedType === 'Transfer' && byExt.t4.status === 'Imported' && byExt.t5.status === 'Imported') ok('card payment to an unlinked card auto-paired as Transfer on both sides and imported'); else bad('pair t4/t5: ' + JSON.stringify([byExt.t4, byExt.t5].map(s => s && [s.suggestedType, s.status, s.pairedImportId])));
+if (byExt.t4 && byExt.t5 && byExt.t4.pairedImportId === byExt.t5.importId && byExt.t4.suggestedType === 'Debt Payment' && byExt.t4.suggestedDebtId === cardRow.id && byExt.t5.suggestedType === 'Transfer' && byExt.t4.status === 'Imported' && byExt.t5.status === 'Imported') ok('card payment auto-paired: bank side Debt Payment to the card\'s Debts row, card side Transfer, both imported'); else bad('pair t4/t5: ' + JSON.stringify([byExt.t4, byExt.t5].map(s => s && [s.suggestedType, s.status, s.pairedImportId])));
 if (!byExt.t3) ok('transaction before the start date was not staged'); else bad('t3 staged despite start date');
 if (near(R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`), 1200.1)) ok('balances from the sync written to Accounts'); else bad('balance not updated');
 const conn2 = R(`readTable_(TABLES.CONN)[0]`);
@@ -295,6 +306,50 @@ syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
 R(`syncAllConnections()`);
 if (R(`readTable_(TABLES.STAGING).length`) === before3) ok('a sync with nothing new adds no rows'); else bad('idempotent sync failed');
+
+/* 10b. lender data (Liabilities) → Debts, loan servicer connections, PSLF, month rows */
+if (/^Not available: PRODUCTS_NOT_SUPPORTED/.test(R(`readTable_(TABLES.CONN)[0].liabilities`))) ok('a login whose bank offers no Liabilities is marked once on Connections and not asked again'); else bad('liabilities mark: ' + R(`readTable_(TABLES.CONN)[0].liabilities`));
+liabilitiesOn = true;
+R(`setConnectionField_('CONN-001', 'liabilities', '')`); // as Repair does
+const sLi = R(`syncAllConnections()`)[0];
+const cardDebt = R(`readTable_(TABLES.DEBTS).filter(function(d){ return d.linkedAccount==='${acc14.id}'; })[0]`);
+if (sLi.liabilities === 1 && cardDebt && near(cardDebt.apr, 0.2499) && cardDebt.minPayment === 35 && cardDebt.dueDay >= 1 && cardDebt.dueDay <= 31 && cardDebt.nextDue && typeof cardDebt.nextDue.toISOString === 'function' && cardDebt.loanStatus === 'Current' && /\$200\.00/.test(cardDebt.lastPayment) && cardDebt.feedUpdated && typeof cardDebt.feedUpdated.toISOString === 'function') ok('card APR (purchase rate), minimum payment, due day, next due and last payment written to the linked Debts row'); else bad('card liabilities: ' + JSON.stringify([sLi, cardDebt]));
+if (R(`readTable_(TABLES.CONN)[0].liabilities`) === 'Yes' && /1 debt row\(s\) updated from the lender/.test(R(`readTable_(TABLES.CONN)[0].lastResult`)) ) ok('Connections shows the Liabilities feed as available and the sync result counts the debt rows'); else bad('conn liabilities after sync: ' + JSON.stringify(R(`readTable_(TABLES.CONN)[0]`)));
+// spending connections ask for liabilities only where the bank supports it; loan servicers ask for liabilities outright
+R(`startHostedLink({ mode:'spending' })`);
+const spendPayload = g.__fetches.slice(-1)[0].payload;
+if (JSON.stringify(spendPayload.products) === '["transactions"]' && JSON.stringify(spendPayload.required_if_supported_products) === '["liabilities"]') ok('spending connections request liabilities only if the institution supports it (institution list not narrowed)'); else bad('spending payload: ' + JSON.stringify(spendPayload));
+R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`);
+linkPhase = 2;
+R(`startHostedLink({ mode:'loans' })`);
+const loanPayload = g.__fetches.slice(-1)[0].payload;
+if (JSON.stringify(loanPayload.products) === '["liabilities"]' && !loanPayload.transactions && !loanPayload.required_if_supported_products) ok('loan servicer connections ask Plaid for liabilities only'); else bad('loans payload: ' + JSON.stringify(loanPayload));
+R(`writeRows_(tdef_('DEBTS'), [{ id: nextId_(tdef_('DEBTS'), 3), name: 'Student loan — Valerie', debtType: 'Student Loan', owner: 'Valerie', group: 'Student Loans' }])`); // an empty row the owner made
+const finLoan = R(`finishHostedLink()`);
+if (finLoan.status === 'connected' && finLoan.institution === 'Sample Loan Servicer' && finLoan.accounts.length === 2 && finLoan.accounts.every(a => a.guessType === 'Loan') && finLoan.mode === 'loans' && R(`readTable_(TABLES.CONN).filter(function(c){ return c.id==='${finLoan.connectionId}'; })[0].products`) === 'liabilities') ok('loan servicer connected: two student loans found, recorded as a liabilities connection'); else bad('loan connect: ' + JSON.stringify(finLoan));
+const debtsBefore = R(`readTable_(TABLES.DEBTS).length`);
+const mapLoan = R(`finishAccountMapping({ connectionId:'${finLoan.connectionId}', institution:'Sample Loan Servicer', owner:'Valerie', mappings: ${JSON.stringify(finLoan.accounts.map(a => ({ externalId: a.externalId, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype, current: a.current, accountId: 'new', importTx: false })))} })`);
+const loanDebts = R(`readTable_(TABLES.DEBTS).filter(function(d){ return d.linkedAccount && d.lender==='Sample Loan Servicer' && d.owner==='Valerie'; })`);
+if (mapLoan.created === 2 && mapLoan.debts.reused === 1 && mapLoan.debts.created === 1 && R(`readTable_(TABLES.DEBTS).length`) === debtsBefore + 1 && loanDebts.length === 2 && loanDebts.every(d => d.linkedAccount && d.owner === 'Valerie' && d.group === 'Student Loans' && d.debtType === 'Student Loan')) ok('each loan got a Debts row: the owner\'s empty row was reused, one row created, both linked to new Loan accounts'); else bad('loan mapping: ' + JSON.stringify([mapLoan, loanDebts]));
+const sLoan = mapLoan.synced;
+const byAcc = {}; loanDebts.forEach(d => { byAcc[d.linkedAccount] = d; });
+const accSl1 = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.externalAccountId==='sl1'; })[0]`);
+const d1 = accSl1 && byAcc[accSl1.id];
+if (sLoan && !sLoan.error && sLoan.balances === 2 && sLoan.liabilities === 2 && d1 && near(d1.apr, 0.055) && d1.minPayment === 120 && d1.originalBalance === 8000 && /Income-Based Repayment · repayment/.test(d1.loanStatus) && d1.nextDue && typeof d1.nextDue.toISOString === 'function' && near(accSl1.currentBalance, 5200)) ok('first sync of the servicer wrote balances to Accounts and rate, minimum payment, original principal, plan and status to Debts'); else bad('loan sync: ' + JSON.stringify([sLoan, d1, accSl1]));
+const pslfCols = ['pslfSince', 'pslfEstimated', 'pslfRemaining'].map(k => g.__ss.getSheetByName(SHEETS.DEBTS).getRange(d1.__row, TABLES.DEBTS.columns.findIndex(c => c.key === k) + 1).getFormula());
+if (pslfCols.every(f => /^=IF\(/.test(f)) && /UNIQUE\(FILTER\('?Transactions'?!/.test(pslfCols[0]) && /120-/.test(pslfCols[2])) ok('PSLF columns carry their formulas on a row the feed created (payments since the official count, estimate, remaining of 120)'); else bad('pslf formulas: ' + JSON.stringify(pslfCols));
+if (g.__ss.getSheetByName(SHEETS.DEBTS).getRange(4, 13).getValue() === 'PSLF Progress (of 120)' && /MINIFS\(/.test(g.__ss.getSheetByName(SHEETS.DEBTS).getRange(5, 13).getFormula())) ok('Debts band shows PSLF progress per person (lowest loan)'); else bad('PSLF KPI missing: ' + g.__ss.getSheetByName(SHEETS.DEBTS).getRange(4, 13).getValue());
+// month rows: a missing current-month Plan row is added with last month's target; Budget rows are carried forward
+R(`(function(){ const d = tdef_('PLAN'); const sh = ss_().getSheetByName(d.sheet); const cur = monthStart_(new Date()); readTable_(d).filter(function(r){ return r.month instanceof Date && r.month.getTime() === cur.getTime(); }).forEach(function(r){ sh.getRange(r.__row, 1, 1, d.columns.length).setValues([Array(d.columns.length).fill('')]); }); const b = tdef_('BUDGET'); const shb = ss_().getSheetByName(b.sheet); readTable_(b).filter(function(r){ return r.month instanceof Date && r.month.getTime() === cur.getTime(); }).forEach(function(r){ shb.getRange(r.__row, 1, 1, b.columns.length).setValues([Array(b.columns.length).fill('')]); }); })()`); // test-only: blank this month's rows on the mock
+const mr = R(`ensureMonthRows_()`);
+const curPlan = R(`(function(){ const cur = monthStart_(new Date()); return readTable_(TABLES.PLAN).filter(function(r){ return r.month instanceof Date && r.month.getTime() === cur.getTime(); }); })()`);
+const prevTarget = R(`(function(){ const prev = addMonths_(monthStart_(new Date()), -1); const r = readTable_(TABLES.PLAN).filter(function(r){ return r.month instanceof Date && r.month.getTime() === prev.getTime(); })[0]; return r ? r.target : null; })()`);
+const curBud = R(`(function(){ const cur = monthStart_(new Date()); return readTable_(TABLES.BUDGET).filter(function(r){ return r.month instanceof Date && r.month.getTime() === cur.getTime(); }).length; })()`);
+if (mr.plan === true && curPlan.length === 1 && curPlan[0].target === prevTarget && prevTarget && mr.budget > 0 && curBud === mr.budget) ok('month rows: this month\'s Plan row added with last month\'s target and ' + mr.budget + ' Budget rows carried forward'); else bad('ensureMonthRows_: ' + JSON.stringify([mr, curPlan, prevTarget, curBud]));
+const mr2 = R(`ensureMonthRows_()`);
+if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
+// back to the bank connection for the remaining checks
+linkPhase = 1;
 // layout check pauses the sync
 R(`SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Import Staging').getRange(4, 3).setValue('Renamed by hand')`);
 const sBad = R(`syncAllConnections()`)[0];
@@ -334,7 +389,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 1); del('Quarterly Debt Review', 11, 1);
+  del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 10); del('Quarterly Debt Review', 11, 1);
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
   ssx.getSheetByName('Debts').getRange(4, 1).setValue('Total Latest Balance');
@@ -377,7 +432,7 @@ const snap = R(`getSnapshotText()`);
 const must = ['# Household Finance Snapshot', '## Income (paychecks)', '## Monthly cash flow', '## Spending by category', '## Savings & reserves', '## Debts', 'Student loans:', '## Accounts and net worth', 'tracked net worth', '## Recurring obligations', '## Credit scores', '## Data quality notes', 'SAMPLE data'];
 const missing = must.filter(m => snap.indexOf(m) < 0);
 if (!missing.length) ok('snapshot has every section, separates student loans, and warns about sample data'); else bad('snapshot missing: ' + missing.join(', '));
-if (snap.indexOf('Sample Student Loan') >= 0 && snap.indexOf('Student loans: $11,405.00') >= 0 && snap.indexOf('| October 2026 | $7,641.60 | $4,774.19 | $550.00 | $570.00 |') >= 0 && snap.indexOf('Emergency Fund') >= 0 && snap.indexOf('no score entered yet') >= 0) ok('snapshot numbers come from the raw tables (October cash flow matches QA, student loans $11,405.00 from the latest review, funds, credit scores)'); else bad('snapshot content check failed');
+if (snap.indexOf('Sample Student Loan') >= 0 && snap.indexOf('Student loans: $23,905.00') >= 0 && snap.indexOf('| October 2026 | $7,641.60 | $4,774.19 | $550.00 | $570.00 |') >= 0 && snap.indexOf('Emergency Fund') >= 0 && snap.indexOf('no score entered yet') >= 0) ok('snapshot numbers come from the raw tables (October cash flow matches QA, student loans $23,905.00 = latest review + two live servicer balances, funds, credit scores)'); else bad('snapshot content check failed');
 if (!/access-|PLAID_|pa1|item-1/.test(snap)) ok('snapshot contains no tokens, external IDs or item IDs'); else bad('snapshot leaked an identifier');
 const liveSnap = R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben'], samplePresent:false, income:[], tx:[], accounts:[{ id:'ACC-9', name:'Card', accountType:'Credit Card', includeNW:'Yes', currentBalance:1234.5, lastUpdated:new Date() }], debts:[{ id:'DEBT-9', name:'Card debt', debtType:'Credit Card', linkedAccount:'ACC-9', originalBalance:5000, apr:0.2, group:'Household' }], qdr:[], funds:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[] })`);
 if (liveSnap.indexOf('$1,234.50') >= 0 && liveSnap.indexOf('$5,000.00 |') < 0) ok('snapshot uses the linked account\'s live balance for a debt instead of the original balance'); else bad('snapshot live-balance fallback failed');

@@ -181,9 +181,9 @@ function buildSnapshotText_(d) {
   const debtRows = d.debts.map(x => Object.assign({ latest: latestBal(x) }, x));
   const groupOf = (x) => x.group || (x.debtType === 'Student Loan' ? 'Student Loans' : 'Household');
   L.push('## Debts');
-  L.push('| Debt | Type | Lender | Owner | Group | Balance | As of | APR | Minimum payment | Est. monthly interest | Target payoff |');
+  L.push('| Debt | Type | Lender | Owner | Group | Balance | As of | APR | Minimum payment | Est. monthly interest | Next due | Status / plan | PSLF est. (of 120) | Target payoff |');
   L.push('|---|---|---|---|---|---:|---|---:|---:|---:|---|');
-  debtRows.forEach(x => L.push('| ' + x.name + ' | ' + x.debtType + ' | ' + (x.lender || '') + ' | ' + (x.owner || '') + ' | ' + groupOf(x) + ' | ' + money(x.latest.bal) + ' | ' + (x.latest.asOf ? dateStr(x.latest.asOf) : 'original') + ' | ' + pct(x.apr) + ' | ' + (x.minPayment ? money(x.minPayment) : '—') + ' | ' + money(x.latest.bal * Number(x.apr || 0) / 12) + ' | ' + dateStr(x.targetPayoff) + ' |'));
+  debtRows.forEach(x => L.push('| ' + x.name + ' | ' + x.debtType + ' | ' + (x.lender || '') + ' | ' + (x.owner || '') + ' | ' + groupOf(x) + ' | ' + money(x.latest.bal) + ' | ' + (x.latest.asOf ? dateStr(x.latest.asOf) : 'original') + ' | ' + pct(x.apr) + ' | ' + (x.minPayment ? money(x.minPayment) : '—') + ' | ' + money(x.latest.bal * Number(x.apr || 0) / 12) + ' | ' + dateStr(x.nextDue) + ' | ' + (x.loanStatus || '—') + ' | ' + (x.pslfEstimated !== '' && x.pslfEstimated !== null && x.pslfEstimated !== undefined ? x.pslfEstimated + ' (official ' + x.pslfOfficial + ' as of ' + dateStr(x.pslfAsOf) + ', +' + (x.pslfSince || 0) + ' since)' : (groupOf(x) === 'Student Loans' ? 'no count entered' : '—')) + ' | ' + dateStr(x.targetPayoff) + ' |'));
   const hh = debtRows.filter(x => groupOf(x) !== 'Student Loans'), sl = debtRows.filter(x => groupOf(x) === 'Student Loans');
   L.push('');
   L.push('Household debt (excluding student loans): ' + money(sum(hh, x => x.latest.bal)) + ' · Student loans: ' + money(sum(sl, x => x.latest.bal)) + ' · All debt: ' + money(sum(debtRows, x => x.latest.bal)) + '.');
@@ -250,6 +250,8 @@ function buildSnapshotText_(d) {
   if (noBal) L.push('- Accounts without a balance entered: ' + noBal + ' (net worth is understated by whatever they hold).');
   const noReview = debtRows.filter(x => !x.latest.asOf).length;
   if (noReview) L.push('- Debts with no Quarterly Debt Review yet (balance shown is the original balance): ' + noReview + '.');
+  const noPslf = debtRows.filter(x => groupOf(x) === 'Student Loans' && (x.pslfOfficial === '' || x.pslfOfficial === null || x.pslfOfficial === undefined)).length;
+  if (noPslf) L.push('- Student loans with no PSLF official count entered (from studentaid.gov): ' + noPslf + '. PSLF progress is estimated only once a count and its date are typed on Debts.');
   L.push('');
   L.push('_End of snapshot._');
   return L.join('\n');
