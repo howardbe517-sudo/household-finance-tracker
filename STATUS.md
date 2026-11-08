@@ -61,6 +61,11 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
 ## In progress
 - Pull request `claude/goals-tab`: Financial Goals on their own tab (third
   tab); Reminders stay on the Dashboard.
+- Pull request `claude/pension-in-snapshot`: Pension account type; AI
+  snapshot lists pensions from Notes; never counted as an asset. ACC-016
+  (pension, Include in Net Worth = No) added to the owner's Accounts tab.
+- Retirement plans: the owner has not yet located the providers (paystub /
+  HR); connect each as Investment or retirement account once registered.
 - Pull request `claude/goals-and-reminders`: Financial Goals boxes on the
   Dashboard (K:N) and a Reminders box + monthly reminder email for stale
   PSLF counts. After merge: Upgrade workbook, then Sync now (approve the

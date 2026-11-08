@@ -491,7 +491,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | HOUSEHOLD_PERSONAL | Household/Personal | Household, Personal |
 | PERSONS | Persons | Ben, Valerie |
 | OWNERS | Owners | Ben, Valerie, Household |
-| ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other |
+| ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
 | FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |
 | DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
