@@ -33,7 +33,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 22 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('22 tabs in the specified order (20 from the handoff + Import Rules + Connections)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 23 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('23 tabs in the specified order (20 from the handoff + Import Rules + Connections + Goals)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
@@ -349,8 +349,9 @@ if (mr.plan === true && curPlan.length === 1 && curPlan[0].target === prevTarget
 const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
-const dashSh = g.__ss.getSheetByName(SHEETS.DASH);
-if (dashSh.getRange('K1').getValue() === 'Financial Goals' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && /studentaid\.gov/.test(g.__ss.getRangeByName('DASH_REMINDERS').getFormula())) ok('Dashboard has five Financial Goals boxes and a calculated Reminders box'); else bad('goals panel: ' + JSON.stringify([dashSh.getRange('K1').getValue(), g.__ss.namedRanges.has('GOAL_1'), g.__ss.getRangeByName('DASH_REMINDERS') && g.__ss.getRangeByName('DASH_REMINDERS').getFormula()]));
+const dashSh = g.__ss.getSheetByName(SHEETS.DASH), goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[2] === SHEETS.GOALS) ok('Goals tab (third tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (dashSh.getRange('K1').getValue() === 'Reminders' && /studentaid\.gov/.test(g.__ss.getRangeByName('DASH_REMINDERS').getFormula()) && dashSh.getRange('K1').getValue() !== 'Financial Goals') ok('Dashboard keeps the calculated Reminders box beside the cards, goals moved off it'); else bad('reminders box: ' + JSON.stringify([dashSh.getRange('K1').getValue()]));
 const due1 = R(`dueReminders_()`);
 if (due1.length === 2 && due1.every(r => /never entered/.test(r.text) && /^pslf:/.test(r.key))) ok('reminders: the two servicer loans with no PSLF count are due; the sample loan (count 3 months old) is not'); else bad('dueReminders_: ' + JSON.stringify(due1));
 R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(1)`);
@@ -409,8 +410,12 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ['LIST_DEBT_GROUPS', 'LIST_MATCH_TYPES', 'LIST_STAGING_STATUSES', 'LIST_CONNECTION_STATUSES', 'TBL_RULES', 'TBL_CONN'].forEach(n => { const nr = ssx.namedRanges.get(n); if (nr) nr.remove(); });
   ssx.getRangeByName('GOAL_2').setValue('Pay off the car by next summer.');
   ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(6);
+  // an older build kept the goals on the Dashboard: move the named range there and drop the Goals tab
+  ssx.getSheetByName('Dashboard').getRange('K4:N7').setValue('Old dashboard goal text.');
+  ssx.setNamedRange('GOAL_1', ssx.getSheetByName('Dashboard').getRange('K4:N7'));
+  ssx.deleteSheet(ssx.getSheetByName('Goals')); // SAFETY-APPROVED: test only, mock workbook, simulating a workbook built before the Goals tab existed
   const rep = R(`upgradeWorkbook()`);
-  if (ssx.getRangeByName('GOAL_2').getValue() === 'Pay off the car by next summer.' && ssx.getRangeByName('GOAL_1').getValue() === '' && ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue() === 6) ok('upgrade keeps the Financial Goals text and the reminder setting'); else bad('goals/setting lost in upgrade: ' + JSON.stringify([ssx.getRangeByName('GOAL_2').getValue(), ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue()]));
+  if (ssx.getSheetByName('Goals') && ssx.getRangeByName('GOAL_1').getSheet().getName() === 'Goals' && ssx.getRangeByName('GOAL_1').getValue() === 'Old dashboard goal text.' && ssx.getRangeByName('GOAL_3').getValue() === '' && ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue() === 6 && ssx.getSheetByName('Dashboard').getRange('K4').getValue() !== 'Old dashboard goal text.') ok('upgrade builds the Goals tab, moves goal text written on an older Dashboard onto it, and keeps the reminder setting'); else bad('goals/setting in upgrade: ' + JSON.stringify([ssx.getRangeByName('GOAL_1').getSheet().getName(), ssx.getRangeByName('GOAL_1').getValue(), ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').getValue()]));
   ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12);
   const repText = rep.join('\n');
   let good = true;

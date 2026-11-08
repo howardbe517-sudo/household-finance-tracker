@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-08 — Goals move to their own tab
+- What changed: the five Financial Goals boxes now live on a new **Goals**
+  tab (third tab, right after the Dashboard) at full width, five rows tall
+  each, instead of beside the Dashboard cards. The Dashboard keeps the
+  calculated Reminders box beside the cards. Named ranges `GOAL_1`…`GOAL_5`
+  move with the boxes; Upgrade workbook reads the goal text from wherever it
+  is (the Goals tab, or the Dashboard panel of yesterday's build) before
+  rebuilding and writes it back onto the Goals tab.
+- Files changed in `apps-script/`: `Config.gs` (new tab in SHEETS and
+  TAB_ORDER), `Dashboard.gs` (`buildGoals_`), `Main.gs`, `Upgrade.gs`
+  (deployed on merge). Then Finance Tracker → Upgrade workbook once; it
+  creates the Goals tab and moves any goal text already written.
+- Tested: Node (Goals tab built third with the five named boxes; Dashboard
+  keeps Reminders; upgrade from a workbook whose goals sat on the Dashboard
+  moves the text to the new tab). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/goals-tab`
 ## 2026-11-08 — Pension line in the AI snapshot
 - What changed: Account Types gains **Pension**. A Pension row holds no
   balance, only Notes (projected monthly benefit, years of service, as-of

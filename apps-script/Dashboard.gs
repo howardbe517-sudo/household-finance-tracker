@@ -22,16 +22,45 @@ const DASH = {
   FLEX_BAR: 32, FLEX_LABEL: 33, FLEX_VALUE: 34, FLEX_SUB: 35,
   FUNDS_BAR: 37, FUNDS_HEADER: 38, FUNDS_FIRST: 39, FUNDS_COUNT: 8,
   FOOTNOTE: 48,
-  // Financial Goals panel (columns K:N) and Reminders box, beside the cards
-  GOALS_COL: 11, GOALS_WIDTH: 4, GOALS_COUNT: 5, GOALS_FIRST: 3, GOALS_ROWS: 4, // label row + 4-row box per goal
-  REMINDERS_BAR: 29, REMINDERS_FIRST: 30, REMINDERS_ROWS: 8,
+  // Reminders panel (columns K:N) beside the cards
+  SIDE_COL: 11, SIDE_WIDTH: 4, REMINDERS_BAR: 1, REMINDERS_FIRST: 3, REMINDERS_ROWS: 10,
 };
 
-/** A1 range of goal box n (1-based), e.g. K4:N7. */
+/* Financial Goals live on their own tab (Goals); see buildGoals_. */
+const GOALS = { COUNT: 5, FIRST_ROW: 4, BOX_ROWS: 5, ROW_HEIGHT: 30, WIDTH: 8 };
+
+/** A1 range of goal box n (1-based) on the Goals tab, e.g. A5:H9. */
 function goalBoxRange_(n) {
-  const top = DASH.GOALS_FIRST + (n - 1) * (DASH.GOALS_ROWS + 1) + 1;
-  const c1 = colLetter_(DASH.GOALS_COL), c2 = colLetter_(DASH.GOALS_COL + DASH.GOALS_WIDTH - 1);
-  return c1 + top + ':' + c2 + (top + DASH.GOALS_ROWS - 1);
+  const top = GOALS.FIRST_ROW + (n - 1) * (GOALS.BOX_ROWS + 1) + 1;
+  return 'A' + top + ':' + colLetter_(GOALS.WIDTH) + (top + GOALS.BOX_ROWS - 1);
+}
+
+/** Goals tab: a title, a short note and five large text boxes (named GOAL_1…GOAL_5). Rebuilt by the upgrade with the text put back. */
+function buildGoals_() {
+  const sh = getOrCreateSheet_(SHEETS.GOALS);
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
+  sh.clear(); // SAFETY-APPROVED: the Goals tab is rebuilt by buildWorkbook / upgradeWorkbook; the upgrade reads the goal text first and writes it back
+  sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
+  const lastRow = GOALS.FIRST_ROW + GOALS.COUNT * (GOALS.BOX_ROWS + 1) + 2;
+  ensureSheetSize_(sh, lastRow, GOALS.WIDTH);
+  sh.setHiddenGridlines(true);
+  for (let c = 1; c <= GOALS.WIDTH; c++) sh.setColumnWidth(c, 120);
+  sh.getRange(1, 1, lastRow, GOALS.WIDTH).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  sh.getRange(1, 1, 1, GOALS.WIDTH).merge().setValue('Financial Goals').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(18).setFontWeight('bold');
+  sh.setRowHeight(1, 44);
+  sh.getRange(2, 1, 1, GOALS.WIDTH).merge().setValue('Write a goal in each box, in your own words and at any length; the box wraps the text. These boxes are yours: upgrades keep what you wrote. Monthly, yearly and five-year breakdowns can be added later.')
+    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setWrap(true);
+  sh.setRowHeight(2, 36);
+  for (let n = 1; n <= GOALS.COUNT; n++) {
+    const top = GOALS.FIRST_ROW + (n - 1) * (GOALS.BOX_ROWS + 1);
+    sh.getRange(top, 1, 1, GOALS.WIDTH).merge().setValue('Goal ' + n).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setFontSize(12);
+    sh.setRowHeight(top, 26);
+    const box = sh.getRange(goalBoxRange_(n)).merge();
+    box.setBackground(COLORS.INPUT).setWrap(true).setVerticalAlignment('top').setHorizontalAlignment('left').setFontSize(12)
+      .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+    for (let r = top + 1; r <= top + GOALS.BOX_ROWS; r++) sh.setRowHeight(r, GOALS.ROW_HEIGHT);
+    setNamedRange_('GOAL_' + n, box);
+  }
 }
 
 function buildDashboard_() {
@@ -42,13 +71,13 @@ function buildDashboard_() {
   sh.clearConditionalFormatRules();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
-  ensureSheetSize_(sh, 52, DASH.GOALS_COL + DASH.GOALS_WIDTH - 1);
+  ensureSheetSize_(sh, 52, DASH.SIDE_COL + DASH.SIDE_WIDTH - 1);
   sh.setHiddenGridlines(true);
   sh.setColumnWidth(1, 200);
   for (let c = 2; c <= 9; c++) sh.setColumnWidth(c, 118);
   sh.setColumnWidth(10, 24);
-  for (let c = DASH.GOALS_COL; c < DASH.GOALS_COL + DASH.GOALS_WIDTH; c++) sh.setColumnWidth(c, 150);
-  sh.getRange(1, 1, 52, DASH.GOALS_COL + DASH.GOALS_WIDTH - 1).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  for (let c = DASH.SIDE_COL; c < DASH.SIDE_COL + DASH.SIDE_WIDTH; c++) sh.setColumnWidth(c, 130);
+  sh.getRange(1, 1, 52, DASH.SIDE_COL + DASH.SIDE_WIDTH - 1).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
 
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
@@ -227,26 +256,11 @@ function buildDashboard_() {
   mergePut('A48:I48', F('="Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab — household debt "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"<>Student Loans"),"$#,##0")&" · student loans "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"Student Loans"),"$#,##0")&IFERROR(" · PSLF (lowest loan) "&TEXTJOIN(", ",TRUE,MAP(UNIQUE(FILTER([DEBTS.owner],([DEBTS.group]="Student Loans")*([DEBTS.pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([DEBTS.pslfEstimated],[DEBTS.owner],o,[DEBTS.group],"Student Loans")&"/120"))),"")&". Balances are kept off the everyday Dashboard on purpose."'))
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
-  /* --- Financial Goals (big text boxes, kept through upgrades) --- */
-  const gc = DASH.GOALS_COL, gw = DASH.GOALS_WIDTH;
-  const gL = colLetter_(gc), gR = colLetter_(gc + gw - 1);
-  mergePut(gL + '1:' + gR + '1', 'Financial Goals').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
-  mergePut(gL + '2:' + gR + '2', 'Write a goal in each box, as much text as you like. These boxes are yours: upgrades keep them. Monthly or yearly breakdowns can be added later.')
-    .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setWrap(true);
-  const goalRanges = [];
-  for (let n = 1; n <= DASH.GOALS_COUNT; n++) {
-    const top = DASH.GOALS_FIRST + (n - 1) * (DASH.GOALS_ROWS + 1);
-    mergePut(gL + top + ':' + gR + top, 'Goal ' + n).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setFontSize(11);
-    const box = sh.getRange(goalBoxRange_(n)).merge();
-    box.setBackground(COLORS.INPUT).setWrap(true).setVerticalAlignment('top').setHorizontalAlignment('left').setFontSize(12)
-      .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-    for (let r = top + 1; r <= top + DASH.GOALS_ROWS; r++) sh.setRowHeight(r, 30);
-    setNamedRange_('GOAL_' + n, box);
-    goalRanges.push(box);
-  }
-
-  /* --- Reminders (calculated): what needs a hand, e.g. a PSLF count that is due a check --- */
+  /* --- Reminders (calculated, beside the cards): what needs a hand, e.g. a PSLF count that is due a check --- */
+  const gc = DASH.SIDE_COL, gw = DASH.SIDE_WIDTH;
   styleSectionBar_(sh.getRange(DASH.REMINDERS_BAR, gc, 1, gw), 'Reminders');
+  sh.setRowHeight(DASH.REMINDERS_BAR, 40);
+  sh.getRange(2, gc, 1, gw).merge().setValue('Things only you can do. Financial goals are on the Goals tab.').setFontSize(9).setFontColor(COLORS.MUTED_TEXT);
   const remBox = sh.getRange(DASH.REMINDERS_FIRST, gc, DASH.REMINDERS_ROWS, gw).merge();
   remBox.setFormula(F('=LET(m,IFERROR(N(SETTING_PSLF_REMINDER_MONTHS),12),due,TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([DEBTS.id]<>"")*([DEBTS.group]="Student Loans")*(([DEBTS.pslfAsOf]="")+([DEBTS.pslfAsOf]<EDATE(TODAY(),-m))),"PSLF count for "&[DEBTS.name]&": "&IF([DEBTS.pslfAsOf]="","never entered","last confirmed "&TEXT([DEBTS.pslfAsOf],"mmm d, yyyy"))&". Read it on studentaid.gov and update Debts.",""))),IF(due="","Nothing due. PSLF counts are flagged after "&m&" months (App Setup).","• "&SUBSTITUTE(due,CHAR(10),CHAR(10)&"• ")))'));
   remBox.setWrap(true).setVerticalAlignment('top').setFontSize(10).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
@@ -254,7 +268,7 @@ function buildDashboard_() {
   setNamedRange_('DASH_REMINDERS', remBox);
 
   /* --- protection: warning-only, except inputs --- */
-  const prot = sh.protect().setDescription('Dashboard is calculated. Change the Selected Month in B3, tick the checklist or write in the Financial Goals boxes; edit data on the raw tabs.');
+  const prot = sh.protect().setDescription('Dashboard is calculated. Change the Selected Month in B3 or tick the checklist; write goals on the Goals tab; edit data on the raw tabs.');
   prot.setWarningOnly(true);
-  prot.setUnprotectedRanges([sh.getRange('B3'), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))].concat(goalRanges));
+  prot.setUnprotectedRanges([sh.getRange('B3'), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))]);
 }
