@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-08 — Credit score reminders
+- What changed: the Reminders box on the Dashboard, the monthly reminder
+  email and Finance Tracker → Show reminders now also flag each person whose
+  latest Credit Scores entry is missing or older than the new App Setup
+  setting *Credit score reminder after (months)* (default 3). There is no
+  feed for credit scores (Plaid has none for consumers), so this is the
+  nudge instead.
+- Files changed in `apps-script/`: `Dashboard.gs`, `Plaid.gs`,
+  `Reference.gs`, `Upgrade.gs` (deployed on merge). Then Finance Tracker →
+  Upgrade workbook once (adds the setting and refreshes the Reminders box).
+- Tested: Node (never-entered scores flagged; a score entered today clears
+  it; a five-month-old score stays flagged at 3 months and clears at 6; the
+  Dashboard formula carries both people). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/credit-score-reminder`
+
 ## 2026-11-08 — Goals move to their own tab
 - What changed: the five Financial Goals boxes now live on a new **Goals**
   tab (third tab, right after the Dashboard) at full width, five rows tall

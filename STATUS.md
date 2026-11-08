@@ -59,6 +59,8 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/credit-score-reminder`: credit scores join the
+  reminders (box, email, menu) with their own months setting.
 - Pull request `claude/goals-tab`: Financial Goals on their own tab (third
   tab); Reminders stay on the Dashboard.
 - Pull request `claude/pension-in-snapshot`: Pension account type; AI

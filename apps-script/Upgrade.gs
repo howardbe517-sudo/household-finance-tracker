@@ -246,6 +246,7 @@ function readSettings_() {
     samplePresent: get('SETTING_SAMPLE_PRESENT', false) === true,
     autoPairs: get('SETTING_AUTO_PAIRS', true),
     pslfMonths: get('SETTING_PSLF_REMINDER_MONTHS', 12),
+    creditMonths: get('SETTING_CREDIT_REMINDER_MONTHS', 3),
     reminderEmail: get('SETTING_REMINDER_EMAIL', true),
     qaRun: get('QA_LAST_RUN', ''),
     qaResult: get('QA_LAST_RESULT', ''),
@@ -259,6 +260,7 @@ function restoreSettings_(s) {
   set('SETTING_SAMPLE_PRESENT', s.samplePresent);
   set('SETTING_AUTO_PAIRS', s.autoPairs);
   set('SETTING_PSLF_REMINDER_MONTHS', s.pslfMonths);
+  set('SETTING_CREDIT_REMINDER_MONTHS', s.creditMonths);
   set('SETTING_REMINDER_EMAIL', s.reminderEmail);
   set('QA_LAST_RUN', s.qaRun);
   set('QA_LAST_RESULT', s.qaResult);

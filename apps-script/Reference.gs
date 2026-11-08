@@ -141,6 +141,7 @@ function buildAppSetup_(withSample) {
   kv('Bank feed: auto-import detected transfers and card payments', true, { name: 'SETTING_AUTO_PAIRS', checkbox: true });
   kv('Week starts on (flexible-spending guidance)', 'Monday');
   kv('PSLF count reminder after (months)', 12, { name: 'SETTING_PSLF_REMINDER_MONTHS' });
+  kv('Credit score reminder after (months)', 3, { name: 'SETTING_CREDIT_REMINDER_MONTHS' });
   kv('Email reminders (sent by the nightly sync, at most monthly)', true, { name: 'SETTING_REMINDER_EMAIL', checkbox: true });
   kv('Last QA run', '', { name: 'QA_LAST_RUN', fmt: FORMATS.datetime });
   kv('Last QA result', '', { name: 'QA_LAST_RESULT' });

@@ -89,7 +89,7 @@
       ]
     },
     {
-      "heading": "PSLF progress (the one thing with no feed)",
+      "heading": "PSLF counts and credit scores (the two things with no feed)",
       "steps": [
         {
           "text": "Sign in to studentaid.gov, open your loan details and note the **qualifying payment count** for each person's loans. On **Debts**, type it into **PSLF Official Count** on that person's loan rows and today's date into **PSLF Count As Of**.",
@@ -100,7 +100,7 @@
           "note": "If a servicer takes both people's payments from the same checking account, make one rule per servicer description and set the Debt ID on it."
         },
         {
-          "text": "Reminders take care of the rest: the **Reminders** box to the right of the Dashboard cards lists any loan whose PSLF count is missing or older than the setting on App Setup (**PSLF count reminder after (months)**, 12 to start). While something is listed, the nightly sync emails you once a month. **Finance Tracker → Show reminders** shows the same list any time.",
+          "text": "Reminders take care of the rest: the **Reminders** box to the right of the Dashboard cards lists any loan whose PSLF count is missing or older than the setting on App Setup (**PSLF count reminder after (months)**, 12 to start) and any person whose latest credit score on the Credit Scores tab is missing or older than **Credit score reminder after (months)** (3 to start). While something is listed, the nightly sync emails you once a month. **Finance Tracker → Show reminders** shows the same list any time.",
           "note": "Change the months on App Setup if you want it sooner (6) or later. Untick Email reminders there to stop the emails and keep the box."
         }
       ]
