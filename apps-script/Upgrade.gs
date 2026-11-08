@@ -65,8 +65,10 @@ function upgradeWorkbookLocked_() {
   // 4. documentation + dashboard tabs (rebuilt; settings and inputs preserved)
   const settings = readSettings_();
   withRetry_('App Setup', () => { buildAppSetup_(settings.samplePresent); restoreSettings_(settings); });
+  const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
   const dash = readDashboardInputs_();
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
+  withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
   report.push('Refreshed App Setup, Dashboard, Start Here and Sources (settings kept).');
@@ -265,14 +267,23 @@ function restoreSettings_(s) {
 function readDashboardInputs_() {
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (!sh) return null;
-  const ss = ss_();
-  const goals = [];
-  for (let n = 1; n <= DASH.GOALS_COUNT; n++) { const r = ss.getRangeByName('GOAL_' + n); goals.push(r ? r.getValue() : ''); }
   return {
     month: sh.getRange(DASH.SELECTED_MONTH).getValue(),
     checks: sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).getValues(),
-    goals,
   };
+}
+
+/** The goal texts by their named ranges (GOAL_1…), from whichever tab holds them. */
+function readGoals_() {
+  const ss = ss_();
+  const goals = [];
+  for (let n = 1; n <= GOALS.COUNT; n++) { const r = ss.getRangeByName('GOAL_' + n); goals.push(r ? r.getValue() : ''); }
+  return goals;
+}
+
+function restoreGoals_(goals) {
+  const ss = ss_();
+  (goals || []).forEach((g, i) => { if (g !== '' && g !== null && g !== undefined) { const r = ss.getRangeByName('GOAL_' + (i + 1)); if (r) r.setValue(g); } });
 }
 
 function restoreDashboardInputs_(d) {
@@ -280,5 +291,4 @@ function restoreDashboardInputs_(d) {
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (d.month instanceof Date) sh.getRange(DASH.SELECTED_MONTH).setValue(d.month);
   if (d.checks) sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).setValues(d.checks.map(r => [r[0] === true]));
-  (d.goals || []).forEach((g, i) => { if (g !== '' && g !== null && g !== undefined) sh.getRange(goalBoxRange_(i + 1)).setValue(g); });
 }

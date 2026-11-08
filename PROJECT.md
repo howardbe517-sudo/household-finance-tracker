@@ -150,9 +150,10 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   principal). Loan accounts always get a Debts row (`ensureDebtRowForLoan_`).
   PSLF counts are not available from Plaid; the owner types the official
   count and date, and formulas count months paid since.
-- The Dashboard's Financial Goals boxes (`GOAL_1`…`GOAL_5`, columns K:N) are
-  the only free-text input on a calculated tab; `readDashboardInputs_` /
-  `restoreDashboardInputs_` carry them through rebuilds. `dueReminders_`
+- The Goals tab holds five free-text boxes (`GOAL_1`…`GOAL_5`); `readGoals_`
+  / `restoreGoals_` carry them through rebuilds (from the Dashboard panel of
+  an older build too). The Dashboard's Reminders box (columns K:N) is
+  calculated. `dueReminders_`
   lists hand-entered values that have gone stale (PSLF counts); the
   Dashboard Reminders box shows the same by formula and `sendReminders_`
   emails it at most monthly from the nightly sync.
