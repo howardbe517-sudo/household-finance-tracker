@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-08 — Pension line in the AI snapshot
+- What changed: Account Types gains **Pension**. A Pension row holds no
+  balance, only Notes (projected monthly benefit, years of service, as-of
+  date), is never counted as an asset (snapshot, net-worth snapshot helper
+  and the live net-worth box all skip it), and the AI snapshot lists it under
+  "Pensions (future monthly income; no balance, not counted in net worth)"
+  with the Notes text. The owner's Sheet has a Pension row (ACC-016, Include
+  in Net Worth = No) with a fill-in note.
+- Files changed in `apps-script/`: `Config.gs` (list value), `Export.gs`,
+  `Main.gs`, `Tables.gs` (deployed on merge). Then Finance Tracker → Upgrade
+  workbook once (adds Pension to the dropdown and refreshes the net-worth
+  box formula).
+- Tested: Node (snapshot lists the pension from Notes and leaves it out of
+  tracked net worth; list upgrade covered by the existing upgrade test). Not
+  yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/pension-in-snapshot`
+
 ## 2026-11-07 — Financial Goals on the Dashboard; reminders for the few things still typed by hand
 - What changed:
   - **Financial Goals**: a panel to the right of the Dashboard cards (columns

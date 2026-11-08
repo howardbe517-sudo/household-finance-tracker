@@ -261,7 +261,7 @@ function splitTransactionPrompt() {
 
 /** Append (or refresh) this month's Net Worth Snapshot from Accounts + Debts. */
 function recordNetWorthSnapshot() {
-  const accounts = readTable_(tdef_('ACCOUNTS')).filter(a => a.includeNW === 'Yes');
+  const accounts = readTable_(tdef_('ACCOUNTS')).filter(a => a.includeNW === 'Yes' && a.accountType !== 'Pension'); // a pension has no balance
   const debts = readTable_(tdef_('DEBTS'));
   const linked = {};
   debts.forEach(d => { if (d.linkedAccount) linked[d.linkedAccount] = true; });
