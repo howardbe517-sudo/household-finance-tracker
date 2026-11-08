@@ -1,15 +1,18 @@
 # CHANGELOG
 
-## 2026-11-08 — Credit score reminders
-- What changed: the Reminders box on the Dashboard, the monthly reminder
-  email and Finance Tracker → Show reminders now also flag each person whose
-  latest Credit Scores entry is missing or older than the new App Setup
-  setting *Credit score reminder after (months)* (default 3). There is no
-  feed for credit scores (Plaid has none for consumers), so this is the
-  nudge instead.
-- Files changed in `apps-script/`: `Dashboard.gs`, `Plaid.gs`,
-  `Reference.gs`, `Upgrade.gs` (deployed on merge). Then Finance Tracker →
-  Upgrade workbook once (adds the setting and refreshes the Reminders box).
+## 2026-11-08 — Credit score reminders; Reminders on their own tab
+- What changed: the reminders (box, monthly email, Finance Tracker → Show
+  reminders) now also flag each person whose latest Credit Scores entry is
+  missing or older than the new App Setup setting *Credit score reminder
+  after (months)* (default 3); there is no consumer credit-score feed, so
+  this is the nudge instead. And the reminders box moves off the Dashboard
+  onto a new **Reminders** tab (fourth tab, after Goals) with a note on where
+  each item is updated; the Dashboard is back to columns A:I. Named range
+  `REMINDERS_BOX` replaces `DASH_REMINDERS`.
+- Files changed in `apps-script/`: `Config.gs` (new tab), `Dashboard.gs`,
+  `Main.gs`, `Plaid.gs`, `Reference.gs`, `Upgrade.gs` (deployed on merge).
+  Then Finance Tracker → Upgrade workbook once (adds the setting, builds the
+  Reminders tab, trims the Dashboard).
 - Tested: Node (never-entered scores flagged; a score entered today clears
   it; a five-month-old score stays flagged at 3 months and clears at 6; the
   Dashboard formula carries both people). Not yet tried in Google.

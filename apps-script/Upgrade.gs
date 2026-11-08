@@ -69,6 +69,7 @@ function upgradeWorkbookLocked_() {
   const dash = readDashboardInputs_();
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
+  withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
   report.push('Refreshed App Setup, Dashboard, Start Here and Sources (settings kept).');

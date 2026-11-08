@@ -16,7 +16,7 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, the new **Goals** tab, the Reminders box on the Dashboard, Pension in the Account Type list, and two settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, the new **Goals** and **Reminders** tabs, Pension in the Account Type list, and two settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
@@ -100,7 +100,7 @@
           "note": "If a servicer takes both people's payments from the same checking account, make one rule per servicer description and set the Debt ID on it."
         },
         {
-          "text": "Reminders take care of the rest: the **Reminders** box to the right of the Dashboard cards lists any loan whose PSLF count is missing or older than the setting on App Setup (**PSLF count reminder after (months)**, 12 to start) and any person whose latest credit score on the Credit Scores tab is missing or older than **Credit score reminder after (months)** (3 to start). While something is listed, the nightly sync emails you once a month. **Finance Tracker → Show reminders** shows the same list any time.",
+          "text": "Reminders take care of the rest: the **Reminders** tab (fourth tab) lists any loan whose PSLF count is missing or older than the setting on App Setup (**PSLF count reminder after (months)**, 12 to start) and any person whose latest credit score on the Credit Scores tab is missing or older than **Credit score reminder after (months)** (3 to start). While something is listed, the nightly sync emails you once a month. **Finance Tracker → Show reminders** shows the same list any time.",
           "note": "Change the months on App Setup if you want it sooner (6) or later. Untick Email reminders there to stop the emails and keep the box."
         }
       ]

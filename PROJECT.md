@@ -152,8 +152,8 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   count and date, and formulas count months paid since.
 - The Goals tab holds five free-text boxes (`GOAL_1`…`GOAL_5`); `readGoals_`
   / `restoreGoals_` carry them through rebuilds (from the Dashboard panel of
-  an older build too). The Dashboard's Reminders box (columns K:N) is
-  calculated. `dueReminders_`
+  an older build too). The Reminders tab's box (`REMINDERS_BOX`) is calculated
+  from Debts and Credit Scores. `dueReminders_`
   lists hand-entered values that have gone stale (PSLF counts); the
   Dashboard Reminders box shows the same by formula and `sendReminders_`
   emails it at most monthly from the nightly sync.
