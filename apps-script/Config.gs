@@ -108,7 +108,7 @@ const LISTS = [
   { key: 'HOUSEHOLD_PERSONAL', header: 'Household/Personal', values: ['Household', 'Personal'] },
   { key: 'PERSONS', header: 'Persons', values: ['Ben', 'Valerie'] },
   { key: 'OWNERS', header: 'Owners', values: ['Ben', 'Valerie', 'Household'] },
-  { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other'] },
+  { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other', 'Pension'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
   { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
   { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Tax Debt', 'Other'] },

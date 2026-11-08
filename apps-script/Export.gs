@@ -196,8 +196,8 @@ function buildSnapshotText_(d) {
   L.push('## Accounts and net worth');
   L.push('| Account | Type | Owner | Balance | Last updated |');
   L.push('|---|---|---|---:|---|');
-  const nwAcc = d.accounts.filter(a => a.includeNW === 'Yes');
-  d.accounts.forEach(a => L.push('| ' + a.name + ' | ' + a.accountType + ' | ' + (a.owner || '') + ' | ' + (a.currentBalance === '' || a.currentBalance === null ? 'not entered' : money(a.currentBalance)) + ' | ' + dateStr(a.lastUpdated) + ' |'));
+  const nwAcc = d.accounts.filter(a => a.includeNW === 'Yes' && a.accountType !== 'Pension');
+  d.accounts.filter(a => a.accountType !== 'Pension').forEach(a => L.push('| ' + a.name + ' | ' + a.accountType + ' | ' + (a.owner || '') + ' | ' + (a.currentBalance === '' || a.currentBalance === null ? 'not entered' : money(a.currentBalance)) + ' | ' + dateStr(a.lastUpdated) + ' |'));
   const linked = {}; d.debts.forEach(x => { if (x.linkedAccount) linked[x.linkedAccount] = true; });
   const assets = sum(nwAcc.filter(a => a.accountType !== 'Credit Card' && a.accountType !== 'Loan'), a => a.currentBalance);
   const unlinkedCC = sum(nwAcc.filter(a => (a.accountType === 'Credit Card' || a.accountType === 'Loan') && !linked[a.id]), a => a.currentBalance);
@@ -207,6 +207,12 @@ function buildSnapshotText_(d) {
   const byType = {}; nwAcc.forEach(a => { byType[a.accountType] = (byType[a.accountType] || 0) + Number(a.currentBalance || 0); });
   L.push('By account type: ' + Object.keys(byType).map(t => t + ' ' + money(byType[t])).join(' · ') + '.');
   const snaps = d.nw.filter(n => n.month instanceof Date).sort((a, b) => a.month - b.month);
+  const pensions = d.accounts.filter(a => a.accountType === 'Pension');
+  if (pensions.length) {
+    L.push('');
+    L.push('### Pensions (future monthly income; no balance, not counted in net worth)');
+    pensions.forEach(a => L.push('- ' + a.name + (a.institution ? ' (' + a.institution + ')' : '') + (a.owner ? ' · ' + a.owner : '') + ': ' + (a.notes ? String(a.notes) : 'no details entered yet; put the projected monthly benefit and years of service in Notes on Accounts') + (a.lastUpdated instanceof Date ? ' (noted ' + dateStr(a.lastUpdated) + ')' : '') + '.'));
+  }
   if (snaps.length) L.push('Net-worth snapshots: ' + snaps.slice(-6).map(n => monthName(mk(n.month)) + ' ' + money(Number(n.cash || 0) + Number(n.savings || 0) + Number(n.retirement || 0) + Number(n.investments || 0) + Number(n.property || 0) + Number(n.otherDeprecated || 0) - Number(n.totalDebt || 0))).join('; ') + '.');
   L.push('');
 
