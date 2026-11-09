@@ -59,6 +59,13 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/dashboard-polish-funds`: equal card widths, gross
+  faded by colour only, funds created from savings-type accounts with live
+  balances, Summary averages over months with paychecks.
+- Owner reports (2026-11-09): payroll deductions looked empty because the
+  Summary averaged Aug–Oct while the stubs are Oct/Nov (fixed by the window
+  change); Savings & Reserves was empty because no fund rows existed (now
+  created automatically).
 - Pull request `claude/two-page-dashboard`: Dashboard trimmed to the month
   (gross faded, take-home prominent, spent so far); new Financial Summary
   tab with averages, month by month, funds, debts, income by person, payroll

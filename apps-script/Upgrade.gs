@@ -69,6 +69,8 @@ function upgradeWorkbookLocked_() {
   const dash = readDashboardInputs_();
   withRetry_('Debts pause labels', () => refreshDebtPauseFormats_());
   const exp = withRetry_('Expected Income rows', () => ensureExpectedIncome_());
+  const fnd = withRetry_('Savings & Reserves rows', () => ensureFunds_());
+  if (fnd && fnd.created) report.push('Savings & Reserves: ' + fnd.created + ' fund row(s) created from savings, investment, retirement and HSA accounts');
   if (exp && exp.created) report.push('Expected Income: ' + exp.created + ' row(s) created from the paychecks on Income');
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
   const fsMonths = (ss.getRangeByName('FINSUM_MONTHS') || { getValue: () => '' }).getValue();

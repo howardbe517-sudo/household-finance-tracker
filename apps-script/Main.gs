@@ -34,6 +34,7 @@ function buildWorkbook(options) {
   buildDerivedTables_();
   // Phase 5 — dashboard & docs
   ensureExpectedIncome_();
+  ensureFunds_();
   buildDashboard_();
   buildFinancialSummary_();
   buildPasteImport_();
@@ -314,6 +315,32 @@ function splitTransactionPrompt() {
 }
 
 /** Append (or refresh) this month's Net Worth Snapshot from Accounts + Debts. */
+/**
+ * Every savings-type account (Savings, Investment, Retirement, HSA, counted in net worth) gets a
+ * Savings & Reserves row backed by it, so the funds table fills itself with live balances. The
+ * owner adds the target and Planned Monthly. Runs with the upgrade, the nightly sync and after a
+ * bank is connected. Returns { created, rows }.
+ */
+function ensureFunds_() {
+  const fundDef = tdef_('FUNDS');
+  if (!ss_().getSheetByName(fundDef.sheet)) return { created: 0, rows: [] };
+  syncLastRow_(fundDef);
+  const funds = readTable_(fundDef);
+  const backed = {}; funds.forEach(f => { if (f.backingAccount) backed[f.backingAccount] = true; });
+  const typeOf = { Savings: 'Emergency Fund', Investment: 'Other', Retirement: 'Retirement', HSA: 'Other' };
+  const fresh = [];
+  readTable_(tdef_('ACCOUNTS')).filter(a => a.includeNW === 'Yes' && typeOf[a.accountType] && !backed[a.id] && !/duplicate|superseded/i.test(String(a.notes || ''))).forEach(a => {
+    const id = fundDef.idPrefix + '-' + String(parseInt(nextId_(fundDef, 3).split('-')[1], 10) + fresh.length).padStart(3, '0');
+    fresh.push({ id, name: a.name, fundType: typeOf[a.accountType], backingAccount: a.id,
+      notes: 'Created from the ' + a.name + ' account; the balance comes from the bank feed. Add a Target Amount and Planned Monthly to track progress' + (a.accountType === 'Savings' ? '; change Fund Type if this is not your emergency fund' : '') + '.' });
+  });
+  if (fresh.length) {
+    writeRows_(fundDef, fresh);
+    fresh.forEach(r => appendChangeLog_({ table: 'FUNDS', recordId: r.id, field: '(row)', newValue: r.name, action: 'Insert', user: 'funds' }));
+  }
+  return { created: fresh.length, rows: fresh };
+}
+
 function recordNetWorthSnapshot() {
   const accounts = readTable_(tdef_('ACCOUNTS')).filter(a => a.includeNW === 'Yes' && a.accountType !== 'Pension'); // a pension has no balance
   const debts = readTable_(tdef_('DEBTS'));
