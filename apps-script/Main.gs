@@ -34,6 +34,7 @@ function buildWorkbook(options) {
   buildDerivedTables_();
   // Phase 5 — dashboard & docs
   buildDashboard_();
+  buildPasteImport_();
   buildGoals_();
   buildReminders_();
   buildAppSetup_(opts.sample);
@@ -69,6 +70,7 @@ function onOpen() {
   if (!ui) return;
   ui.createMenu('Finance Tracker')
     .addItem('Import reviewed rows', 'importReviewedRows')
+    .addItem('Import pasted rows (from Claude)', 'importPastedRows')
     .addItem('Split the selected row…', 'showSplitPanel')
     .addItem('Make a rule from the selected row…', 'makeRuleFromRow')
     .addItem('Re-apply rules to waiting rows', 'reapplyRules')
@@ -216,6 +218,12 @@ function extendFormulaRows() {
 
 /** Fill Source Income ID on Income-type transactions that match exactly one paycheck. */
 function linkIncomeDeposits() {
+  const r = linkIncomeDeposits_();
+  alert_('Link income deposits', r.linked + ' deposit(s) linked.\n' + r.ambiguous + ' had more than one matching paycheck (link by hand).\n' + r.none + ' had no matching paycheck within 5 days.' + (r.details.length ? '\n\n' + r.details.slice(0, 20).join('\n') : ''));
+}
+
+/** Links Income-type transactions to paychecks by take-home amount and date; returns counts (no dialog). */
+function linkIncomeDeposits_() {
   const txDef = tdef_('TX'), incDef = tdef_('INCOME');
   const tx = readTable_(txDef);
   const inc = readTable_(incDef);
@@ -238,7 +246,7 @@ function linkIncomeDeposits() {
       if (changeLogEnabled_()) appendChangeLog_({ table: 'TX', recordId: t.id, field: 'Source Income ID', oldValue: '', newValue: cands[0].id, action: 'Update', notes: 'linkIncomeDeposits' });
     } else if (cands.length > 1) ambiguous++; else none++;
   });
-  alert_('Link income deposits', linked + ' deposit(s) linked.\n' + ambiguous + ' had more than one matching paycheck (link by hand).\n' + none + ' had no matching paycheck within 5 days.' + (details.length ? '\n\n' + details.slice(0, 20).join('\n') : ''));
+  return { linked, ambiguous, none, details };
 }
 
 /** Guided split: turn one bank transaction into a Split Parent with balanced children. */

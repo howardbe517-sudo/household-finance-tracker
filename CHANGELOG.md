@@ -18,6 +18,71 @@
   tried in Google.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 - Branch: `claude/debt-interest-pause`
+## 2026-11-09 — Pay stub import: a Claude skill plus Paste Import in the Sheet
+- What changed:
+  - **Paste Import** tab (with the feed tabs) and **Finance Tracker → Import
+    pasted rows (from Claude)**. The owner pastes the block a Claude skill
+    produced into A5; the import checks the marker line, maps the header line
+    to the table's columns (keys or header text), parses dates and money,
+    validates dropdown values, refuses with a plain message on an unknown
+    column or a bad value before writing anything, skips rows already present
+    (Income: person + pay date + gross), shows a YES/NO summary, writes the
+    rows with IDs and Change Log entries, records the block's hash so the same
+    block cannot be imported twice, links paycheck deposits, and reports in a
+    status cell. Tables accepted now: Income, Credit Scores, Recurring
+    Payments, Quarterly Debt Review, Transactions (`PASTE_IMPORT` in
+    Config.gs). For Income an extra `stubTakeHome` column is compared with
+    gross − deductions and a mismatch is noted on the row.
+  - **`skills/paystub-import/`**: the skill (SKILL.md, the Income column
+    guide, an example block) that reads pay stub photos or PDFs for either
+    person, shows a review table and produces the block. `skills/README.md`
+    says how to install it in claude.ai.
+  - `linkIncomeDeposits_` is the quiet form of the menu action, reused after
+    an import.
+- Files changed in `apps-script/`: `Config.gs` (new tab, `PASTE_IMPORT`),
+  new `PasteImport.gs`, `Main.gs`, `Upgrade.gs` (deployed on merge). Then
+  Finance Tracker → Upgrade workbook once (adds the Paste Import tab; the
+  upgrade leaves it alone afterwards so a pasted block is never wiped).
+- Tested: Node (a three-row block → two Income rows with IDs and parsed
+  numbers, the in-block duplicate skipped; net-pay check noted; status and
+  hash; the same block again adds nothing; a re-pasted block of existing
+  records skipped; unknown column and bad date refused before writing; Change
+  Log entries). Not yet tried in Google; the skill itself not yet tried on a
+  real stub.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/paystub-import`
+## 2026-11-09 — Cards the bank reports as loans; issuer aliases; QA check moved with the Dashboard
+- What changed: Independent Bank's credit card is issued by Elan and came
+  through Plaid typed as a loan named "Elan Credit Card", so it landed as a
+  Loan account, got a Personal Loan row on Debts, and the Dashboard's
+  Independent Bank card line read "not connected yet". Now (1) an account the
+  bank types as a loan but names a credit card (or subtype credit card / line
+  of credit) is typed Credit Card; (2) the Dashboard's card lines match any
+  of the issuer's names (`patterns` in `DASH_ACCOUNTS.cards`: Independent
+  Bank ↔ Elan, American Express ↔ Amex) and so does the empty-Debts-row
+  matching at connect time (`issuerAliases_`); (3) an unconnected line shows
+  — with "not connected yet" in the small column instead of overflowing the
+  balance cell; (4) QA's awaiting-review check reads the Selected Month row
+  (B10) instead of row 3. The owner's Sheet was corrected by hand: ACC-017
+  typed Credit Card, DEBT-011 renamed and typed Credit Card, ACC-009 and
+  DEBT-006 marked for deletion.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `Plaid.gs`,
+  `QA.gs` (deployed on merge). Then Finance Tracker → Upgrade workbook once
+  (rebuilds the Dashboard), then Re-apply rules to waiting rows (the Elan
+  card's staged rows were classified as loan activity).
+- Tested: Node (loan-typed card → Credit Card; aliases; Dashboard formulas
+  carry the Elan pattern and the not-connected text). Not yet tried in
+  Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-card-fixes`
+## 2026-11-09 — Reminders is the last tab
+- What changed: the Reminders tab moves from fifth to last in the tab
+  order, as the owner asked. Nothing else moves.
+- Files changed in `apps-script/`: `Config.gs` (deployed on merge). Then
+  Finance Tracker → Upgrade workbook once (it reorders the tabs).
+- Tested: Node. Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/reminders-last-tab`
 
 ## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
 - What changed:

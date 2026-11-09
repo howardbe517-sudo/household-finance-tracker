@@ -234,7 +234,7 @@ function qaReport_() {
     if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');
     if (fedProblems.length) fail('Payroll Federal Tax / totals: ' + fedProblems.join('; ')); else pass('Payroll Deductions: Federal Tax and Total rows match Income for Ben, Valerie and Household');
 
-    const awaiting = dash.getRange('F3').getFormula();
+    const awaiting = dash.getRange('F' + DASH.SELECTED_MONTH.replace(/\D/g, '')).getFormula();
     if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard shows the awaiting-review count from Import Staging'); else fail('Dashboard awaiting-review line missing');
     const flexLabel = dash.getRange('A' + DASH.FLEX_BAR).getDisplayValue();
     const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
