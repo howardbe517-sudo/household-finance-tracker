@@ -388,6 +388,15 @@ if (pb_imp4.status === 'error' && /Grozz Pay/.test(pb_imp4.message)) ok('an unkn
 pasteSh.getRange(6, 5).setValue('Gross Pay'); pasteSh.getRange(7, 1).setValue('11/7/2026x');
 const pb_imp5 = R(`importPastedRows_({ confirm: true })`);
 if (pb_imp5.status === 'error' && /not a date/.test(pb_imp5.message) && R(`readTable_(TABLES.INCOME).length`) === pb_incBefore + 2) ok('a bad date stops the import before anything is written'); else bad('bad date: ' + JSON.stringify(pb_imp5));
+// the dialog path: text in, preview first, then import
+const textBlock = ['HFT-IMPORT\tv1\tINCOME', 'payDate\tperson\temployer\tincomeType\tgross\tfedTax\tstateTax\tssMed\thealth\tretirement\totherDed\tdepositAccount\tnotes\tstubTakeHome', dIso(330) + '\tBen\tSample School District\tSalary\t2500\t210\t95\t191.25\t120\t180\t14\tACC-007\tfrom the window\t1689.75'].join('\r\n');
+const pv = R(`previewPastedText(${JSON.stringify(textBlock)})`);
+const incMid = R(`readTable_(TABLES.INCOME).length`);
+if (pv.status === 'preview' && pv.imported === 1 && pv.skipped === 0 && pv.preview.length === 1 && /Ben · Sample School District · gross \$2500\.00/.test(pv.preview[0]) && incMid === pb_incBefore + 2) ok('the paste window previews a block (one row, nothing written yet)'); else bad('preview: ' + JSON.stringify([pv, incMid, pb_incBefore]));
+const tx1 = R(`importPastedText(${JSON.stringify(textBlock)})`);
+if (tx1.status === 'imported' && tx1.imported === 1 && R(`readTable_(TABLES.INCOME).length`) === pb_incBefore + 3) ok('the paste window imports the block (Windows line endings handled)'); else bad('text import: ' + JSON.stringify(tx1));
+if (R(`previewPastedText(${JSON.stringify(textBlock)})`).status === 'nothing') ok('previewing the same text again reports it as already imported'); else bad('text re-preview');
+if (R(`parsePastedText_('HFT-IMPORT,v1,CREDIT\\nscoreDate,person,score\\n2026-01-01,Ben,700')`).length === 3) ok('a comma-separated block is accepted when it has no tabs'); else bad('csv parse');
 const changeLogImports = R(`readTable_(TABLES.LOG).filter(function(l){ return l.action === 'Import' && l.table === 'INCOME'; }).length`);
 if (changeLogImports >= 2) ok('each imported row has a Change Log entry'); else bad('change log imports: ' + changeLogImports);
 pasteSh.getRange(5, 1, pb_block.length, pb_block[0].length).setValues(pb_block.map(r => r.map(() => ''))); // test-only: clear the scratch pb_block

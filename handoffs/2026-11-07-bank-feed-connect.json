@@ -160,8 +160,8 @@
           "note": "Claude puts the stub's printed net pay in a check column; the Sheet compares it with gross minus deductions and notes any difference on the row."
         },
         {
-          "text": "Copy the whole block. In the Sheet open **Paste Import** (near the end of the tabs), click **A5**, paste, then run **Finance Tracker → Import pasted rows (from Claude)**. Confirm the summary. The Income tab gains one row per stub with an ID; rows already there are skipped.",
-          "note": "Pasting the same block twice adds nothing. The status line on Paste Import shows what the last import did. Clear the pasted block whenever you like."
+          "text": "Copy the whole block. In the Sheet choose **Finance Tracker → Import from Claude (paste)…**, paste it into the window and click **Check it**. It lists each row it will add and anything it will skip. Click **Import N row(s)**. The Income tab gains one row per stub with an ID.",
+          "note": "The same block imported twice adds nothing. If you prefer, the Paste Import tab still works: paste at A5 and run Finance Tracker → Import the Paste Import tab."
         }
       ]
     }

@@ -70,7 +70,8 @@ function onOpen() {
   if (!ui) return;
   ui.createMenu('Finance Tracker')
     .addItem('Import reviewed rows', 'importReviewedRows')
-    .addItem('Import pasted rows (from Claude)', 'importPastedRows')
+    .addItem('Import from Claude (paste)…', 'showPasteImportDialog')
+    .addItem('Import the Paste Import tab', 'importPastedRows')
     .addItem('Split the selected row…', 'showSplitPanel')
     .addItem('Make a rule from the selected row…', 'makeRuleFromRow')
     .addItem('Re-apply rules to waiting rows', 'reapplyRules')

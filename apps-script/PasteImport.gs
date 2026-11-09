@@ -18,7 +18,7 @@ function buildPasteImport_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, 300, 26);
   styleTitleRow_(sh, 1, 'Paste Import — Rows from Photos', 12);
-  styleNoteRow_(sh, 2, 'Paste the block Claude gives you into cell A5 (the first line starts with HFT-IMPORT), then run Finance Tracker → Import pasted rows. Rows go to the right table with IDs; a block pasted twice adds nothing. The pasted block is only a copy: clear it whenever you like.', 12);
+  styleNoteRow_(sh, 2, 'The usual way is Finance Tracker → Import from Claude (paste)…, which opens a window. This tab is the fallback: paste the block into cell A5 (the first line starts with HFT-IMPORT), then run Finance Tracker → Import the Paste Import tab. Rows go to the right table with IDs; a block pasted twice adds nothing.', 12);
   sh.getRange(3, 1).setValue('Last import').setFontWeight('bold');
   sh.getRange(3, 2, 1, 11).mergeAcross();
   setNamedRange_('PASTE_STATUS', sh.getRange(3, 2));
@@ -28,17 +28,39 @@ function buildPasteImport_() {
   sh.setFrozenRows(4);
 }
 
-/** Finance Tracker → Import pasted rows. */
+/** Finance Tracker → Import from Claude (paste)…: a window to paste the block into. */
+function showPasteImportDialog() {
+  const html = HtmlService.createHtmlOutputFromFile('PasteImportDialog').setWidth(640).setHeight(560);
+  ui_().showModalDialog(html, 'Import from Claude');
+}
+
+/** Dialog step 1: what the pasted text would add (nothing is written). */
+function previewPastedText(text) {
+  return importGrid_(parsePastedText_(text), { dryRun: true });
+}
+
+/** Dialog step 2: write it. */
+function importPastedText(text) {
+  return importGrid_(parsePastedText_(text), {});
+}
+
+/** Finance Tracker → Import the Paste Import tab (the block pasted at A5). */
 function importPastedRows() {
   const res = importPastedRows_({ confirm: true });
   if (res && res.message) alert_('Import pasted rows', res.message);
   return res;
 }
 
-/**
- * Parses the block on Paste Import and writes its rows. opts.confirm shows the YES/NO summary
- * first. Returns { status: 'imported' | 'nothing' | 'cancelled' | 'error', table, imported, skipped, warnings, message }.
- */
+/** The block as typed or pasted: lines of tab-separated cells (a comma-separated block is accepted when no tabs are present). */
+function parsePastedText_(text) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim() !== '');
+  const sep = lines.some(l => l.indexOf('\t') >= 0) ? '\t' : ',';
+  const grid = lines.map(l => l.split(sep).map(c => c.trim()));
+  const width = grid.reduce((m, r) => Math.max(m, r.length), 3);
+  return grid.map(r => { while (r.length < width) r.push(''); return r; });
+}
+
+/** Reads the block from the Paste Import tab and imports it (opts.confirm shows the YES/NO summary). */
 function importPastedRows_(opts) {
   opts = opts || {};
   const sh = ss_().getSheetByName(SHEETS.PASTE);
@@ -46,8 +68,19 @@ function importPastedRows_(opts) {
   const last = sh.getLastRow(), lastCol = Math.max(sh.getLastColumn(), 3);
   if (last < PASTE_IMPORT.firstRow + 2) return { status: 'nothing', message: 'Nothing to import: paste the block from Claude into A5 first.' };
   const grid = sh.getRange(PASTE_IMPORT.firstRow, 1, last - PASTE_IMPORT.firstRow + 1, lastCol).getValues();
+  return importGrid_(grid, opts);
+}
+
+/**
+ * The import itself, from a grid of cells (first row the marker line, second the headers).
+ * opts.dryRun returns the summary without writing; opts.confirm asks YES/NO in the Sheet first.
+ * Returns { status: 'imported' | 'preview' | 'nothing' | 'cancelled' | 'error', table, imported, skipped, warnings, message }.
+ */
+function importGrid_(grid, opts) {
+  opts = opts || {};
+  if (!grid || grid.length < 3) return { status: 'nothing', message: 'Nothing to import: the block needs the HFT-IMPORT line, a header line and at least one row.' };
   const head = grid[0].map(v => String(v === null || v === undefined ? '' : v).trim());
-  if (head[0] !== PASTE_IMPORT.marker) return { status: 'error', message: 'The block must start with ' + PASTE_IMPORT.marker + ' in A5. Paste exactly what Claude produced (the whole code block).' };
+  if (head[0] !== PASTE_IMPORT.marker) return { status: 'error', message: 'The block must start with ' + PASTE_IMPORT.marker + '. Paste exactly what Claude produced (the whole code block).' };
   if (head[1] !== PASTE_IMPORT.version) return { status: 'error', message: 'This block is format ' + head[1] + '; the Sheet understands ' + PASTE_IMPORT.version + '. Ask for a current block.' };
   const key = head[2].toUpperCase();
   const spec = PASTE_IMPORT.tables[key];
@@ -137,6 +170,11 @@ function importPastedRows_(opts) {
   parsed.forEach(p => { const k = keyOf(p.row); if (seen[k]) dupes.push('Row ' + p.line + ' (already ' + (seen[k] === true ? 'present' : seen[k]) + ')'); else { seen[k] = true; fresh.push(p.row); } });
   if (!fresh.length) { return { status: 'nothing', table: key, skipped: dupes.length, message: 'Every row in the block is already in ' + def.sheet + ':\n' + dupes.join('\n') }; }
 
+  if (opts.dryRun) {
+    return { status: 'preview', table: key, sheet: def.sheet, imported: fresh.length, skipped: dupes.length, dupes, warnings,
+      preview: fresh.slice(0, 12).map(row => previewLine_(key, row)),
+      message: fresh.length + ' row(s) will be added to ' + def.sheet + (dupes.length ? '; ' + dupes.length + ' already present will be skipped' : '') + '.' };
+  }
   if (opts.confirm) {
     const ui = ui_();
     const summary = 'Import ' + fresh.length + ' row(s) into ' + def.sheet + '?' + (dupes.length ? '\n\nSkipping ' + dupes.length + ' already present: ' + dupes.join(', ') : '') + (warnings.length ? '\n\nPlease check afterwards:\n' + warnings.slice(0, 8).join('\n') : '') + '\n\nRows are added, never overwritten; the Change Log records each one.';
@@ -185,3 +223,14 @@ function parseDate_(v) {
 }
 
 function money_(n) { const v = Number(n || 0); return (v < 0 ? '-$' : '$') + Math.abs(v).toFixed(2); }
+
+/** One line of the preview shown in the dialog. */
+function previewLine_(key, row) {
+  const d = (v) => (v instanceof Date) ? Utilities.formatDate(v, 'America/Detroit', 'yyyy-MM-dd') : String(v || '');
+  if (key === 'INCOME') return d(row.payDate) + ' · ' + (row.person || '') + ' · ' + (row.employer || '') + ' · gross ' + money_(row.gross) + ' · deductions ' + money_(['fedTax', 'stateTax', 'ssMed', 'health', 'retirement', 'otherDed'].reduce((s, k) => s + Number(row[k] || 0), 0));
+  if (key === 'CREDIT') return d(row.scoreDate) + ' · ' + (row.person || '') + ' · ' + (row.score || '');
+  if (key === 'RECUR') return (row.name || '') + ' · ' + money_(row.amount) + ' · ' + (row.frequency || '');
+  if (key === 'QDR') return (row.debtId || '') + ' · ' + d(row.quarterEnd) + ' · ' + money_(row.endingBalance);
+  if (key === 'TX') return d(row.date) + ' · ' + (row.description || '') + ' · ' + money_(row.amount) + ' · ' + (row.type || '');
+  return JSON.stringify(row).slice(0, 120);
+}

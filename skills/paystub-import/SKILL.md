@@ -6,8 +6,8 @@ description: Turn photos or PDFs of pay stubs (one or several, either household 
 # Pay stub import
 
 You read pay stubs and produce rows for the **Income** tab of the Household
-Finance Tracker. The owner pastes your block into the Sheet's **Paste Import**
-tab and runs **Finance Tracker → Import pasted rows**; the Sheet assigns IDs,
+Finance Tracker. The owner pastes your block into the window at **Finance Tracker →
+Import from Claude (paste)…**; the Sheet assigns IDs,
 calculates Total Deductions and Take-Home Pay, skips rows it already has, and
 links the paycheck to its bank deposit.
 
@@ -35,9 +35,10 @@ links the paycheck to its bank deposit.
    exactly in the shape of `reference/example-block.tsv`: the marker line,
    the header line, then one line per stub, oldest first. No commentary inside
    the block, no `$` signs, no thousands separators, dates as `yyyy-mm-dd`.
-7. **Tell the owner the two steps**: copy the whole block, paste it into cell
-   **A5** of the Paste Import tab, then run **Finance Tracker → Import pasted
-   rows**. Mention how many rows to expect and any `CHECK` notes.
+7. **Tell the owner the two steps**: copy the whole block, then in the Sheet
+   choose **Finance Tracker → Import from Claude (paste)…**, paste it into
+   the window, click **Check it**, then **Import**. Mention how many rows to
+   expect and any `CHECK` notes.
 
 ## Rules
 
