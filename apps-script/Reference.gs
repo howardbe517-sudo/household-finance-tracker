@@ -54,6 +54,53 @@ function buildCategories_() {
   CF_BUILDERS.CATS(sh, def);
 }
 
+/**
+ * Bring the Categories tab up to the taxonomy in Config without rebuilding it: append any
+ * category/subcategory pair that is missing (new IDs follow the existing numbering) and untick
+ * Active? on a pair the taxonomy no longer has. Nothing is removed, so rows that use an old pair
+ * still read. Safe to run more than once. Returns a list of plain-language report lines.
+ */
+function ensureCategories_() {
+  const def = tdef_('CATS');
+  if (!ss_().getSheetByName(def.sheet)) return [];
+  syncLastRow_(def);
+  const rows = readTable_(def).filter(r => r.category);
+  const have = {};
+  const catId = {};
+  const subCount = {};
+  let maxCat = 0;
+  rows.forEach(r => {
+    have[r.category + '|' + r.subcategory] = r;
+    if (r.categoryId && !catId[r.category]) catId[r.category] = r.categoryId;
+    subCount[r.category] = (subCount[r.category] || 0) + 1;
+    const n = parseInt(String(r.categoryId || '').replace('CAT-', ''), 10);
+    if (!isNaN(n) && n > maxCat) maxCat = n;
+  });
+  const fresh = [];
+  const want = {};
+  TAXONOMY.forEach(t => {
+    const [category, subcategory, needWant, fixedVariable, spendingType] = t;
+    want[category + '|' + subcategory] = true;
+    if (have[category + '|' + subcategory]) return;
+    if (!catId[category]) { maxCat++; catId[category] = 'CAT-' + String(maxCat).padStart(2, '0'); subCount[category] = 0; }
+    subCount[category]++;
+    const ci = catId[category].replace('CAT-', '');
+    fresh.push({ categoryId: catId[category], category, subcategoryId: 'SUB-' + ci + String(subCount[category]).padStart(2, '0'), subcategory, needWant, fixedVariable, active: true, spendingType });
+  });
+  const report = [];
+  if (fresh.length) {
+    writeRows_(def, fresh);
+    report.push('Categories: added ' + fresh.map(f => f.category + ' / ' + f.subcategory).join(', '));
+  }
+  const sh = getOrCreateSheet_(def.sheet);
+  rows.forEach(r => {
+    if (want[r.category + '|' + r.subcategory] || r.active === false) return;
+    sh.getRange(r.__row, colIndex_(def, 'active')).setValue(false);
+    report.push('Categories: ' + r.category + ' / ' + r.subcategory + ' is no longer in the taxonomy; Active? unticked (rows that use it still read)');
+  });
+  return report;
+}
+
 /** Conditional-format rules that color a category cell by category (shared by several sheets). */
 function categoryCellRules_(sh, def, colKey) {
   const L = colLetterOf_(def, colKey);
@@ -185,7 +232,7 @@ function buildAppSetup_(withSample) {
   });
   line('Monthly Budget · Actual: now excludes soft-deleted transactions (bug fix).');
   line('Dashboard · Payroll Deductions: Federal Tax amount and % formulas restored for Ben, Valerie and Household.');
-  line('Categories · Child Expenses: normalized to Child Care, Clothing, Medical, Activities, Education, Supplies, Toys, Other.');
+  line('Categories · Childcare (Nanny, Daycare / Preschool, Babysitting, Before & After School Care, Other Childcare) is separate from Child Expenses (Clothing, Medical, Activities, Education, Supplies, Toys, Other); the Financial Summary shows each and the two combined.');
   r++;
 
   section('Validation Flag messages (Transactions column Z)');

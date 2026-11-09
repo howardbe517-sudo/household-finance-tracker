@@ -630,8 +630,11 @@ function syncAllConnections(opts) {
   try { refreshDebtPauseFormats_(); } catch (e) { Logger.log('refreshDebtPauseFormats_: ' + (e && e.message || e)); }
   try { ensureExpectedIncome_(); } catch (e) { Logger.log('ensureExpectedIncome_: ' + (e && e.message || e)); }
   try { ensureFunds_(); } catch (e) { Logger.log('ensureFunds_: ' + (e && e.message || e)); }
+  // rules added or changed since the rows arrived: re-check every waiting row, so a new rule takes effect by the next sync
+  try { results.rules = reclassifyOpenRows_(importContext_(), null); } catch (e) { Logger.log('reclassifyOpenRows_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
+  if (results.rules && (results.rules.updated || results.rules.imported)) lines.push('Rules: ' + results.rules.updated + ' waiting row(s) updated, ' + results.rules.imported + ' imported');
   Logger.log(lines.join('\n'));
   return results;
 }
@@ -639,7 +642,10 @@ function syncAllConnections(opts) {
 function syncNow() {
   plaidConfig_();
   const results = syncAllConnections({ live: true });
-  alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r) + (r.live ? ' · balances pulled live from the bank' : (r.liveError ? ' · live balance pull failed (' + r.liveError.slice(0, 80) + '); Plaid\'s last balances kept' : ''))).join('\n') + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
+  const rules = results.rules || { updated: 0, imported: 0 };
+  alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r) + (r.live ? ' · balances pulled live from the bank' : (r.liveError ? ' · live balance pull failed (' + r.liveError.slice(0, 80) + '); Plaid\'s last balances kept' : ''))).join('\n')
+    + '\n\nImport Rules re-checked on the waiting rows: ' + rules.updated + ' updated, ' + rules.imported + ' imported into Transactions.'
+    + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }
 

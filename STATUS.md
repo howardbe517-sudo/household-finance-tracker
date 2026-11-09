@@ -1,8 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-09 (live balances merged; Import Staging moved next to
-Transactions with a Dashboard review banner, pull request
-`claude/review-visibility`)
+Last updated: 2026-11-09 (Import Staging banner merged; pull request
+`claude/childcare-split`: Childcare category, Children block on the
+Financial Summary, rules re-checked on every sync)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
@@ -10,6 +10,11 @@ Transactions with a Dashboard review banner, pull request
 - Import Staging holds the first real bank rows; transfers auto-imported,
   the rest wait for review. Car payment set up by hand in the Sheet
   (RULE-001, REC-002, car-loan minimum and due day on Debts).
+- Set up by hand in the Sheet on 2026-11-09: rules for Acorns, Fidelity
+  and State Farm; recurring rows for car insurance and the $100 tax plan;
+  Planned Monthly on the Acorns and Fidelity funds; the IRS tax debt row.
+  Still unknown: Acorns frequency, tax payment day and bank wording, the
+  account that pays State Farm.
 - Open questions: American Express transactions have not arrived yet
   (Plaid still preparing history); the Elan card's charges may need Elan
   connected as its own institution; the owner may want a review window

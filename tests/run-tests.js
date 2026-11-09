@@ -29,6 +29,7 @@ console.log(`Build completed in ${Date.now() - t0} ms (mock). QA inside mock: ${
 const ss = g.__ss;
 const TABLES = vm.runInContext('TABLES', ctx);
 const TAB_ORDER = vm.runInContext('TAB_ORDER', ctx);
+const TAXONOMY_CATS = vm.runInContext('TAXONOMY.map(function(t){ return t[0]; }).filter(function(c, i, a){ return a.indexOf(c) === i; })', ctx);
 const DASH = vm.runInContext('DASH', ctx);
 const FINSUM = vm.runInContext('FINSUM', ctx);
 const SHEETS = vm.runInContext('SHEETS', ctx);
@@ -323,6 +324,12 @@ syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
 R(`syncAllConnections()`);
 if (R(`readTable_(TABLES.STAGING).length`) === before3) ok('a sync with nothing new adds no rows'); else bad('idempotent sync failed');
+// a rule typed by hand after rows arrived takes effect on the next sync (no menu visit needed)
+const openRow = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.status==='Needs Review' && !s.ruleId && s.rawDescription; })[0]`);
+R(`writeRows_(TABLES.RULES, [{ id: nextId_(TABLES.RULES, 3), pattern: ${JSON.stringify(openRow.rawDescription)}, matchType: 'Exact', type: 'Expense', category: 'Food', subcategory: 'Groceries', spendingType: 'Flexible', autoImport: true, splitRequired: false, active: true, createdAt: new Date() }])`);
+const rulesRun = R(`syncAllConnections()`).rules;
+const openAfter = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.importId==='${openRow.importId}'; })[0]`);
+if (rulesRun && rulesRun.updated >= 1 && rulesRun.imported >= 1 && openAfter.status === 'Imported' && openAfter.importedTxId) ok('every sync re-checks waiting rows against the current rules: a hand-typed auto-import rule imported its row'); else bad('rules on sync: ' + JSON.stringify([rulesRun, openAfter && openAfter.status]));
 
 /* 10b. lender data (Liabilities) → Debts, loan servicer connections, PSLF, month rows */
 if (/^Not available: PRODUCTS_NOT_SUPPORTED/.test(R(`readTable_(TABLES.CONN)[0].liabilities`))) ok('a login whose bank offers no Liabilities is marked once on Connections and not asked again'); else bad('liabilities mark: ' + R(`readTable_(TABLES.CONN)[0].liabilities`));
@@ -398,6 +405,10 @@ if (pim('Biweekly', '2026-11-06', '2026-11-01') === 2 && pim('Biweekly', '2026-1
 if (/INT\(\(me-N\(/.test(fExp) && /\/14\)/.test(fExp) && /SUMPRODUCT/.test(fExp)) ok('Monthly Plan expected take-home counts each source\'s paydays in that month'); else bad('expectedIncome formula: ' + fExp);
 const reviewF = dash.getRange('A' + DASH.REVIEW_LINE).getFormula();
 if (/HYPERLINK\("#gid=\d+"/.test(reviewF) && /'Import Staging'!\$Q\$5:\$Q/.test(reviewF) && /waiting for your review/.test(reviewF) && dash.getRange('F10').getFormula() === '' && TAB_ORDER.indexOf(SHEETS.STAGING) === TAB_ORDER.indexOf(SHEETS.TX) + 1 && dash.cfRules.some(r => /waiting for your review/.test(r.formula || JSON.stringify(r)))) ok('Dashboard row 11 is a full-width banner counting staged rows, linking to Import Staging; the tab sits right after Transactions'); else bad('review banner: ' + JSON.stringify([reviewF.slice(0, 120), TAB_ORDER.indexOf(SHEETS.STAGING), TAB_ORDER.indexOf(SHEETS.TX)]));
+const childCare = fsSh.getRange('B' + FINSUM.CHILD_CARE).getFormula(), childAvg = fsSh.getRange('C' + FINSUM.CHILD_OTHER).getFormula();
+const catsRows = R(`readTable_(TABLES.CATS)`);
+if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Childcare"/.test(childCare) && /"Expense"/.test(childCare) && /"Refund"/.test(childCare) && /"Child Expenses"/.test(childAvg) && /\$D\$4/.test(childAvg) && fsSh.getRange('B' + FINSUM.CHILD_ALL).getFormula() === '=B' + FINSUM.CHILD_CARE + '+B' + FINSUM.CHILD_OTHER && fsSh.getRange('A' + FINSUM.NW_BAR).getValue() === 'Net worth'
+  && catsRows.some(c => c.category === 'Childcare' && c.subcategory === 'Nanny') && !catsRows.some(c => c.category === 'Child Expenses' && c.subcategory === 'Child Care') && TAXONOMY_CATS.indexOf('Childcare') === TAXONOMY_CATS.indexOf('Child Expenses') - 1) ok('Childcare is its own category (Nanny, Daycare / Preschool, …); the Financial Summary shows childcare, other child expenses and the two combined above Net worth'); else bad('children block: ' + JSON.stringify([fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue(), childCare.slice(0, 80)]));
 if (/Take-home/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /= flexible/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /\(automatic\)/.test(dash.getRange('A' + DASH.FLEX_SUB).getFormula())) ok('Dashboard shows how the flexible figure is reached and says whether the target is automatic or set by hand'); else bad('dashboard expected line missing: ' + dash.getRange('A' + DASH.EXPECT_LINE).getFormula().slice(0, 80));
 
 /* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */
@@ -529,6 +540,13 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ['LIST_DEBT_GROUPS', 'LIST_MATCH_TYPES', 'LIST_STAGING_STATUSES', 'LIST_CONNECTION_STATUSES', 'LIST_PAY_FREQUENCIES', 'TBL_RULES', 'TBL_CONN', 'TBL_EXPECT'].forEach(n => { const nr = ssx.namedRanges.get(n); if (nr) nr.remove(); });
   ssx.getRangeByName('GOAL_2').setValue('Pay off the car by next summer.');
   ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(6);
+  // an older Categories tab: no Childcare rows yet, and the old Child Expenses / Child Care pair still active
+  (function () {
+    const csh = ssx.getSheetByName('Categories');
+    const cdef = vm.runInContext('TABLES.CATS', ctx);
+    const crow = R(`readTable_(TABLES.CATS).filter(function(c){ return c.category==='Childcare'; })`);
+    crow.forEach((c, i) => { if (i === 0) csh.getRange(c.__row, 1, 1, 8).setValues([['CAT-07', 'Child Expenses', 'SUB-0701', 'Child Care', 'Need', 'Fixed', true, 'Fixed']]); else csh.getRange(c.__row, 1, 1, 8).setValues([['', '', '', '', '', '', false, '']]); });
+  })();
   // an older build kept the goals on the Dashboard: move the named range there and drop the Goals tab
   ssx.getSheetByName('Dashboard').insertColumnsAfter(9, 5);
   ssx.getSheetByName('Dashboard').getRange('K4:N7').setValue('Old dashboard goal text.');
@@ -555,6 +573,10 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   if (debtTypes.indexOf('Tax Debt') >= 0) ok('existing list gained the new value Tax Debt'); else bad('Tax Debt not appended: ' + debtTypes.join(','));
   const namesAfter = ssx.getSheets().map(s => s.getName());
   if (JSON.stringify(namesAfter) === JSON.stringify(TAB_ORDER)) ok('tab order restored after upgrade'); else bad('tab order after upgrade: ' + namesAfter.join(' | '));
+  const catsAfter = R(`readTable_(TABLES.CATS)`);
+  const oldPair = catsAfter.filter(c => c.category === 'Child Expenses' && c.subcategory === 'Child Care')[0];
+  const nanny = catsAfter.filter(c => c.category === 'Childcare' && c.subcategory === 'Nanny')[0];
+  if (nanny && /^CAT-\d\d$/.test(nanny.categoryId) && catsAfter.filter(c => c.category === 'Childcare').length === 5 && oldPair && oldPair.active === false && /Categories: added Childcare \/ Nanny/.test(repText)) ok('upgrade appends the new Childcare rows to the Categories tab and unticks the retired Child Care pair without removing it'); else bad('categories upgrade: ' + JSON.stringify([nanny, oldPair && oldPair.active]));
   if (ssx.getRangeByName('SETTING_CHANGE_LOG').getValue() === true && ssx.getRangeByName('SETTING_AUTO_PAIRS').getValue() === true) ok('settings preserved through the App Setup rebuild'); else bad('settings lost in upgrade');
   if (ssx.getSheetByName('Debts').getRange(4, 1).getValue() === 'Household Debt (excl. student loans)') ok('upgrade redraws the Debts KPI band to the current design'); else bad('Debts band not redrawn: ' + ssx.getSheetByName('Debts').getRange(4, 1).getValue());
   const rep2 = R(`upgradeWorkbook()`).join('\n');

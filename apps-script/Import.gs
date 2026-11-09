@@ -394,11 +394,11 @@ function importReviewedRows() {
   return { imported: done.length, problems };
 }
 
-/** Finance Tracker → Re-apply rules to waiting rows. Fills blank suggestions; never overwrites a row already ticked Reviewed?. */
+/** Finance Tracker → Apply rules to waiting rows now (every sync does the same). Fills blank suggestions; never overwrites a row already ticked Reviewed?. Returns { updated, imported }. */
 function reapplyRules() {
-  const n = reclassifyOpenRows_(importContext_(), null);
-  alert_('Re-apply rules', n + ' waiting row(s) updated from Import Rules.');
-  return n;
+  const r = reclassifyOpenRows_(importContext_(), null);
+  alert_('Apply rules', r.updated + ' waiting row(s) updated from Import Rules; ' + r.imported + ' imported into Transactions.\n\nThis also happens on its own with every sync, so this menu item is only for when you do not want to wait.');
+  return r;
 }
 
 function reclassifyOpenRows_(ctx, onlyRuleId) {
@@ -415,8 +415,8 @@ function reclassifyOpenRows_(ctx, onlyRuleId) {
     writeStagingRow_(r); n++;
     if (cls.autoImport && r.status === IMPORT_STATUS.READY) toPromote.push(r);
   });
-  if (toPromote.length) promoteRows_(toPromote, ctx);
-  return n;
+  const promoted = toPromote.length ? promoteRows_(toPromote, ctx) : [];
+  return { updated: n, imported: promoted.length };
 }
 
 /** The staged (or transaction) row under the cursor, or null. */
@@ -476,8 +476,8 @@ function saveRuleFromDialog(p) {
   };
   writeRows_(def, [rule]);
   appendChangeLog_({ table: 'RULES', recordId: id, field: '(row)', newValue: rule.pattern + ' → ' + rule.type + ' ' + rule.category + ' / ' + rule.subcategory, action: 'Insert', user: userEmail_() || 'rule-dialog' });
-  const n = reclassifyOpenRows_(importContext_(), id);
-  return { ruleId: id, updatedRows: n };
+  const r = reclassifyOpenRows_(importContext_(), id);
+  return { ruleId: id, updatedRows: r.updated, importedRows: r.imported };
 }
 
 /* ---------- split panel ---------- */

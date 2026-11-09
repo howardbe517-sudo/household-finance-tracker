@@ -53,6 +53,7 @@ function upgradeWorkbookLocked_() {
 
   // 2. reference lists first (dropdowns depend on them)
   report.push(...withRetry_('reference lists', () => upgradeLists_()));
+  report.push(...withRetry_('Categories', () => ensureCategories_()));
   SpreadsheetApp.flush();
 
   // 3. tables, one at a time, letting the Sheet recalculate between them

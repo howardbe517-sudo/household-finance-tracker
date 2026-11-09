@@ -1,0 +1,49 @@
+{
+  "title": "Childcare Split, Rules On Every Sync",
+  "key": "household-finance-tracker-2026-11-09-childcare-and-rules",
+  "subtitle": "Childcare becomes its own category with a combined Children view on the Financial Summary, and Import Rules now run with every sync. One upgrade to run, then a look at two tabs.",
+  "intro": [
+    "After the pull requests merge, the code is already in your Sheet. The upgrade adds the new category rows and redraws the Financial Summary and Dashboard.",
+    "**What does not change:** no rows, balances or entered values. Tab names and column headers stay the same. The old \"Child Care\" subcategory stays on the Categories tab, unticked, so nothing that used it breaks."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before childcare split 2026-11-09`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm. It takes about a minute.",
+          "note": "The report at the end should include a line starting \"Categories: added Childcare / Nanny\". If it says the upgrade is already current, wait a minute and run it again."
+        },
+        {
+          "text": "Open the **Categories** tab and scroll to the bottom of the taxonomy table. Five new rows read **Childcare** with Nanny, Daycare / Preschool, Babysitting, Before & After School Care and Other Childcare. Higher up, the old Child Expenses / Child Care row has Active? unticked.",
+          "done": "Childcare appears as a choice in the Category dropdown on Transactions and Monthly Budget."
+        },
+        {
+          "text": "Open the **Financial Summary** tab and scroll to the block **Children — childcare and other child costs**, just above Net worth. It shows Childcare, Other child expenses and All children combined with This Month, Average per Month and Share of Spending.",
+          "done": "The block shows $0 for now; it fills as childcare rows are categorized."
+        },
+        {
+          "text": "Open the **Dashboard**. Under \"This month\" there are now two cards, Expected Take-Home and Spent So Far. The gross figure is gone from the Dashboard; the Financial Summary keeps the average gross and the month-by-month gross.",
+          "done": "Two cards side by side with a gap between them."
+        }
+      ]
+    },
+    {
+      "heading": "See rules run on their own",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Bank feed → Sync now**. The message now ends with a line like \"Import Rules re-checked on the waiting rows: 3 updated, 3 imported into Transactions.\" Any waiting row that matches a rule marked auto-import moves to Transactions during the sync, nightly as well.",
+          "note": "The menu item that used to be called \"Re-apply rules to waiting rows\" is now \"Apply rules to waiting rows now\". You only need it when you do not want to wait for a sync."
+        }
+      ]
+    }
+  ]
+}

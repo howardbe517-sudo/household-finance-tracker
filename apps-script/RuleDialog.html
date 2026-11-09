@@ -64,7 +64,7 @@
     if (p.type === 'Debt Payment' && !p.debtId) return fail({ message: 'A Debt Payment rule needs a Debt.' });
     var b = document.getElementById('save'); b.disabled = true; b.textContent = 'Saving…';
     google.script.run.withSuccessHandler(function (res) {
-      document.getElementById('out').innerHTML = '<div class="msg">Rule ' + esc(res.ruleId) + ' saved and applied to ' + res.updatedRows + ' waiting row(s). You can close this window.</div>';
+      document.getElementById('out').innerHTML = '<div class="msg">Rule ' + esc(res.ruleId) + ' saved and applied to ' + res.updatedRows + ' waiting row(s)' + (res.importedRows ? ', ' + res.importedRows + ' imported into Transactions' : '') + '. From now on it also runs with every sync. You can close this window.</div>';
       b.textContent = 'Saved';
     }).withFailureHandler(function (e) { fail(e); b.disabled = false; b.textContent = 'Save rule'; }).saveRuleFromDialog(p);
   }
