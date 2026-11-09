@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.7-nanny-only-2026-11-09',
-  BUILD_VERSION: '1.6.1',
+  SCHEMA_VERSION: '3.8-payoff-planner-2026-11-09',
+  BUILD_VERSION: '1.7.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -581,6 +581,8 @@ TABLES.DEBTS = {
       note: 'Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow), the rate shows as "Paused · 6.0%"; the balance and payments are unaffected.' },
     { key: 'pausedUntil', h: 'Paused Until', w: 110, fmt: C.date, v: { date: true },
       note: 'Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause.' },
+    { key: 'plannedExtra', h: 'Planned Extra Payment', w: 120, fmt: C.cur,
+      note: 'Added in 3.8: extra paid toward this debt each month on top of the minimum, set from Finance Tracker → Payoff planner… (or typed here). The Monthly Plan subtracts it with the debt payments.' },
   ],
 };
 
@@ -784,7 +786,7 @@ TABLES.PLAN = {
       note: 'Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered.' },
     { key: 'bills', h: 'Bills (Recurring, monthly)', w: 130, fmt: C.cur, f: '=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))',
       note: 'Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments).' },
-    { key: 'debtPayments', h: 'Debt Payments (planned)', w: 130, fmt: C.cur, f: '=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans")))',
+    { key: 'debtPayments', h: 'Debt Payments (planned)', w: 130, fmt: C.cur, f: '=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans"))+SUM([DEBTS.plannedExtra])+N(IFERROR(SETTING_DEBT_EXTRA_ALL,0)))',
       note: 'Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments.' },
     { key: 'plannedSavings', h: 'Planned Savings', w: 115, fmt: C.cur, f: '=IF([@id]="","",SUM([FUNDS.plannedMonthly]))',
       note: 'Added in 3.4: Planned Monthly across Savings & Reserves. Raise or lower those to decide what goes to savings.' },

@@ -1,0 +1,45 @@
+{
+  "title": "Payoff Planner",
+  "key": "household-finance-tracker-2026-11-09-payoff-planner",
+  "subtitle": "A slider that shows what an extra monthly payment does to a debt, or to all your debts together, and saves the plan you pick. One upgrade, then open the planner.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade adds one column to Debts (Planned Extra Payment) and two settings on App Setup for the household plan.",
+    "**What does not change:** no rows, balances or entered values. Tab names and existing headers stay the same. Nothing is subtracted from your monthly plan until you press Save in the planner."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before payoff planner 2026-11-09`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "note": "The report should include \"Debts: added column Planned Extra Payment\". If it says the upgrade is already current, wait a minute and run it again."
+        }
+      ]
+    },
+    {
+      "heading": "Try the planner",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Payoff planner…**. The dialog opens on **One debt at a time**. Pick the car loan in the dropdown and drag the slider. The four cards update as you drag: payoff date today, payoff date with the extra, time saved, interest saved. The picture under them shows the balance shrinking.",
+          "done": "The numbers change as the slider moves. The table under the picture shows +$25, +$50, +$100, +$200 and +$300 at a glance."
+        },
+        {
+          "text": "Click **All debts together**. Choose Avalanche or Snowball, then drag the extra. The cards show the debt-free date and interest saved across every debt that has a Minimum Payment on the Debts tab; the list shows the order the debts disappear.",
+          "note": "A debt with no Minimum Payment is listed as left out. Enter one on Debts and reopen the planner to include it. Interest pauses (the American Express card) count as 0% until the pause end date."
+        },
+        {
+          "text": "To commit to a plan, press **Save as this debt's plan** or **Save as household plan**. Open the Dashboard: the line under the cards shows the debt payments figure risen by the extra you saved, and the flexible figure lower by the same amount.",
+          "done": "On Debts, the Planned Extra Payment column shows the saved amount for that debt, or App Setup shows the household amount and order. Press Clear in the planner to undo."
+        }
+      ]
+    }
+  ]
+}

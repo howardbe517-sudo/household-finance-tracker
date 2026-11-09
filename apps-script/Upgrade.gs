@@ -264,6 +264,8 @@ function readSettings_() {
     pslfMonths: get('SETTING_PSLF_REMINDER_MONTHS', 12),
     creditMonths: get('SETTING_CREDIT_REMINDER_MONTHS', 3),
     reminderEmail: get('SETTING_REMINDER_EMAIL', true),
+    debtExtraAll: get('SETTING_DEBT_EXTRA_ALL', 0),
+    debtExtraMethod: get('SETTING_DEBT_EXTRA_METHOD', 'Avalanche'),
     qaRun: get('QA_LAST_RUN', ''),
     qaResult: get('QA_LAST_RESULT', ''),
   };
@@ -278,6 +280,8 @@ function restoreSettings_(s) {
   set('SETTING_PSLF_REMINDER_MONTHS', s.pslfMonths);
   set('SETTING_CREDIT_REMINDER_MONTHS', s.creditMonths);
   set('SETTING_REMINDER_EMAIL', s.reminderEmail);
+  set('SETTING_DEBT_EXTRA_ALL', s.debtExtraAll);
+  set('SETTING_DEBT_EXTRA_METHOD', s.debtExtraMethod);
   set('QA_LAST_RUN', s.qaRun);
   set('QA_LAST_RESULT', s.qaResult);
 }

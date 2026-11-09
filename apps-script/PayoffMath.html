@@ -1,0 +1,142 @@
+<script>
+/*
+ * Household Finance Tracker — PayoffMath.html
+ * The debt payoff arithmetic used by the Payoff planner dialog. It lives in an HTML file so the
+ * dialog can run it in the browser (instant slider feedback) while the Node tests load the same
+ * text; nothing here touches Google services. Plain ES5 so it runs anywhere.
+ *
+ * A debt: { id, name, balance, apr (0.0897 = 8.97%), minPayment, plannedExtra, interestPaused (bool),
+ *           pausedUntil (ms since epoch, or null for an open-ended pause) }.
+ * Months are counted from `start` (a month-start Date); payment 1 happens in month index 0.
+ */
+var PayoffMath = (function () {
+  var MAX_MONTHS = 600;
+
+  function addMonths(d, n) { return new Date(d.getFullYear(), d.getMonth() + n, 1); }
+  function round2(x) { return Math.round(x * 100) / 100; }
+
+  /** Monthly rate for a debt in a given month (0 while an interest pause covers that month). */
+  function monthlyRate(debt, monthDate) {
+    var apr = Number(debt.apr || 0);
+    if (debt.interestPaused === true) {
+      if (debt.pausedUntil === null || debt.pausedUntil === undefined || debt.pausedUntil === '') return 0;
+      if (monthDate.getTime() <= Number(debt.pausedUntil)) return 0;
+    }
+    return apr / 12;
+  }
+
+  /**
+   * One debt paid with a fixed monthly payment.
+   * Returns { paidOff, months, interest, totalPaid, payoffDate, balances: [starting balance, after month 1, …] }.
+   * paidOff is false when the payment never clears the balance within MAX_MONTHS (payment ≤ interest).
+   */
+  function simulateOne(debt, payment, start) {
+    var bal = Number(debt.balance || 0);
+    var out = { paidOff: bal <= 0, months: 0, interest: 0, totalPaid: 0, payoffDate: null, balances: [round2(bal)] };
+    if (bal <= 0) { out.payoffDate = start; return out; }
+    payment = Number(payment || 0);
+    if (payment <= 0) return out;
+    for (var m = 0; m < MAX_MONTHS; m++) {
+      var monthDate = addMonths(start, m);
+      var interest = bal * monthlyRate(debt, monthDate);
+      var pay = Math.min(payment, bal + interest);
+      bal = bal + interest - pay;
+      out.interest += interest;
+      out.totalPaid += pay;
+      out.months = m + 1;
+      out.balances.push(round2(Math.max(bal, 0)));
+      if (bal <= 0.005) { out.paidOff = true; out.payoffDate = monthDate; bal = 0; break; }
+    }
+    out.interest = round2(out.interest);
+    out.totalPaid = round2(out.totalPaid);
+    return out;
+  }
+
+  /** Which open debt gets the extra: 'Avalanche' = highest rate first, 'Snowball' = smallest balance first. */
+  function pickTarget(open, method, monthDate) {
+    var best = null;
+    for (var i = 0; i < open.length; i++) {
+      var d = open[i];
+      if (!best) { best = d; continue; }
+      if (method === 'Snowball') { if (d.bal < best.bal) best = d; }
+      else {
+        var r1 = monthlyRate(d.debt, monthDate), r2 = monthlyRate(best.debt, monthDate);
+        if (r1 > r2 || (r1 === r2 && d.bal < best.bal)) best = d;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Every debt together. Each debt gets its own payment (minimum + its planned extra) every month;
+   * `extraPool` goes to the target debt; when `rollover` is true a finished debt's payment joins the
+   * pool for the rest. Returns { paidOff, months, interest, totalPaid, debtFreeDate,
+   * perDebt: [{ id, name, months, payoffDate, interest }], totals: [total balance by month] }.
+   */
+  function simulateAll(debts, extraPool, method, start, rollover) {
+    var open = [], totalBal = 0;
+    for (var i = 0; i < debts.length; i++) {
+      var d = debts[i];
+      var bal = Number(d.balance || 0);
+      if (bal <= 0) continue;
+      open.push({ debt: d, bal: bal, pay: Number(d.minPayment || 0) + Number(d.plannedExtra || 0), interest: 0, months: 0, payoffDate: null });
+      totalBal += bal;
+    }
+    var out = { paidOff: !open.length, months: 0, interest: 0, totalPaid: 0, debtFreeDate: open.length ? null : start, perDebt: [], totals: [round2(totalBal)] };
+    var pool = Number(extraPool || 0);
+    var done = [];
+    for (var m = 0; m < MAX_MONTHS && open.length; m++) {
+      var monthDate = addMonths(start, m);
+      var target = pickTarget(open, method, monthDate);
+      var spare = pool;
+      // interest first, then each debt's own payment, then the pool on the target (and any leftover on the next target)
+      for (var k = 0; k < open.length; k++) {
+        var o = open[k];
+        var interest = o.bal * monthlyRate(o.debt, monthDate);
+        o.bal += interest; o.interest += interest; out.interest += interest;
+        var pay = Math.min(o.pay, o.bal);
+        o.bal -= pay; out.totalPaid += pay;
+        if (o.pay > pay) spare += o.pay - pay; // a last payment smaller than usual frees the rest this month
+      }
+      while (spare > 0.005 && target) {
+        var extraPay = Math.min(spare, target.bal);
+        target.bal -= extraPay; out.totalPaid += extraPay; spare -= extraPay;
+        if (target.bal <= 0.005) { target.bal = 0; var rest = open.filter(function (x) { return x !== target && x.bal > 0.005; }); target = rest.length ? pickTarget(rest, method, monthDate) : null; }
+      }
+      var still = [];
+      for (var j = 0; j < open.length; j++) {
+        var x = open[j];
+        x.months = m + 1;
+        if (x.bal <= 0.005) { x.payoffDate = monthDate; done.push(x); if (rollover) pool += x.pay; }
+        else still.push(x);
+      }
+      open = still;
+      var tb = 0; for (var t = 0; t < open.length; t++) tb += open[t].bal;
+      out.totals.push(round2(tb));
+      out.months = m + 1;
+      if (!open.length) { out.paidOff = true; out.debtFreeDate = monthDate; }
+    }
+    done.concat(open).forEach(function (x) { out.perDebt.push({ id: x.debt.id, name: x.debt.name, months: x.months, payoffDate: x.payoffDate, interest: round2(x.interest), paidOff: !!x.payoffDate }); });
+    out.perDebt.sort(function (a, b) { return (a.payoffDate ? a.payoffDate.getTime() : 9e15) - (b.payoffDate ? b.payoffDate.getTime() : 9e15); });
+    out.interest = round2(out.interest);
+    out.totalPaid = round2(out.totalPaid);
+    return out;
+  }
+
+  /** Today's path versus a plan for one debt. extra is added to the minimum payment. */
+  function compareOne(debt, extra, start) {
+    var base = simulateOne(debt, Number(debt.minPayment || 0), start);
+    var plan = simulateOne(debt, Number(debt.minPayment || 0) + Number(extra || 0), start);
+    return { base: base, plan: plan, monthsSaved: base.paidOff && plan.paidOff ? base.months - plan.months : null, interestSaved: round2(base.interest - plan.interest) };
+  }
+
+  /** Today's path (each debt its own payment, no rollover) versus the household plan (pool + rollover). */
+  function compareAll(debts, extraPool, method, start) {
+    var base = simulateAll(debts, 0, method, start, false);
+    var plan = simulateAll(debts, extraPool, method, start, true);
+    return { base: base, plan: plan, monthsSaved: base.paidOff && plan.paidOff ? base.months - plan.months : null, interestSaved: round2(base.interest - plan.interest) };
+  }
+
+  return { simulateOne: simulateOne, simulateAll: simulateAll, compareOne: compareOne, compareAll: compareAll, addMonths: addMonths, monthlyRate: monthlyRate, MAX_MONTHS: MAX_MONTHS };
+})();
+</script>

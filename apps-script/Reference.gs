@@ -190,6 +190,8 @@ function buildAppSetup_(withSample) {
   kv('PSLF count reminder after (months)', 12, { name: 'SETTING_PSLF_REMINDER_MONTHS' });
   kv('Credit score reminder after (months)', 3, { name: 'SETTING_CREDIT_REMINDER_MONTHS' });
   kv('Email reminders (sent by the nightly sync, at most monthly)', true, { name: 'SETTING_REMINDER_EMAIL', checkbox: true });
+  kv('Debt payoff plan: extra toward debts each month (Payoff planner)', 0, { name: 'SETTING_DEBT_EXTRA_ALL', fmt: FORMATS.currency });
+  kv('Debt payoff plan: order (Avalanche = highest rate first, Snowball = smallest balance first)', 'Avalanche', { name: 'SETTING_DEBT_EXTRA_METHOD' });
   kv('Last QA run', '', { name: 'QA_LAST_RUN', fmt: FORMATS.datetime });
   kv('Last QA result', '', { name: 'QA_LAST_RESULT' });
   r++;

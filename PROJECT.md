@@ -67,6 +67,9 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/SplitPanel.html` | Side panel: split a staged or recorded transaction into balanced children |
 | `apps-script/RuleDialog.html` | Dialog: make an Import Rule from the selected staged row |
 | `apps-script/ConnectDialog.html` | Dialog: connect a bank in three steps (kind → Plaid → map accounts) |
+| `apps-script/Payoff.gs` | Payoff planner: reads debts and the saved plan, writes Planned Extra Payment / the household plan |
+| `apps-script/PayoffPlanner.html` | Dialog: slider for extra payments, one debt or all debts (Avalanche / Snowball), save a plan |
+| `apps-script/PayoffMath.html` | The payoff arithmetic (pure JS), included by the dialog and loaded by the Node tests |
 | `apps-script/appsscript.json` | Manifest (time zone, scopes, web-app settings); optional, for clasp users |
 
 ## Settings (Script Properties, set by hand or by the connect flow)

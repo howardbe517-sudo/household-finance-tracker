@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.7-nanny-only-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.8-payoff-planner-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -15,7 +15,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
-| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 28 | yes |
+| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
 | CREDIT | Credit Scores | 4 | 5 | 304 | CS-20261107-B-001 | 8 | yes |
 | STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
@@ -253,6 +253,7 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | Z | Feed Updated | `feedUpdated` | datetime | input | Added in 3.2: when the bank feed last wrote lender data to this row. |
 | AA | Interest Paused? | `interestPaused` | text | checkbox | Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow), the rate shows as "Paused · 6.0%"; the balance and payments are unaffected. |
 | AB | Paused Until | `pausedUntil` | date | input (date) | Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause. |
+| AC | Planned Extra Payment | `plannedExtra` | currency | input | Added in 3.8: extra paid toward this debt each month on top of the minimum, set from Finance Tracker → Payoff planner… (or typed here). The Monthly Plan subtracts it with the debt payments. |
 
 ## Quarterly Debt Review (`QDR`)
 
@@ -430,7 +431,7 @@ Named range `TBL_PLAN` covers the header row through the last formula row.
 | I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N…` — Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists). |
 | J | Income Adjustment | `incomeAdjustment` | currency | input | Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered. |
 | K | Bills (Recurring, monthly) | `bills` | currency | calculated | `=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))` — Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). |
-| L | Debt Payments (planned) | `debtPayments` | currency | calculated | `=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans")))` — Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments. |
+| L | Debt Payments (planned) | `debtPayments` | currency | calculated | `=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans"))+SUM([DEBTS.plannedExtra])+N(IFERROR(SETTING_…` — Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments. |
 | M | Planned Savings | `plannedSavings` | currency | calculated | `=IF([@id]="","",SUM([FUNDS.plannedMonthly]))` — Added in 3.4: Planned Monthly across Savings & Reserves. Raise or lower those to decide what goes to savings. |
 | N | Flexible Target (auto) | `autoTarget` | currency | calculated | `=IF([@id]="","",N([@expectedIncome])+N([@incomeAdjustment])-N([@bills])-N([@debtPayments])-N([@plannedSavings]))` — Added in 3.4: what is left for flexible spending after bills, debt payments and planned savings. |
 | O | Target in Use | `effectiveTarget` | currency | calculated | `=IF([@id]="","",IF(N([@target])>0,[@target],N([@autoTarget])))` — Added in 3.4: the override when one is typed, otherwise the automatic target. Amount Available and the weekly guidance use this. |

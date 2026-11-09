@@ -39,7 +39,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 27 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('27 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 28, EXPECT: 16, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 16, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -422,6 +422,38 @@ const childCare = fsSh.getRange('B' + FINSUM.CHILD_CARE).getFormula(), childAvg 
 const catsRows = R(`readTable_(TABLES.CATS)`);
 if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Childcare"/.test(childCare) && /"Expense"/.test(childCare) && /"Refund"/.test(childCare) && /"Child Expenses"/.test(childAvg) && /\$D\$4/.test(childAvg) && fsSh.getRange('B' + FINSUM.CHILD_ALL).getFormula() === '=B' + FINSUM.CHILD_CARE + '+B' + FINSUM.CHILD_OTHER && fsSh.getRange('A' + FINSUM.NW_BAR).getValue() === 'Net worth'
   && catsRows.some(c => c.category === 'Childcare' && c.subcategory === 'Nanny') && !catsRows.some(c => c.category === 'Child Expenses' && c.subcategory === 'Child Care') && TAXONOMY_CATS.indexOf('Childcare') === TAXONOMY_CATS.indexOf('Child Expenses') - 1) ok('Childcare is its own category (Nanny, Daycare / Preschool, …); the Financial Summary shows childcare, other child expenses and the two combined above Net worth'); else bad('children block: ' + JSON.stringify([fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue(), childCare.slice(0, 80)]));
+/* Payoff planner: shared math (PayoffMath.html), context, save, plan formula */
+(function () {
+  const mathSrc = fs.readFileSync(path.join(SRC_DIR, 'PayoffMath.html'), 'utf8').replace(/<\/?script>/g, '');
+  vm.runInContext(mathSrc, ctx, { filename: 'PayoffMath.html' });
+  const PM = vm.runInContext('PayoffMath', ctx);
+  const s0 = new Date(2026, 11, 1);
+  const a = PM.simulateOne({ balance: 1000, apr: 0, minPayment: 100 }, 100, s0);
+  const b = PM.simulateOne({ balance: 1000, apr: 0.12, minPayment: 1000 }, 1000, s0);
+  const c = PM.simulateOne({ balance: 1000, apr: 0.24, minPayment: 10 }, 10, s0);
+  const dP = PM.simulateOne({ balance: 1200, apr: 0.12, interestPaused: true, pausedUntil: null }, 100, s0);
+  const dU = PM.simulateOne({ balance: 1200, apr: 0.12, interestPaused: true, pausedUntil: new Date(2027, 1, 1).getTime() }, 100, s0);
+  if (a.paidOff && a.months === 10 && a.interest === 0 && a.payoffDate.getMonth() === 8 && b.paidOff && b.months === 2 && near(b.interest, 10 + (10 * 0.01), 0.01) && !c.paidOff && c.months === PM.MAX_MONTHS && dP.paidOff && dP.interest === 0 && dP.months === 12 && dU.interest > 0 && dU.interest < 60 && dU.months > dP.months) ok('payoff math: 0% loan pays in balance/payment months; interest accrues monthly; a payment below the interest never pays off; an interest pause counts 0 until its end date'); else bad('payoff math one: ' + JSON.stringify([a.months, a.interest, b.months, b.interest, c.paidOff, dP.months, dP.interest, dU.interest]));
+  const two = [{ id: 'D1', name: 'Card', balance: 3000, apr: 0.24, minPayment: 90 }, { id: 'D2', name: 'Car', balance: 6000, apr: 0.06, minPayment: 200 }];
+  const cmpA = PM.compareAll(two, 200, 'Avalanche', s0);
+  const cmpS = PM.compareAll(two, 200, 'Snowball', s0);
+  const firstA = cmpA.plan.perDebt[0].id, firstS = cmpS.plan.perDebt[0].id;
+  if (cmpA.base.paidOff && cmpA.plan.paidOff && cmpA.plan.months < cmpA.base.months && cmpA.interestSaved > 0 && firstA === 'D1' && firstS === 'D1' && cmpA.plan.interest <= cmpS.plan.interest && cmpA.plan.totals[cmpA.plan.totals.length - 1] === 0) ok('payoff math all: the pool plus rollover clears both debts sooner with less interest; Avalanche targets the 24% card and never costs more interest than Snowball'); else bad('payoff math all: ' + JSON.stringify([cmpA.base.months, cmpA.plan.months, cmpA.interestSaved, firstA, firstS, cmpA.plan.interest, cmpS.plan.interest]));
+  const one = PM.compareOne({ balance: 7900, apr: 0.0897, minPayment: 286.47 }, 100, s0);
+  if (one.base.paidOff && one.plan.paidOff && one.monthsSaved > 0 && one.interestSaved > 0 && one.plan.balances.length === one.plan.months + 1) ok('payoff math compareOne: an extra payment shortens the loan and saves interest; the balance series matches the months'); else bad('compareOne: ' + JSON.stringify([one.base.months, one.plan.months, one.monthsSaved, one.interestSaved]));
+  const pc = R(`getPayoffContext()`);
+  const d0 = pc.debts.filter(d => d.minPayment > 0)[0];
+  if (pc.debts.length >= 2 && d0 && typeof pc.start === 'number' && pc.settings.method === 'Avalanche' && pc.settings.extraAll === 0 && pc.debts.every(d => typeof d.balance === 'number' && typeof d.apr === 'number')) ok('getPayoffContext: debts with balances, rates and minimums as numbers; household plan empty by default'); else bad('payoff context: ' + JSON.stringify([pc.debts.length, pc.settings, d0]));
+  const saved = R(`savePayoffPlan({ mode: 'one', debtId: '${d0.id}', extra: 75 })`);
+  const rowAfter = R(`readTable_(TABLES.DEBTS).filter(function(d){ return d.id==='${d0.id}'; })[0]`);
+  const savedAll = R(`savePayoffPlan({ mode: 'all', extra: 150, method: 'Snowball' })`);
+  if (saved.debts.filter(d => d.id === d0.id)[0].plannedExtra === 75 && rowAfter.plannedExtra === 75 && savedAll.settings.extraAll === 150 && savedAll.settings.method === 'Snowball' && g.__ss.getRangeByName('SETTING_DEBT_EXTRA_ALL').getValue() === 150) ok('savePayoffPlan writes a debt\'s Planned Extra Payment and the household plan on App Setup'); else bad('savePayoffPlan: ' + JSON.stringify([saved.debts.filter(d => d.id === d0.id)[0], rowAfter.plannedExtra, savedAll.settings]));
+  R(`savePayoffPlan({ mode: 'one', debtId: '${d0.id}', extra: 0 })`); R(`savePayoffPlan({ mode: 'all', extra: 0, method: 'Avalanche' })`);
+  const planDef = vm.runInContext('TABLES.PLAN', ctx);
+  const dpF = planDef.columns.filter(c => c.key === 'debtPayments')[0].f;
+  if (/\[DEBTS\.plannedExtra\]/.test(dpF) && /SETTING_DEBT_EXTRA_ALL/.test(dpF)) ok('Monthly Plan debt payments add the planned extras and the household plan amount'); else bad('plan formula: ' + dpF);
+  if (R(`(function(){ showPayoffPlanner(); return true; })()`) === true) ok('Payoff planner dialog opens from a template that includes PayoffMath'); else bad('showPayoffPlanner failed');
+})();
 if (/Take-home/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /= flexible/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /\(automatic\)/.test(dash.getRange('A' + DASH.FLEX_SUB).getFormula())) ok('Dashboard shows how the flexible figure is reached and says whether the target is automatic or set by hand'); else bad('dashboard expected line missing: ' + dash.getRange('A' + DASH.EXPECT_LINE).getFormula().slice(0, 80));
 
 /* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */
@@ -546,7 +578,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 12); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
@@ -595,6 +627,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const nanny = catsAfter.filter(c => c.category === 'Childcare' && c.subcategory === 'Nanny')[0];
   if (nanny && /^CAT-\d\d$/.test(nanny.categoryId) && catsAfter.filter(c => c.category === 'Childcare').length === 1 && oldPair && oldPair.active === false && /Categories: added Childcare \/ Nanny/.test(repText)) ok('upgrade appends the new Childcare rows to the Categories tab and unticks the retired Child Care pair without removing it'); else bad('categories upgrade: ' + JSON.stringify([nanny, oldPair && oldPair.active]));
   if (ssx.getRangeByName('SETTING_CHANGE_LOG').getValue() === true && ssx.getRangeByName('SETTING_AUTO_PAIRS').getValue() === true) ok('settings preserved through the App Setup rebuild'); else bad('settings lost in upgrade');
+  if (ssx.getRangeByName('SETTING_DEBT_EXTRA_ALL') && ssx.getRangeByName('SETTING_DEBT_EXTRA_METHOD').getValue() === 'Avalanche' && vm.runInContext("colIndex_(TABLES.DEBTS, 'plannedExtra')", ctx) > 0 && ssx.getSheetByName('Debts').getRange(7, vm.runInContext("colIndex_(TABLES.DEBTS, 'plannedExtra')", ctx)).getValue() === 'Planned Extra Payment') ok('upgrade adds the payoff-plan settings and the Planned Extra Payment column'); else bad('payoff upgrade: ' + JSON.stringify([!!ssx.getRangeByName('SETTING_DEBT_EXTRA_ALL')]));
   if (ssx.getSheetByName('Debts').getRange(4, 1).getValue() === 'Household Debt (excl. student loans)') ok('upgrade redraws the Debts KPI band to the current design'); else bad('Debts band not redrawn: ' + ssx.getSheetByName('Debts').getRange(4, 1).getValue());
   const rep2 = R(`upgradeWorkbook()`).join('\n');
   if (!/added column|Added tab|Added list/.test(rep2)) ok('running the upgrade again changes nothing'); else bad('second upgrade not idempotent: ' + rep2);
