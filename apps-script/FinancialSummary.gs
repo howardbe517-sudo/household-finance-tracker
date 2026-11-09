@@ -14,8 +14,9 @@ const FINSUM = {
   INCOME_BAR: 40, INCOME_HEADER: 41, INCOME_BEN: 42, INCOME_VAL: 43, INCOME_HH: 44,
   PAYROLL_BAR: 46, PAYROLL_GROUPS: 47, PAYROLL_HEADER: 48, PAYROLL_FIRST: 49, PAYROLL_TOTAL: 55,
   CREDIT_BAR: 57, CREDIT_HEADER: 58, CREDIT_BEN: 59, CREDIT_VAL: 60, CREDIT_NOTE: 61,
-  NW_BAR: 63, NW_LABEL: 64, NW_VALUE: 65, NW_NOTE: 66,
-  LAST_ROW: 68,
+  CHILD_BAR: 63, CHILD_HEADER: 64, CHILD_CARE: 65, CHILD_OTHER: 66, CHILD_ALL: 67,
+  NW_BAR: 69, NW_LABEL: 70, NW_VALUE: 71, NW_NOTE: 72,
+  LAST_ROW: 74,
 };
 
 function buildFinancialSummary_() {
@@ -196,6 +197,28 @@ function buildFinancialSummary_() {
   sh.getRange('A' + FINSUM.CREDIT_HEADER + ':E' + FINSUM.CREDIT_VAL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   mergePut('A' + FINSUM.CREDIT_NOTE + ':I' + FINSUM.CREDIT_NOTE, 'Enter scores on the Credit Scores tab. Scale: 300–579 Poor · 580–669 Fair · 670–739 Good · 740–799 Very Good · 800–850 Exceptional. The Reminders tab flags a score that is getting old.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
+
+  /* --- Children: childcare apart from the other child costs, and the two combined --- */
+  styleSectionBar_(sh.getRange('A' + FINSUM.CHILD_BAR + ':I' + FINSUM.CHILD_BAR), 'Children — childcare and other child costs');
+  header('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_HEADER, ['', 'This Month', 'Average per Month', 'Share of Spending']);
+  const catSpend = (cat, monthCrit) => 'SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Expense",[TX.isDeleted],"<>TRUE",' + monthCrit + ')-SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Refund",[TX.isDeleted],"<>TRUE",' + monthCrit + ')';
+  const thisMonth = '[TX.month],' + CUR;
+  [{ row: FINSUM.CHILD_CARE, label: 'Childcare (nanny, daycare, sitters)', cat: 'Childcare' }, { row: FINSUM.CHILD_OTHER, label: 'Other child expenses', cat: 'Child Expenses' }].forEach(c => {
+    put('A' + c.row, c.label).setFontWeight('bold');
+    put('B' + c.row, F('=' + catSpend(c.cat, thisMonth)));
+    put('C' + c.row, F('=IFERROR((' + catSpend(c.cat, inPeriod('TX')) + ')/' + DIV + ',0)'));
+    put('D' + c.row, F('=IFERROR(C' + c.row + '/' + avg('SUMMARY', 'spending') + ',"")'));
+  });
+  put('A' + FINSUM.CHILD_ALL, 'All children combined').setFontWeight('bold');
+  put('B' + FINSUM.CHILD_ALL, '=B' + FINSUM.CHILD_CARE + '+B' + FINSUM.CHILD_OTHER);
+  put('C' + FINSUM.CHILD_ALL, '=C' + FINSUM.CHILD_CARE + '+C' + FINSUM.CHILD_OTHER);
+  put('D' + FINSUM.CHILD_ALL, F('=IFERROR(C' + FINSUM.CHILD_ALL + '/' + avg('SUMMARY', 'spending') + ',"")'));
+  sh.getRange('B' + FINSUM.CHILD_CARE + ':C' + FINSUM.CHILD_ALL).setNumberFormat(FORMATS.currency);
+  sh.getRange('D' + FINSUM.CHILD_CARE + ':D' + FINSUM.CHILD_ALL).setNumberFormat(FORMATS.percent);
+  sh.getRange('A' + FINSUM.CHILD_ALL + ':D' + FINSUM.CHILD_ALL).setBackground(COLORS.PALE_BLUE).setFontWeight('bold');
+  sh.getRange('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_ALL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  mergePut('E' + FINSUM.CHILD_CARE + ':I' + FINSUM.CHILD_ALL, 'Childcare is what you pay someone to watch the children (Nanny, Daycare / Preschool, Babysitting, Before & After School Care). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.')
+    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
 
   /* --- Net worth --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.NW_BAR + ':I' + FINSUM.NW_BAR), 'Net worth');

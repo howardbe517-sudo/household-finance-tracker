@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-09 — Childcare apart from other child costs; rules run on every sync
+- What changed, in three parts.
+  (1) **Childcare is its own category** (Nanny, Daycare / Preschool,
+  Babysitting, Before & After School Care, Other Childcare), separate from
+  Child Expenses (Clothing, Medical, Activities, Education, Supplies, Toys,
+  Other). The old Child Expenses / Child Care pair leaves the taxonomy; the
+  upgrade appends the new rows to the Categories tab and unticks Active? on
+  the old pair without removing it (new `ensureCategories_` in
+  `Reference.gs`, run by `upgradeWorkbook`). Each category gets its own
+  Monthly Budget line.
+  (2) **Financial Summary gains a Children block** above Net worth:
+  Childcare, Other child expenses and All children combined, each with This
+  Month, Average per Month over the window and Share of Spending.
+  (3) **Import Rules re-check the waiting rows on every sync**, nightly and
+  Sync now, so a rule added or changed after rows arrived takes effect by
+  the next sync without a menu visit; Sync now reports how many rows were
+  updated and imported. The menu item is renamed **Apply rules to waiting
+  rows now** (it was "Re-apply rules to waiting rows") for the times the
+  owner does not want to wait. `reclassifyOpenRows_` now returns
+  `{ updated, imported }`; the rule dialog says how many rows it imported.
+- Schema: `SCHEMA_VERSION` 3.6-childcare-2026-11-09, `BUILD_VERSION` 1.6.0.
+  No tab, header or column change; `docs/SCHEMA.md` regenerated.
+- Files changed in `apps-script/`: `Config.gs`, `FinancialSummary.gs`,
+  `Import.gs`, `Main.gs`, `Plaid.gs`, `Reference.gs`, `RuleDialog.html`,
+  `SampleData.gs`, `Upgrade.gs` (deployed on merge). Run **Finance Tracker →
+  Upgrade workbook (keeps data)** once.
+- Tested: Node (taxonomy order, Categories rows on a fresh build and after
+  the upgrade of an older tab, the Children block formulas, a hand-typed
+  rule importing its row on the next sync, whole suite green). Not yet
+  tried in Google: the block's look and the Sync now message.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/childcare-split`
+
 ## 2026-11-09 — Import Staging easier to find: tab after Transactions, review banner on the Dashboard
 - What changed: the owner reviews Import Staging often and found it buried
   among the setup tabs, and the small grey "awaiting review" note on the

@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.5-backed-funds-2026-11-09',
-  BUILD_VERSION: '1.5.1',
+  SCHEMA_VERSION: '3.6-childcare-2026-11-09',
+  BUILD_VERSION: '1.6.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -93,6 +93,7 @@ const CATEGORY_COLORS = {
   'Housing': '#D6DAE1',
   'Food': '#FFF4C2',
   'Transportation': '#D9E8F7',
+  'Childcare': '#D5CCF2',
   'Child Expenses': '#E4D9F5',
   'Health': '#D4F0E2',
   'Personal': '#EADFF5',
@@ -194,7 +195,14 @@ const TAXONOMY = [
   ['Transportation', 'Registration & Fees', 'Need', 'Variable', 'Planned Irregular'],
   ['Transportation', 'Public Transit & Rideshare', 'Need', 'Variable', 'Flexible'],
 
-  ['Child Expenses', 'Child Care', 'Need', 'Fixed', 'Fixed'],
+  // Childcare (paying someone to watch the children) is its own category so it can be budgeted
+  // and seen apart from the other child costs; the Financial Summary shows both and the total.
+  ['Childcare', 'Nanny', 'Need', 'Fixed', 'Fixed'],
+  ['Childcare', 'Daycare / Preschool', 'Need', 'Fixed', 'Fixed'],
+  ['Childcare', 'Babysitting', 'Need', 'Variable', 'Flexible'],
+  ['Childcare', 'Before & After School Care', 'Need', 'Fixed', 'Fixed'],
+  ['Childcare', 'Other Childcare', 'Need', 'Variable', 'Flexible'],
+
   ['Child Expenses', 'Clothing', 'Need', 'Variable', 'Flexible'],
   ['Child Expenses', 'Medical', 'Need', 'Variable', 'Unexpected'],
   ['Child Expenses', 'Activities', 'Want', 'Variable', 'Flexible'],

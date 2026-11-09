@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.5-backed-funds-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.6-childcare-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -585,7 +585,11 @@ Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_E
 | Transportation | Parking & Tolls | Need | Variable | Flexible |
 | Transportation | Registration & Fees | Need | Variable | Planned Irregular |
 | Transportation | Public Transit & Rideshare | Need | Variable | Flexible |
-| Child Expenses | Child Care | Need | Fixed | Fixed |
+| Childcare | Nanny | Need | Fixed | Fixed |
+| Childcare | Daycare / Preschool | Need | Fixed | Fixed |
+| Childcare | Babysitting | Need | Variable | Flexible |
+| Childcare | Before & After School Care | Need | Fixed | Fixed |
+| Childcare | Other Childcare | Need | Variable | Flexible |
 | Child Expenses | Clothing | Need | Variable | Flexible |
 | Child Expenses | Medical | Need | Variable | Unexpected |
 | Child Expenses | Activities | Want | Variable | Flexible |

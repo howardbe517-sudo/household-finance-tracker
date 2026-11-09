@@ -77,7 +77,7 @@ function onOpen() {
     .addItem('Import the Paste Import tab', 'importPastedRows')
     .addItem('Split the selected row…', 'showSplitPanel')
     .addItem('Make a rule from the selected row…', 'makeRuleFromRow')
-    .addItem('Re-apply rules to waiting rows', 'reapplyRules')
+    .addItem('Apply rules to waiting rows now', 'reapplyRules')
     .addSeparator()
     .addSubMenu(ui.createMenu('Bank feed')
       .addItem('Status', 'plaidStatus')
