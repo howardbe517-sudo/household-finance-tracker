@@ -29,6 +29,8 @@ class Range {
   _each(fn) { for (let r = 0; r < this.numRows; r++) for (let c = 0; c < this.numCols; c++) fn(this.row + r, this.col + c, r, c); }
   getRow() { return this.row; } getColumn() { return this.col; } getNumRows() { return this.numRows; } getNumColumns() { return this.numCols; }
   getSheet() { return this.sheet; }
+  setNumberFormat(f) { for (let r = 0; r < this.numRows; r++) for (let c = 0; c < this.numCols; c++) this.sheet._get(this.row + r, this.col + c).nf = f; return this; }
+  getNumberFormat() { return this.sheet._get(this.row, this.col).nf || 'General'; }
   getA1Notation() { return colLetter(this.col) + this.row + (this.numRows > 1 || this.numCols > 1 ? ':' + colLetter(this.col + this.numCols - 1) + (this.row + this.numRows - 1) : ''); }
   setValue(v) { this._each((r, c) => this.sheet._set(r, c, v)); return this; }
   setValues(vals) {
@@ -59,7 +61,7 @@ class Range {
   }
   setNote() { return this; }
 }
-['setBackground', 'setFontColor', 'setFontWeight', 'setFontSize', 'setFontStyle', 'setWrap', 'setVerticalAlignment', 'setHorizontalAlignment', 'setNumberFormat', 'setBorder', 'setStrikethrough', 'setFontLine', 'setFontFamily', 'setBackgrounds', 'setFontColors', 'setTextStyle', 'activate'].forEach(m => { Range.prototype[m] = function () { return this; }; });
+['setBackground', 'setFontColor', 'setFontWeight', 'setFontSize', 'setFontStyle', 'setWrap', 'setVerticalAlignment', 'setHorizontalAlignment', 'setBorder', 'setStrikethrough', 'setFontLine', 'setFontFamily', 'setBackgrounds', 'setFontColors', 'setTextStyle', 'activate'].forEach(m => { Range.prototype[m] = function () { return this; }; });
 
 class Protection {
   constructor(sheet) { this.sheet = sheet; this.warningOnly = false; this.unprotected = []; }

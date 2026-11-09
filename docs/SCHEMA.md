@@ -225,7 +225,7 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | X | PSLF Estimated Count | `pslfEstimated` | integer | calculated | `=IF(OR([@id]="",[@pslfOfficial]=""),"",N([@pslfOfficial])+N([@pslfSince]))` — Added in 3.2: official count + payments since. An estimate until studentaid.gov confirms it. |
 | Y | PSLF Remaining (of 120) | `pslfRemaining` | integer | calculated | `=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))` |
 | Z | Feed Updated | `feedUpdated` | datetime | input | Added in 3.2: when the bank feed last wrote lender data to this row. |
-| AA | Interest Paused? | `interestPaused` | text | checkbox | Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow); the balance and payments are unaffected. |
+| AA | Interest Paused? | `interestPaused` | text | checkbox | Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow), the rate shows as "Paused · 6.0%"; the balance and payments are unaffected. |
 | AB | Paused Until | `pausedUntil` | date | input (date) | Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause. |
 
 ## Quarterly Debt Review (`QDR`)

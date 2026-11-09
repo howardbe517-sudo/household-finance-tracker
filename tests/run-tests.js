@@ -528,6 +528,17 @@ if (liveSnap.indexOf('$1,234.50') >= 0 && liveSnap.indexOf('$5,000.00 |') < 0) o
 const pausedSnap = R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben'], samplePresent:false, income:[], tx:[], accounts:[], debts:[{ id:'DEBT-9', name:'Paused loan', debtType:'Student Loan', originalBalance:12000, apr:0.06, group:'Student Loans', interestPaused:true }, { id:'DEBT-8', name:'Expired pause', debtType:'Student Loan', originalBalance:12000, apr:0.06, group:'Student Loans', interestPaused:true, pausedUntil:new Date(2020,0,1) }], qdr:[], funds:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[] })`);
 if (/Paused loan[^\n]*6\.0% \(interest paused\)[^\n]*\$0\.00/.test(pausedSnap) && /Expired pause[^\n]*\$60\.00/.test(pausedSnap) && /\$60\.00 per month/.test(pausedSnap) && /1 debt\(s\) with interest paused/.test(pausedSnap)) ok('snapshot counts a paused debt\'s interest as 0 and resumes it once Paused Until has passed'); else bad('paused snapshot: ' + pausedSnap.split('\n').filter(l => /Paused loan|Expired pause|per month/.test(l)).join(' | '));
 const debtsSh = g.__ss.getSheetByName(SHEETS.DEBTS), dDef = TABLES.DEBTS;
+const aprCol = dDef.columns.findIndex(c => c.key === 'apr') + 1, pausedCol = dDef.columns.findIndex(c => c.key === 'interestPaused') + 1, untilCol = dDef.columns.findIndex(c => c.key === 'pausedUntil') + 1;
+debtsSh.getRange(dDef.firstRow, pausedCol).setValue(true);
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.DEBTS}').getRange(${dDef.firstRow}, ${pausedCol}), value: 'TRUE' })`);
+const fmtPaused = debtsSh.getRange(dDef.firstRow, aprCol).getNumberFormat();
+R(`ss_().getSheetByName('${SHEETS.DEBTS}').getRange(${dDef.firstRow}, ${untilCol}).setValue(new Date(2020, 0, 1))`);
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.DEBTS}').getRange(${dDef.firstRow}, ${untilCol}), value: '2020-01-01' })`);
+const fmtExpired = debtsSh.getRange(dDef.firstRow, aprCol).getNumberFormat();
+debtsSh.getRange(dDef.firstRow, untilCol).setValue(''); debtsSh.getRange(dDef.firstRow, pausedCol).setValue(false);
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.DEBTS}').getRange(${dDef.firstRow}, ${pausedCol}), value: 'FALSE' })`);
+const fmtOff = debtsSh.getRange(dDef.firstRow, aprCol).getNumberFormat();
+if (/^"Paused · "/.test(fmtPaused) && !/Paused/.test(fmtExpired) && !/Paused/.test(fmtOff) && R(`refreshDebtPauseFormats_()`) > 0) ok('ticking Interest Paused? shows "Paused · " before the rate; an expired Paused Until or unticking removes it'); else bad('pause label: ' + JSON.stringify([fmtPaused, fmtExpired, fmtOff]));
 const emi = debtsSh.getRange(dDef.firstRow, dDef.columns.findIndex(c => c.key === 'estMonthlyInterest') + 1).getFormula();
 if (/interestPaused|\$AA\d+=TRUE|=TRUE/.test(emi) && /TODAY\(\)/.test(emi) && debtsSh.getRange(dDef.headerRow, dDef.columns.findIndex(c => c.key === 'interestPaused') + 1).getValue() === 'Interest Paused?') ok('Debts has Interest Paused? and Paused Until; the estimated interest formulas honour them'); else bad('pause formula: ' + emi);
 if (R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben','Valerie'], samplePresent:false, income:[], tx:[], accounts:[], debts:[], qdr:[], funds:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[] })`).indexOf('# Household Finance Snapshot') === 0) ok('snapshot builder copes with an empty workbook'); else bad('snapshot on empty data failed');
