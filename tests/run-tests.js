@@ -34,7 +34,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 24 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('24 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; setup and feed tabs last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 25 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('25 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; Paste Import with the feed tabs; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
@@ -358,6 +358,40 @@ const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula
 if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMIFS\(.*Accounts.*\*Independent Bank\*.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /\*Elan\*/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Dashboard opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('dashboard accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
 if (dSh.getRange('A9').getValue() === 'This month' && dSh.getRange('A10').getValue() === 'Selected Month' && dSh.getRange('A12').getValue() === 'Household Gross Income' && dSh.getRange('A' + DASH.FUNDS_BAR).getValue() === 'Savings & Reserves' && g.__ss.namedRanges.has('DASH_SELECTED_MONTH') && /^B10(:B10)?$/.test(g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation())) ok('the month cards and every later section moved down under a "This month" bar; Selected Month is B10 with a named range'); else bad('dashboard shift: ' + JSON.stringify([dSh.getRange('A9').getValue(), dSh.getRange('A10').getValue(), dSh.getRange('A12').getValue(), dSh.getRange('A' + DASH.FUNDS_BAR).getValue(), g.__ss.namedRanges.has('DASH_SELECTED_MONTH'), g.__ss.getRangeByName('DASH_SELECTED_MONTH') && g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation()]));
 if (TAB_ORDER[0] === SHEETS.DASH && TAB_ORDER[1] === SHEETS.FUNDS && TAB_ORDER[2] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN) && TAB_ORDER.indexOf(SHEETS.START) > TAB_ORDER.indexOf(SHEETS.CATS)) ok('tab order: Dashboard, Savings & Reserves, Debts first; Accounts next to Connections; Start Here with the setup tabs'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+/* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */
+const pasteSh = g.__ss.getSheetByName(SHEETS.PASTE);
+if (pasteSh && pasteSh.getRange('A1').getValue() === 'Paste Import — Rows from Photos' && g.__ss.namedRanges.has('PASTE_STATUS')) ok('Paste Import tab built with a status cell'); else bad('paste import tab missing');
+const pb_incBefore = R(`readTable_(TABLES.INCOME).length`);
+const d1s = dIso(300), d2s = dIso(314); // well outside the snapshot's six-month window
+const pb_block = [
+  ['HFT-IMPORT', 'v1', 'INCOME', '', '', '', '', '', '', '', '', '', '', ''],
+  ['payDate', 'Person', 'employer', 'incomeType', 'Gross Pay', 'fedTax', 'stateTax', 'ssMed', 'health', 'retirement', 'otherDed', 'depositAccount', 'notes', 'stubTakeHome'],
+  [d1s, 'Ben', 'Sample School District', 'Salary', '2,500.00', '210.00', '95.00', '191.25', '120.00', '180.00', '14.00', 'ACC-007', 'period 10/20–11/02', '1689.75'],
+  [d2s, 'Valerie', 'Sample Clinic', 'Salary', '2100', '160', '80', '160.65', '95', '105', '0', 'ACC-007', '', '1480'],
+  [d1s, 'ben', 'Sample School District', 'Salary', '2500', '210', '95', '191.25', '120', '180', '14', 'ACC-007', 'duplicate of row 1', '1689.75'],
+];
+pasteSh.getRange(5, 1, pb_block.length, pb_block[0].length).setValues(pb_block);
+const pb_imp1 = R(`importPastedRows_({ confirm: true })`);
+const pb_incAfter = R(`readTable_(TABLES.INCOME)`);
+const pb_newInc = pb_incAfter.filter(i => /Imported from Paste Import/.test(String(i.notes)));
+if (pb_imp1.status === 'imported' && pb_imp1.imported === 2 && pb_imp1.skipped === 1 && pb_incAfter.length === pb_incBefore + 2 && pb_newInc.length === 2 && pb_newInc.every(i => /^INC-\d{4}$/.test(i.id) && i.payDate && i.lastUpdated) && near(pb_newInc.filter(i => i.person === 'Ben')[0].gross, 2500) && near(pb_newInc.filter(i => i.person === 'Ben')[0].ssMed, 191.25) && pb_newInc.filter(i => i.person === 'Valerie')[0].depositAccount === 'ACC-007') ok('pay stub pb_block → 2 Income rows with IDs, numbers parsed from $ and commas, the duplicate inside the pb_block skipped'); else bad('paste import: ' + JSON.stringify([pb_imp1, pb_newInc]));
+if (pb_imp1.warnings.length === 1 && /Row 2: CHECK: stub net pay \$1480\.00 differs/.test(pb_imp1.warnings[0]) && /CHECK: stub net pay/.test(pb_newInc.filter(i => i.person === 'Valerie')[0].notes) && !/CHECK/.test(pb_newInc.filter(i => i.person === 'Ben')[0].notes)) ok('a stub whose net pay does not match gross − deductions is flagged in its Notes; a matching one is not'); else bad('stub check: ' + JSON.stringify(pb_imp1.warnings));
+if (/2 row\(s\) → Income/.test(g.__ss.getRangeByName('PASTE_STATUS').getValue()) && g.__props.PASTE_LAST_HASH) ok('status cell and last-import hash written'); else bad('paste status: ' + g.__ss.getRangeByName('PASTE_STATUS').getValue());
+const pb_imp2 = R(`importPastedRows_({ confirm: true })`);
+if (pb_imp2.status === 'nothing' && /already imported/.test(pb_imp2.message) && R(`readTable_(TABLES.INCOME).length`) === pb_incBefore + 2) ok('running the import again on the same pb_block adds nothing'); else bad('re-import: ' + JSON.stringify(pb_imp2));
+pasteSh.getRange(5, 3).setValue('INCOME '); pasteSh.getRange(7, 13).setValue('changed note'); // a different pb_block with the same records
+const pb_imp3 = R(`importPastedRows_({ confirm: true })`);
+if (pb_imp3.status === 'nothing' && /already in Income/.test(pb_imp3.message)) ok('a re-pasted pb_block whose records already exist is skipped by the duplicate check'); else bad('dup check: ' + JSON.stringify(pb_imp3));
+pasteSh.getRange(6, 5).setValue('Grozz Pay');
+const pb_imp4 = R(`importPastedRows_({ confirm: true })`);
+if (pb_imp4.status === 'error' && /Grozz Pay/.test(pb_imp4.message)) ok('an unknown column name stops the import with a clear message'); else bad('unknown header: ' + JSON.stringify(pb_imp4));
+pasteSh.getRange(6, 5).setValue('Gross Pay'); pasteSh.getRange(7, 1).setValue('11/7/2026x');
+const pb_imp5 = R(`importPastedRows_({ confirm: true })`);
+if (pb_imp5.status === 'error' && /not a date/.test(pb_imp5.message) && R(`readTable_(TABLES.INCOME).length`) === pb_incBefore + 2) ok('a bad date stops the import before anything is written'); else bad('bad date: ' + JSON.stringify(pb_imp5));
+const changeLogImports = R(`readTable_(TABLES.LOG).filter(function(l){ return l.action === 'Import' && l.table === 'INCOME'; }).length`);
+if (changeLogImports >= 2) ok('each imported row has a Change Log entry'); else bad('change log imports: ' + changeLogImports);
+pasteSh.getRange(5, 1, pb_block.length, pb_block[0].length).setValues(pb_block.map(r => r.map(() => ''))); // test-only: clear the scratch pb_block
+
 if (R(`guessAccountType_('loan', 'other', 'Elan Credit Card')`) === 'Credit Card' && R(`guessAccountType_('loan', 'student', 'Direct Loan')`) === 'Loan' && R(`guessAccountType_('loan', 'line of credit', 'HELOC')`) === 'Credit Card' && R(`guessAccountType_('credit', 'credit card', 'Rewards')`) === 'Credit Card') ok('a card the bank reports as a loan (Elan) is typed Credit Card; real loans stay Loan'); else bad('guessAccountType_ loan/card');
 if (JSON.stringify(R(`issuerAliases_('Independent Bank (MI) - ONE Wallet')`)) === JSON.stringify(['independent', 'independent bank', 'elan']) && R(`issuerAliases_('Elan Financial Services')`).indexOf('independent bank') >= 0) ok('issuer aliases link Elan and Independent Bank for card placeholder matching'); else bad('issuerAliases_: ' + JSON.stringify(R(`issuerAliases_('Elan Financial Services')`)));
 // a Recurring Payments row typed by hand gets its ID, Active and Next Payment Date

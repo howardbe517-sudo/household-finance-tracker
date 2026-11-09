@@ -59,6 +59,11 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/paystub-import`: Paste Import tab + import function,
+  and the pay stub skill under `skills/`. Owner to install the skill in
+  claude.ai and try a real stub.
+- Next (owner's request 2026-11-09): a Debts "interest paused" switch that
+  zeroes the estimated interest while relief is in effect.
 - Pull requests `claude/reminders-last-tab` (#17) and
   `claude/dashboard-card-fixes` (#18) awaiting merge. Connected so far:
   Capital One, Fidelity, Independent Bank (checking, savings, Elan card),

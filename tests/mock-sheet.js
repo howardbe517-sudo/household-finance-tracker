@@ -213,6 +213,8 @@ function makeGlobals() {
     },
     Utilities: {
       sleep() {},
+      DigestAlgorithm: { MD5: 'MD5' }, Charset: { UTF_8: 'UTF_8' },
+      computeDigest(alg, text) { const h = require('crypto').createHash('md5').update(String(text), 'utf8').digest(); return Array.from(h).map(b => (b > 127 ? b - 256 : b)); },
       formatDate(d, tz, fmt) { const p = n => String(n).padStart(2, '0'); return fmt.replace('yyyy', d.getFullYear()).replace('MMMM', d.toLocaleString('en-US', { month: 'long' })).replace('MM', p(d.getMonth() + 1)).replace('dd', p(d.getDate())).replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes())).replace('ss', p(d.getSeconds())).replace("'T'", 'T'); },
       getUuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }); },
     },

@@ -16,7 +16,7 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, adds the **Paste Import** tab, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
@@ -145,6 +145,23 @@
         {
           "text": "When you type a new row on any table, for example a bill on **Recurring Payments**, the ID in column A fills in by itself as soon as you enter the name, Active is ticked, and entering a Due Day fills Next Payment Date. Totals and the Dashboard count the row from then on.",
           "note": "Your rent row already has REC-001 and Active. Add its Due Day so it appears in \"Due in the next 14 days\"."
+        }
+      ]
+    },
+    {
+      "heading": "Pay stubs through Claude",
+      "steps": [
+        {
+          "text": "On your computer, download the folder `skills/paystub-import` from the repository (GitHub → Code → Download ZIP, then keep just that folder) and zip it so the zip contains `SKILL.md` and `reference/`. In claude.ai open **Settings → Capabilities → Skills**, upload the zip, and make sure skills are on in your Household Finance Tracker project.",
+          "note": "One-time setup. The skill holds column names and rules only, no amounts."
+        },
+        {
+          "text": "In the project, upload a pay stub photo or PDF (several at once is fine, either person) and say \"import these pay stubs\". Claude shows a review table; correct anything wrong, then it gives you a code block that starts with HFT-IMPORT.",
+          "note": "Claude puts the stub's printed net pay in a check column; the Sheet compares it with gross minus deductions and notes any difference on the row."
+        },
+        {
+          "text": "Copy the whole block. In the Sheet open **Paste Import** (near the end of the tabs), click **A5**, paste, then run **Finance Tracker → Import pasted rows (from Claude)**. Confirm the summary. The Income tab gains one row per stub with an ID; rows already there are skipped.",
+          "note": "Pasting the same block twice adds nothing. The status line on Paste Import shows what the last import did. Clear the pasted block whenever you like."
         }
       ]
     }
