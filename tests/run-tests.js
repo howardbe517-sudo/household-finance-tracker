@@ -330,6 +330,19 @@ R(`writeRows_(TABLES.RULES, [{ id: nextId_(TABLES.RULES, 3), pattern: ${JSON.str
 const rulesRun = R(`syncAllConnections()`).rules;
 const openAfter = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.importId==='${openRow.importId}'; })[0]`);
 if (rulesRun && rulesRun.updated >= 1 && rulesRun.imported >= 1 && openAfter.status === 'Imported' && openAfter.importedTxId) ok('every sync re-checks waiting rows against the current rules: a hand-typed auto-import rule imported its row'); else bad('rules on sync: ' + JSON.stringify([rulesRun, openAfter && openAfter.status]));
+// a tick plus a Category is enough: one-subcategory category fills itself, a wide one falls back to "Other" with a note
+R(`ingestItems_('Plaid', [{ externalTxId: 'rv1', accountId: 'ACC-007', date: new Date(), rawDescription: 'NANNY ZELLE PAYMENT', amount: 400, pending: false }, { externalTxId: 'rv2', accountId: 'ACC-007', date: new Date(), rawDescription: 'KIDS SHOE OUTLET', amount: 42, pending: false }], importContext_())`);
+const revRows = R(`['rv1', 'rv2'].map(function(x){ return readTable_(TABLES.STAGING).filter(function(s){ return s.externalTxId===x; })[0]; })`);
+R(`(function(){ var def=TABLES.STAGING; var sh=getOrCreateSheet_(def.sheet);
+  var r1=findRowById_(def,'${revRows[0].importId}'); sh.getRange(r1, colIndex_(def,'suggestedCategory')).setValue('Childcare'); sh.getRange(r1, colIndex_(def,'suggestedSubcategory')).setValue(''); sh.getRange(r1, colIndex_(def,'suggestedSpendingType')).setValue(''); sh.getRange(r1, colIndex_(def,'reviewed')).setValue(true);
+  var r2=findRowById_(def,'${revRows[1].importId}'); sh.getRange(r2, colIndex_(def,'suggestedCategory')).setValue('Child Expenses'); sh.getRange(r2, colIndex_(def,'suggestedSubcategory')).setValue(''); sh.getRange(r2, colIndex_(def,'suggestedSpendingType')).setValue(''); sh.getRange(r2, colIndex_(def,'reviewed')).setValue(true); })()`);
+const revRun = R(`syncAllConnections()`).reviewed;
+const rev1 = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.importId==='${revRows[0].importId}'; })[0]`);
+const rev2 = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.importId==='${revRows[1].importId}'; })[0]`);
+const revTx1 = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='` + rev1.importedTxId + `'; })[0]`);
+const revTx2 = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='` + rev2.importedTxId + `'; })[0]`);
+if (revRun && revRun.imported >= 2 && rev1.status === 'Imported' && revTx1 && revTx1.category === 'Childcare' && revTx1.subcategory === 'Nanny' && revTx1.spendingType === 'Fixed' && rev2.status === 'Imported' && revTx2 && revTx2.subcategory === 'Other' && revTx2.spendingType === 'Flexible' && /subcategory defaulted to Other/.test(rev2.notes)) ok('a sync imports the rows ticked Reviewed?: Childcare fills in Nanny and Fixed by itself; Child Expenses falls back to Other with a note'); else bad('reviewed on sync: ' + JSON.stringify([revRun, rev1 && rev1.status, revTx1 && [revTx1.subcategory, revTx1.spendingType], revTx2 && [revTx2.subcategory, revTx2.spendingType], rev2 && rev2.notes]));
+if (/\$G\$5:\$G=TRUE/.test(g.__ss.getRangeByName('LIST_ALL_SUBCATEGORIES').getSheet().getRange(g.__ss.getRangeByName('LIST_ALL_SUBCATEGORIES').getRow(), g.__ss.getRangeByName('LIST_ALL_SUBCATEGORIES').getColumn()).getFormula())) ok('dropdown lists derived from the Categories tab only offer rows ticked Active?'); else bad('derived list ignores Active?');
 
 /* 10b. lender data (Liabilities) → Debts, loan servicer connections, PSLF, month rows */
 if (/^Not available: PRODUCTS_NOT_SUPPORTED/.test(R(`readTable_(TABLES.CONN)[0].liabilities`))) ok('a login whose bank offers no Liabilities is marked once on Connections and not asked again'); else bad('liabilities mark: ' + R(`readTable_(TABLES.CONN)[0].liabilities`));
@@ -494,10 +507,11 @@ R(`ss_().getRangeByName('SETTING_REMINDER_EMAIL').setValue(true)`);
 // back to the bank connection for the remaining checks
 linkPhase = 1;
 // layout check pauses the sync
+const beforeLayout = R(`readTable_(TABLES.STAGING).length`);
 R(`SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Import Staging').getRange(4, 3).setValue('Renamed by hand')`);
 const sBad = R(`syncAllConnections()`)[0];
 const connBad = R(`readTable_(TABLES.CONN)[0]`);
-if (/Layout changed/.test(sBad.error) && /Layout changed/.test(connBad.lastError) && R(`readTable_(TABLES.STAGING).length`) === before3) ok('a changed header pauses the sync with a plain message and writes nothing'); else bad('layout check: ' + JSON.stringify([sBad.error, connBad.lastError]));
+if (/Layout changed/.test(sBad.error) && /Layout changed/.test(connBad.lastError) && R(`readTable_(TABLES.STAGING).length`) === beforeLayout) ok('a changed header pauses the sync with a plain message and writes nothing'); else bad('layout check: ' + JSON.stringify([sBad.error, connBad.lastError]));
 R(`SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Import Staging').getRange(4, 3).setValue('External Transaction ID')`);
 // triggers & status
 R(`enableNightlySync()`);
@@ -540,6 +554,8 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ['LIST_DEBT_GROUPS', 'LIST_MATCH_TYPES', 'LIST_STAGING_STATUSES', 'LIST_CONNECTION_STATUSES', 'LIST_PAY_FREQUENCIES', 'TBL_RULES', 'TBL_CONN', 'TBL_EXPECT'].forEach(n => { const nr = ssx.namedRanges.get(n); if (nr) nr.remove(); });
   ssx.getRangeByName('GOAL_2').setValue('Pay off the car by next summer.');
   ssx.getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(6);
+  // an older derived list formula (no Active? filter) is rewritten by the upgrade
+  (function () { const nr = ssx.getRangeByName('LIST_ALL_SUBCATEGORIES'); nr.getSheet().getRange(nr.getRow(), nr.getColumn()).setFormula('=IFERROR(SORT(UNIQUE(FILTER($D$5:$D,$D$5:$D<>""))),"")'); })();
   // an older Categories tab: no Childcare rows yet, and the old Child Expenses / Child Care pair still active
   (function () {
     const csh = ssx.getSheetByName('Categories');
@@ -573,10 +589,11 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   if (debtTypes.indexOf('Tax Debt') >= 0) ok('existing list gained the new value Tax Debt'); else bad('Tax Debt not appended: ' + debtTypes.join(','));
   const namesAfter = ssx.getSheets().map(s => s.getName());
   if (JSON.stringify(namesAfter) === JSON.stringify(TAB_ORDER)) ok('tab order restored after upgrade'); else bad('tab order after upgrade: ' + namesAfter.join(' | '));
+  (function () { const nr = ssx.getRangeByName('LIST_ALL_SUBCATEGORIES'); const f = nr.getSheet().getRange(nr.getRow(), nr.getColumn()).getFormula(); if (/\$G\$5:\$G=TRUE/.test(f) && /All Subcategories \(auto\): formula updated/.test(repText)) ok('upgrade rewrites a derived dropdown formula that changed (Active? filter)'); else bad('derived formula not refreshed: ' + f + ' | ' + repText.slice(0, 200)); })();
   const catsAfter = R(`readTable_(TABLES.CATS)`);
   const oldPair = catsAfter.filter(c => c.category === 'Child Expenses' && c.subcategory === 'Child Care')[0];
   const nanny = catsAfter.filter(c => c.category === 'Childcare' && c.subcategory === 'Nanny')[0];
-  if (nanny && /^CAT-\d\d$/.test(nanny.categoryId) && catsAfter.filter(c => c.category === 'Childcare').length === 5 && oldPair && oldPair.active === false && /Categories: added Childcare \/ Nanny/.test(repText)) ok('upgrade appends the new Childcare rows to the Categories tab and unticks the retired Child Care pair without removing it'); else bad('categories upgrade: ' + JSON.stringify([nanny, oldPair && oldPair.active]));
+  if (nanny && /^CAT-\d\d$/.test(nanny.categoryId) && catsAfter.filter(c => c.category === 'Childcare').length === 1 && oldPair && oldPair.active === false && /Categories: added Childcare \/ Nanny/.test(repText)) ok('upgrade appends the new Childcare rows to the Categories tab and unticks the retired Child Care pair without removing it'); else bad('categories upgrade: ' + JSON.stringify([nanny, oldPair && oldPair.active]));
   if (ssx.getRangeByName('SETTING_CHANGE_LOG').getValue() === true && ssx.getRangeByName('SETTING_AUTO_PAIRS').getValue() === true) ok('settings preserved through the App Setup rebuild'); else bad('settings lost in upgrade');
   if (ssx.getSheetByName('Debts').getRange(4, 1).getValue() === 'Household Debt (excl. student loans)') ok('upgrade redraws the Debts KPI band to the current design'); else bad('Debts band not redrawn: ' + ssx.getSheetByName('Debts').getRange(4, 1).getValue());
   const rep2 = R(`upgradeWorkbook()`).join('\n');

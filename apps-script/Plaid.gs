@@ -632,9 +632,12 @@ function syncAllConnections(opts) {
   try { ensureFunds_(); } catch (e) { Logger.log('ensureFunds_: ' + (e && e.message || e)); }
   // rules added or changed since the rows arrived: re-check every waiting row, so a new rule takes effect by the next sync
   try { results.rules = reclassifyOpenRows_(importContext_(), null); } catch (e) { Logger.log('reclassifyOpenRows_: ' + (e && e.message || e)); }
+  // rows the owner ticked Reviewed? go in too, so a sync is the only step after a review
+  try { results.reviewed = importReviewedRows_(); } catch (e) { Logger.log('importReviewedRows_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   if (results.rules && (results.rules.updated || results.rules.imported)) lines.push('Rules: ' + results.rules.updated + ' waiting row(s) updated, ' + results.rules.imported + ' imported');
+  if (results.reviewed && results.reviewed.reviewed) lines.push('Reviewed rows: ' + results.reviewed.imported + ' imported' + (results.reviewed.problems.length ? ', ' + results.reviewed.problems.length + ' still missing something' : ''));
   Logger.log(lines.join('\n'));
   return results;
 }
@@ -643,8 +646,10 @@ function syncNow() {
   plaidConfig_();
   const results = syncAllConnections({ live: true });
   const rules = results.rules || { updated: 0, imported: 0 };
+  const rev = results.reviewed || { reviewed: 0, imported: 0, problems: [] };
   alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r) + (r.live ? ' · balances pulled live from the bank' : (r.liveError ? ' · live balance pull failed (' + r.liveError.slice(0, 80) + '); Plaid\'s last balances kept' : ''))).join('\n')
     + '\n\nImport Rules re-checked on the waiting rows: ' + rules.updated + ' updated, ' + rules.imported + ' imported into Transactions.'
+    + '\nRows you ticked Reviewed?: ' + rev.imported + ' imported into Transactions.' + (rev.problems.length ? '\n' + rev.problems.length + ' reviewed row(s) still need something:\n' + rev.problems.slice(0, 8).join('\n') : '')
     + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }

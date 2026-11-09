@@ -1,0 +1,45 @@
+{
+  "title": "Sync Imports Your Ticked Rows",
+  "key": "household-finance-tracker-2026-11-09-sync-imports-reviewed",
+  "subtitle": "A tick plus a Category is now all a bank row needs; the next sync takes it into Transactions. Childcare becomes Nanny only. One upgrade, one sync.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade retires the unused Childcare lines and refreshes the dropdowns; a sync then imports the rows you already ticked.",
+    "**What does not change:** no rows, balances or entered values. Tab names and column headers stay the same. Retired subcategories stay on the Categories tab, unticked, so nothing that used them breaks."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before sync-imports 2026-11-09`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "note": "The report should include lines like \"List All Subcategories (auto): formula updated\" and \"Categories: Childcare / Daycare / Preschool is no longer in the taxonomy; Active? unticked\"."
+        },
+        {
+          "text": "Open the **Categories** tab. Under Childcare only **Nanny** is still ticked Active?. Open the Subcategory dropdown on any Transactions row: Daycare / Preschool, Babysitting, Before & After School Care and Other Childcare are no longer offered.",
+          "done": "Only Nanny appears under Childcare in the dropdowns."
+        }
+      ]
+    },
+    {
+      "heading": "Let a sync import your ticked rows",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Bank feed → Sync now**. The message now has a line \"Rows you ticked Reviewed?: N imported into Transactions.\" The two paychecks, the Childcare Venmo and the Child Expenses Venmo you ticked should all go in; the Independent Bank card payment goes in through its new rule.",
+          "done": "On Transactions, the Childcare row shows Subcategory Nanny and Spending Type Fixed; the Child Expenses row shows Subcategory Other with a note that it was defaulted. The Dashboard banner count drops."
+        },
+        {
+          "text": "From now on, reviewing a bank row is: pick a Category, tick Reviewed?, done. The nightly sync (or Sync now) imports it. Pick a Subcategory only when you care which line it lands on; otherwise the category's \"Other\" line is used and noted.",
+          "note": "Rows that still need something you cannot default (a Fund for a Savings row, a Debt for a Debt Payment) are listed in the Sync now message so you know what to fill in."
+        }
+      ]
+    }
+  ]
+}

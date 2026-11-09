@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## 2026-11-09 — A sync imports the rows you ticked; Childcare is Nanny only; dropdowns honour Active?
+- What changed, in three parts.
+  (1) **Every sync also imports the rows ticked Reviewed?** (nightly and
+  Sync now), after re-checking the rules, so a tick is the only step after
+  a review. A ticked expense with a Category but no Subcategory fills
+  itself in: a category with one active subcategory uses it; a wider
+  category falls back to its "Other" line and says so in Notes. A blank
+  Spending Type takes the subcategory's default from the Categories tab.
+  Rows still missing something (a Fund for Savings, a Debt for a Debt
+  Payment, no Category at all) stay put and the Sync now message lists
+  them. New `completeReviewedRow_` and `importReviewedRows_` in
+  `Import.gs`; the menu item keeps working and shares the code.
+  (2) **Childcare has one subcategory, Nanny.** The household has one form
+  of childcare, so the other four lines added earlier today are retired;
+  the upgrade unticks them on the Categories tab.
+  (3) **Dropdowns only offer rows ticked Active?** on the Categories tab
+  (All Categories, Expense Categories, All Subcategories). The upgrade
+  rewrites a derived list formula whose text changed. Rows that already
+  use a retired pair still read.
+- Schema: `SCHEMA_VERSION` 3.7-nanny-only-2026-11-09, `BUILD_VERSION`
+  1.6.1. No tab, header or column change; `docs/SCHEMA.md` regenerated.
+- Files changed in `apps-script/`: `Config.gs`, `FinancialSummary.gs`,
+  `Import.gs`, `Plaid.gs`, `Reference.gs`, `SampleData.gs`, `Upgrade.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once, then **Bank feed → Sync now**.
+- Also done by hand in the owner's Sheet (data, no amounts recorded here):
+  an Import Rule for the payment to the Independent Bank card (Debt Payment
+  on that card's Debts row), and the tax plan's due day on the recurring
+  row and the Debts row.
+- Tested: Node (a ticked Childcare row imports as Nanny / Fixed on the
+  next sync, a ticked Child Expenses row falls back to Other with a note,
+  derived list formulas carry the Active? filter on a fresh build and
+  after the upgrade, Categories upgrade with one Childcare row, whole suite
+  green). Not yet tried in Google: the Sync now message and the dropdowns.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/sync-imports-reviewed`
+
 ## 2026-11-09 — Dashboard: two cards (Expected Take-Home, Spent So Far); gross card dropped
 - What changed: the owner did not want a whole box for expected gross
   income. The "This month" row now has two cards, **Expected Take-Home**

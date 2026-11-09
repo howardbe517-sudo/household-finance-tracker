@@ -1,9 +1,9 @@
 # STATUS
 
-Last updated: 2026-11-09 (Import Staging banner merged; pull request
-`claude/childcare-split`: Childcare category, Children block on the
-Financial Summary, rules re-checked on every sync; stacked pull request
-`claude/dashboard-two-cards`: gross card dropped from the Dashboard)
+Last updated: 2026-11-09 (childcare split, two-card Dashboard and
+rules-on-sync merged; pull request `claude/sync-imports-reviewed`: a sync
+imports ticked rows and fills blanks, Childcare = Nanny only, dropdowns
+honour Active?)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
@@ -16,6 +16,12 @@ Financial Summary, rules re-checked on every sync; stacked pull request
   Planned Monthly on the Acorns and Fidelity funds; the IRS tax debt row.
   Still unknown: Acorns frequency, tax payment day and bank wording, the
   account that pays State Farm.
+- HealthEquity HSA is not connected (Plaid shows a warning on that
+  institution); the owner will retry later and can type the balance on
+  Accounts meanwhile. Valerie's November paychecks have not landed yet
+  (expected figures include her; actuals do not until a paycheck posts or a
+  stub is pasted). Offered, not yet accepted: a "current month so far" row
+  at the top of the Financial Summary history.
 - Open questions: American Express transactions have not arrived yet
   (Plaid still preparing history); the Elan card's charges may need Elan
   connected as its own institution; the owner may want a review window

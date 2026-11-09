@@ -201,9 +201,10 @@ function importContext_() {
   funds.forEach(f => { fundsById[f.id] = f; });
   const debts = readTable_(tdef_('DEBTS'));
   const incomeRows = readTable_(tdef_('INCOME'));
+  const cats = readTable_(tdef_('CATS')).filter(c => c.category);
   const usedIncomeIds = {};
   readTable_(tdef_('TX')).forEach(t => { if (t.sourceIncomeId && t.isDeleted !== true) usedIncomeIds[t.sourceIncomeId] = true; });
-  return { accounts, accountsById, rules, rulesById, funds, fundsById, debts, incomeRows, usedIncomeIds,
+  return { accounts, accountsById, rules, rulesById, funds, fundsById, debts, incomeRows, usedIncomeIds, cats,
     autoPairs: settingAutoPairs_() };
 }
 
@@ -378,20 +379,58 @@ function removeItems_(externalIds) {
 
 /* ---------- owner actions (menu) ---------- */
 
-/** Finance Tracker → Import reviewed rows. */
-function importReviewedRows() {
+/**
+ * Fill what the owner left blank on a reviewed expense row so that a tick plus a Category is
+ * enough: a category with one active subcategory uses it; otherwise the category's "Other" line
+ * stands in (noted on the row); a blank Spending Type takes the subcategory's default from the
+ * Categories tab. Pure apart from reading ctx.cats. Returns the notes added (empty = nothing done).
+ */
+function completeReviewedRow_(row, ctx) {
+  const notes = [];
+  const type = row.suggestedType;
+  if (!(type === 'Expense' || type === 'Refund') || !row.suggestedCategory) return notes;
+  const cats = (ctx.cats || []).filter(c => c.category === row.suggestedCategory && c.active !== false);
+  if (!row.suggestedSubcategory && cats.length) {
+    const pick = cats.length === 1 ? cats[0] : (cats.filter(c => /^Other\b/.test(String(c.subcategory)))[0] || null);
+    if (pick) {
+      row.suggestedSubcategory = pick.subcategory;
+      if (cats.length > 1) notes.push('subcategory defaulted to ' + pick.subcategory + ' (none chosen)');
+    }
+  }
+  if (!row.suggestedSpendingType && row.suggestedSubcategory) {
+    const match = cats.filter(c => c.subcategory === row.suggestedSubcategory)[0];
+    let st = match ? match.spendingType : '';
+    if (!st) { try { st = taxonomyDefaults_(row.suggestedCategory, row.suggestedSubcategory).spendingType; } catch (e) { st = ''; } }
+    if (st) row.suggestedSpendingType = st;
+  }
+  if (notes.length) row.notes = (row.notes ? row.notes + ' · ' : '') + notes.join(' · ');
+  return notes;
+}
+
+/** The import of every row ticked Reviewed?, without a dialog: used by the menu item and by every sync. */
+function importReviewedRows_(ctx) {
   const def = tdef_('STAGING');
-  const ctx = importContext_();
+  ctx = ctx || importContext_();
   const rows = readTable_(def).filter(r => r.reviewed === true && isOpenStatus_(r.status) && !r.importedTxId);
   const problems = [];
   const good = [];
-  rows.forEach(r => { const p = promotionProblems_(r); if (p.length) problems.push(r.importId + ' (' + (r.rawDescription || '').slice(0, 30) + '): ' + p.join(', ')); else good.push(r); });
+  rows.forEach(r => {
+    completeReviewedRow_(r, ctx);
+    const p = promotionProblems_(r);
+    if (p.length) problems.push(r.importId + ' (' + (r.rawDescription || '').slice(0, 30) + '): ' + p.join(', ')); else good.push(r);
+  });
   const done = promoteRows_(good, ctx);
-  let msg = done.length + ' row(s) imported into Transactions.';
-  if (problems.length) msg += '\n\n' + problems.length + ' reviewed row(s) could not be imported yet:\n' + problems.slice(0, 15).join('\n') + (problems.length > 15 ? '\n…' : '');
-  if (!rows.length) msg = 'No rows are ticked Reviewed? on Import Staging. Tick the rows you have checked, then run this again.';
+  return { reviewed: rows.length, imported: done.length, problems };
+}
+
+/** Finance Tracker → Import reviewed rows (every sync does the same). */
+function importReviewedRows() {
+  const r = importReviewedRows_();
+  let msg = r.imported + ' row(s) imported into Transactions.';
+  if (r.problems.length) msg += '\n\n' + r.problems.length + ' reviewed row(s) could not be imported yet:\n' + r.problems.slice(0, 15).join('\n') + (r.problems.length > 15 ? '\n…' : '');
+  if (!r.reviewed) msg = 'No rows are ticked Reviewed? on Import Staging. Tick the rows you have checked (a Category is enough for an expense), then run this again or wait for the next sync.';
   alert_('Import reviewed rows', msg);
-  return { imported: done.length, problems };
+  return { imported: r.imported, problems: r.problems };
 }
 
 /** Finance Tracker → Apply rules to waiting rows now (every sync does the same). Fills blank suggestions; never overwrites a row already ticked Reviewed?. Returns { updated, imported }. */
