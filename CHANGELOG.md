@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-11-09 — Accounts Dashboard; Balance History; typed rows get their IDs
+- What changed:
+  - **Accounts Dashboard** (new tab right after the Dashboard; layout C
+    chosen by the owner): left, the main accounts with live balance, a
+    30-day trend line and the change over 30 days (Checking and Savings at
+    Independent Bank, Venmo as both logins added together, PayPal); right,
+    the credit cards in the owner's order (Independent Bank, American
+    Express, Capital One) with the amount owed, the lender's minimum and due
+    date, and a total. Formulas only; a row reads "not connected yet" until
+    its bank is connected. The layout lives in `ACCOUNTS_DASH` (Config.gs).
+  - **Balance History** (new raw table, beside Accounts): the sync writes
+    each connected account's balance once per day (same day overwritten),
+    which draws the trend lines and the change figures.
+  - **Tab order**: Accounts (the data tab) moves down next to Connections,
+    with Balance History after it. The Dashboard is unchanged.
+  - **Typed rows get their IDs**: a row typed by hand on any ID-numbered
+    table now receives the next ID the moment a cell is filled (the owner's
+    rent row sat outside every total because Recurring ID was blank). A new
+    Recurring Payments row is also ticked Active, and a Due Day fills Next
+    Payment Date when it was blank.
+- Files changed in `apps-script/`: `Config.gs` (two tabs, HIST table,
+  ACCOUNTS_DASH), new `AccountsDashboard.gs`, `Tables.gs`, `Plaid.gs`,
+  `Main.gs`, `Upgrade.gs` (deployed on merge). Then Finance Tracker →
+  Upgrade workbook once (adds both tabs, reorders the tabs, builds the
+  page), then Bank feed → Sync now (first Balance History rows).
+- Tested: Node (page built third with the expected rows and formulas; tab
+  order; history rows written once per account per day and overwritten on
+  the second sync; typed Recurring row gets REC-xxx, Active and Next Payment
+  Date). Not yet tried in Google: the SPARKLINE/MAP/LAMBDA trend formulas.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/accounts-dashboard` (on top of `claude/credit-score-reminder`)
+
 ## 2026-11-08 — Credit score reminders; Reminders on their own tab
 - What changed: the reminders (box, monthly email, Finance Tracker → Show
   reminders) now also flag each person whose latest Credit Scores entry is

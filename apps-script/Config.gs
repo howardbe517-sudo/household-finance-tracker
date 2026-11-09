@@ -26,6 +26,7 @@ const HFT = {
 const SHEETS = {
   START: 'Start Here',
   DASH: 'Dashboard',
+  ACCTDASH: 'Accounts Dashboard',
   GOALS: 'Goals',
   REMINDERS: 'Reminders',
   INCOME: 'Income',
@@ -46,16 +47,17 @@ const SHEETS = {
   STAGING: 'Import Staging',
   RULES: 'Import Rules',
   CONN: 'Connections',
+  HIST: 'Balance History',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
 
 const TAB_ORDER = [
-  SHEETS.START, SHEETS.DASH, SHEETS.GOALS, SHEETS.REMINDERS, SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR,
+  SHEETS.START, SHEETS.DASH, SHEETS.ACCTDASH, SHEETS.GOALS, SHEETS.REMINDERS, SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR,
   SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY, SHEETS.FUNDS, SHEETS.DEBTS,
-  SHEETS.QDR, SHEETS.NW, SHEETS.ACCOUNTS, SHEETS.REVIEW, SHEETS.CATS,
+  SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
-  SHEETS.LOG, SHEETS.CREDIT,
+  SHEETS.ACCOUNTS, SHEETS.HIST, SHEETS.LOG, SHEETS.CREDIT,
 ];
 
 const COLORS = {
@@ -657,6 +659,21 @@ TABLES.CONN = {
   ],
 };
 
+TABLES.HIST = {
+  key: 'HIST', sheet: SHEETS.HIST, headerRow: 4, firstRow: 5, lastRow: 2004,
+  title: 'Balance History — Nightly Balances',
+  note: 'One row per connected account per day, written by the bank feed after each sync (the same day is overwritten, not duplicated). Feeds the 30-day trend lines and change figures on the Accounts Dashboard. Do not type here.',
+  columns: [
+    { key: 'date', h: 'Date', w: 100, fmt: C.date },
+    { key: 'accountId', h: 'Account ID', w: 95 },
+    { key: 'accountName', h: 'Account Name', w: 200 },
+    { key: 'accountType', h: 'Account Type', w: 110 },
+    { key: 'institution', h: 'Institution', w: 150 },
+    { key: 'balance', h: 'Balance', w: 110, fmt: C.cur },
+    { key: 'source', h: 'Source', w: 90 },
+  ],
+};
+
 TABLES.LOG = {
   key: 'LOG', sheet: SHEETS.LOG, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Change Log — Append-Only Audit History',
@@ -807,9 +824,24 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'HIST', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
+/**
+ * Accounts Dashboard layout (the owner's choice, 2026-11-09). Main accounts on the left, each a
+ * sum of the Accounts rows whose institution contains the text (and whose type matches, when
+ * given); credit cards on the right in this order. Edit here to change what the page shows.
+ */
+const ACCOUNTS_DASH = {
+  main: [
+    { label: 'Checking', sub: 'Independent Bank', type: 'Checking', institution: 'Independent Bank' },
+    { label: 'Savings', sub: 'Independent Bank', type: 'Savings', institution: 'Independent Bank' },
+    { label: 'Venmo', sub: 'Ben + Valerie', type: '', institution: 'Venmo' },
+    { label: 'PayPal', sub: '', type: '', institution: 'PayPal' },
+  ],
+  cards: ['Independent Bank', 'American Express', 'Capital One'],
+};
+
 // Plaid's free Trial cap on connected institutions (the dashboard's "connections"), as shown on the owner's plan page.
 const PLAID_TRIAL_LIMIT = 20;
 

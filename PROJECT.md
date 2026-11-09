@@ -157,6 +157,12 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   lists hand-entered values that have gone stale (PSLF counts); the
   Dashboard Reminders box shows the same by formula and `sendReminders_`
   emails it at most monthly from the nightly sync.
+- The Accounts Dashboard (`AccountsDashboard.gs`, layout in `ACCOUNTS_DASH`)
+  is formulas over Accounts, Debts, Connections, Import Staging and Balance
+  History. `recordBalanceHistory_` (called from `updateBalances_`) keeps one
+  row per account per day in Balance History for the trend lines.
+- `autoFillRow_` (onEdit) gives a typed row its next ID, ticks Active on a
+  new Recurring Payments row and fills Next Payment Date from Due Day.
 - `ensureMonthRows_` (run by every sync) keeps a Monthly Plan row and the
   Monthly Budget rows for the current month in place.
 - Each Plaid connection uses one of the free Trial slots permanently

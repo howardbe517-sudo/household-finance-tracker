@@ -59,6 +59,10 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/accounts-dashboard` (stacked on
+  `claude/credit-score-reminder`): Accounts Dashboard tab (layout C),
+  Balance History table, Accounts tab moved down, auto IDs for typed rows.
+  Owner's rent row on Recurring Payments given REC-001 and Active by hand.
 - Pull request `claude/credit-score-reminder`: credit scores join the
   reminders with their own months setting; reminders move to a Reminders tab.
 - Pull request `claude/goals-tab`: Financial Goals on their own tab (third

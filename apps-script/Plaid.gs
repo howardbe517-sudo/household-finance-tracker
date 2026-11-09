@@ -423,6 +423,7 @@ function updateBalances_(plaidAccounts, accountMap) {
   const sh = getOrCreateSheet_(def.sheet);
   const now = new Date();
   let n = 0;
+  const hist = [];
   (plaidAccounts || []).forEach(a => {
     const row = accountMap[a.account_id];
     if (!row || !a.balances) return;
@@ -431,8 +432,10 @@ function updateBalances_(plaidAccounts, accountMap) {
     sh.getRange(row.__row, colIndex_(def, 'currentBalance')).setValue(Number(bal));
     sh.getRange(row.__row, colIndex_(def, 'lastUpdated')).setValue(now);
     sh.getRange(row.__row, colIndex_(def, 'lastSynced')).setValue(now);
+    hist.push({ accountId: row.id, accountName: row.name, accountType: row.accountType, institution: row.institution, balance: Number(bal) });
     n++;
   });
+  try { recordBalanceHistory_(hist); } catch (e) { Logger.log('recordBalanceHistory_: ' + (e && e.message || e)); }
   return n;
 }
 

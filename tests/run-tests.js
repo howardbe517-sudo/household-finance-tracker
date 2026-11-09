@@ -33,10 +33,10 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 24 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('24 tabs in the specified order (20 from the handoff + Import Rules + Connections + Goals + Reminders)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 26 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('26 tabs in the specified order (20 from the handoff + Import Rules, Connections, Goals, Reminders, Accounts Dashboard, Balance History)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26, HIST: 7 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -74,7 +74,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -290,6 +290,8 @@ if (byExt.t2 && byExt.t2.status === 'Needs Split' && byExt.t2.accountId === acc1
 if (byExt.t4 && byExt.t5 && byExt.t4.pairedImportId === byExt.t5.importId && byExt.t4.suggestedType === 'Debt Payment' && byExt.t4.suggestedDebtId === cardRow.id && byExt.t5.suggestedType === 'Transfer' && byExt.t4.status === 'Imported' && byExt.t5.status === 'Imported') ok('card payment auto-paired: bank side Debt Payment to the card\'s Debts row, card side Transfer, both imported'); else bad('pair t4/t5: ' + JSON.stringify([byExt.t4, byExt.t5].map(s => s && [s.suggestedType, s.status, s.pairedImportId])));
 if (!byExt.t3) ok('transaction before the start date was not staged'); else bad('t3 staged despite start date');
 if (near(R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`), 1200.1)) ok('balances from the sync written to Accounts'); else bad('balance not updated');
+const hist1 = R(`readTable_(TABLES.HIST)`);
+if (hist1.length === 2 && hist1.every(h => h.date && h.source === 'Plaid' && h.institution && h.accountType) && near(hist1.filter(h => h.accountId === 'ACC-007')[0].balance, 1200.1)) ok('Balance History got one row per synced account for today'); else bad('balance history: ' + JSON.stringify(hist1));
 const conn2 = R(`readTable_(TABLES.CONN)[0]`);
 if (conn2.status === 'Active' && conn2.syncCursor === 'c2' && !conn2.lastError) ok('connection Active with cursor saved after a successful sync'); else bad('conn after sync: ' + JSON.stringify(conn2));
 // second sync: posted replaces pending, bank removes t1
@@ -301,6 +303,8 @@ if (s2.added === 1 && s2.removed === 1 && byExt3.t2.status === 'Superseded' && b
 const t1tx = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='${byExt.t1.importedTxId}'; })[0]`);
 if (byExt3.t1.status === 'Removed' && t1tx && t1tx.isDeleted === true) ok('a transaction the bank removed is soft-deleted, never erased'); else bad('removal: ' + JSON.stringify([byExt3.t1.status, t1tx && t1tx.isDeleted]));
 if (R(`readTable_(TABLES.CONN)[0].syncCursor`) === 'c3') ok('cursor advanced to c3'); else bad('cursor not advanced');
+const hist2 = R(`readTable_(TABLES.HIST)`);
+if (hist2.length === 2) ok('a second sync the same day overwrites the day\'s Balance History rows instead of adding more'); else bad('balance history duplicated: ' + hist2.length);
 // re-running with nothing new changes nothing
 syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
@@ -350,9 +354,26 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const dashSh = g.__ss.getSheetByName(SHEETS.DASH), goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[2] === SHEETS.GOALS) ok('Goals tab (third tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[3] === SHEETS.GOALS) ok('Goals tab (fourth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+const adSh = g.__ss.getSheetByName(SHEETS.ACCTDASH);
+const adB6 = adSh && adSh.getRange(6, 2).getFormula(), adC6 = adSh && adSh.getRange(6, 3).getFormula(), adH6 = adSh && adSh.getRange(6, 8).getFormula();
+if (adSh && TAB_ORDER[2] === SHEETS.ACCTDASH && adSh.getRange('A1').getValue() === 'Accounts Dashboard' && adSh.getRange('A6').getValue() === 'Checking (Independent Bank)' && adSh.getRange('A9').getValue() === 'PayPal' && adSh.getRange('F6').getValue() === 'Independent Bank' && adSh.getRange('F8').getValue() === 'Capital One' && adSh.getRange('F9').getValue() === 'Total owed on cards' && /SUMIFS\(.*Accounts.*\*Independent Bank\*/.test(adB6) && /SPARKLINE\(MAP\(UNIQUE\(FILTER\(.*Balance History/.test(adC6) && /Debts/.test(adH6)) ok('Accounts Dashboard is the third tab: main accounts with balance, trend and change on the left, the three cards and a total on the right'); else bad('accounts dashboard: ' + JSON.stringify([TAB_ORDER[2], adSh && adSh.getRange('A6').getValue(), adB6, adC6, adH6]));
+if (TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN) && TAB_ORDER.indexOf(SHEETS.HIST) === TAB_ORDER.indexOf(SHEETS.ACCOUNTS) + 1) ok('Accounts data tab moved down next to Connections, Balance History beside it'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+// a Recurring Payments row typed by hand gets its ID, Active and Next Payment Date
+const recSh = g.__ss.getSheetByName(SHEETS.RECUR), recDef = TABLES.RECUR;
+const freeRow = R(`nextEmptyRow_(tdef_('RECUR'))`);
+const dueColIdx = recDef.columns.findIndex(c => c.key === 'dueDay') + 1;
+recSh.getRange(freeRow, 2).setValue('Rent');
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.RECUR}').getRange(${freeRow}, 2), value: 'Rent' })`);
+const recId = recSh.getRange(freeRow, 1).getValue(), recActive = recSh.getRange(freeRow, recDef.columns.findIndex(c => c.key === 'active') + 1).getValue();
+if (/^REC-\d{3}$/.test(recId) && recActive === true) ok('typing a name on a blank Recurring Payments row assigns the next Recurring ID and ticks Active'); else bad('auto-ID: ' + JSON.stringify([recId, recActive]));
+recSh.getRange(freeRow, dueColIdx).setValue(1);
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.RECUR}').getRange(${freeRow}, ${dueColIdx}), value: 1 })`);
+const nextPay = recSh.getRange(freeRow, recDef.columns.findIndex(c => c.key === 'nextPayment') + 1).getValue();
+if (nextPay && typeof nextPay.getDate === 'function' && nextPay.getDate() === 1 && nextPay >= new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) ok('entering a Due Day fills the Next Payment Date with the next 1st of the month'); else bad('next payment: ' + nextPay);
+recSh.getRange(freeRow, 1, 1, recDef.columns.length).setValues([Array(recDef.columns.length).fill('')]); // test-only: clear the mock row again
 const remSh = g.__ss.getSheetByName(SHEETS.REMINDERS);
-if (remSh && remSh.getRange('A1').getValue() === 'Reminders' && TAB_ORDER[3] === SHEETS.REMINDERS && /studentaid\.gov/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormula()) && g.__ss.getRangeByName('REMINDERS_BOX').getSheet().getName() === SHEETS.REMINDERS && dashSh.getMaxColumns() === 9) ok('Reminders tab (fourth tab) holds the calculated reminders box; the Dashboard is back to columns A:I'); else bad('reminders tab: ' + JSON.stringify([remSh && remSh.getRange('A1').getValue(), dashSh.getMaxColumns()]));
+if (remSh && remSh.getRange('A1').getValue() === 'Reminders' && TAB_ORDER[4] === SHEETS.REMINDERS && /studentaid\.gov/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormula()) && g.__ss.getRangeByName('REMINDERS_BOX').getSheet().getName() === SHEETS.REMINDERS && dashSh.getMaxColumns() === 9) ok('Reminders tab (fifth tab) holds the calculated reminders box; the Dashboard is back to columns A:I'); else bad('reminders tab: ' + JSON.stringify([remSh && remSh.getRange('A1').getValue(), dashSh.getMaxColumns()]));
 const due1 = R(`dueReminders_()`);
 if (due1.filter(r => /^pslf:/.test(r.key)).length === 2 && due1.filter(r => /^pslf:/.test(r.key)).every(r => /never entered/.test(r.text)) && due1.filter(r => /^credit:/.test(r.key)).length === 2 && due1.filter(r => /^credit:/.test(r.key)).every(r => /never entered/.test(r.text))) ok('reminders: the two servicer loans with no PSLF count and both people\'s never-entered credit scores are due; the sample loan (count 3 months old) is not'); else bad('dueReminders_: ' + JSON.stringify(due1));
 // a fresh score today clears that person's credit reminder; an old one does not

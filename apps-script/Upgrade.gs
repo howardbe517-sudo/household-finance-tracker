@@ -68,6 +68,7 @@ function upgradeWorkbookLocked_() {
   const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
   const dash = readDashboardInputs_();
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
+  withRetry_('Accounts Dashboard', () => buildAccountsDashboard_());
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
