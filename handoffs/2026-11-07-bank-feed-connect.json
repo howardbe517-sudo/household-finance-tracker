@@ -16,11 +16,11 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Accounts Dashboard**, **Goals** and **Reminders** tabs, the **Balance History** table, moves the Accounts data tab down next to Connections, adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
-          "text": "Run **Finance Tracker → Bank feed → Sync now**. Google asks you to approve one new permission (sending email, for reminders); approve it. The sync then reports each connection, writes the first Balance History rows, and may show debt rows updated from the lender.",
+          "text": "Run **Finance Tracker → Bank feed → Sync now**. Google asks you to approve one new permission (sending email, for reminders); approve it. The sync then reports each connection and may show debt rows updated from the lender.",
           "note": "Until that approval is given once, the nightly sync cannot run. Everything else works without it."
         },
         {
@@ -136,11 +136,11 @@
       ]
     },
     {
-      "heading": "Accounts Dashboard and typed rows",
+      "heading": "Dashboard accounts block and typed rows",
       "steps": [
         {
-          "text": "Open the **Accounts Dashboard** tab (right after the Dashboard). Checking, Savings, Venmo and PayPal are on the left with a balance, a 30-day trend and the change; the three credit cards are on the right with the amount owed, the minimum and due date from the lender, and a total.",
-          "note": "Rows read \"not connected yet\" until that bank is connected. Trend lines start as a dot and grow one point per nightly sync. Change shows \"since the first saved balance\" until 30 days of history exist."
+          "text": "Open the **Dashboard**. The first block shows Checking and Savings (Independent Bank) with tonight's balance and when it synced, and the three credit cards with the amount owed, the due date from the lender, and a total owed. The Selected Month and the monthly cards now sit under a \"This month\" bar beneath it.",
+          "note": "Lines read \"not connected yet\" until that bank is connected; Independent Bank's will fill in once its connection goes through. The Selected Month input moved to B10."
         },
         {
           "text": "When you type a new row on any table, for example a bill on **Recurring Payments**, the ID in column A fills in by itself as soon as you enter the name, Active is ticked, and entering a Due Day fills Next Payment Date. Totals and the Dashboard count the row from then on.",

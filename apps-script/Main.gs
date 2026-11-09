@@ -34,7 +34,6 @@ function buildWorkbook(options) {
   buildDerivedTables_();
   // Phase 5 — dashboard & docs
   buildDashboard_();
-  buildAccountsDashboard_();
   buildGoals_();
   buildReminders_();
   buildAppSetup_(opts.sample);

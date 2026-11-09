@@ -68,7 +68,6 @@ function upgradeWorkbookLocked_() {
   const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
   const dash = readDashboardInputs_();
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
-  withRetry_('Accounts Dashboard', () => buildAccountsDashboard_());
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
@@ -271,10 +270,11 @@ function restoreSettings_(s) {
 function readDashboardInputs_() {
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (!sh) return null;
-  return {
-    month: sh.getRange(DASH.SELECTED_MONTH).getValue(),
-    checks: sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).getValues(),
-  };
+  // named ranges when the current layout built them; otherwise the addresses of the older layout
+  const ss = ss_();
+  const monthRange = ss.getRangeByName('DASH_SELECTED_MONTH') || sh.getRange(DASH.LEGACY_SELECTED_MONTH);
+  const checksRange = ss.getRangeByName('DASH_CHECKLIST') || sh.getRange('G' + DASH.LEGACY_FUNDS_FIRST + ':G' + (DASH.LEGACY_FUNDS_FIRST + DASH.FUNDS_COUNT - 1));
+  return { month: monthRange.getValue(), checks: checksRange.getValues() };
 }
 
 /** The goal texts by their named ranges (GOAL_1…), from whichever tab holds them. */

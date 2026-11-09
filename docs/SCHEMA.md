@@ -20,7 +20,6 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
 | RULES | Import Rules | 4 | 5 | 204 | RULE-001 | 17 | yes |
 | CONN | Connections | 4 | 5 | 54 | CONN-001 | 13 | yes |
-| HIST | Balance History | 4 | 5 | 2004 | undefined | 7 | no |
 | LOG | Change Log | 4 | 5 | 1004 | CHG-20261107-153000-a1b2 | 10 | no |
 | BUDGET | Monthly Budget | 4 | 5 | 504 | BUD-202611-HOUS | 8 | yes |
 | PLAN | Monthly Plan | 4 | 5 | 124 | PLAN-202611 | 8 | yes |
@@ -347,22 +346,6 @@ Named range `TBL_CONN` covers the header row through the last formula row.
 | K | Added On | `addedOn` | date | input |  |
 | L | Notes | `notes` | text | input |  |
 | M | Liabilities Feed | `liabilities` | text | input | Added in 3.2: whether Plaid supplies rates, minimum payments and due dates for this login (Yes, or Not available with the reason). |
-
-## Balance History (`HIST`)
-
-One row per connected account per day, written by the bank feed after each sync (the same day is overwritten, not duplicated). Feeds the 30-day trend lines and change figures on the Accounts Dashboard. Do not type here.
-
-Named range `TBL_HIST` covers the header row through the last formula row.
-
-| Col | Header | Key | Type | Source | Formula / notes |
-|---|---|---|---|---|---|
-| A | Date | `date` | date | input |  |
-| B | Account ID | `accountId` | text | input |  |
-| C | Account Name | `accountName` | text | input |  |
-| D | Account Type | `accountType` | text | input |  |
-| E | Institution | `institution` | text | input |  |
-| F | Balance | `balance` | currency | input |  |
-| G | Source | `source` | text | input |  |
 
 ## Change Log (`LOG`)
 

@@ -29,14 +29,15 @@ console.log(`Build completed in ${Date.now() - t0} ms (mock). QA inside mock: ${
 const ss = g.__ss;
 const TABLES = vm.runInContext('TABLES', ctx);
 const TAB_ORDER = vm.runInContext('TAB_ORDER', ctx);
+const DASH = vm.runInContext('DASH', ctx);
 const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 26 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('26 tabs in the specified order (20 from the handoff + Import Rules, Connections, Goals, Reminders, Accounts Dashboard, Balance History)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 24 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('24 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; setup and feed tabs last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26, HIST: 7 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -114,13 +115,14 @@ const actualF = budget.getRange(5, 5).getFormula();
 checkRef(actualF, [[SHEETS.TX, 'D', 'Amount ($)'], [SHEETS.TX, 'Q', 'Month'], [SHEETS.TX, 'F', 'Category'], [SHEETS.TX, 'E', 'Type'], [SHEETS.TX, 'X', 'Is Deleted']]);
 if (actualF.indexOf('"<>TRUE"') >= 0) ok('Monthly Budget Actual excludes soft-deleted rows'); else bad('Monthly Budget Actual lacks the soft-delete filter');
 const dash = ss.getSheetByName(SHEETS.DASH);
-const fedBen = dash.getRange('B24').getFormula(), fedVal = dash.getRange('E24').getFormula(), fedHH = dash.getRange('H24').getFormula();
-if (fedBen.indexOf("'Income'!$H$5:$H") >= 0 && fedBen.indexOf('"Ben"') >= 0 && fedVal.indexOf('"Valerie"') >= 0 && fedHH.indexOf("'Income'!$H$5:$H") >= 0 && fedHH.indexOf('person') < 0) ok('Dashboard Federal Tax formulas present for Ben, Valerie, Household (Income col H)'); else bad('Dashboard Federal Tax formulas: ' + fedBen + ' | ' + fedVal + ' | ' + fedHH);
-['A23:C23', 'D23:F23', 'G23:I23'].forEach(r => { const h = dash.getRange(r).getValues()[0]; if (h.join('|') !== 'Deduction|Amount|% of Gross') bad('Payroll header ' + r + ' = ' + h.join('|')); });
+const PF = DASH.PAYROLL_FIRST, PH = DASH.PAYROLL_HEADER;
+const fedBen = dash.getRange('B' + PF).getFormula(), fedVal = dash.getRange('E' + PF).getFormula(), fedHH = dash.getRange('H' + PF).getFormula();
+if (fedBen.indexOf("'Income'!$H$5:$H") >= 0 && fedBen.indexOf('"Ben"') >= 0 && fedVal.indexOf('"Valerie"') >= 0 && fedHH.indexOf("'Income'!$H$5:$H") >= 0 && fedHH.indexOf('person') < 0) ok('Dashboard Federal Tax formulas present for Ben, Valerie, Household'); else bad('Dashboard Federal Tax formulas: ' + [fedBen, fedVal, fedHH].join(' | '));
+['A' + PH + ':C' + PH, 'D' + PH + ':F' + PH, 'G' + PH + ':I' + PH].forEach(r => { const h = dash.getRange(r).getValues()[0]; if (h.join('|') !== 'Deduction|Amount|% of Gross') bad('Payroll header ' + r + ' = ' + h.join('|')); });
 ok('Payroll headers Deduction | Amount | % of Gross present in all three groups');
-if (dash.getRange('A32').getFormula().indexOf('TEXT(TODAY(),"mmmm yyyy")') >= 0) ok('Current Flexible Spending label uses TODAY()'); else bad('Flexible label formula: ' + dash.getRange('A32').getFormula());
-if (dash.getRange('E17').getFormula().indexOf('SPARKLINE(($B17-300)/550') >= 0) ok('Credit score SPARKLINE position bar'); else bad('Credit sparkline: ' + dash.getRange('E17').getFormula());
-if (dash.getRange('A6').getFormula() === "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$3)") ok('Gross card = SUMIFS(Income gross, Income month, Selected Month)'); else bad('Gross card: ' + dash.getRange('A6').getFormula());
+if (dash.getRange('A' + DASH.FLEX_BAR).getFormula().indexOf('TEXT(TODAY(),"mmmm yyyy")') >= 0) ok('Current Flexible Spending label uses TODAY()'); else bad('Flexible label formula: ' + dash.getRange('A' + DASH.FLEX_BAR).getFormula());
+if (dash.getRange('E' + DASH.CREDIT_BEN).getFormula().indexOf('SPARKLINE(($B' + DASH.CREDIT_BEN + '-300)/550') >= 0) ok('Credit score SPARKLINE position bar'); else bad('Credit sparkline: ' + dash.getRange('E' + DASH.CREDIT_BEN).getFormula());
+if (dash.getRange('A' + DASH.CARD_ROW_VALUE).getFormula() === "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$10)") ok('Gross card = SUMIFS(Income gross, Income month, Selected Month)'); else bad('Gross card: ' + dash.getRange('A' + DASH.CARD_ROW_VALUE).getFormula());
 
 /* 6. sample data landed */
 const txRows = vm.runInContext("readTable_(TABLES.TX)", ctx);
@@ -290,8 +292,6 @@ if (byExt.t2 && byExt.t2.status === 'Needs Split' && byExt.t2.accountId === acc1
 if (byExt.t4 && byExt.t5 && byExt.t4.pairedImportId === byExt.t5.importId && byExt.t4.suggestedType === 'Debt Payment' && byExt.t4.suggestedDebtId === cardRow.id && byExt.t5.suggestedType === 'Transfer' && byExt.t4.status === 'Imported' && byExt.t5.status === 'Imported') ok('card payment auto-paired: bank side Debt Payment to the card\'s Debts row, card side Transfer, both imported'); else bad('pair t4/t5: ' + JSON.stringify([byExt.t4, byExt.t5].map(s => s && [s.suggestedType, s.status, s.pairedImportId])));
 if (!byExt.t3) ok('transaction before the start date was not staged'); else bad('t3 staged despite start date');
 if (near(R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`), 1200.1)) ok('balances from the sync written to Accounts'); else bad('balance not updated');
-const hist1 = R(`readTable_(TABLES.HIST)`);
-if (hist1.length === 2 && hist1.every(h => h.date && h.source === 'Plaid' && h.institution && h.accountType) && near(hist1.filter(h => h.accountId === 'ACC-007')[0].balance, 1200.1)) ok('Balance History got one row per synced account for today'); else bad('balance history: ' + JSON.stringify(hist1));
 const conn2 = R(`readTable_(TABLES.CONN)[0]`);
 if (conn2.status === 'Active' && conn2.syncCursor === 'c2' && !conn2.lastError) ok('connection Active with cursor saved after a successful sync'); else bad('conn after sync: ' + JSON.stringify(conn2));
 // second sync: posted replaces pending, bank removes t1
@@ -303,8 +303,6 @@ if (s2.added === 1 && s2.removed === 1 && byExt3.t2.status === 'Superseded' && b
 const t1tx = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='${byExt.t1.importedTxId}'; })[0]`);
 if (byExt3.t1.status === 'Removed' && t1tx && t1tx.isDeleted === true) ok('a transaction the bank removed is soft-deleted, never erased'); else bad('removal: ' + JSON.stringify([byExt3.t1.status, t1tx && t1tx.isDeleted]));
 if (R(`readTable_(TABLES.CONN)[0].syncCursor`) === 'c3') ok('cursor advanced to c3'); else bad('cursor not advanced');
-const hist2 = R(`readTable_(TABLES.HIST)`);
-if (hist2.length === 2) ok('a second sync the same day overwrites the day\'s Balance History rows instead of adding more'); else bad('balance history duplicated: ' + hist2.length);
 // re-running with nothing new changes nothing
 syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
@@ -355,10 +353,11 @@ if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice')
 // goals panel and reminders on the Dashboard
 const dashSh = g.__ss.getSheetByName(SHEETS.DASH), goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
 if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[3] === SHEETS.GOALS) ok('Goals tab (fourth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
-const adSh = g.__ss.getSheetByName(SHEETS.ACCTDASH);
-const adB6 = adSh && adSh.getRange(6, 2).getFormula(), adC6 = adSh && adSh.getRange(6, 3).getFormula(), adH6 = adSh && adSh.getRange(6, 8).getFormula();
-if (adSh && TAB_ORDER[2] === SHEETS.ACCTDASH && adSh.getRange('A1').getValue() === 'Accounts Dashboard' && adSh.getRange('A6').getValue() === 'Checking (Independent Bank)' && adSh.getRange('A9').getValue() === 'PayPal' && adSh.getRange('F6').getValue() === 'Independent Bank' && adSh.getRange('F8').getValue() === 'Capital One' && adSh.getRange('F9').getValue() === 'Total owed on cards' && /SUMIFS\(.*Accounts.*\*Independent Bank\*/.test(adB6) && /SPARKLINE\(MAP\(UNIQUE\(FILTER\(.*Balance History/.test(adC6) && /Debts/.test(adH6)) ok('Accounts Dashboard is the third tab: main accounts with balance, trend and change on the left, the three cards and a total on the right'); else bad('accounts dashboard: ' + JSON.stringify([TAB_ORDER[2], adSh && adSh.getRange('A6').getValue(), adB6, adC6, adH6]));
-if (TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN) && TAB_ORDER.indexOf(SHEETS.HIST) === TAB_ORDER.indexOf(SHEETS.ACCOUNTS) + 1) ok('Accounts data tab moved down next to Connections, Balance History beside it'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+const dSh = g.__ss.getSheetByName(SHEETS.DASH);
+const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
+if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMIFS\(.*Accounts.*\*Independent Bank\*.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /Debts.*nextDue|Debts/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Dashboard opens with checking, savings and the three cards (owed, due date, total), plain numbers'); else bad('dashboard accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
+if (dSh.getRange('A9').getValue() === 'This month' && dSh.getRange('A10').getValue() === 'Selected Month' && dSh.getRange('A12').getValue() === 'Household Gross Income' && dSh.getRange('A' + DASH.FUNDS_BAR).getValue() === 'Savings & Reserves' && g.__ss.namedRanges.has('DASH_SELECTED_MONTH') && /^B10(:B10)?$/.test(g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation())) ok('the month cards and every later section moved down under a "This month" bar; Selected Month is B10 with a named range'); else bad('dashboard shift: ' + JSON.stringify([dSh.getRange('A9').getValue(), dSh.getRange('A10').getValue(), dSh.getRange('A12').getValue(), dSh.getRange('A' + DASH.FUNDS_BAR).getValue()]));
+if (TAB_ORDER[0] === SHEETS.DASH && TAB_ORDER[1] === SHEETS.FUNDS && TAB_ORDER[2] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN) && TAB_ORDER.indexOf(SHEETS.START) > TAB_ORDER.indexOf(SHEETS.CATS)) ok('tab order: Dashboard, Savings & Reserves, Debts first; Accounts next to Connections; Start Here with the setup tabs'); else bad('tab order: ' + TAB_ORDER.join(' | '));
 // a Recurring Payments row typed by hand gets its ID, Active and Next Payment Date
 const recSh = g.__ss.getSheetByName(SHEETS.RECUR), recDef = TABLES.RECUR;
 const freeRow = R(`nextEmptyRow_(tdef_('RECUR'))`);

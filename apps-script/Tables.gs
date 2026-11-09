@@ -289,7 +289,7 @@ function buildCoreTables_() {
 }
 
 function buildInfrastructureTables_() {
-  ['STAGING', 'RULES', 'CONN', 'HIST', 'LOG'].forEach(key => {
+  ['STAGING', 'RULES', 'CONN', 'LOG'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);

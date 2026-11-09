@@ -1,34 +1,36 @@
 # CHANGELOG
 
-## 2026-11-09 — Accounts Dashboard; Balance History; typed rows get their IDs
+## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
 - What changed:
-  - **Accounts Dashboard** (new tab right after the Dashboard; layout C
-    chosen by the owner): left, the main accounts with live balance, a
-    30-day trend line and the change over 30 days (Checking and Savings at
-    Independent Bank, Venmo as both logins added together, PayPal); right,
-    the credit cards in the owner's order (Independent Bank, American
-    Express, Capital One) with the amount owed, the lender's minimum and due
-    date, and a total. Formulas only; a row reads "not connected yet" until
-    its bank is connected. The layout lives in `ACCOUNTS_DASH` (Config.gs).
-  - **Balance History** (new raw table, beside Accounts): the sync writes
-    each connected account's balance once per day (same day overwritten),
-    which draws the trend lines and the change figures.
-  - **Tab order**: Accounts (the data tab) moves down next to Connections,
-    with Balance History after it. The Dashboard is unchanged.
+  - **Accounts block on the Dashboard** (the owner's choice after several
+    mockups): rows 3–7 now show Checking and Savings (Independent Bank) with
+    tonight's balance and when it synced on the left, and the credit cards in
+    the owner's order (Independent Bank, American Express, Capital One) with
+    the amount owed, the lender's due date and a total on the right. Plain
+    numbers: no trend lines, no minimums. A line reads "not connected yet"
+    until its bank is connected. Layout in `DASH_ACCOUNTS` (Config.gs).
+  - **"This month" section**: the Selected Month and the four cards (gross,
+    take-home, spending, savings) and everything below them move down seven
+    rows under a new bar. Selected Month is now B10; the input cells carry
+    named ranges (`DASH_SELECTED_MONTH`, `DASH_CHECKLIST`) so the upgrade
+    carries them over from either layout.
+  - **Tab order**: Dashboard, Savings & Reserves, Debts, Goals, Reminders,
+    then the ledgers and derived tables, Credit Scores, Categories, then
+    Start Here with the setup and feed tabs (Accounts next to Connections).
   - **Typed rows get their IDs**: a row typed by hand on any ID-numbered
-    table now receives the next ID the moment a cell is filled (the owner's
-    rent row sat outside every total because Recurring ID was blank). A new
+    table receives the next ID the moment a cell is filled (the owner's rent
+    row sat outside every total because Recurring ID was blank). A new
     Recurring Payments row is also ticked Active, and a Due Day fills Next
     Payment Date when it was blank.
-- Files changed in `apps-script/`: `Config.gs` (two tabs, HIST table,
-  ACCOUNTS_DASH), new `AccountsDashboard.gs`, `Tables.gs`, `Plaid.gs`,
-  `Main.gs`, `Upgrade.gs` (deployed on merge). Then Finance Tracker →
-  Upgrade workbook once (adds both tabs, reorders the tabs, builds the
-  page), then Bank feed → Sync now (first Balance History rows).
-- Tested: Node (page built third with the expected rows and formulas; tab
-  order; history rows written once per account per day and overwritten on
-  the second sync; typed Recurring row gets REC-xxx, Active and Next Payment
-  Date). Not yet tried in Google: the SPARKLINE/MAP/LAMBDA trend formulas.
+  - The separate Accounts Dashboard tab and Balance History table built
+    earlier on this branch were dropped before merge (not wanted).
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `Main.gs`,
+  `Upgrade.gs`, `Reference.gs` (deployed on merge). Then Finance Tracker →
+  Upgrade workbook once (rebuilds the Dashboard, reorders the tabs).
+- Tested: Node (accounts block cells and formulas; every later section
+  found at its shifted row; named ranges; tab order; a typed Recurring row
+  gets REC-xxx, Active and Next Payment Date; upgrade path). Not yet tried in
+  Google.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 - Branch: `claude/accounts-dashboard` (on top of `claude/credit-score-reminder`)
 
