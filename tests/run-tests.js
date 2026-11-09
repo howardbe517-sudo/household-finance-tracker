@@ -35,7 +35,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 27 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('27 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; Paste Import with the feed tabs; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 27 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('27 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 28, EXPECT: 16, FUNDS: 16 };
@@ -76,7 +76,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -396,6 +396,8 @@ if (/Expected Income/.test(fExp) && fAvail.indexOf('$' + effCol + planDef.firstR
 const pim = (f, last, ms) => R(`paydaysInMonth_('${f}', ${last ? "new Date('" + last + "T00:00:00')" : 'null'}, new Date('${ms}T00:00:00'))`);
 if (pim('Biweekly', '2026-11-06', '2026-11-01') === 2 && pim('Biweekly', '2026-11-06', '2027-01-01') === 3 && pim('Biweekly', '2026-11-06', '2026-10-01') === 2 && pim('Weekly', '2026-11-06', '2026-11-01') === 4 && pim('Semimonthly', '2026-11-06', '2026-11-01') === 2 && near(pim('Biweekly', null, '2026-11-01'), 26 / 12)) ok('paydays per month counted from the pay cycle: biweekly from Nov 6 gives 2 in November, 3 in January, the yearly average until a pay date exists'); else bad('paydaysInMonth_: ' + [pim('Biweekly', '2026-11-06', '2026-11-01'), pim('Biweekly', '2026-11-06', '2027-01-01'), pim('Biweekly', '2026-11-06', '2026-10-01'), pim('Weekly', '2026-11-06', '2026-11-01')].join(','));
 if (/INT\(\(me-N\(/.test(fExp) && /\/14\)/.test(fExp) && /SUMPRODUCT/.test(fExp)) ok('Monthly Plan expected take-home counts each source\'s paydays in that month'); else bad('expectedIncome formula: ' + fExp);
+const reviewF = dash.getRange('A' + DASH.REVIEW_LINE).getFormula();
+if (/HYPERLINK\("#gid=\d+"/.test(reviewF) && /'Import Staging'!\$Q\$5:\$Q/.test(reviewF) && /waiting for your review/.test(reviewF) && dash.getRange('F10').getFormula() === '' && TAB_ORDER.indexOf(SHEETS.STAGING) === TAB_ORDER.indexOf(SHEETS.TX) + 1 && dash.cfRules.some(r => /waiting for your review/.test(r.formula || JSON.stringify(r)))) ok('Dashboard row 11 is a full-width banner counting staged rows, linking to Import Staging; the tab sits right after Transactions'); else bad('review banner: ' + JSON.stringify([reviewF.slice(0, 120), TAB_ORDER.indexOf(SHEETS.STAGING), TAB_ORDER.indexOf(SHEETS.TX)]));
 if (/Take-home/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /= flexible/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /\(automatic\)/.test(dash.getRange('A' + DASH.FLEX_SUB).getFormula())) ok('Dashboard shows how the flexible figure is reached and says whether the target is automatic or set by hand'); else bad('dashboard expected line missing: ' + dash.getRange('A' + DASH.EXPECT_LINE).getFormula().slice(0, 80));
 
 /* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */

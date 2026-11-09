@@ -23,7 +23,7 @@ const PD = 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=
 
 const DASH = {
   ACCT_HEADER: 3, ACCT_FIRST: 4, MONTH_BAR: 9,
-  SELECTED_MONTH: 'B10',
+  SELECTED_MONTH: 'B10', REVIEW_LINE: 11,
   CARD_ROW_LABEL: 12, CARD_ROW_VALUE: 13, CARD_ROW_SUB: 14, EXPECT_LINE: 15,
   FLEX_BAR: 17, FLEX_LABEL: 18, FLEX_VALUE: 19, FLEX_SUB: 20,
   CHECK_BAR: 22, CHECK_HEADER: 23, CHECK_FIRST: 24, CHECK_COUNT: 8,
@@ -144,8 +144,11 @@ function buildDashboard_() {
     .setBorder(true, true, true, true, false, false, COLORS.NAVY, SpreadsheetApp.BorderStyle.SOLID)
     .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).setHelpText('Enter any date in the month you want to view; use the first of the month.').build());
   mergePut('C10:E10', '="Showing "&TEXT(' + SEL + ',"mmmm yyyy")&IF(' + SEL + '<>' + CUR_MONTH + ',"  (not the current month)","")').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
-  mergePut('F10:I10', F('=IFERROR(LET(n,COUNTIF([STAGING.status],"Needs Review")+COUNTIF([STAGING.status],"Needs Split"),IF(n=0,"Import Staging: nothing awaiting review",n&" imported transaction(s) awaiting review on Import Staging")),"")'))
-    .setFontSize(9).setHorizontalAlignment('right').setFontColor(COLORS.MUTED_TEXT);
+  // bank rows waiting for review: a full-width banner that links to the Import Staging tab (amber while anything waits)
+  const stagingGid = getOrCreateSheet_(SHEETS.STAGING).getSheetId();
+  mergePut('A' + DASH.REVIEW_LINE + ':I' + DASH.REVIEW_LINE, F('=IFERROR(LET(n,COUNTIF([STAGING.status],"Needs Review")+COUNTIF([STAGING.status],"Needs Split"),HYPERLINK("#gid=' + stagingGid + '",IF(n=0,"Bank imports: nothing waiting for your review","' + '\u26A0 ' + '"&n&" bank transaction(s) waiting for your review \u2014 click here to open Import Staging, then Finance Tracker \u2192 Import reviewed rows"))),"")'))
+    .setFontSize(10).setFontWeight('bold').setHorizontalAlignment('center').setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT);
+  sh.setRowHeight(DASH.REVIEW_LINE, 26);
 
   /* --- three cards: expected gross (faded), expected take-home (the one that matters), spent so far --- */
   const selMatch = 'MATCH(' + SEL + ',[PLAN.month],0)';
@@ -199,7 +202,7 @@ function buildDashboard_() {
   sh.setConditionalFormatRules([
     cfRule_(sh.getRange(av + ':C' + DASH.FLEX_VALUE), '=AND(ISNUMBER(' + av + '),' + av + '<0)', COLORS.OVER_FILL, COLORS.OVER_FONT),
     cfRule_(sh.getRange(av + ':C' + DASH.FLEX_VALUE), '=AND(ISNUMBER(' + av + '),' + av + '>=0)', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
-    cfRule_(sh.getRange('F10:I10'), '=ISNUMBER(SEARCH("awaiting review on",F10))', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
+    cfRule_(sh.getRange('A' + DASH.REVIEW_LINE + ':I' + DASH.REVIEW_LINE), '=ISNUMBER(SEARCH("waiting for your review",A' + DASH.REVIEW_LINE + '))', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
   ]);
 
   /* --- Monthly Review Checklist --- */

@@ -1,6 +1,19 @@
 # STATUS
 
-Last updated: 2026-11-07 (bank feed deployed and first bank connected)
+Last updated: 2026-11-09 (live balances merged; Import Staging moved next to
+Transactions with a Dashboard review banner, pull request
+`claude/review-visibility`)
+
+## Where the owner is (2026-11-09)
+- Connected: Capital One, Fidelity, Independent Bank (checking, savings,
+  Elan card), American Express. Live balances on Sync now (PR #27 merged).
+- Import Staging holds the first real bank rows; transfers auto-imported,
+  the rest wait for review. Car payment set up by hand in the Sheet
+  (RULE-001, REC-002, car-loan minimum and due day on Debts).
+- Open questions: American Express transactions have not arrived yet
+  (Plaid still preparing history); the Elan card's charges may need Elan
+  connected as its own institution; the owner may want a review window
+  later (option 2, declined for now in favour of the tab move and banner).
 
 ## Works
 - The full build (`buildWorkbookWithSample` / `buildWorkbookEmpty`): now 22
