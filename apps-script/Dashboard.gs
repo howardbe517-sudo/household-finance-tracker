@@ -302,7 +302,9 @@ function buildDashboard_() {
   /* --- protection: warning-only, except inputs --- */
   const prot = sh.protect().setDescription('Dashboard is calculated. Change the Selected Month in B10 or tick the checklist; write goals on the Goals tab; edit data on the raw tabs.');
   prot.setWarningOnly(true);
-  prot.setUnprotectedRanges([sh.getRange('B10'), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))]);
+  setNamedRange_('DASH_SELECTED_MONTH', sh.getRange(DASH.SELECTED_MONTH));
+  setNamedRange_('DASH_CHECKLIST', sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)));
+  prot.setUnprotectedRanges([sh.getRange(DASH.SELECTED_MONTH), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))]);
 }
 
 /* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook. */
