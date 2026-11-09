@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-11-09 — Paycheck counts on the Dashboard line shown as whole numbers
+- What changed: the "Expected this month" line read "Ben 2. paychecks"; whole
+  counts now show as "2" and fractional (average) counts as "2.2".
+- Files changed in `apps-script/`: `Dashboard.gs` (deployed on merge). Then
+  Finance Tracker → Upgrade workbook once (rebuilds the Dashboard).
+- Tested: Node. Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/paycheck-count-format`
+
 ## 2026-11-09 — Expected income and an automatic flexible-spending target
 - What changed (the owner wants the Dashboard to say what the household
   makes in a typical month and what is free to spend, not only what has
