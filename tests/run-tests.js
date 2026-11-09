@@ -29,11 +29,12 @@ console.log(`Build completed in ${Date.now() - t0} ms (mock). QA inside mock: ${
 const ss = g.__ss;
 const TABLES = vm.runInContext('TABLES', ctx);
 const TAB_ORDER = vm.runInContext('TAB_ORDER', ctx);
+const DASH = vm.runInContext('DASH', ctx);
 const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 24 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('24 tabs in the specified order (20 from the handoff + Import Rules + Connections + Goals + Reminders)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 24 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('24 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; setup and feed tabs last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 8, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 26 };
@@ -74,7 +75,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -114,13 +115,14 @@ const actualF = budget.getRange(5, 5).getFormula();
 checkRef(actualF, [[SHEETS.TX, 'D', 'Amount ($)'], [SHEETS.TX, 'Q', 'Month'], [SHEETS.TX, 'F', 'Category'], [SHEETS.TX, 'E', 'Type'], [SHEETS.TX, 'X', 'Is Deleted']]);
 if (actualF.indexOf('"<>TRUE"') >= 0) ok('Monthly Budget Actual excludes soft-deleted rows'); else bad('Monthly Budget Actual lacks the soft-delete filter');
 const dash = ss.getSheetByName(SHEETS.DASH);
-const fedBen = dash.getRange('B24').getFormula(), fedVal = dash.getRange('E24').getFormula(), fedHH = dash.getRange('H24').getFormula();
-if (fedBen.indexOf("'Income'!$H$5:$H") >= 0 && fedBen.indexOf('"Ben"') >= 0 && fedVal.indexOf('"Valerie"') >= 0 && fedHH.indexOf("'Income'!$H$5:$H") >= 0 && fedHH.indexOf('person') < 0) ok('Dashboard Federal Tax formulas present for Ben, Valerie, Household (Income col H)'); else bad('Dashboard Federal Tax formulas: ' + fedBen + ' | ' + fedVal + ' | ' + fedHH);
-['A23:C23', 'D23:F23', 'G23:I23'].forEach(r => { const h = dash.getRange(r).getValues()[0]; if (h.join('|') !== 'Deduction|Amount|% of Gross') bad('Payroll header ' + r + ' = ' + h.join('|')); });
+const PF = DASH.PAYROLL_FIRST, PH = DASH.PAYROLL_HEADER;
+const fedBen = dash.getRange('B' + PF).getFormula(), fedVal = dash.getRange('E' + PF).getFormula(), fedHH = dash.getRange('H' + PF).getFormula();
+if (fedBen.indexOf("'Income'!$H$5:$H") >= 0 && fedBen.indexOf('"Ben"') >= 0 && fedVal.indexOf('"Valerie"') >= 0 && fedHH.indexOf("'Income'!$H$5:$H") >= 0 && fedHH.indexOf('person') < 0) ok('Dashboard Federal Tax formulas present for Ben, Valerie, Household'); else bad('Dashboard Federal Tax formulas: ' + [fedBen, fedVal, fedHH].join(' | '));
+['A' + PH + ':C' + PH, 'D' + PH + ':F' + PH, 'G' + PH + ':I' + PH].forEach(r => { const h = dash.getRange(r).getValues()[0]; if (h.join('|') !== 'Deduction|Amount|% of Gross') bad('Payroll header ' + r + ' = ' + h.join('|')); });
 ok('Payroll headers Deduction | Amount | % of Gross present in all three groups');
-if (dash.getRange('A32').getFormula().indexOf('TEXT(TODAY(),"mmmm yyyy")') >= 0) ok('Current Flexible Spending label uses TODAY()'); else bad('Flexible label formula: ' + dash.getRange('A32').getFormula());
-if (dash.getRange('E17').getFormula().indexOf('SPARKLINE(($B17-300)/550') >= 0) ok('Credit score SPARKLINE position bar'); else bad('Credit sparkline: ' + dash.getRange('E17').getFormula());
-if (dash.getRange('A6').getFormula() === "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$3)") ok('Gross card = SUMIFS(Income gross, Income month, Selected Month)'); else bad('Gross card: ' + dash.getRange('A6').getFormula());
+if (dash.getRange('A' + DASH.FLEX_BAR).getFormula().indexOf('TEXT(TODAY(),"mmmm yyyy")') >= 0) ok('Current Flexible Spending label uses TODAY()'); else bad('Flexible label formula: ' + dash.getRange('A' + DASH.FLEX_BAR).getFormula());
+if (dash.getRange('E' + DASH.CREDIT_BEN).getFormula().indexOf('SPARKLINE(($B' + DASH.CREDIT_BEN + '-300)/550') >= 0) ok('Credit score SPARKLINE position bar'); else bad('Credit sparkline: ' + dash.getRange('E' + DASH.CREDIT_BEN).getFormula());
+if (dash.getRange('A' + DASH.CARD_ROW_VALUE).getFormula() === "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$10)") ok('Gross card = SUMIFS(Income gross, Income month, Selected Month)'); else bad('Gross card: ' + dash.getRange('A' + DASH.CARD_ROW_VALUE).getFormula());
 
 /* 6. sample data landed */
 const txRows = vm.runInContext("readTable_(TABLES.TX)", ctx);
@@ -350,9 +352,27 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const dashSh = g.__ss.getSheetByName(SHEETS.DASH), goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[2] === SHEETS.GOALS) ok('Goals tab (third tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[3] === SHEETS.GOALS) ok('Goals tab (fourth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+const dSh = g.__ss.getSheetByName(SHEETS.DASH);
+const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
+if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMIFS\(.*Accounts.*\*Independent Bank\*.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /Debts.*nextDue|Debts/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Dashboard opens with checking, savings and the three cards (owed, due date, total), plain numbers'); else bad('dashboard accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
+if (dSh.getRange('A9').getValue() === 'This month' && dSh.getRange('A10').getValue() === 'Selected Month' && dSh.getRange('A12').getValue() === 'Household Gross Income' && dSh.getRange('A' + DASH.FUNDS_BAR).getValue() === 'Savings & Reserves' && g.__ss.namedRanges.has('DASH_SELECTED_MONTH') && /^B10(:B10)?$/.test(g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation())) ok('the month cards and every later section moved down under a "This month" bar; Selected Month is B10 with a named range'); else bad('dashboard shift: ' + JSON.stringify([dSh.getRange('A9').getValue(), dSh.getRange('A10').getValue(), dSh.getRange('A12').getValue(), dSh.getRange('A' + DASH.FUNDS_BAR).getValue(), g.__ss.namedRanges.has('DASH_SELECTED_MONTH'), g.__ss.getRangeByName('DASH_SELECTED_MONTH') && g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation()]));
+if (TAB_ORDER[0] === SHEETS.DASH && TAB_ORDER[1] === SHEETS.FUNDS && TAB_ORDER[2] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN) && TAB_ORDER.indexOf(SHEETS.START) > TAB_ORDER.indexOf(SHEETS.CATS)) ok('tab order: Dashboard, Savings & Reserves, Debts first; Accounts next to Connections; Start Here with the setup tabs'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+// a Recurring Payments row typed by hand gets its ID, Active and Next Payment Date
+const recSh = g.__ss.getSheetByName(SHEETS.RECUR), recDef = TABLES.RECUR;
+const freeRow = R(`nextEmptyRow_(tdef_('RECUR'))`);
+const dueColIdx = recDef.columns.findIndex(c => c.key === 'dueDay') + 1;
+recSh.getRange(freeRow, 2).setValue('Rent');
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.RECUR}').getRange(${freeRow}, 2), value: 'Rent' })`);
+const recId = recSh.getRange(freeRow, 1).getValue(), recActive = recSh.getRange(freeRow, recDef.columns.findIndex(c => c.key === 'active') + 1).getValue();
+if (/^REC-\d{3}$/.test(recId) && recActive === true) ok('typing a name on a blank Recurring Payments row assigns the next Recurring ID and ticks Active'); else bad('auto-ID: ' + JSON.stringify([recId, recActive]));
+recSh.getRange(freeRow, dueColIdx).setValue(1);
+R(`onEdit({ range: ss_().getSheetByName('${SHEETS.RECUR}').getRange(${freeRow}, ${dueColIdx}), value: 1 })`);
+const nextPay = recSh.getRange(freeRow, recDef.columns.findIndex(c => c.key === 'nextPayment') + 1).getValue();
+if (nextPay && typeof nextPay.getDate === 'function' && nextPay.getDate() === 1 && nextPay >= new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) ok('entering a Due Day fills the Next Payment Date with the next 1st of the month'); else bad('next payment: ' + nextPay);
+recSh.getRange(freeRow, 1, 1, recDef.columns.length).setValues([Array(recDef.columns.length).fill('')]); // test-only: clear the mock row again
 const remSh = g.__ss.getSheetByName(SHEETS.REMINDERS);
-if (remSh && remSh.getRange('A1').getValue() === 'Reminders' && TAB_ORDER[3] === SHEETS.REMINDERS && /studentaid\.gov/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormula()) && g.__ss.getRangeByName('REMINDERS_BOX').getSheet().getName() === SHEETS.REMINDERS && dashSh.getMaxColumns() === 9) ok('Reminders tab (fourth tab) holds the calculated reminders box; the Dashboard is back to columns A:I'); else bad('reminders tab: ' + JSON.stringify([remSh && remSh.getRange('A1').getValue(), dashSh.getMaxColumns()]));
+if (remSh && remSh.getRange('A1').getValue() === 'Reminders' && TAB_ORDER[4] === SHEETS.REMINDERS && /studentaid\.gov/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormula()) && g.__ss.getRangeByName('REMINDERS_BOX').getSheet().getName() === SHEETS.REMINDERS && dashSh.getMaxColumns() === 9) ok('Reminders tab (fifth tab) holds the calculated reminders box; the Dashboard is back to columns A:I'); else bad('reminders tab: ' + JSON.stringify([remSh && remSh.getRange('A1').getValue(), dashSh.getMaxColumns()]));
 const due1 = R(`dueReminders_()`);
 if (due1.filter(r => /^pslf:/.test(r.key)).length === 2 && due1.filter(r => /^pslf:/.test(r.key)).every(r => /never entered/.test(r.text)) && due1.filter(r => /^credit:/.test(r.key)).length === 2 && due1.filter(r => /^credit:/.test(r.key)).every(r => /never entered/.test(r.text))) ok('reminders: the two servicer loans with no PSLF count and both people\'s never-entered credit scores are due; the sample loan (count 3 months old) is not'); else bad('dueReminders_: ' + JSON.stringify(due1));
 // a fresh score today clears that person's credit reminder; an old one does not

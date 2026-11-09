@@ -16,11 +16,11 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns (Next Payment Due, Loan Status / Plan, the PSLF columns, Feed Updated), the Connections column Liabilities Feed, the new **Goals** and **Reminders** tabs, Pension in the Account Type list, and two settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
-          "text": "Run **Finance Tracker → Bank feed → Sync now**. Google asks you to approve one new permission (sending email, for reminders); approve it. The sync then reports each connection, and Capital One may now show debt rows updated from the lender.",
+          "text": "Run **Finance Tracker → Bank feed → Sync now**. Google asks you to approve one new permission (sending email, for reminders); approve it. The sync then reports each connection and may show debt rows updated from the lender.",
           "note": "Until that approval is given once, the nightly sync cannot run. Everything else works without it."
         },
         {
@@ -132,6 +132,19 @@
         {
           "text": "Open the new **Goals** tab (third tab, right after the Dashboard). Click into **Goal 1**'s big box and type the goal in your own words, as long as you like; the box wraps the text. Use the five boxes however suits you.",
           "note": "These boxes are yours: upgrades keep the text. When you later want goals split into monthly, yearly and five-year targets, tell me and we build that on top."
+        }
+      ]
+    },
+    {
+      "heading": "Dashboard accounts block and typed rows",
+      "steps": [
+        {
+          "text": "Open the **Dashboard**. The first block shows Checking and Savings (Independent Bank) with tonight's balance and when it synced, and the three credit cards with the amount owed, the due date from the lender, and a total owed. The Selected Month and the monthly cards now sit under a \"This month\" bar beneath it.",
+          "note": "Lines read \"not connected yet\" until that bank is connected; Independent Bank's will fill in once its connection goes through. The Selected Month input moved to B10."
+        },
+        {
+          "text": "When you type a new row on any table, for example a bill on **Recurring Payments**, the ID in column A fills in by itself as soon as you enter the name, Active is ticked, and entering a Due Day fills Next Payment Date. Totals and the Dashboard count the row from then on.",
+          "note": "Your rent row already has REC-001 and Active. Add its Due Day so it appears in \"Due in the next 14 days\"."
         }
       ]
     }

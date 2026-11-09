@@ -123,6 +123,7 @@ function onEdit(e) {
     if (r.getRow() < def.firstRow) return;
     const now = new Date();
     const who = userEmail_();
+    autoFillRow_(def, sh, r, e, who);
     if (!changeLogEnabled_()) { stampTx_(def, sh, r, e, now, who); return; }
     if (r.getNumRows() > 1 || r.getNumColumns() > 1) {
       appendChangeLog_({ table: key, recordId: '', field: r.getA1Notation(), action: 'Bulk Edit', notes: r.getNumRows() + 'x' + r.getNumColumns() + ' cells edited', user: who });
@@ -137,6 +138,41 @@ function onEdit(e) {
     appendChangeLog_({ table: key, recordId: id, field: c.h, oldValue: e.oldValue === undefined ? '' : e.oldValue, newValue: newVal, action: 'Update', user: who });
     stampTx_(def, sh, r, e, now, who);
   } catch (err) { /* never block the user's edit */ }
+}
+
+/**
+ * A row typed by hand gets what the script would have given it: the next ID (so the totals count
+ * it), Active ticked on a new Recurring Payments row, and a Next Payment Date worked out from the
+ * Due Day when none was typed. Only fills blanks; never overwrites what the owner wrote.
+ */
+function autoFillRow_(def, sh, r, e, who) {
+  if (!def.idPrefix || def.columns[0].f || r.getNumRows() > 1 || r.getNumColumns() > 1) return;
+  const row = r.getRow(), col = r.getColumn();
+  if (col > def.columns.length) return;
+  const newVal = e.value === undefined ? r.getValue() : e.value;
+  const idCell = sh.getRange(row, 1);
+  if (col !== 1 && String(idCell.getValue() || '') === '' && newVal !== '' && newVal !== null) {
+    const width = (def.idPattern || '').split('-').pop().length || 3;
+    const id = nextId_(def, width);
+    idCell.setValue(id);
+    if (def.key === 'RECUR') {
+      const a = sh.getRange(row, colIndex_(def, 'active'));
+      if (a.getValue() !== true) a.setValue(true);
+    }
+    appendChangeLog_({ table: def.key, recordId: id, field: '(row)', newValue: 'ID assigned to a typed row', action: 'Insert', user: who || 'onEdit' });
+  }
+  if (def.key === 'RECUR') {
+    const due = Number(sh.getRange(row, colIndex_(def, 'dueDay')).getValue());
+    const nextCell = sh.getRange(row, colIndex_(def, 'nextPayment'));
+    if (due >= 1 && due <= 31 && (nextCell.getValue() === '' || nextCell.getValue() === null)) {
+      const t = new Date();
+      const todayMid = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      const inMonth = (y, m) => new Date(y, m, Math.min(due, new Date(y, m + 1, 0).getDate()));
+      let d = inMonth(t.getFullYear(), t.getMonth());
+      if (d < todayMid) d = inMonth(t.getFullYear(), t.getMonth() + 1);
+      nextCell.setValue(d);
+    }
+  }
 }
 
 function stampTx_(def, sh, r, e, now, who) {

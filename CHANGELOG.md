@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
+- What changed:
+  - **Accounts block on the Dashboard** (the owner's choice after several
+    mockups): rows 3–7 now show Checking and Savings (Independent Bank) with
+    tonight's balance and when it synced on the left, and the credit cards in
+    the owner's order (Independent Bank, American Express, Capital One) with
+    the amount owed, the lender's due date and a total on the right. Plain
+    numbers: no trend lines, no minimums. A line reads "not connected yet"
+    until its bank is connected. Layout in `DASH_ACCOUNTS` (Config.gs).
+  - **"This month" section**: the Selected Month and the four cards (gross,
+    take-home, spending, savings) and everything below them move down seven
+    rows under a new bar. Selected Month is now B10; the input cells carry
+    named ranges (`DASH_SELECTED_MONTH`, `DASH_CHECKLIST`) so the upgrade
+    carries them over from either layout.
+  - **Tab order**: Dashboard, Savings & Reserves, Debts, Goals, Reminders,
+    then the ledgers and derived tables, Credit Scores, Categories, then
+    Start Here with the setup and feed tabs (Accounts next to Connections).
+  - **Typed rows get their IDs**: a row typed by hand on any ID-numbered
+    table receives the next ID the moment a cell is filled (the owner's rent
+    row sat outside every total because Recurring ID was blank). A new
+    Recurring Payments row is also ticked Active, and a Due Day fills Next
+    Payment Date when it was blank.
+  - The separate Accounts Dashboard tab and Balance History table built
+    earlier on this branch were dropped before merge (not wanted).
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `Main.gs`,
+  `Upgrade.gs`, `Reference.gs` (deployed on merge). Then Finance Tracker →
+  Upgrade workbook once (rebuilds the Dashboard, reorders the tabs).
+- Tested: Node (accounts block cells and formulas; every later section
+  found at its shifted row; named ranges; tab order; a typed Recurring row
+  gets REC-xxx, Active and Next Payment Date; upgrade path). Not yet tried in
+  Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/accounts-dashboard` (on top of `claude/credit-score-reminder`)
+
 ## 2026-11-08 — Credit score reminders; Reminders on their own tab
 - What changed: the reminders (box, monthly email, Finance Tracker → Show
   reminders) now also flag each person whose latest Credit Scores entry is

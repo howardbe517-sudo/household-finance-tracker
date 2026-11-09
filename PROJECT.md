@@ -25,7 +25,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
-| Dashboard | Monthly snapshot for the Selected Month (B3) + Current Flexible Spending for today's week | — | Columns A:I; four cards A:H; compact Income by Person and Credit Scores A:E; payroll groups A:C / D:F / G:I |
+| Dashboard | Tonight's balances for checking, savings and the cards (rows 3–7), then the monthly snapshot for the Selected Month (B10) + Current Flexible Spending for today's week | — | Columns A:I; accounts block A:D / F:I; four cards A:H; compact Income by Person and Credit Scores A:E; payroll groups A:C / D:F / G:I |
 | Income | Paycheck database, authoritative for gross, deductions, take-home | 4 | A:S (S = Linked Deposit TX, calculated) |
 | Transactions | Master ledger | 4 | A:AF, 32 columns; Validation Flag Z, Split Difference AE |
 | Recurring Payments | Expected obligations with summaries | 40 | Presentation rows 1–38; raw table from row 41 |
@@ -157,6 +157,13 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   lists hand-entered values that have gone stale (PSLF counts); the
   Dashboard Reminders box shows the same by formula and `sendReminders_`
   emails it at most monthly from the nightly sync.
+- The Dashboard's accounts block (rows 3–7, layout in `DASH_ACCOUNTS`) is
+  formulas over Accounts and Debts; every later Dashboard row sits
+  `DASH.SHIFT` rows below its handoff position, and the upgrade reads the
+  Selected Month and checklist through named ranges (legacy addresses as a
+  fallback) before rebuilding.
+- `autoFillRow_` (onEdit) gives a typed row its next ID, ticks Active on a
+  new Recurring Payments row and fills Next Payment Date from Due Day.
 - `ensureMonthRows_` (run by every sync) keeps a Monthly Plan row and the
   Monthly Budget rows for the current month in place.
 - Each Plaid connection uses one of the free Trial slots permanently

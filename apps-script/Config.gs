@@ -51,11 +51,13 @@ const SHEETS = {
 };
 
 const TAB_ORDER = [
-  SHEETS.START, SHEETS.DASH, SHEETS.GOALS, SHEETS.REMINDERS, SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR,
-  SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY, SHEETS.FUNDS, SHEETS.DEBTS,
-  SHEETS.QDR, SHEETS.NW, SHEETS.ACCOUNTS, SHEETS.REVIEW, SHEETS.CATS,
-  SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
-  SHEETS.LOG, SHEETS.CREDIT,
+  // The owner's order (2026-11-09): the three tabs looked at most first, then goals and reminders,
+  // the ledgers and derived tables, and the setup and feed tabs at the end.
+  SHEETS.DASH, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS, SHEETS.REMINDERS,
+  SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
+  SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
+  SHEETS.ACCOUNTS, SHEETS.LOG,
 ];
 
 const COLORS = {
@@ -810,6 +812,19 @@ TABLES.NW = {
 const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
+/**
+ * The accounts block at the top of the Dashboard (the owner's choice, 2026-11-09): checking and
+ * savings on the left, the credit cards on the right in this order. Each line sums the Accounts
+ * rows whose institution contains the text and whose type matches. Edit here to change the block.
+ */
+const DASH_ACCOUNTS = {
+  main: [
+    { label: 'Checking', sub: 'Independent Bank', type: 'Checking', institution: 'Independent Bank' },
+    { label: 'Savings', sub: 'Independent Bank', type: 'Savings', institution: 'Independent Bank' },
+  ],
+  cards: ['Independent Bank', 'American Express', 'Capital One'],
+};
+
 // Plaid's free Trial cap on connected institutions (the dashboard's "connections"), as shown on the owner's plan page.
 const PLAID_TRIAL_LIMIT = 20;
 
