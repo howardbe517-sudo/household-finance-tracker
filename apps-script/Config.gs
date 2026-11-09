@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.5-backed-funds-2026-11-09',
-  BUILD_VERSION: '1.5.0',
+  BUILD_VERSION: '1.5.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -55,11 +55,12 @@ const SHEETS = {
 
 const TAB_ORDER = [
   // The owner's order (2026-11-09): the three tabs looked at most first, then goals and reminders,
-  // the ledgers and derived tables, and the setup and feed tabs at the end.
+  // the ledgers and derived tables, and the setup and feed tabs at the end. Import Staging sits
+  // right after Transactions because the owner reviews it often.
   SHEETS.DASH, SHEETS.FINSUM, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
-  SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
+  SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
 ];
 

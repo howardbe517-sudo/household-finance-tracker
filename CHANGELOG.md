@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-11-09 — Import Staging easier to find: tab after Transactions, review banner on the Dashboard
+- What changed: the owner reviews Import Staging often and found it buried
+  among the setup tabs, and the small grey "awaiting review" note on the
+  Dashboard went unnoticed. (1) The **Import Staging** tab now sits right
+  after Transactions (`TAB_ORDER` in `Config.gs`); the upgrade moves it.
+  (2) Dashboard row 11 is a full-width banner: green "Bank imports: nothing
+  waiting for your review" when the staging tab is clear, amber with the
+  count ("9 bank transaction(s) waiting for your review — click here to
+  open Import Staging, then Finance Tracker → Import reviewed rows") when
+  rows wait. The banner is a link that jumps to the Import Staging tab.
+  The old note in F10:I10 is gone. No column, header or tab name changed.
+- Also done by hand in the owner's Sheet (data, not code): Import Rule
+  RULE-001 (descriptions containing "CAPITAL ONE AUTO" → Debt Payment on
+  the car loan, auto-import), Recurring Payment REC-002 (car payment,
+  monthly on the 2nd from savings) and the car loan's minimum payment and
+  due day on Debts.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs` (deployed on
+  merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once, then
+  **Re-apply rules to waiting rows** to pull in the November car payment.
+- Tested: Node (tab order, the banner formula and its link, the
+  conditional format, the removed F10 note; whole suite green). Not yet
+  tried in Google: the in-sheet link (`HYPERLINK("#gid=…")`) and the
+  banner's look.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/review-visibility`
+
 ## 2026-11-09 — Sync now pulls live balances; checking and savings show the available balance
 - What changed: the owner saw a checking balance higher than at the bank
   after paying a card, and Sync now did not move it. Two causes, two fixes.

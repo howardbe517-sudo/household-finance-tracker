@@ -1,0 +1,50 @@
+{
+  "title": "Import Staging, Easier to Find",
+  "key": "household-finance-tracker-2026-11-09-review-visibility",
+  "subtitle": "Moves the Import Staging tab next to Transactions and puts a review banner on the Dashboard that links to it. One menu run, then one more to pull in the car payment.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. These steps move the tab, draw the banner, and apply the new car-payment rule.",
+    "**What does not change:** no rows, balances, categories, tab names or column headers. The Dashboard keeps your Selected Month and checklist ticks."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before review banner 2026-11-09`.",
+          "note": "If anything looks wrong afterwards, File → Version history → See version history lets you restore this point."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm. It takes about a minute.",
+          "note": "If the menu says the upgrade is already current, wait a minute and run it again; the deploy may still have been landing."
+        },
+        {
+          "text": "Check the tab strip at the bottom: **Import Staging** now sits right after **Transactions**.",
+          "done": "Import Staging is the ninth tab, between Transactions and Recurring Payments."
+        },
+        {
+          "text": "Open the **Dashboard**. Row 11, just under Selected Month, is a banner. Amber means bank rows are waiting; green means the staging tab is clear. Click the banner once: it should jump to Import Staging.",
+          "done": "The banner reads something like \"9 bank transaction(s) waiting for your review\" and clicking it opens Import Staging."
+        }
+      ]
+    },
+    {
+      "heading": "Pull in the car payment",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Re-apply rules to waiting rows**. The new rule RULE-001 catches the \"CAPITAL ONE AUTO - DIRECTPAY\" row and imports it as a Debt Payment on your car loan.",
+          "done": "The message says 1 waiting row updated. On Transactions, a new row shows the $286.47 car payment with Type Debt Payment; the Dashboard banner count drops by one."
+        },
+        {
+          "text": "Optional: for each other waiting row you recognise (Venmo, Acorns, Fidelity, the paychecks), click the row on Import Staging and run **Finance Tracker → Make a rule from the selected row…**. Pick the Type and Category, tick **Always auto-import** if it should never need you again, and save.",
+          "note": "Paychecks: Type Income, Category Income, Subcategory Salary, Person Ben or Valerie. Acorns and Fidelity: Type Savings with the matching fund. Venmo depends on what it was, so leave those without auto-import."
+        }
+      ]
+    }
+  ]
+}

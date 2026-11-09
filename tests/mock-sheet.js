@@ -74,7 +74,9 @@ class Protection {
 class Sheet {
   constructor(ss, name) {
     Object.assign(this, { ss, name, grid: new Map(), maxRows: 1000, maxCols: 26, frozenRows: 0, frozenCols: 0, cfRules: [], merges: [], protections: [], colWidths: {}, rowHeights: {}, hiddenGridlines: false });
+    this.sheetId = Sheet._nextId = (Sheet._nextId || 0) + 1;
   }
+  getSheetId() { return this.sheetId; }
   _cell(r, c) { const k = r + ',' + c; let cell = this.grid.get(k); if (!cell) { cell = { v: '', f: null, dv: null }; this.grid.set(k, cell); } return cell; }
   _get(r, c) { return this.grid.get(r + ',' + c) || { v: '', f: null, dv: null }; }
   _set(r, c, v, isFormula) {
