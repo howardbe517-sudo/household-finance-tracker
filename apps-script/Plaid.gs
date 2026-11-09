@@ -210,7 +210,7 @@ function buildMapping_(connId, institution, mode, possibleDuplicate) {
   if (!token) throw new Error('No access token stored for ' + connId + '.');
   const acc = plaidCall_('/accounts/get', { access_token: token });
   const accounts = (acc.accounts || []).map(a => ({ externalId: a.account_id, name: a.official_name || a.name, mask: a.mask || '', type: a.type, subtype: a.subtype || '',
-    current: a.balances ? a.balances.current : '', guessType: guessAccountType_(a.type, a.subtype) }));
+    current: a.balances ? a.balances.current : '', guessType: guessAccountType_(a.type, a.subtype, a.official_name || a.name) }));
   const result = { status: 'connected', connectionId: connId, institution, mode: mode || 'spending', accounts, possibleDuplicate: !!possibleDuplicate };
   plaidProps_().setProperty(PLAID_PROPS.PENDING_MAP, JSON.stringify(result));
   result.existingAccounts = existingAccountsForMapping_();
@@ -263,11 +263,11 @@ function finishAccountMapping(p) {
   let nextNum = parseInt(nextId_(accDef, 3).split('-')[1], 10);
   (p.mappings || []).forEach(m => {
     if (m.accountId === 'skip') return;
-    const guessType = guessAccountType_(m.type, m.subtype);
+    const guessType = guessAccountType_(m.type, m.subtype, m.name);
     const now = new Date();
     if (m.accountId && m.accountId !== 'new' && byId[m.accountId]) {
       const r = byId[m.accountId];
-      if (m.type === 'loan' || m.type === 'credit') loans.push([r.id, m, r.name]);
+      if (guessType === 'Loan' || guessType === 'Credit Card') loans.push([r.id, m, r.name]);
       sh.getRange(r.__row, colIndex_(accDef, 'externalAccountId')).setValue(m.externalId);
       sh.getRange(r.__row, colIndex_(accDef, 'connectionId')).setValue(p.connectionId);
       sh.getRange(r.__row, colIndex_(accDef, 'importTx')).setValue(m.importTx === true);
@@ -276,7 +276,7 @@ function finishAccountMapping(p) {
       linked++;
     } else {
       const newId = 'ACC-' + String(nextNum++).padStart(3, '0');
-      if (m.type === 'loan' || m.type === 'credit') loans.push([newId, m, m.name + (m.mask ? ' ····' + m.mask : '')]);
+      if (guessType === 'Loan' || guessType === 'Credit Card') loans.push([newId, m, m.name + (m.mask ? ' ····' + m.mask : '')]);
       newRows.push({ id: newId, name: m.name + (m.mask ? ' ····' + m.mask : ''), institution: p.institution || '', accountType: guessType,
         owner: '', includeNW: 'Yes', startingBalance: '', currentBalance: m.current === '' || m.current === null || m.current === undefined ? '' : Number(m.current), lastUpdated: now,
         notes: 'Created by the bank feed on ' + now.toISOString().slice(0, 10), externalAccountId: m.externalId, connectionId: p.connectionId, importTx: m.importTx === true, lastSynced: now });
@@ -293,6 +293,18 @@ function finishAccountMapping(p) {
   return { linked, created, debts, synced };
 }
 
+/** The names a card issuer may appear under (from DASH_ACCOUNTS.cards), lower-cased: e.g. Elan ↔ Independent Bank. */
+function issuerAliases_(institution) {
+  const inst = String(institution || '').toLowerCase();
+  const first = inst.split(' ')[0];
+  const out = first ? [first] : [];
+  (DASH_ACCOUNTS.cards || []).forEach(c => {
+    const pats = (c.patterns || [c.label || c]).map(x => String(x).toLowerCase());
+    if (pats.some(x => inst.indexOf(x) >= 0)) pats.forEach(x => { if (out.indexOf(x) < 0) out.push(x); });
+  });
+  return out;
+}
+
 /**
  * Every loan account the feed brings in gets a Debts row, so its balance, rate and payments flow
  * into the debt totals without typing. Reuses an empty row the owner already made for it (same
@@ -307,17 +319,17 @@ function ensureDebtRowForLoan_(accountId, m, accountName, p) {
   const debts = readTable_(def);
   if (debts.some(d => d.linkedAccount === accountId)) return 'linked';
   const sub = String(m.subtype || '').toLowerCase();
-  const isCard = m.type === 'credit';
+  const isCard = guessAccountType_(m.type, m.subtype, m.name) === 'Credit Card';
   const isStudent = /student/.test(sub);
   const debtType = isCard ? 'Credit Card' : isStudent ? 'Student Loan' : /auto/.test(sub) ? 'Auto Loan' : /mortgage|home/.test(sub) ? 'Mortgage' : 'Personal Loan';
   const owner = p.owner || 'Household';
   const group = isStudent ? 'Student Loans' : 'Household';
   const today = new Date().toISOString().slice(0, 10);
   const sh = getOrCreateSheet_(def.sheet);
-  const instWord = String(p.institution || '').toLowerCase().split(' ')[0];
+  const aliases = issuerAliases_(p.institution);
   const empty = (d) => !d.linkedAccount && d.debtType === debtType && !(Number(d.originalBalance) > 0);
   const placeholder = isCard
-    ? debts.filter(d => empty(d) && instWord && String(d.lender || '').toLowerCase().indexOf(instWord) >= 0)[0]
+    ? debts.filter(d => empty(d) && aliases.some(a => String(d.lender || '').toLowerCase().indexOf(a) >= 0))[0]
     : debts.filter(d => empty(d) && String(d.owner || '') === owner)[0];
   if (!placeholder && isCard) return 'none';
   if (placeholder) {
@@ -337,9 +349,11 @@ function ensureDebtRowForLoan_(accountId, m, accountName, p) {
 }
 
 /** Plaid account type/subtype → the tracker's Account Type. */
-function guessAccountType_(type, subtype) {
-  const typeMap = { depository: { checking: 'Checking', savings: 'Savings', hsa: 'HSA', 'cash management': 'Cash', paypal: 'Cash', prepaid: 'Cash' }, credit: { 'credit card': 'Credit Card', paypal: 'Credit Card' }, investment: { ira: 'Retirement', roth: 'Retirement', '401k': 'Retirement', '403B': 'Retirement', hsa: 'HSA' }, loan: {} };
-  return (typeMap[type] || {})[subtype] || ({ depository: 'Checking', credit: 'Credit Card', investment: 'Investment', loan: 'Loan' }[type] || 'Other');
+function guessAccountType_(type, subtype, name) {
+  const typeMap = { depository: { checking: 'Checking', savings: 'Savings', hsa: 'HSA', 'cash management': 'Cash', paypal: 'Cash', prepaid: 'Cash' }, credit: { 'credit card': 'Credit Card', paypal: 'Credit Card' }, investment: { ira: 'Retirement', roth: 'Retirement', '401k': 'Retirement', '403B': 'Retirement', hsa: 'HSA' }, loan: { 'credit card': 'Credit Card', 'line of credit': 'Credit Card' } };
+  // some issuers (Elan, which runs Independent Bank's card) report a credit card as a loan; the name says what it is
+  if (type === 'loan' && /credit card|visa|mastercard/i.test(String(name || ''))) return 'Credit Card';
+  return (typeMap[type] || {})[String(subtype || '').toLowerCase()] || ({ depository: 'Checking', credit: 'Credit Card', investment: 'Investment', loan: 'Loan' }[type] || 'Other');
 }
 
 /** Finance Tracker → Bank feed → Repair a connection… (update mode; never a new slot). */

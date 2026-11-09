@@ -54,11 +54,11 @@ const SHEETS = {
 const TAB_ORDER = [
   // The owner's order (2026-11-09): the three tabs looked at most first, then goals and reminders,
   // the ledgers and derived tables, and the setup and feed tabs at the end.
-  SHEETS.DASH, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS, SHEETS.REMINDERS,
+  SHEETS.DASH, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
   SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
-  SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG,
+  SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
 ];
 
 const COLORS = {
@@ -823,7 +823,12 @@ const DASH_ACCOUNTS = {
     { label: 'Checking', sub: 'Independent Bank', type: 'Checking', institution: 'Independent Bank' },
     { label: 'Savings', sub: 'Independent Bank', type: 'Savings', institution: 'Independent Bank' },
   ],
-  cards: ['Independent Bank', 'American Express', 'Capital One'],
+  // label shown, and the texts the Accounts row's Institution may contain (Elan runs Independent Bank's card)
+  cards: [
+    { label: 'Independent Bank', patterns: ['Independent Bank', 'Elan'] },
+    { label: 'American Express', patterns: ['American Express', 'Amex'] },
+    { label: 'Capital One', patterns: ['Capital One'] },
+  ],
 };
 
 /**

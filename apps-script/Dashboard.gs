@@ -95,8 +95,12 @@ function buildDashboard_() {
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
   /* --- accounts block: checking and savings (left), credit cards with due dates (right) --- */
   const q = (s) => String(s).replace(/"/g, '""');
-  const accCrit = (line) => '[ACCOUNTS.institution],"*' + q(line.institution) + '*",[ACCOUNTS.accountType],"' + q(line.type) + '",[ACCOUNTS.includeNW],"Yes"';
-  const balanceOf = (line) => 'IF(COUNTIFS(' + accCrit(line) + ',[ACCOUNTS.connectionId],"<>")=0,"not connected yet",SUMIFS([ACCOUNTS.currentBalance],' + accCrit(line) + '))';
+  const pats = (line) => line.patterns || [line.institution];
+  const crit = (pat, type) => '[ACCOUNTS.institution],"*' + q(pat) + '*",[ACCOUNTS.accountType],"' + q(type) + '",[ACCOUNTS.includeNW],"Yes"';
+  const countOf = (line, type) => pats(line).map(pt => 'COUNTIFS(' + crit(pt, type) + ',[ACCOUNTS.connectionId],"<>")').join('+');
+  const sumOf = (line, type, col) => pats(line).map(pt => 'SUMIFS([ACCOUNTS.' + col + '],' + crit(pt, type) + ')').join('+');
+  const maxOf = (line, type, col) => 'MAX(' + pats(line).map(pt => 'MAXIFS([ACCOUNTS.' + col + '],' + crit(pt, type) + ')').join(',') + ')';
+  const balanceOf = (line, type) => 'IF(' + countOf(line, type) + '=0,"—",' + sumOf(line, type, 'currentBalance') + ')';
   header('A' + DASH.ACCT_HEADER + ':B' + DASH.ACCT_HEADER, ['Account', 'Balance']);
   sh.getRange('C' + DASH.ACCT_HEADER + ':D' + DASH.ACCT_HEADER).merge(); styleHeader_(sh.getRange('C' + DASH.ACCT_HEADER + ':D' + DASH.ACCT_HEADER));
   sh.getRange('C' + DASH.ACCT_HEADER).setValue('Updated');
@@ -107,17 +111,17 @@ function buildDashboard_() {
   DASH_ACCOUNTS.main.forEach((line, i) => {
     const r = DASH.ACCT_FIRST + i;
     put('A' + r, line.label + (line.sub ? ' (' + line.sub + ')' : '')).setFontWeight('bold').setBackground(COLORS.CARD_GROSS);
-    put('B' + r, F('=' + balanceOf(line))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
-    mergePut('C' + r + ':D' + r, F('=IFERROR(LET(d,MAXIFS([ACCOUNTS.lastSynced],' + accCrit(line) + '),IF(d=0,"",TEXT(d,"mmm d, h:mm am/pm"))),"")')).setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
+    put('B' + r, F('=' + balanceOf(line, line.type))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
+    mergePut('C' + r + ':D' + r, F('=IF(' + countOf(line, line.type) + '=0,"not connected yet",IFERROR(LET(d,' + maxOf(line, line.type, 'lastSynced') + ',IF(d=0,"",TEXT(d,"mmm d, h:mm am/pm"))),""))')).setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
     sh.setRowHeight(r, 28);
   });
-  DASH_ACCOUNTS.cards.forEach((inst, i) => {
+  DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = DASH.ACCT_FIRST + i;
-    const line = { institution: inst, type: 'Credit Card' };
-    put('F' + r, inst).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
-    put('G' + r, F('=' + balanceOf(line))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
-    const idOf = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",ISNUMBER(SEARCH("' + q(inst) + '",[ACCOUNTS.institution])),[ACCOUNTS.includeNW]="Yes"),1),"")';
-    mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))),"")'))
+    put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
+    put('G' + r, F('=' + balanceOf(card, 'Credit Card'))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
+    const anyPat = '(' + pats(card).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0';
+    const idOf = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + anyPat + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
+    mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))),"")'))
       .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_SPENDING);
     sh.setRowHeight(r, 28);
   });
@@ -127,7 +131,7 @@ function buildDashboard_() {
   sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
   sh.getRange('A' + DASH.ACCT_HEADER + ':D' + (DASH.ACCT_FIRST + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('F' + DASH.ACCT_HEADER + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A8:I8', 'Balances arrive from the bank feed each night; a line reads "not connected yet" until its bank is connected. Card due dates come from the lender.')
+  mergePut('A8:I8', 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
   /* --- This month --- */

@@ -33,6 +33,38 @@
   real stub.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 - Branch: `claude/paystub-import`
+## 2026-11-09 — Cards the bank reports as loans; issuer aliases; QA check moved with the Dashboard
+- What changed: Independent Bank's credit card is issued by Elan and came
+  through Plaid typed as a loan named "Elan Credit Card", so it landed as a
+  Loan account, got a Personal Loan row on Debts, and the Dashboard's
+  Independent Bank card line read "not connected yet". Now (1) an account the
+  bank types as a loan but names a credit card (or subtype credit card / line
+  of credit) is typed Credit Card; (2) the Dashboard's card lines match any
+  of the issuer's names (`patterns` in `DASH_ACCOUNTS.cards`: Independent
+  Bank ↔ Elan, American Express ↔ Amex) and so does the empty-Debts-row
+  matching at connect time (`issuerAliases_`); (3) an unconnected line shows
+  — with "not connected yet" in the small column instead of overflowing the
+  balance cell; (4) QA's awaiting-review check reads the Selected Month row
+  (B10) instead of row 3. The owner's Sheet was corrected by hand: ACC-017
+  typed Credit Card, DEBT-011 renamed and typed Credit Card, ACC-009 and
+  DEBT-006 marked for deletion.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `Plaid.gs`,
+  `QA.gs` (deployed on merge). Then Finance Tracker → Upgrade workbook once
+  (rebuilds the Dashboard), then Re-apply rules to waiting rows (the Elan
+  card's staged rows were classified as loan activity).
+- Tested: Node (loan-typed card → Credit Card; aliases; Dashboard formulas
+  carry the Elan pattern and the not-connected text). Not yet tried in
+  Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-card-fixes`
+## 2026-11-09 — Reminders is the last tab
+- What changed: the Reminders tab moves from fifth to last in the tab
+  order, as the owner asked. Nothing else moves.
+- Files changed in `apps-script/`: `Config.gs` (deployed on merge). Then
+  Finance Tracker → Upgrade workbook once (it reorders the tabs).
+- Tested: Node. Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/reminders-last-tab`
 
 ## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
 - What changed:
