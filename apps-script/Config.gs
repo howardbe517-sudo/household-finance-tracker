@@ -531,7 +531,7 @@ TABLES.DEBTS = {
     { key: 'pslfRemaining', h: 'PSLF Remaining (of 120)', w: 120, fmt: C.int, f: '=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))' },
     { key: 'feedUpdated', h: 'Feed Updated', w: 130, fmt: C.dt, note: 'Added in 3.2: when the bank feed last wrote lender data to this row.' },
     { key: 'interestPaused', h: 'Interest Paused?', w: 95, v: { checkbox: true },
-      note: 'Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow); the balance and payments are unaffected.' },
+      note: 'Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow), the rate shows as "Paused · 6.0%"; the balance and payments are unaffected.' },
     { key: 'pausedUntil', h: 'Paused Until', w: 110, fmt: C.date, v: { date: true },
       note: 'Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause.' },
   ],

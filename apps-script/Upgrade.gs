@@ -67,6 +67,7 @@ function upgradeWorkbookLocked_() {
   withRetry_('App Setup', () => { buildAppSetup_(settings.samplePresent); restoreSettings_(settings); });
   const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
   const dash = readDashboardInputs_();
+  withRetry_('Debts pause labels', () => refreshDebtPauseFormats_());
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }

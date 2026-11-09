@@ -247,6 +247,28 @@ function buildDebtsTop_(sh, def) {
   sh.getRange(6, 1).setValue('Interest figures are estimates (Latest Balance × APR). Statements may differ because most lenders accrue daily.').setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
 }
 
+/* ---------- Debts: "Paused · 6.0%" in the APR cell while a pause is in effect ---------- */
+
+function debtPauseActive_(paused, until) {
+  const isDate = Object.prototype.toString.call(until) === '[object Date]' && !isNaN(until);
+  return paused === true && (!isDate || until >= todayMidnight_());
+}
+
+/** Shows the word Paused in front of the rate while Interest Paused? is on (and Paused Until has not passed); plain rate otherwise. */
+function setAprFormat_(sh, def, row, paused) {
+  sh.getRange(row, colIndex_(def, 'apr')).setNumberFormat(paused ? '"Paused · "' + FORMATS.percent : FORMATS.percent);
+}
+
+/** Refreshes every Debts row's APR display from its pause state (nightly, after an upgrade, and on edit). */
+function refreshDebtPauseFormats_() {
+  const def = tdef_('DEBTS');
+  const sh = ss_().getSheetByName(def.sheet);
+  if (!sh) return 0;
+  let n = 0;
+  readTable_(def).forEach(d => { setAprFormat_(sh, def, d.__row, debtPauseActive_(d.interestPaused, d.pausedUntil)); n++; });
+  return n;
+}
+
 /** Net Worth Snapshots: live tracked-net-worth helper in columns L:M. */
 function buildNetWorthHelper_(sh, def) {
   const F = (t) => resolveFormula_(t, null, null);

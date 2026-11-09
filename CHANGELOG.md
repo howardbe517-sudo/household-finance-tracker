@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-09 — "Paused" shown in front of the rate
+- What changed: while a debt's interest pause is in effect, the Interest Rate
+  (APR) cell displays as "Paused · 6.0%" (the number underneath is unchanged,
+  so nothing that reads it is affected). The label appears the moment
+  Interest Paused? is ticked or Paused Until is edited, is refreshed by the
+  nightly sync (so a pause that ends overnight loses it), and is restored
+  after an upgrade.
+- Files changed in `apps-script/`: `Tables.gs`, `Main.gs`, `Plaid.gs`,
+  `Upgrade.gs`, `Config.gs` (deployed on merge). Nothing to run afterwards;
+  the next Upgrade workbook or nightly sync labels rows already paused.
+- Tested: Node (tick → label; expired end date or untick → plain rate).
+  Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/paused-label`
+
 ## 2026-11-09 — Debts: pause interest, with an end date that unpauses by itself
 - What changed: Debts gains **Interest Paused?** (checkbox) and **Paused
   Until** (date, optional). While the box is ticked and the date is blank or

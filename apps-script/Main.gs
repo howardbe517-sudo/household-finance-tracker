@@ -163,6 +163,11 @@ function autoFillRow_(def, sh, r, e, who) {
     }
     appendChangeLog_({ table: def.key, recordId: id, field: '(row)', newValue: 'ID assigned to a typed row', action: 'Insert', user: who || 'onEdit' });
   }
+  if (def.key === 'DEBTS' && (def.columns[col - 1].key === 'interestPaused' || def.columns[col - 1].key === 'pausedUntil')) {
+    const paused = sh.getRange(row, colIndex_(def, 'interestPaused')).getValue() === true;
+    const until = sh.getRange(row, colIndex_(def, 'pausedUntil')).getValue();
+    setAprFormat_(sh, def, row, debtPauseActive_(paused, until));
+  }
   if (def.key === 'RECUR') {
     const due = Number(sh.getRange(row, colIndex_(def, 'dueDay')).getValue());
     const nextCell = sh.getRange(row, colIndex_(def, 'nextPayment'));
