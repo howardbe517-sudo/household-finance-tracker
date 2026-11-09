@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 12px 18px 18px; }
+  h3 { margin: 0 0 4px; font-size: 15px; color: #17324D; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  .tabs { display: flex; gap: 6px; margin: 10px 0 12px; }
+  .tabs button { font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  .tabs button.on { background: #17324D; color: #fff; border-color: #17324D; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  select, input[type=number] { font: inherit; padding: 6px 8px; border: 1px solid #C9D2DC; border-radius: 8px; }
+  input[type=range] { flex: 1; min-width: 240px; accent-color: #17324D; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+  .card { background: #E8F0F7; border-radius: 10px; padding: 8px 10px; }
+  .card .k { font-size: 11px; color: #5F6B7A; } .card .v { font-size: 20px; font-weight: 700; } .card .s { font-size: 11px; color: #5F6B7A; }
+  .card.good { background: #EAF6EE; } .card.good .v { color: #24563A; }
+  svg { width: 100%; height: 150px; background: #fff; border: 1px solid #E3E8EE; border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 12px; }
+  th, td { border: 1px solid #E3E8EE; padding: 5px 8px; text-align: right; } th:first-child, td:first-child { text-align: left; }
+  th { background: #F1F4F7; font-weight: 600; }
+  .actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .actions button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  .actions button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  .box { border-radius: 8px; padding: 8px 12px; margin: 8px 0; } .warn { background: #FFF3CD; color: #7A4E00; } .ok { background: #EAF6EE; color: #24563A; } .err { background: #F8D5DA; color: #842029; }
+  .method label { margin-right: 12px; }
+  ol { margin: 6px 0; padding-left: 20px; } li { margin: 2px 0; }
+</style>
+</head>
+<body>
+  <h3>Payoff planner</h3>
+  <div class="muted">Drag the slider to see what an extra monthly payment does. Figures use the balances, rates and minimum payments on the Debts tab; interest pauses are honoured. Payments start next month.</div>
+  <div class="tabs"><button id="tabOne" class="on" onclick="setMode('one')">One debt at a time</button><button id="tabAll" onclick="setMode('all')">All debts together</button></div>
+  <div id="out" class="muted">Loading your debts…</div>
+  <?!= includeHtml_('PayoffMath'); ?>
+<script>
+  var C = null, MODE = 'one', SEL = '', EXTRA_ONE = 0, EXTRA_ALL = 0, METHOD = 'Avalanche';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function money(n) { n = Number(n || 0); return (n < 0 ? '−' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+  function money2(n) { n = Number(n || 0); return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function mon(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'; }
+  function yrs(m) { if (m == null) return '—'; var y = Math.floor(m / 12), r = m % 12; return (y ? y + ' yr ' : '') + r + ' mo'; }
+  function start() { return new Date(C.start); }
+  function debt(id) { for (var i = 0; i < C.debts.length; i++) if (C.debts[i].id === id) return C.debts[i]; return null; }
+  function ready(d) { return d.minPayment > 0; }
+
+  google.script.run.withSuccessHandler(function (ctx) { C = ctx; SEL = (C.debts.filter(ready)[0] || C.debts[0] || {}).id || ''; EXTRA_ALL = C.settings.extraAll || 0; METHOD = C.settings.method || 'Avalanche'; var d = debt(SEL); EXTRA_ONE = d ? d.plannedExtra : 0; render(); })
+    .withFailureHandler(function (e) { document.getElementById('out').innerHTML = '<div class="box err">' + esc(e.message || e) + '</div>'; }).getPayoffContext();
+
+  function setMode(m) { MODE = m; document.getElementById('tabOne').className = m === 'one' ? 'on' : ''; document.getElementById('tabAll').className = m === 'all' ? 'on' : ''; render(); }
+  function render() { if (!C) return; if (!C.debts.length) { document.getElementById('out').innerHTML = '<div class="box warn">No debts with a balance on the Debts tab yet.</div>'; return; } document.getElementById('out').innerHTML = MODE === 'one' ? renderOne() : renderAll(); }
+
+  function chart(series, labels) {
+    // series: [{ pts: [...], color }], the same length each; x = months
+    var W = 760, H = 150, P = 8, n = Math.max.apply(null, series.map(function (s) { return s.pts.length; }));
+    var max = Math.max.apply(null, series.map(function (s) { return Math.max.apply(null, s.pts); })) || 1;
+    var path = function (pts, color) { var d = ''; for (var i = 0; i < pts.length; i++) { var x = P + (W - 2 * P) * (n > 1 ? i / (n - 1) : 0), y = H - P - (H - 2 * P) * pts[i] / max; d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); } return '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.5"/>'; };
+    var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">';
+    series.forEach(function (s) { h += path(s.pts, s.color); });
+    h += '</svg><div class="muted" style="margin-top:4px">' + labels + '</div>';
+    return h;
+  }
+
+  function sliderMax(min) { return Math.max(500, Math.ceil(min * 2 / 50) * 50); }
+
+  function renderOne() {
+    var d = debt(SEL) || C.debts[0]; SEL = d.id;
+    var h = '<div class="row"><label>Debt</label><select id="sel" onchange="SEL=this.value; EXTRA_ONE=debt(SEL).plannedExtra; render()">' + C.debts.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === SEL ? ' selected' : '') + '>' + esc(x.name) + ' · ' + money(x.balance) + (x.apr ? ' · ' + (x.apr * 100).toFixed(2) + '%' : '') + '</option>'; }).join('') + '</select>';
+    h += '<span class="muted">minimum ' + money2(d.minPayment) + '/mo' + (d.interestPaused ? ' · interest paused' + (d.pausedUntil ? ' until ' + mon(new Date(d.pausedUntil)) : '') : '') + (d.plannedExtra ? ' · saved plan +' + money2(d.plannedExtra) : '') + '</span></div>';
+    if (!ready(d)) return h + '<div class="box warn">This debt has no Minimum Payment on the Debts tab, so there is nothing to add to. Enter one there and reopen the planner.</div>';
+    if (d.missing.length > 1) h += '<div class="box warn">' + esc(d.missing.filter(function (m) { return /Interest/.test(m); }).join('; ')) + '</div>';
+    var mx = sliderMax(d.minPayment);
+    h += '<div class="row"><label>Extra per month</label><input type="range" id="sl" min="0" max="' + mx + '" step="5" value="' + Math.min(EXTRA_ONE, mx) + '" oninput="EXTRA_ONE=Number(this.value); document.getElementById(\'nb\').value=this.value; paintOne()"><input type="number" id="nb" min="0" step="5" value="' + EXTRA_ONE + '" style="width:90px" onchange="EXTRA_ONE=Math.max(0,Number(this.value)||0); render()"><span class="muted">total ' + '<b id="tot"></b>/mo</span></div>';
+    h += '<div id="resOne"></div>';
+    h += '<div class="actions"><button class="primary" onclick="save({mode:\'one\', debtId:SEL, extra:EXTRA_ONE})">Save as this debt\'s plan</button>' + (d.plannedExtra ? '<button onclick="save({mode:\'one\', debtId:SEL, extra:0})">Clear saved plan</button>' : '') + '<span class="muted">Saving writes Planned Extra Payment on the Debts tab; the Monthly Plan and Dashboard subtract it like a bill.</span></div>';
+    setTimeout(paintOne, 0);
+    return h;
+  }
+  function paintOne() {
+    var d = debt(SEL); if (!d || !ready(d)) return;
+    var s = start(), r = PayoffMath.compareOne(d, EXTRA_ONE, s);
+    document.getElementById('tot').textContent = money2(d.minPayment + EXTRA_ONE);
+    var h = '<div class="cards">';
+    h += '<div class="card"><div class="k">Paid off (today\'s path)</div><div class="v">' + (r.base.paidOff ? mon(r.base.payoffDate) : 'never') + '</div><div class="s">' + (r.base.paidOff ? yrs(r.base.months) + ' · interest ' + money(r.base.interest) : 'minimum does not cover the interest') + '</div></div>';
+    h += '<div class="card' + (EXTRA_ONE ? ' good' : '') + '"><div class="k">Paid off with +' + money(EXTRA_ONE) + '/mo</div><div class="v">' + (r.plan.paidOff ? mon(r.plan.payoffDate) : 'never') + '</div><div class="s">' + (r.plan.paidOff ? yrs(r.plan.months) + ' · interest ' + money(r.plan.interest) : '') + '</div></div>';
+    h += '<div class="card' + (r.monthsSaved ? ' good' : '') + '"><div class="k">Time saved</div><div class="v">' + (r.monthsSaved != null ? yrs(r.monthsSaved) : '—') + '</div><div class="s">sooner than today\'s path</div></div>';
+    h += '<div class="card' + (r.interestSaved > 0 ? ' good' : '') + '"><div class="k">Interest saved</div><div class="v">' + money(r.interestSaved) + '</div><div class="s">over the life of the debt</div></div>';
+    h += '</div>';
+    h += chart([{ pts: r.base.balances, color: '#B8C2CC' }, { pts: r.plan.balances, color: '#17324D' }], 'Balance by month: grey = today\'s path, navy = with the extra.');
+    var steps = [25, 50, 100, 200, 300];
+    h += '<table><tr><th>Extra per month</th><th>Paid off</th><th>Time saved</th><th>Interest saved</th></tr>';
+    steps.forEach(function (x) { var c = PayoffMath.compareOne(d, x, s); h += '<tr><td>+' + money(x) + '</td><td>' + (c.plan.paidOff ? mon(c.plan.payoffDate) : 'never') + '</td><td>' + (c.monthsSaved != null ? yrs(c.monthsSaved) : '—') + '</td><td>' + money(c.interestSaved) + '</td></tr>'; });
+    h += '</table>';
+    document.getElementById('resOne').innerHTML = h;
+  }
+
+  function renderAll() {
+    var usable = C.debts.filter(ready), skipped = C.debts.filter(function (d) { return !ready(d); });
+    var h = '<div class="row method"><span>Order:</span>' + ['Avalanche', 'Snowball'].map(function (m) { return '<label><input type="radio" name="m" value="' + m + '"' + (METHOD === m ? ' checked' : '') + ' onchange="METHOD=this.value; paintAll()"> ' + m + ' <span class="muted">(' + (m === 'Avalanche' ? 'highest rate first, least interest' : 'smallest balance first, quickest wins') + ')</span></label>'; }).join('') + '</div>';
+    h += '<div class="muted">Today\'s path: every debt gets its minimum' + (C.plannedExtraTotal ? ' plus the extras already saved (' + money(C.plannedExtraTotal) + '/mo)' : '') + ' until it is gone (' + money(C.minPaymentsTotal + C.plannedExtraTotal) + '/mo in all). The plan adds the extra below to the target debt, and every finished payment rolls into the next one.</div>';
+    if (skipped.length) h += '<div class="box warn">Left out (no Minimum Payment on Debts): ' + esc(skipped.map(function (d) { return d.name; }).join(', ')) + '. Enter one there to include it.</div>';
+    if (!usable.length) return h;
+    var mx = Math.max(1000, Math.ceil((C.minPaymentsTotal) / 100) * 100);
+    h += '<div class="row"><label>Extra toward debts per month</label><input type="range" id="sla" min="0" max="' + mx + '" step="10" value="' + Math.min(EXTRA_ALL, mx) + '" oninput="EXTRA_ALL=Number(this.value); document.getElementById(\'nba\').value=this.value; paintAll()"><input type="number" id="nba" min="0" step="10" value="' + EXTRA_ALL + '" style="width:90px" onchange="EXTRA_ALL=Math.max(0,Number(this.value)||0); render()"></div>';
+    h += '<div id="resAll"></div>';
+    h += '<div class="actions"><button class="primary" onclick="save({mode:\'all\', extra:EXTRA_ALL, method:METHOD})">Save as household plan</button>' + (C.settings.extraAll ? '<button onclick="save({mode:\'all\', extra:0, method:METHOD})">Clear household plan</button>' : '') + '<span class="muted">Saving writes the amount and order on App Setup; the Monthly Plan subtracts the amount with the debt payments.' + (C.settings.extraAll ? ' Saved now: ' + money(C.settings.extraAll) + '/mo, ' + esc(C.settings.method) + '.' : '') + '</span></div>';
+    setTimeout(paintAll, 0);
+    return h;
+  }
+  function paintAll() {
+    var usable = C.debts.filter(ready), s = start();
+    var r = PayoffMath.compareAll(usable, EXTRA_ALL, METHOD, s);
+    var h = '<div class="cards">';
+    h += '<div class="card"><div class="k">Debt-free (today\'s path)</div><div class="v">' + (r.base.paidOff ? mon(r.base.debtFreeDate) : 'never') + '</div><div class="s">' + (r.base.paidOff ? yrs(r.base.months) + ' · interest ' + money(r.base.interest) : 'a minimum does not cover its interest') + '</div></div>';
+    h += '<div class="card' + (EXTRA_ALL ? ' good' : '') + '"><div class="k">Debt-free with the plan</div><div class="v">' + (r.plan.paidOff ? mon(r.plan.debtFreeDate) : 'never') + '</div><div class="s">' + (r.plan.paidOff ? yrs(r.plan.months) + ' · interest ' + money(r.plan.interest) : '') + '</div></div>';
+    h += '<div class="card' + (r.monthsSaved ? ' good' : '') + '"><div class="k">Time saved</div><div class="v">' + (r.monthsSaved != null ? yrs(r.monthsSaved) : '—') + '</div><div class="s">rollover included</div></div>';
+    h += '<div class="card' + (r.interestSaved > 0 ? ' good' : '') + '"><div class="k">Interest saved</div><div class="v">' + money(r.interestSaved) + '</div><div class="s">across all debts</div></div>';
+    h += '</div>';
+    h += chart([{ pts: r.base.totals, color: '#B8C2CC' }, { pts: r.plan.totals, color: '#17324D' }], 'Total balance by month: grey = today\'s path, navy = the plan.');
+    h += '<div style="display:flex; gap:16px; flex-wrap:wrap"><div style="flex:1; min-width:300px"><b>Order of payoff with the plan</b><ol>' + r.plan.perDebt.map(function (p) { return '<li>' + esc(p.name) + ' — ' + (p.paidOff ? mon(p.payoffDate) : 'never') + '</li>'; }).join('') + '</ol></div>';
+    var steps = [50, 100, 200, 400, 600];
+    h += '<div style="flex:1; min-width:300px"><table><tr><th>Extra per month</th><th>Debt-free</th><th>Time saved</th><th>Interest saved</th></tr>';
+    steps.forEach(function (x) { var c = PayoffMath.compareAll(usable, x, METHOD, s); h += '<tr><td>+' + money(x) + '</td><td>' + (c.plan.paidOff ? mon(c.plan.debtFreeDate) : 'never') + '</td><td>' + (c.monthsSaved != null ? yrs(c.monthsSaved) : '—') + '</td><td>' + money(c.interestSaved) + '</td></tr>'; });
+    h += '</table></div></div>';
+    document.getElementById('resAll').innerHTML = h;
+  }
+
+  function save(p) {
+    var out = document.getElementById('out');
+    var note = document.createElement('div'); note.className = 'box ok'; note.textContent = 'Saving…'; out.appendChild(note);
+    google.script.run.withSuccessHandler(function (ctx) { C = ctx; render(); var n2 = document.createElement('div'); n2.className = 'box ok'; n2.textContent = p.extra ? 'Saved. The Monthly Plan and the Dashboard now count ' + money2(p.extra) + ' a month toward ' + (p.mode === 'one' ? debt(p.debtId).name : 'debts (' + p.method + ')') + '.' : 'Plan cleared.'; document.getElementById('out').appendChild(n2); })
+      .withFailureHandler(function (e) { note.className = 'box err'; note.textContent = e.message || String(e); }).savePayoffPlan(p);
+  }
+</script>
+</body>
+</html>

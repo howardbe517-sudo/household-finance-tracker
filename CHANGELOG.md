@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-11-09 — Payoff planner: a slider for extra payments, one debt or all, with saved plans
+- What changed: **Finance Tracker → Payoff planner…** opens a dialog with a
+  slider. *One debt at a time*: pick a debt, drag "extra per month", and
+  see the payoff date today versus with the extra, time saved, interest
+  saved, a balance-by-month picture and a fixed-step table (+$25 … +$300).
+  *All debts together*: one extra pool, Avalanche (highest rate first) or
+  Snowball (smallest balance first), finished payments rolling into the
+  next debt; shows the debt-free date, interest saved, the order of payoff
+  and a step table. Interest pauses are honoured (0% until the pause end
+  date). A debt with no Minimum Payment is left out with a note.
+  **Save** writes the plan back: a debt's **Planned Extra Payment** (new
+  Debts column, appended) or the household extra and order on App Setup
+  (`SETTING_DEBT_EXTRA_ALL`, `SETTING_DEBT_EXTRA_METHOD`). The Monthly Plan's
+  Debt Payments (planned) now adds both, so the automatic flexible target
+  and the Dashboard follow the plan; the AI snapshot names the saved plan.
+- Schema: Debts + `plannedExtra` (Planned Extra Payment, appended; the
+  upgrade adds it). `SCHEMA_VERSION` 3.8-payoff-planner-2026-11-09,
+  `BUILD_VERSION` 1.7.0. `docs/SCHEMA.md` regenerated.
+- Files changed in `apps-script/`: new `Payoff.gs`, `PayoffPlanner.html`,
+  `PayoffMath.html` (the arithmetic, shared by the dialog and the Node
+  tests); `Config.gs`, `Export.gs`, `Main.gs`, `Reference.gs`, `Upgrade.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once, then open the planner.
+- Tested: Node (a 0% loan pays off in balance ÷ payment months; monthly
+  interest; a payment below the interest never pays off; an interest pause
+  counts 0 until its end; the pool plus rollover clears two debts sooner
+  with less interest, Avalanche targets the higher rate; context, save of
+  both plan kinds, the plan formula, the dialog template; upgrade adds the
+  column and settings). Not yet tried in Google: the dialog itself.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/payoff-planner`
+
 ## 2026-11-09 — A sync imports the rows you ticked; Childcare is Nanny only; dropdowns honour Active?
 - What changed, in three parts.
   (1) **Every sync also imports the rows ticked Reviewed?** (nightly and

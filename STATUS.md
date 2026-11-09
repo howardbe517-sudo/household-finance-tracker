@@ -1,9 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-09 (childcare split, two-card Dashboard and
-rules-on-sync merged; pull request `claude/sync-imports-reviewed`: a sync
-imports ticked rows and fills blanks, Childcare = Nanny only, dropdowns
-honour Active?)
+Last updated: 2026-11-09 (sync-imports-reviewed merged; pull request
+`claude/payoff-planner`: slider dialog for extra debt payments, one debt
+or all, with saved plans that the Monthly Plan subtracts)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,

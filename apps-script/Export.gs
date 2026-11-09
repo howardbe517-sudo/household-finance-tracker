@@ -195,6 +195,11 @@ function buildSnapshotText_(d) {
   L.push('');
   L.push('Household debt (excluding student loans): ' + money(sum(hh, x => x.latest.bal)) + ' · Student loans: ' + money(sum(sl, x => x.latest.bal)) + ' · All debt: ' + money(sum(debtRows, x => x.latest.bal)) + '.');
   L.push('Estimated interest at current balances: ' + money(sum(debtRows, monthlyInterest)) + ' per month, ' + money(sum(debtRows, x => monthlyInterest(x) * 12)) + ' per year' + (debtRows.some(paused) ? ' (' + debtRows.filter(paused).length + ' debt(s) with interest paused counted at 0)' : '') + ' (estimates; lenders accrue daily). Minimum payments total ' + money(sum(debtRows, x => x.minPayment)) + ' per month.');
+  const extras = debtRows.filter(x => Number(x.plannedExtra || 0) > 0);
+  const extraAllRange = ss_().getRangeByName('SETTING_DEBT_EXTRA_ALL');
+  const extraAll = extraAllRange ? Number(extraAllRange.getValue() || 0) : 0;
+  const methodRange = ss_().getRangeByName('SETTING_DEBT_EXTRA_METHOD');
+  if (extras.length || extraAll > 0) L.push('Payoff plan (Payoff planner): ' + extras.map(x => money(x.plannedExtra) + '/month extra on ' + x.name).concat(extraAll > 0 ? [money(extraAll) + '/month extra toward debts, ' + (methodRange ? methodRange.getValue() : 'Avalanche') + ' order, rolling finished payments forward'] : []).join('; ') + '. The Monthly Plan subtracts these with the debt payments.');
   const debtPaid3 = sum(catMonths, m => sum(inMonth(live, m).filter(t => t.type === 'Debt Payment'), t => t.amount)) / Math.max(catMonths.length, 1);
   L.push('Actual debt payments averaged ' + money(debtPaid3) + ' per month over the last ' + catMonths.length + ' full months.');
   L.push('');

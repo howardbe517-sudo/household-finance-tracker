@@ -92,6 +92,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Copy financial snapshot for AI…', 'exportSnapshot')
     .addItem('Show reminders', 'showReminders')
+    .addItem('Payoff planner…', 'showPayoffPlanner')
     .addItem('Run QA checks', 'runQA')
     .addItem('Link income deposits to paychecks', 'linkIncomeDeposits')
     .addItem('Record net worth snapshot', 'recordNetWorthSnapshot')
