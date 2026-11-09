@@ -16,7 +16,7 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, adds the **Paste Import** tab, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, adds the **Paste Import** and **Expected Income** tabs, the new Monthly Plan columns, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
@@ -162,6 +162,23 @@
         {
           "text": "Copy the whole block. In the Sheet choose **Finance Tracker → Import from Claude (paste)…**, paste it into the window and click **Check it**. It lists each row it will add and anything it will skip. Click **Import N row(s)**. The Income tab gains one row per stub with an ID.",
           "note": "The same block imported twice adds nothing. If you prefer, the Paste Import tab still works: paste at A5 and run Finance Tracker → Import the Paste Import tab."
+        }
+      ]
+    },
+    {
+      "heading": "Expected income and the automatic spending target",
+      "steps": [
+        {
+          "text": "After the upgrade, open the new **Expected Income** tab (right after Income). It has one row per regular paycheck, made from the stubs you imported. Check two things on each row: **Pay Frequency** (Weekly, Biweekly, Semimonthly or Monthly) and **Typical Take-Home (per paycheck)**. Fix either by typing over it.",
+          "note": "Rows made from a single stub guess Biweekly and say so in Notes. Untick Active on a paycheck that has ended. Expected Monthly Take-Home on the right is what the plan works from."
+        },
+        {
+          "text": "Open **Monthly Plan**. For this month, Expected Take-Home (auto), Bills, Debt Payments and Planned Savings fill in and **Flexible Target (auto)** is what is left. Leave **Monthly Flexible Target** blank to use it; type a number there only to override a month. Put extra income or a shortfall for the month in **Income Adjustment**.",
+          "note": "Bills come from active Recurring Payments (rent is there; the rest build up as you make rules from bills in review). Planned Savings is the Planned Monthly column on Savings & Reserves: raise it to send more to savings and the flexible target drops to match."
+        },
+        {
+          "text": "Back on the **Dashboard**, the line under the four month cards reads \"Expected this month: take-home … − bills … − debt payments … − planned savings … = flexible …\". Current Flexible Spending further down shows the weekly guidance from that figure and says whether the target is automatic or set by hand.",
+          "note": "The actual cards above the line still show what has landed so far this month, so you can see both."
         }
       ]
     }

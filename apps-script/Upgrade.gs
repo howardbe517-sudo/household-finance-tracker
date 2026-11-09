@@ -68,6 +68,8 @@ function upgradeWorkbookLocked_() {
   const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
   const dash = readDashboardInputs_();
   withRetry_('Debts pause labels', () => refreshDebtPauseFormats_());
+  const exp = withRetry_('Expected Income rows', () => ensureExpectedIncome_());
+  if (exp && exp.created) report.push('Expected Income: ' + exp.created + ' row(s) created from the paychecks on Income');
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }

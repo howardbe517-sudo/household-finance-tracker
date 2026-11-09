@@ -110,6 +110,10 @@ function qaReport_() {
     const exp = sumWhere(live, isFlexExp, 'amount') - sumWhere(live, isFlexRef, 'amount');
     if (!near(p.flexSpent, exp)) fail('Monthly Plan ' + m + ': Flexible Spent ' + money(p.flexSpent) + ' ≠ ' + money(exp));
     else pass('Monthly Plan ' + m + ': flexible spent ' + money(exp) + ', available ' + money(p.available));
+    const autoExp = Number(p.expectedIncome || 0) + Number(p.incomeAdjustment || 0) - Number(p.bills || 0) - Number(p.debtPayments || 0) - Number(p.plannedSavings || 0);
+    const effExp = Number(p.target || 0) > 0 ? Number(p.target) : autoExp;
+    if (!near(p.autoTarget, autoExp) || !near(p.effectiveTarget, effExp)) fail('Monthly Plan ' + m + ': automatic target ' + money(p.autoTarget) + ' ≠ ' + money(autoExp) + ' or target in use ' + money(p.effectiveTarget) + ' ≠ ' + money(effExp));
+    else pass('Monthly Plan ' + m + ': target in use ' + money(effExp) + (Number(p.target || 0) > 0 ? ' (set by hand)' : ' (automatic: expected ' + money(p.expectedIncome) + ' − bills ' + money(p.bills) + ' − debt ' + money(p.debtPayments) + ' − savings ' + money(p.plannedSavings) + ')'));
     if (m === curKey) {
       const ms = monthStart_(today);
       const me = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -120,7 +124,8 @@ function qaReport_() {
       const inRange = (t, a, b) => t.date instanceof Date && t.date >= a && t.date <= b;
       const dayBefore = new Date(ws.getTime() - 86400000);
       const before = sumWhere(live, t => isFlexExp(t) && inRange(t, ms, dayBefore), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ms, dayBefore), 'amount');
-      const remaining = Math.max(Number(p.target || 0) - before, 0);
+      const effective = Number(p.target || 0) > 0 ? Number(p.target) : Number(p.autoTarget || 0);
+      const remaining = Math.max(effective - before, 0);
       const days = (d1, d2) => Math.round((d2 - d1) / 86400000) + 1;
       const expSuggested = remaining * days(ws, we) / days(ws, me);
       const expSpentWeek = sumWhere(live, t => isFlexExp(t) && inRange(t, ws, today), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ws, today), 'amount');

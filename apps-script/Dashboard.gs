@@ -165,6 +165,11 @@ function buildDashboard_() {
     sh.getRange(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
   sh.setRowHeight(DASH.CARD_ROW_VALUE, 42);
+  // expected month under the actual cards: what we make, what is spoken for, what is free
+  const selMatch = 'MATCH(' + SEL + ',[PLAN.month],0)';
+  mergePut('A' + (DASH.CARD_ROW_SUB + 1) + ':I' + (DASH.CARD_ROW_SUB + 1), F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
+    '"Expected this month: take-home "&TEXT(ei+adj,"$#,##0")&IF(adj<>0," (incl. "&TEXT(adj,"+$#,##0;-$#,##0")&" adjustment)","")&" − bills "&TEXT(b,"$#,##0")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"Expected income appears once this month has a Monthly Plan row and Expected Income has your paychecks.")'))
+    .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
 
   /* --- Income by Person (A:E) --- */
   styleSectionBar_(sh.getRange('A16:E16'), '="Income by Person — "&TEXT(' + SEL + ',"mmmm yyyy")');
@@ -243,7 +248,7 @@ function buildDashboard_() {
   const planMatch = 'MATCH(' + CUR_MONTH + ',[PLAN.month],0)';
   const flex = [
     { cols: ['A', 'C'], label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
-      sub: F('=IFERROR("Target "&TEXT(INDEX([PLAN.target],' + planMatch + '),"$#,##0")&" · Flexible spent "&TEXT(INDEX([PLAN.flexSpent],' + planMatch + '),"$#,##0"),"Add a row for this month on the Monthly Plan tab")') },
+      sub: F('=IFERROR("Target "&TEXT(INDEX([PLAN.effectiveTarget],' + planMatch + '),"$#,##0")&IF(N(INDEX([PLAN.target],' + planMatch + '))>0," (set by hand)"," (automatic)")&" · Flexible spent "&TEXT(INDEX([PLAN.flexSpent],' + planMatch + '),"$#,##0"),"Add a row for this month on the Monthly Plan tab")') },
     { cols: ['D', 'F'], label: 'Suggested This Week', f: F('=IFERROR(INDEX([PLAN.suggestedWeek],' + planMatch + '),"No plan row")'),
       sub: '="Week of "&TEXT(TODAY()-WEEKDAY(TODAY(),2)+1,"ddd mmm d")&" – "&TEXT(MIN(TODAY()-WEEKDAY(TODAY(),2)+7,EOMONTH(TODAY(),0)),"ddd mmm d")&" · Flexible only"' },
     { cols: ['G', 'I'], label: 'Spent This Week', f: F('=IFERROR(INDEX([PLAN.spentWeek],' + planMatch + '),"No plan row")'),

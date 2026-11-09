@@ -614,6 +614,7 @@ function syncAllConnections() {
   const results = conns.map(syncConnection_);
   try { ensureMonthRows_(); } catch (e) { Logger.log('ensureMonthRows_: ' + (e && e.message || e)); }
   try { refreshDebtPauseFormats_(); } catch (e) { Logger.log('refreshDebtPauseFormats_: ' + (e && e.message || e)); }
+  try { ensureExpectedIncome_(); } catch (e) { Logger.log('ensureExpectedIncome_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   Logger.log(lines.join('\n'));

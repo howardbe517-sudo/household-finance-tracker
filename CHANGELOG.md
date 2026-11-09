@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## 2026-11-09 — Expected income and an automatic flexible-spending target
+- What changed (the owner wants the Dashboard to say what the household
+  makes in a typical month and what is free to spend, not only what has
+  landed so far):
+  - **Expected Income** tab (after Income): one row per regular paycheck
+    (person + employer) with Pay Frequency, Typical Gross and Typical
+    Take-Home per paycheck, Active?, and calculated Paychecks per Month,
+    Expected Monthly Take-Home / Gross, Last Paycheck, Last Take-Home and
+    Last vs Typical (tinted when $50 or more off). Rows are created
+    automatically from the paychecks on Income (frequency guessed from the
+    pay-date gaps, semimonthly told apart from biweekly by whether paydays
+    stay on the same calendar days; typical amounts are the median of the
+    last three), by the upgrade, the nightly sync and the pay stub import.
+    The owner corrects a row when the guess is wrong.
+  - **Monthly Plan** gains Expected Take-Home (auto), Income Adjustment
+    (entered, + or −), Bills (active Recurring Payments except the Loans
+    group), Debt Payments (the larger of Debts minimums and the Loans group),
+    Planned Savings (Planned Monthly across Savings & Reserves), Flexible
+    Target (auto) and Target in Use. Monthly Flexible Target becomes an
+    override: blank means automatic. Amount Available and the weekly guidance
+    now use Target in Use.
+  - **Dashboard**: a line under the four cards reads "Expected this month:
+    take-home … − bills … − debt payments … − planned savings … = flexible …
+    (automatic / set by hand)"; the flexible-spending card says which target
+    is in use. QA recomputes the automatic target; the AI snapshot states
+    expected regular income and how the target was arrived at.
+  - Schema 3.4 (one new table, seven appended Monthly Plan columns, two
+    changed formulas, one new list).
+- Files changed in `apps-script/`: `Config.gs`, new `ExpectedIncome.gs`,
+  `Tables.gs`, `Dashboard.gs`, `Plaid.gs`, `PasteImport.gs`, `Upgrade.gs`,
+  `Main.gs`, `QA.gs`, `Export.gs`, `SampleData.gs`, `Api.gs` (deployed on
+  merge). Then Finance Tracker → Upgrade workbook once: it adds the tab and
+  columns and creates the Expected Income rows from the paychecks already
+  on Income; then check those rows' frequency and typical amounts.
+- Tested: Node (rows created from sample paychecks with semimonthly
+  recognised; frequency guesses for weekly, biweekly, semimonthly, monthly
+  and a single date; no duplicates; plan formulas wired; Dashboard line;
+  pay stub import creates rows for new employers; upgrade of a pre-3.4
+  workbook). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/expected-income`
+
 ## 2026-11-09 — Import from Claude: a paste window
 - What changed: **Finance Tracker → Import from Claude (paste)…** opens a
   window with a text box. Paste the block, click **Check it** to see what

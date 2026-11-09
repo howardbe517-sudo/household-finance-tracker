@@ -33,6 +33,7 @@ function buildWorkbook(options) {
   // Phase 4 — derived reporting
   buildDerivedTables_();
   // Phase 5 — dashboard & docs
+  ensureExpectedIncome_();
   buildDashboard_();
   buildPasteImport_();
   buildGoals_();
