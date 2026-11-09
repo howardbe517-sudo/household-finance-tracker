@@ -2,7 +2,8 @@
 
 Last updated: 2026-11-09 (Import Staging banner merged; pull request
 `claude/childcare-split`: Childcare category, Children block on the
-Financial Summary, rules re-checked on every sync)
+Financial Summary, rules re-checked on every sync; stacked pull request
+`claude/dashboard-two-cards`: gross card dropped from the Dashboard)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,

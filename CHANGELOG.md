@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-09 — Dashboard: two cards (Expected Take-Home, Spent So Far); gross card dropped
+- What changed: the owner did not want a whole box for expected gross
+  income. The "This month" row now has two cards, **Expected Take-Home**
+  (A:D) and **Spent So Far** (F:I), with column E as the gap. The paycheck
+  counts that lived under the gross card ("Ben 2 paychecks, Valerie 2
+  paychecks") move to the take-home card's small line. Gross stays on the
+  Financial Summary (average and month by month). Also fixed: the QA check
+  for the review count still read the old corner note in F10 (emptied by
+  the banner change); it now reads the banner row, and the QA card checks
+  read the new card cells.
+- Files changed in `apps-script/`: `Dashboard.gs`, `QA.gs` (deployed on
+  merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once
+  (the same run covers the childcare change).
+- Tested: Node (card positions and formulas, column E empty, no gross text
+  on the Dashboard, QA banner check). Not yet tried in Google: the look.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-two-cards` (stacked on `claude/childcare-split`)
+
 ## 2026-11-09 — Childcare apart from other child costs; rules run on every sync
 - What changed, in three parts.
   (1) **Childcare is its own category** (Nanny, Daycare / Preschool,

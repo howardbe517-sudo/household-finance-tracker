@@ -150,24 +150,22 @@ function buildDashboard_() {
     .setFontSize(10).setFontWeight('bold').setHorizontalAlignment('center').setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT);
   sh.setRowHeight(DASH.REVIEW_LINE, 26);
 
-  /* --- three cards: expected gross (faded), expected take-home (the one that matters), spent so far --- */
+  /* --- two cards: expected take-home (the one that matters) and spent so far; column E is the gap.
+         The owner dropped the gross card (2026-11-09): gross lives on the Financial Summary. --- */
   const selMatch = 'MATCH(' + SEL + ',[PLAN.month],0)';
   const paydaysSel = 'LET(ms,' + SEL + ',me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.{col}])*' + PD + '))';
   const countsSel = 'IFERROR(TEXTJOIN(", ",TRUE,LET(ms,' + SEL + ',me,EOMONTH(ms,0),ARRAYFORMULA(IF([EXPECT.active]=TRUE,[EXPECT.person]&" "&LET(pc,' + PD + ',IF(pc=INT(pc),TEXT(pc,"0"),TEXT(pc,"0.0")))&" paycheck"&IF(' + PD + '=1,"","s"),"")))),"")';
   const cards = [
-    { cols: 'A:C', label: 'Expected Gross Income', color: COLORS.FADED_FILL, faded: true,
-      f: F('=' + paydaysSel.replace('{col}', 'typicalGross')),
-      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.gross],[INCOME.month],' + SEL + '),"$#,##0")&" · "&' + countsSel) },
-    { cols: 'D:F', label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
+    { cols: 'A:D', label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
       f: F('=IFERROR(INDEX([PLAN.expectedIncome],' + selMatch + ')+N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),' + paydaysSel.replace('{col}', 'typicalTakeHome') + ')'),
-      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.takeHome],[INCOME.month],' + SEL + '),"$#,##0")&IFERROR(IF(N(INDEX([PLAN.incomeAdjustment],' + selMatch + '))<>0," · incl. "&TEXT(INDEX([PLAN.incomeAdjustment],' + selMatch + '),"+$#,##0;-$#,##0")&" adjustment",""),"")') },
-    { cols: 'G:I', label: 'Spent So Far', color: COLORS.CARD_SPENDING,
+      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.takeHome],[INCOME.month],' + SEL + '),"$#,##0")&IFERROR(IF(N(INDEX([PLAN.incomeAdjustment],' + selMatch + '))<>0," · incl. "&TEXT(INDEX([PLAN.incomeAdjustment],' + selMatch + '),"+$#,##0;-$#,##0")&" adjustment",""),"")&IFERROR(" · "&' + countsSel + ',"")') },
+    { cols: 'F:I', label: 'Spent So Far', color: COLORS.CARD_SPENDING,
       f: F('=IFERROR(INDEX([SUMMARY.spending],MATCH(' + SEL + ',[SUMMARY.month],0)),0)'),
       sub: F('="expenses − refunds · flexible "&TEXT(IFERROR(INDEX([PLAN.flexSpent],' + selMatch + '),0),"$#,##0")') },
   ];
   cards.forEach(card => {
     const [c1, c2] = card.cols.split(':');
-    const fg = card.faded ? COLORS.FADED_TEXT : COLORS.TEXT; // same type everywhere; the gross card is faded by colour only
+    const fg = COLORS.TEXT;
     mergePut(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_LABEL, card.label).setBackground(card.color).setFontWeight('bold').setFontColor(fg).setHorizontalAlignment('center');
     mergePut(c1 + DASH.CARD_ROW_VALUE + ':' + c2 + DASH.CARD_ROW_VALUE, card.f).setBackground(card.color).setFontSize(20).setFontWeight('bold').setFontColor(fg).setHorizontalAlignment('center').setNumberFormat('$#,##0');
     mergePut(c1 + DASH.CARD_ROW_SUB + ':' + c2 + DASH.CARD_ROW_SUB, card.sub).setBackground(card.color).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');

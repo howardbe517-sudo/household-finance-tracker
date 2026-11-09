@@ -216,15 +216,15 @@ function qaReport_() {
     const gross = sumWhere(inc, i => mk(i.month) === selKey, 'gross');
     const take = sumWhere(inc, i => mk(i.month) === selKey, 'takeHome');
     const planRow = readTable_(tdef_('PLAN')).filter(p => mk(p.month) === selKey)[0];
-    const takeCard = dash.getRange('D' + DASH.CARD_ROW_VALUE).getValue();
-    const spentCard = dash.getRange('G' + DASH.CARD_ROW_VALUE).getValue();
+    const takeCard = dash.getRange('A' + DASH.CARD_ROW_VALUE).getValue();
+    const spentCard = dash.getRange('F' + DASH.CARD_ROW_VALUE).getValue();
     const problems = [];
     if (planRow && !near(takeCard, Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0))) problems.push('Expected Take-Home card ' + money(takeCard) + ' ≠ Monthly Plan ' + money(Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0)));
     if (selRow && !near(spentCard, selRow.spending)) problems.push('Spent So Far card ' + money(spentCard) + ' ≠ Monthly Summary ' + money(selRow.spending));
     if (problems.length) fail('Dashboard cards (' + selKey + '): ' + problems.join('; ')); else pass('Dashboard cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
 
-    const awaiting = dash.getRange('F' + DASH.SELECTED_MONTH.replace(/\D/g, '')).getFormula();
-    if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard shows the awaiting-review count from Import Staging'); else fail('Dashboard awaiting-review line missing');
+    const awaiting = dash.getRange('A' + DASH.REVIEW_LINE).getFormula();
+    if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard banner counts the rows waiting for review on Import Staging'); else fail('Dashboard review banner missing (row ' + DASH.REVIEW_LINE + ')');
     const flexLabel = dash.getRange('A' + DASH.FLEX_BAR).getDisplayValue();
     const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
     if (flexLabel.indexOf(expLabel) < 0) fail('Current Flexible Spending label "' + flexLabel + '" does not name the current month'); else pass('Current Flexible Spending follows today\'s month (' + expLabel + ')');
