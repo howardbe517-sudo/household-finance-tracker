@@ -186,8 +186,8 @@
       "heading": "The Financial Summary tab",
       "steps": [
         {
-          "text": "Open **Financial Summary** (second tab). B3 holds how many full months the averages cover (3 to start; type 6 for a longer view). Below the four averages: month by month, Savings & Reserves, Debts, Income by Person and Payroll Deductions as monthly averages, Credit Scores, and Net worth at the bottom.",
-          "note": "The current month is left out of the averages because it is not finished. Everything here is calculated; the one thing you type is B3."
+          "text": "Open **Financial Summary** (second tab). B3 holds how many months the averages cover (3 to start). The window ends with the latest month that has a paycheck and only months with paychecks count, so early on it averages what exists. Below the four averages: month by month, Savings & Reserves, Debts, Income by Person and Payroll Deductions as monthly averages, Credit Scores, and Net worth at the bottom.",
+          "note": "Savings & Reserves now has a row per savings, investment, retirement and HSA account with its live balance. Open the Savings & Reserves tab and add a Target Amount and Planned Monthly to each; Planned Monthly is what the Monthly Plan sets aside before the flexible target."
         }
       ]
     }

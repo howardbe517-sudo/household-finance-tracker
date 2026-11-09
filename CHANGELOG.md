@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 2026-11-09 — Dashboard polish; funds fill themselves; averages over months that have paychecks
+- What changed:
+  - **Dashboard**: the three month cards and the three flexible boxes now
+    span three equal thirds (columns A:C, D:F, G:I at 360px each), so they
+    line up; the gross card keeps the same bold 20-point type as the other
+    two and is faded by colour only; column F is wide enough for a card
+    issuer's full name in the accounts block.
+  - **Savings & Reserves fills itself**: a fund row is created for every
+    savings, investment, retirement and HSA account counted in net worth
+    (Savings → Emergency Fund, Retirement → Retirement, others → Other),
+    backed by that account, by the upgrade, the nightly sync and after a
+    bank connects. A fund with a Backing Account now shows the account's
+    live balance as its Current Amount (formula changed; schema 3.5). The
+    owner adds the Target Amount and Planned Monthly.
+  - **Financial Summary averages** end with the latest month that has a
+    paycheck and divide by the number of months in the window that have
+    paychecks (helper cells B4:D4), so a new workbook averages what it has
+    instead of three empty months. Payroll Deductions and Income by Person
+    follow the same window.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`,
+  `FinancialSummary.gs`, `Main.gs`, `Plaid.gs`, `Upgrade.gs`, `QA.gs`
+  (deployed on merge). Then Finance Tracker → Upgrade workbook once (rebuilds
+  both pages, creates the fund rows, rewrites the fund formula).
+- Tested: Node (equal widths; fund rows created once for the right account
+  types; backed-fund formula; window cells; QA recomputation). Not yet tried
+  in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-polish-funds`
+
 ## 2026-11-09 — Dashboard for the month; Financial Summary for the whole picture
 - What changed (the owner's design): the Dashboard now holds only this
   month's working numbers, and a new **Financial Summary** tab (second tab)

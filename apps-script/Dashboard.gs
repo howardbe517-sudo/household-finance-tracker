@@ -79,8 +79,8 @@ function buildDashboard_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, DASH.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 200);
-  for (let c = 2; c <= 9; c++) sh.setColumnWidth(c, 118);
+  // three equal thirds (A:C, D:F, G:I = 360px each) so the cards and the flexible boxes line up; F wide enough for a card issuer's name
+  [190, 100, 70, 110, 120, 130, 120, 120, 120].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, DASH.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
 
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
@@ -152,7 +152,7 @@ function buildDashboard_() {
   const paydaysSel = 'LET(ms,' + SEL + ',me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.{col}])*' + PD + '))';
   const countsSel = 'IFERROR(TEXTJOIN(", ",TRUE,LET(ms,' + SEL + ',me,EOMONTH(ms,0),ARRAYFORMULA(IF([EXPECT.active]=TRUE,[EXPECT.person]&" "&LET(pc,' + PD + ',IF(pc=INT(pc),TEXT(pc,"0"),TEXT(pc,"0.0")))&" paycheck"&IF(' + PD + '=1,"","s"),"")))),"")';
   const cards = [
-    { cols: 'A:C', label: 'Expected Gross Income', color: COLORS.PALE_BLUE, faded: true,
+    { cols: 'A:C', label: 'Expected Gross Income', color: COLORS.FADED_FILL, faded: true,
       f: F('=' + paydaysSel.replace('{col}', 'typicalGross')),
       sub: F('="landed so far "&TEXT(SUMIFS([INCOME.gross],[INCOME.month],' + SEL + '),"$#,##0")&" · "&' + countsSel) },
     { cols: 'D:F', label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
@@ -164,9 +164,9 @@ function buildDashboard_() {
   ];
   cards.forEach(card => {
     const [c1, c2] = card.cols.split(':');
-    const fg = card.faded ? COLORS.MUTED_TEXT : COLORS.TEXT;
-    mergePut(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_LABEL, card.label).setBackground(card.color).setFontWeight(card.faded ? 'normal' : 'bold').setFontColor(fg).setHorizontalAlignment('center');
-    mergePut(c1 + DASH.CARD_ROW_VALUE + ':' + c2 + DASH.CARD_ROW_VALUE, card.f).setBackground(card.color).setFontSize(card.faded ? 14 : 20).setFontWeight(card.faded ? 'normal' : 'bold').setFontColor(fg).setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    const fg = card.faded ? COLORS.FADED_TEXT : COLORS.TEXT; // same type everywhere; the gross card is faded by colour only
+    mergePut(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_LABEL, card.label).setBackground(card.color).setFontWeight('bold').setFontColor(fg).setHorizontalAlignment('center');
+    mergePut(c1 + DASH.CARD_ROW_VALUE + ':' + c2 + DASH.CARD_ROW_VALUE, card.f).setBackground(card.color).setFontSize(20).setFontWeight('bold').setFontColor(fg).setHorizontalAlignment('center').setNumberFormat('$#,##0');
     mergePut(c1 + DASH.CARD_ROW_SUB + ':' + c2 + DASH.CARD_ROW_SUB, card.sub).setBackground(card.color).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
     sh.getRange(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });

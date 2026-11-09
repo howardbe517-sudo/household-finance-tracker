@@ -237,27 +237,30 @@ function qaReport_() {
   else {
     const nMonths = Number(fs.getRange(FINSUM.MONTHS_CELL).getValue()) || 3;
     const cur = monthStart_(today);
-    const pStart = addMonths_(cur, -nMonths), pEnd = addMonths_(cur, -1);
+    const incMonths = inc.filter(i => i.month instanceof Date).map(i => i.month.getTime());
+    const pEnd = incMonths.length ? new Date(Math.max.apply(null, incMonths)) : addMonths_(cur, -1);
+    const pStart = addMonths_(pEnd, -(nMonths - 1));
     const inP = (r) => r.month instanceof Date && r.month >= pStart && r.month <= pEnd;
-    const avgGross = sumWhere(inc, inP, 'gross') / nMonths, avgTake = sumWhere(inc, inP, 'takeHome') / nMonths;
-    const avgSpend = sumWhere(summary, inP, 'spending') / nMonths, avgSave = sumWhere(summary, inP, 'totalSavings') / nMonths;
+    const counted = Math.max(1, Object.keys(inc.filter(inP).reduce((o, i) => { o[mk(i.month)] = true; return o; }, {})).length);
+    const avgGross = sumWhere(inc, inP, 'gross') / counted, avgTake = sumWhere(inc, inP, 'takeHome') / counted;
+    const avgSpend = sumWhere(summary, inP, 'spending') / counted, avgSave = sumWhere(summary, inP, 'totalSavings') / counted;
     const cardsRow = fs.getRange('A' + FINSUM.CARD_VALUE + ':H' + FINSUM.CARD_VALUE).getValues()[0];
     const fsProblems = [];
     if (!near(cardsRow[0], avgGross)) fsProblems.push('avg gross ' + money(cardsRow[0]) + ' ≠ ' + money(avgGross));
     if (!near(cardsRow[2], avgTake)) fsProblems.push('avg take-home ' + money(cardsRow[2]) + ' ≠ ' + money(avgTake));
     if (!near(cardsRow[4], avgSpend)) fsProblems.push('avg spending ' + money(cardsRow[4]) + ' ≠ ' + money(avgSpend));
     if (!near(cardsRow[6], avgSave)) fsProblems.push('avg savings ' + money(cardsRow[6]) + ' ≠ ' + money(avgSave));
-    if (fsProblems.length) fail('Financial Summary averages (' + nMonths + ' months): ' + fsProblems.join('; ')); else pass('Financial Summary averages over ' + nMonths + ' full month(s) match Income and Monthly Summary');
+    if (fsProblems.length) fail('Financial Summary averages (' + nMonths + '-month window, ' + counted + ' with paychecks): ' + fsProblems.join('; ')); else pass('Financial Summary averages (' + nMonths + '-month window ending ' + mk(pEnd) + ', ' + counted + ' month(s) with paychecks) match Income and Monthly Summary');
     const groups = [['A', 'B', 'C', 'Ben'], ['D', 'E', 'F', 'Valerie'], ['G', 'H', 'I', null]];
     const hdrProblems = [], fedProblems = [];
     groups.forEach(g => {
       const h = fs.getRange(g[0] + FINSUM.PAYROLL_HEADER + ':' + g[2] + FINSUM.PAYROLL_HEADER).getValues()[0];
       if (h[0] !== 'Deduction' || h[1] !== 'Amount' || h[2] !== '% of Gross') hdrProblems.push(g[3] || 'Household');
       const fed = fs.getRange(g[1] + FINSUM.PAYROLL_FIRST).getValue();
-      const expFed = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'fedTax') / nMonths;
+      const expFed = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'fedTax') / counted;
       if (!near(fed, expFed)) fedProblems.push((g[3] || 'Household') + ' ' + money(fed) + ' ≠ ' + money(expFed));
       const tot = fs.getRange(g[1] + FINSUM.PAYROLL_TOTAL).getValue();
-      const expTot = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'totalDed') / nMonths;
+      const expTot = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'totalDed') / counted;
       if (!near(tot, expTot)) fedProblems.push((g[3] || 'Household') + ' total ' + money(tot) + ' ≠ ' + money(expTot));
     });
     if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');

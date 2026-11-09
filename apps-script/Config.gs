@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.4-expected-income-2026-11-09',
-  BUILD_VERSION: '1.4.0',
+  SCHEMA_VERSION: '3.5-backed-funds-2026-11-09',
+  BUILD_VERSION: '1.5.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -83,6 +83,8 @@ const COLORS = {
   CARD_SAVINGS: '#DCEFE2',
   UNCATEGORIZED: '#FFCDD2',
   DELETED_TEXT: '#9AA5B1',
+  FADED_TEXT: '#8A97A6',   // the Dashboard's faded gross card
+  FADED_FILL: '#F1F4F7',
   BORDER: '#C9D2DC',
 };
 
@@ -503,7 +505,9 @@ TABLES.FUNDS = {
       f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE"))' },
     { key: 'withdrawals', h: 'Withdrawals', w: 110, fmt: C.cur,
       f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Refund",[TX.isDeleted],"<>TRUE"))' },
-    { key: 'current', h: 'Current Amount', w: 110, fmt: C.cur, f: '=IF([@id]="","",N([@starting])+[@contributions]-[@withdrawals])' },
+    { key: 'current', h: 'Current Amount', w: 110, fmt: C.cur,
+      f: '=IF([@id]="","",IF([@backingAccount]<>"",IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0),N([@starting])+[@contributions]-[@withdrawals]))',
+      note: 'Changed in 3.5: a fund with a Backing Account shows that account\'s live balance (from the bank feed); otherwise starting + contributions − withdrawals as before.' },
     { key: 'targetDate', h: 'Target Date', w: 100, fmt: C.date, v: { date: true } },
     { key: 'plannedMonthly', h: 'Planned Monthly', w: 110, fmt: C.cur },
     { key: 'amountNeeded', h: 'Amount Needed', w: 110, fmt: C.cur, f: '=IF([@id]="","",MAX(N([@target])-[@current],0))' },

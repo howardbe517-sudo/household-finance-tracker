@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.4-expected-income-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.5-backed-funds-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -207,7 +207,7 @@ Named range `TBL_FUNDS` covers the header row through the last formula row.
 | E | Starting Amount | `starting` | currency | input |  |
 | F | Contributions | `contributions` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE"))` |
 | G | Withdrawals | `withdrawals` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Refund",[TX…` |
-| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",N([@starting])+[@contributions]-[@withdrawals])` |
+| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",IF([@backingAccount]<>"",IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0),N([@starting])+[@contributio…` — Changed in 3.5: a fund with a Backing Account shows that account's live balance (from the bank feed); otherwise starting + contributions − withdrawals as before. |
 | I | Target Date | `targetDate` | date | input (date) |  |
 | J | Planned Monthly | `plannedMonthly` | currency | input |  |
 | K | Amount Needed | `amountNeeded` | currency | calculated | `=IF([@id]="","",MAX(N([@target])-[@current],0))` |

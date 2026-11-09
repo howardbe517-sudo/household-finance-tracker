@@ -286,6 +286,7 @@ function finishAccountMapping(p) {
   if (newRows.length) { writeRows_(accDef, newRows); newRows.forEach(r => appendChangeLog_({ table: 'ACCOUNTS', recordId: r.id, field: '(row)', newValue: r.name, action: 'Insert', user: userEmail_() || 'connect-dialog' })); }
   const debts = { linked: 0, reused: 0, created: 0, none: 0 };
   loans.forEach(l => { debts[ensureDebtRowForLoan_(l[0], l[1], l[2], p)]++; });
+  try { ensureFunds_(); } catch (e) { /* the nightly sync will try again */ }
   setConnectionStatus_(p.connectionId, 'Active', 'Accounts mapped: ' + linked + ' linked, ' + created + ' created.' + (debts.reused || debts.created ? ' Debts rows: ' + debts.reused + ' matched, ' + debts.created + ' created.' : ''), '');
   const rawMap = plaidProps_().getProperty(PLAID_PROPS.PENDING_MAP);
   if (rawMap) { try { if (JSON.parse(rawMap).connectionId === p.connectionId) plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } catch (e) { plaidProps_().deleteProperty(PLAID_PROPS.PENDING_MAP); } }
@@ -615,6 +616,7 @@ function syncAllConnections() {
   try { ensureMonthRows_(); } catch (e) { Logger.log('ensureMonthRows_: ' + (e && e.message || e)); }
   try { refreshDebtPauseFormats_(); } catch (e) { Logger.log('refreshDebtPauseFormats_: ' + (e && e.message || e)); }
   try { ensureExpectedIncome_(); } catch (e) { Logger.log('ensureExpectedIncome_: ' + (e && e.message || e)); }
+  try { ensureFunds_(); } catch (e) { Logger.log('ensureFunds_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   Logger.log(lines.join('\n'));
