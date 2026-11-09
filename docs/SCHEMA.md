@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.2-liabilities-pslf-2026-11-07**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.3-interest-pause-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -14,7 +14,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
-| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 26 | yes |
+| DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 28 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
 | CREDIT | Credit Scores | 4 | 5 | 304 | CS-20261107-B-001 | 8 | yes |
 | STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
@@ -213,8 +213,8 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | L | Target Payoff Date | `targetPayoff` | date | input (date) |  |
 | M | Linked Account ID | `linkedAccount` | text | dropdown: Accounts IDs |  |
 | N | Notes | `notes` | text | input |  |
-| O | Estimated Monthly Interest | `estMonthlyInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr])/12)` |
-| P | Estimated Annual Interest | `estAnnualInterest` | currency | calculated | `=IF([@id]="","",N([@latestBalance])*N([@apr]))` |
+| O | Estimated Monthly Interest | `estMonthlyInterest` | currency | calculated | `=IF([@id]="","",IF(AND([@interestPaused]=TRUE,OR([@pausedUntil]="",[@pausedUntil]>=TODAY())),0,N([@latestBalance])*N([@apr])/12))` — Changed in 3.3: 0 while Interest Paused? is ticked (and Paused Until, if set, has not passed). |
+| P | Estimated Annual Interest | `estAnnualInterest` | currency | calculated | `=IF([@id]="","",IF(AND([@interestPaused]=TRUE,OR([@pausedUntil]="",[@pausedUntil]>=TODAY())),0,N([@latestBalance])*N([@apr])))` |
 | Q | Debt Group | `group` | text | dropdown: LIST_DEBT_GROUPS | Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both. |
 | R | Next Payment Due | `nextDue` | date | input | Added in 3.2: written by the bank feed (Plaid Liabilities) where the lender provides it. The feed also fills Interest Rate, Minimum Payment and Due Day for linked cards and loans. |
 | S | Last Payment (feed) | `lastPayment` | text | input | Added in 3.2: date and amount of the last payment the lender reported. |
@@ -225,6 +225,8 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 | X | PSLF Estimated Count | `pslfEstimated` | integer | calculated | `=IF(OR([@id]="",[@pslfOfficial]=""),"",N([@pslfOfficial])+N([@pslfSince]))` — Added in 3.2: official count + payments since. An estimate until studentaid.gov confirms it. |
 | Y | PSLF Remaining (of 120) | `pslfRemaining` | integer | calculated | `=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))` |
 | Z | Feed Updated | `feedUpdated` | datetime | input | Added in 3.2: when the bank feed last wrote lender data to this row. |
+| AA | Interest Paused? | `interestPaused` | text | checkbox | Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow); the balance and payments are unaffected. |
+| AB | Paused Until | `pausedUntil` | date | input (date) | Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause. |
 
 ## Quarterly Debt Review (`QDR`)
 

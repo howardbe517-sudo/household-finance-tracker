@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-09 — Debts: pause interest, with an end date that unpauses by itself
+- What changed: Debts gains **Interest Paused?** (checkbox) and **Paused
+  Until** (date, optional). While the box is ticked and the date is blank or
+  still ahead, the row's Estimated Monthly and Annual Interest are 0, so the
+  Debts band total and the AI snapshot drop that interest too; the balance,
+  payments and PSLF count are untouched. Once Paused Until passes, interest
+  counts again without anyone unticking anything. The paused interest cell
+  is tinted green while the pause is in effect. The snapshot marks the APR
+  "(interest paused until …)" and counts how many debts are paused.
+  Schema 3.3 (two appended columns; the two interest formulas change).
+- Files changed in `apps-script/`: `Config.gs`, `Tables.gs`, `Export.gs`
+  (deployed on merge). Then Finance Tracker → Upgrade workbook once (adds
+  the two columns and rewrites the two formulas).
+- Tested: Node (formulas honour the pause; snapshot counts a paused debt at
+  0 and resumes after the end date; upgrade of a pre-3.3 workbook). Not yet
+  tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/debt-interest-pause`
+
 ## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
 - What changed:
   - **Accounts block on the Dashboard** (the owner's choice after several

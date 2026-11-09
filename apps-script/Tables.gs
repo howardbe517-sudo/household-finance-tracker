@@ -70,6 +70,7 @@ CF_BUILDERS.DEBTS = (sh, def) => {
   sh.setConditionalFormatRules([
     cfRule_(colRange_(sh, def, 'apr'), '=AND(ISNUMBER(' + cellRef_(def, 'apr') + '),' + cellRef_(def, 'apr') + '>=0.15)', COLORS.OVER_FILL, COLORS.OVER_FONT),
     cfRule_(colRange_(sh, def, 'balanceAsOf'), '=' + cellRef_(def, 'balanceAsOf') + '="No review yet"', COLORS.WARN_FILL, COLORS.WARN_FONT),
+    cfRule_(colRange_(sh, def, 'estMonthlyInterest'), '=AND(' + cellRef_(def, 'interestPaused') + '=TRUE,OR(' + cellRef_(def, 'pausedUntil') + '="",' + cellRef_(def, 'pausedUntil') + '>=TODAY()))', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
   ]);
 };
 
