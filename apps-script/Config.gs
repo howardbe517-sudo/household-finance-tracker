@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.2-liabilities-pslf-2026-11-07',
-  BUILD_VERSION: '1.2.0',
+  SCHEMA_VERSION: '3.3-interest-pause-2026-11-09',
+  BUILD_VERSION: '1.3.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -509,8 +509,11 @@ TABLES.DEBTS = {
     { key: 'targetPayoff', h: 'Target Payoff Date', w: 115, fmt: C.date, v: { date: true } },
     { key: 'linkedAccount', h: 'Linked Account ID', w: 115, v: { idsOf: 'ACCOUNTS' } },
     { key: 'notes', h: 'Notes', w: 220 },
-    { key: 'estMonthlyInterest', h: 'Estimated Monthly Interest', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@latestBalance])*N([@apr])/12)' },
-    { key: 'estAnnualInterest', h: 'Estimated Annual Interest', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@latestBalance])*N([@apr]))' },
+    { key: 'estMonthlyInterest', h: 'Estimated Monthly Interest', w: 130, fmt: C.cur,
+      f: '=IF([@id]="","",IF(AND([@interestPaused]=TRUE,OR([@pausedUntil]="",[@pausedUntil]>=TODAY())),0,N([@latestBalance])*N([@apr])/12))',
+      note: 'Changed in 3.3: 0 while Interest Paused? is ticked (and Paused Until, if set, has not passed).' },
+    { key: 'estAnnualInterest', h: 'Estimated Annual Interest', w: 130, fmt: C.cur,
+      f: '=IF([@id]="","",IF(AND([@interestPaused]=TRUE,OR([@pausedUntil]="",[@pausedUntil]>=TODAY())),0,N([@latestBalance])*N([@apr])))' },
     { key: 'group', h: 'Debt Group', w: 110, v: { list: 'DEBT_GROUPS' },
       note: 'Added in 3.1: Household or Student Loans. Student loans are totalled separately everywhere (they would swamp the household total); net worth still counts both.' },
     { key: 'nextDue', h: 'Next Payment Due', w: 110, fmt: C.date,
@@ -527,6 +530,10 @@ TABLES.DEBTS = {
       note: 'Added in 3.2: official count + payments since. An estimate until studentaid.gov confirms it.' },
     { key: 'pslfRemaining', h: 'PSLF Remaining (of 120)', w: 120, fmt: C.int, f: '=IF([@pslfEstimated]="","",MAX(120-[@pslfEstimated],0))' },
     { key: 'feedUpdated', h: 'Feed Updated', w: 130, fmt: C.dt, note: 'Added in 3.2: when the bank feed last wrote lender data to this row.' },
+    { key: 'interestPaused', h: 'Interest Paused?', w: 95, v: { checkbox: true },
+      note: 'Added in 3.3: tick while a debt is in forbearance, a 0% period or any relief that stops interest. The estimated interest for the row drops to 0 (the band and the AI snapshot follow); the balance and payments are unaffected.' },
+    { key: 'pausedUntil', h: 'Paused Until', w: 110, fmt: C.date, v: { date: true },
+      note: 'Added in 3.3: optional end date of the pause. After it passes, interest counts again by itself; leave blank for an open-ended pause.' },
   ],
 };
 
