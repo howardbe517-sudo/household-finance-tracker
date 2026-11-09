@@ -311,7 +311,7 @@ function writeSampleImportData_() {
 }
 
 /** Tables whose sample rows can be identified by a Notes column starting with SAMPLE. */
-const SAMPLE_TABLES = ['TX', 'INCOME', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS', 'STAGING', 'RULES'];
+const SAMPLE_TABLES = ['TX', 'INCOME', 'EXPECT', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS', 'STAGING', 'RULES'];
 
 function isSampleRow_(def, row) {
   const notes = String(row.notes || '');

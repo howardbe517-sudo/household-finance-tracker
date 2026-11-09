@@ -38,6 +38,7 @@ function collectSnapshotData_() {
     funds: readTable_(tdef_('FUNDS')),
     budgets: readTable_(tdef_('BUDGET')),
     plans: readTable_(tdef_('PLAN')),
+    expected: readTable_(tdef_('EXPECT')),
     recurring: readTable_(tdef_('RECUR')),
     credit: readTable_(tdef_('CREDIT')),
     nw: readTable_(tdef_('NW')),
@@ -140,7 +141,11 @@ function buildSnapshotText_(d) {
   const plan = d.plans.filter(p => mk(p.month) === curKey)[0];
   const flexSpent = net(inMonth(live, curKey).filter(t => t.spendingType === 'Flexible'));
   L.push('## This month\'s plan (' + monthName(curKey) + ', to date)');
-  if (plan) L.push('Flexible-spending target ' + money(plan.target) + '; flexible spent so far ' + money(flexSpent) + '; available ' + money(Number(plan.target || 0) - flexSpent) + '.');
+  const effTarget = plan ? (Number(plan.target || 0) > 0 ? Number(plan.target) : Number(plan.autoTarget || 0)) : 0;
+  const exp = (d.expected || []).filter(x => x.active === true);
+  const curMs = monthStart_(d.asOf);
+  if (exp.length) L.push('Expected regular income: ' + money(sum(exp, x => Number(x.typicalTakeHome || 0) * perMonth_(x.frequency))) + ' take-home in a typical month, ' + money(sum(exp, x => Number(x.typicalTakeHome || 0) * paydaysInMonth_(x.frequency, x.lastPayDate, curMs))) + ' this month, from ' + exp.map(x => x.person + ' at ' + x.employer + ' (' + money(x.typicalTakeHome) + ' ' + String(x.frequency || '').toLowerCase() + ', ' + paydaysInMonth_(x.frequency, x.lastPayDate, curMs) + ' paycheck(s) this month)').join(', ') + '.');
+  if (plan) L.push('Flexible-spending target ' + money(effTarget) + (Number(plan.target || 0) > 0 ? ' (set by hand)' : ' (automatic: expected take-home ' + money(Number(plan.expectedIncome || 0) + Number(plan.incomeAdjustment || 0)) + ' − bills ' + money(plan.bills) + ' − debt payments ' + money(plan.debtPayments) + ' − planned savings ' + money(plan.plannedSavings) + ')') + '; flexible spent so far ' + money(flexSpent) + '; available ' + money(effTarget - flexSpent) + '.');
   else L.push('No flexible-spending target set for this month yet; flexible spent so far ' + money(flexSpent) + '.');
   const bud = d.budgets.filter(b => mk(b.month) === curKey && b.category);
   if (bud.length) {
@@ -263,4 +268,20 @@ function buildSnapshotText_(d) {
   L.push('');
   L.push('_End of snapshot._');
   return L.join('\n');
+}
+
+function perMonth_(frequency) { return { Weekly: 52 / 12, Biweekly: 26 / 12, Semimonthly: 2, Monthly: 1 }[String(frequency || '')] || 0; }
+
+/** Paydays of a source that fall in the month starting at ms (first-of-month date), from its cycle and last pay date; the yearly average when no pay date is known. */
+function paydaysInMonth_(frequency, lastPayDate, ms) {
+  const f = String(frequency || '');
+  if (f === 'Semimonthly') return 2;
+  if (f === 'Monthly') return 1;
+  const cycle = f === 'Biweekly' ? 14 : f === 'Weekly' ? 7 : 0;
+  if (!cycle) return 0;
+  if (!(lastPayDate instanceof Date) || isNaN(lastPayDate)) return perMonth_(f);
+  const day = 86400000;
+  const start = new Date(ms.getFullYear(), ms.getMonth(), 1), end = new Date(ms.getFullYear(), ms.getMonth() + 1, 0);
+  const a = new Date(lastPayDate.getFullYear(), lastPayDate.getMonth(), lastPayDate.getDate());
+  return Math.floor((end - a) / day / cycle) + Math.floor((a - start) / day / cycle) + 1;
 }

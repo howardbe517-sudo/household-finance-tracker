@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.3-interest-pause-2026-11-09',
-  BUILD_VERSION: '1.3.0',
+  SCHEMA_VERSION: '3.4-expected-income-2026-11-09',
+  BUILD_VERSION: '1.4.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -29,6 +29,7 @@ const SHEETS = {
   GOALS: 'Goals',
   REMINDERS: 'Reminders',
   INCOME: 'Income',
+  EXPECT: 'Expected Income',
   TX: 'Transactions',
   RECUR: 'Recurring Payments',
   BUDGET: 'Monthly Budget',
@@ -55,7 +56,7 @@ const TAB_ORDER = [
   // The owner's order (2026-11-09): the three tabs looked at most first, then goals and reminders,
   // the ledgers and derived tables, and the setup and feed tabs at the end.
   SHEETS.DASH, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
@@ -118,6 +119,7 @@ const LISTS = [
   { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
   { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Tax Debt', 'Other'] },
   { key: 'FREQUENCIES', header: 'Frequencies', values: ['Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Semiannual', 'Annual'] },
+  { key: 'PAY_FREQUENCIES', header: 'Pay Frequencies', values: ['Weekly', 'Biweekly', 'Semimonthly', 'Monthly'] },
   { key: 'RECURRING_GROUPS', header: 'Recurring Groups', values: ['Housing', 'Utilities', 'Loans', 'Insurance', 'Subscriptions', 'Memberships', 'Other'] },
   { key: 'PAYMENT_TYPES', header: 'Payment Types', values: ['Bill', 'Subscription', 'Loan Payment', 'Insurance Premium', 'Membership', 'Transfer', 'Other'] },
   { key: 'TX_STATUSES', header: 'Transaction Statuses', values: ['Pending', 'Posted', 'Reviewed'] },
@@ -281,7 +283,7 @@ const TAXONOMY = [
  */
 
 const C = {
-  cur: 'currency', date: 'date', dt: 'datetime', month: 'month', pct: 'percent', int: 'int', text: 'text',
+  cur: 'currency', date: 'date', dt: 'datetime', month: 'month', pct: 'percent', int: 'int', num2: 'num2', text: 'text',
 };
 
 const TABLES = {};
@@ -357,6 +359,37 @@ TABLES.INCOME = {
     { key: 'linkedTx', h: 'Linked Deposit TX', w: 120,
       f: '=IF([@id]="","",IFERROR(INDEX(FILTER([TX.id],[TX.sourceIncomeId]=[@id],[TX.isDeleted]<>TRUE),1),"Unlinked"))',
       note: 'Added in the 3.0 rebuild: shows the Transactions deposit linked to this paycheck, or "Unlinked".' },
+  ],
+};
+
+TABLES.EXPECT = {
+  key: 'EXPECT', sheet: SHEETS.EXPECT, headerRow: 4, firstRow: 5, lastRow: 54,
+  title: 'Expected Income — Regular Paychecks',
+  note: 'One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Dashboard work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.',
+  idPrefix: 'EXP', idPattern: 'EXP-001', logChanges: true,
+  columns: [
+    { key: 'id', h: 'Source ID', w: 90 },
+    { key: 'person', h: 'Person', w: 90, v: { list: 'PERSONS' } },
+    { key: 'employer', h: 'Employer / Source', w: 190 },
+    { key: 'frequency', h: 'Pay Frequency', w: 110, v: { list: 'PAY_FREQUENCIES' } },
+    { key: 'typicalGross', h: 'Typical Gross (per paycheck)', w: 130, fmt: C.cur },
+    { key: 'typicalTakeHome', h: 'Typical Take-Home (per paycheck)', w: 140, fmt: C.cur },
+    { key: 'active', h: 'Active?', w: 70, v: { checkbox: true } },
+    { key: 'perMonth', h: 'Paychecks per Month (average)', w: 125, fmt: C.num2,
+      f: '=IF([@id]="","",SWITCH([@frequency],"Weekly",52/12,"Biweekly",26/12,"Semimonthly",2,"Monthly",1,0))' },
+    { key: 'monthlyTakeHome', h: 'Typical Month Take-Home', w: 140, fmt: C.cur, f: '=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@perMonth]),0))' },
+    { key: 'monthlyGross', h: 'Typical Month Gross', w: 130, fmt: C.cur, f: '=IF([@id]="","",IF([@active]=TRUE,N([@typicalGross])*N([@perMonth]),0))' },
+    { key: 'lastPayDate', h: 'Last Paycheck', w: 105, fmt: C.date,
+      f: '=IF([@id]="","",IFERROR(LET(d,MAXIFS([INCOME.payDate],[INCOME.person],[@person],[INCOME.employer],[@employer]),IF(d=0,"",d)),""))' },
+    { key: 'lastTakeHome', h: 'Last Take-Home', w: 110, fmt: C.cur,
+      f: '=IF(OR([@id]="",[@lastPayDate]=""),"",SUMIFS([INCOME.takeHome],[INCOME.person],[@person],[INCOME.employer],[@employer],[INCOME.payDate],[@lastPayDate]))' },
+    { key: 'deviation', h: 'Last vs Typical', w: 110, fmt: C.cur, f: '=IF(OR([@lastTakeHome]="",N([@typicalTakeHome])=0),"",[@lastTakeHome]-[@typicalTakeHome])',
+      note: 'How far the latest paycheck was from the typical amount; a standing difference means the typical amount needs updating.' },
+    { key: 'paydaysThisMonth', h: 'Paydays This Month', w: 105, fmt: C.num2,
+      f: '=IF([@id]="","",LET(ms,DATE(YEAR(TODAY()),MONTH(TODAY()),1),me,EOMONTH(ms,0),' + 'IFERROR(IF([@frequency]="Biweekly",IF(N([@lastPayDate])=0,26/12,INT((me-N([@lastPayDate]))/14)+INT((N([@lastPayDate])-ms)/14)+1),IF([@frequency]="Weekly",IF(N([@lastPayDate])=0,52/12,INT((me-N([@lastPayDate]))/7)+INT((N([@lastPayDate])-ms)/7)+1),IF([@frequency]="Semimonthly",2,IF([@frequency]="Monthly",1,0)))),0)' + '))',
+      note: 'Biweekly and weekly pay are counted from the last pay date and the pay cycle, so a three-paycheck month shows 3; until a paycheck exists the yearly average is used (26/12 or 52/12). Semimonthly is 2, monthly 1.' },
+    { key: 'expectedThisMonth', h: 'Expected This Month', w: 125, fmt: C.cur, f: '=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))' },
+    { key: 'notes', h: 'Notes', w: 240 },
   ],
 };
 
@@ -713,22 +746,38 @@ TABLES.PLAN = {
   columns: [
     { key: 'id', h: 'Plan ID', w: 110, f: '=IF([@month]="","","PLAN-"&TEXT([@month],"yyyymm"))' },
     { key: 'month', h: 'Month', w: 100, fmt: C.month, v: { date: true } },
-    { key: 'target', h: 'Monthly Flexible Target', w: 130, fmt: C.cur },
+    { key: 'target', h: 'Monthly Flexible Target', w: 130, fmt: C.cur,
+      note: 'Changed in 3.4: an override. Leave blank and the month uses Flexible Target (auto): expected take-home + income adjustment − bills − debt payments − planned savings. Type a number here to use it instead.' },
     { key: 'flexSpent', h: 'Flexible Spent', w: 110, fmt: C.cur,
       f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE"))' },
-    { key: 'available', h: 'Amount Available', w: 115, fmt: C.cur, f: '=IF([@id]="","",N([@target])-[@flexSpent])' },
+    { key: 'available', h: 'Amount Available', w: 115, fmt: C.cur, f: '=IF([@id]="","",N([@effectiveTarget])-[@flexSpent])' },
     { key: 'suggestedWeek', h: 'Suggested This Week', w: 125, fmt: C.cur,
       f: '=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",' +
          'LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),' +
          'before,SUMIFS([TX.amount],[TX.date],">="&ms,[TX.date],"<"&ws,[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")' +
          '-SUMIFS([TX.amount],[TX.date],">="&ms,[TX.date],"<"&ws,[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE"),' +
-         'remaining,MAX(N([@target])-before,0),remaining*(we-ws+1)/(me-ws+1)))' },
+         'remaining,MAX(N([@effectiveTarget])-before,0),remaining*(we-ws+1)/(me-ws+1)))' },
     { key: 'spentWeek', h: 'Spent This Week', w: 115, fmt: C.cur,
       f: '=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",' +
          'LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),' +
          'SUMIFS([TX.amount],[TX.date],">="&ws,[TX.date],"<="&TODAY(),[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")' +
          '-SUMIFS([TX.amount],[TX.date],">="&ws,[TX.date],"<="&TODAY(),[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE")))' },
     { key: 'notes', h: 'Notes', w: 240 },
+    { key: 'expectedIncome', h: 'Expected Take-Home (auto)', w: 130, fmt: C.cur,
+      f: '=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*' + 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=0,26/12,INT((me-N([EXPECT.lastPayDate]))/14)+INT((N([EXPECT.lastPayDate])-ms)/14)+1),IF([EXPECT.frequency]="Weekly",IF(N([EXPECT.lastPayDate])=0,52/12,INT((me-N([EXPECT.lastPayDate]))/7)+INT((N([EXPECT.lastPayDate])-ms)/7)+1),IF([EXPECT.frequency]="Semimonthly",2,IF([EXPECT.frequency]="Monthly",1,0)))),0)' + ')))',
+      note: 'Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists).' },
+    { key: 'incomeAdjustment', h: 'Income Adjustment', w: 110, fmt: C.cur,
+      note: 'Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered.' },
+    { key: 'bills', h: 'Bills (Recurring, monthly)', w: 130, fmt: C.cur, f: '=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))',
+      note: 'Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments).' },
+    { key: 'debtPayments', h: 'Debt Payments (planned)', w: 130, fmt: C.cur, f: '=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans")))',
+      note: 'Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments.' },
+    { key: 'plannedSavings', h: 'Planned Savings', w: 115, fmt: C.cur, f: '=IF([@id]="","",SUM([FUNDS.plannedMonthly]))',
+      note: 'Added in 3.4: Planned Monthly across Savings & Reserves. Raise or lower those to decide what goes to savings.' },
+    { key: 'autoTarget', h: 'Flexible Target (auto)', w: 130, fmt: C.cur, f: '=IF([@id]="","",N([@expectedIncome])+N([@incomeAdjustment])-N([@bills])-N([@debtPayments])-N([@plannedSavings]))',
+      note: 'Added in 3.4: what is left for flexible spending after bills, debt payments and planned savings.' },
+    { key: 'effectiveTarget', h: 'Target in Use', w: 115, fmt: C.cur, f: '=IF([@id]="","",IF(N([@target])>0,[@target],N([@autoTarget])))',
+      note: 'Added in 3.4: the override when one is typed, otherwise the automatic target. Amount Available and the weekly guidance use this.' },
   ],
 };
 
@@ -817,7 +866,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**
@@ -876,6 +925,7 @@ const FORMATS = {
   month: 'mmm yyyy',
   percent: '0.0%',
   int: '0',
+  num2: '0.00',
   text: '@',
 };
 

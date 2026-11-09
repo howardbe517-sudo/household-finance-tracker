@@ -122,7 +122,7 @@ function importGrid_(grid, opts) {
       const c = m.col;
       if (v === '' || v === null || v === undefined) return;
       if (c.fmt === 'date' || c.fmt === 'month' || c.fmt === 'datetime' || (c.v && c.v.date)) { const d = parseDate_(v); if (d) row[c.key] = d; else problems.push(c.h + ' "' + v + '" is not a date (use yyyy-mm-dd)'); return; }
-      if (c.fmt === 'currency' || c.fmt === 'int' || c.fmt === 'percent') { const n = parseNumber_(v); if (n === null) problems.push(c.h + ' "' + v + '" is not a number'); else row[c.key] = n; return; }
+      if (c.fmt === 'currency' || c.fmt === 'int' || c.fmt === 'percent' || c.fmt === 'num2') { const n = parseNumber_(v); if (n === null) problems.push(c.h + ' "' + v + '" is not a number'); else row[c.key] = n; return; }
       if (c.v && c.v.checkbox) { row[c.key] = /^(true|yes|y|1|x)$/i.test(String(v).trim()); return; }
       if (c.v && c.v.list && lists[c.v.list]) {
         const hit = lists[c.v.list].filter(x => String(x).toLowerCase() === String(v).trim().toLowerCase())[0];
@@ -189,13 +189,14 @@ function importGrid_(grid, opts) {
   writeRows_(def, fresh);
   fresh.forEach(row => appendChangeLog_({ table: key, recordId: row.id, field: '(row)', newValue: 'Imported from Paste Import', action: 'Import', user: who }));
   let linked = null;
-  if (key === 'INCOME') { try { linked = linkIncomeDeposits_(); } catch (e) { linked = null; } }
+  let expected = null;
+  if (key === 'INCOME') { try { linked = linkIncomeDeposits_(); } catch (e) { linked = null; } try { expected = ensureExpectedIncome_(); } catch (e) { expected = null; } }
   const when = Utilities.formatDate(new Date(), 'America/Detroit', 'yyyy-MM-dd HH:mm');
   props.setProperty('PASTE_LAST_HASH', hash); props.setProperty('PASTE_LAST_WHEN', when);
   const status = fresh.length + ' row(s) → ' + def.sheet + ' at ' + when + (dupes.length ? ' · ' + dupes.length + ' skipped as already present' : '') + ' · IDs ' + fresh[0].id + (fresh.length > 1 ? '–' + fresh[fresh.length - 1].id : '');
   const st = ss_().getRangeByName('PASTE_STATUS'); if (st) st.setValue(status);
   return { status: 'imported', table: key, imported: fresh.length, skipped: dupes.length, warnings, ids: fresh.map(r => r.id),
-    message: status + (warnings.length ? '\n\nPlease check:\n' + warnings.slice(0, 8).join('\n') : '') + (linked ? '\n\nPaycheck deposits: ' + linked.linked + ' linked to these paychecks.' : '') };
+    message: status + (warnings.length ? '\n\nPlease check:\n' + warnings.slice(0, 8).join('\n') : '') + (linked ? '\n\nPaycheck deposits: ' + linked.linked + ' linked to these paychecks.' : '') + (expected && expected.created ? '\n\nExpected Income: ' + expected.created + ' new regular paycheck row(s) created (' + expected.rows.map(r => r.person + ' · ' + r.employer + ' · ' + r.frequency).join('; ') + '). Check the frequency and typical amounts there.' : '') };
 }
 
 function pasteHash_(grid) {

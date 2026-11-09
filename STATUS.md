@@ -59,6 +59,12 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/expected-income` (schema 3.4): Expected Income tab,
+  automatic flexible target on Monthly Plan, Dashboard expected line. After
+  merge: Upgrade workbook, then check the created Expected Income rows.
+- Owner's model (2026-11-09): monthly plan = typical take-home (three
+  regular paychecks across the household) + adjustments − bills − debt
+  payments − planned savings = flexible; weekly guidance from that.
 - Pull request `claude/paystub-import`: Paste Import tab + import function,
   and the pay stub skill under `skills/`. Owner to install the skill in
   claude.ai and try a real stub.

@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.3-interest-pause-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.4-expected-income-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -11,6 +11,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 14 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
+| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
@@ -22,7 +23,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | CONN | Connections | 4 | 5 | 54 | CONN-001 | 13 | yes |
 | LOG | Change Log | 4 | 5 | 1004 | CHG-20261107-153000-a1b2 | 10 | no |
 | BUDGET | Monthly Budget | 4 | 5 | 504 | BUD-202611-HOUS | 8 | yes |
-| PLAN | Monthly Plan | 4 | 5 | 124 | PLAN-202611 | 8 | yes |
+| PLAN | Monthly Plan | 4 | 5 | 124 | PLAN-202611 | 15 | yes |
 | SUMMARY | Monthly Summary | 4 | 5 | 124 | (month date) | 15 | no |
 | REVIEW | Monthly Review | 4 | 5 | 124 | REV-202611 | 18 | yes |
 | NW | Net Worth Snapshots | 4 | 5 | 124 | NW-202611 | 11 | yes |
@@ -96,6 +97,31 @@ Named range `TBL_INCOME` covers the header row through the last formula row.
 | Q | Notes | `notes` | text | input |  |
 | R | Last Updated | `lastUpdated` | date | input (date) |  |
 | S | Linked Deposit TX | `linkedTx` | text | calculated | `=IF([@id]="","",IFERROR(INDEX(FILTER([TX.id],[TX.sourceIncomeId]=[@id],[TX.isDeleted]<>TRUE),1),"Unlinked"))` — Added in the 3.0 rebuild: shows the Transactions deposit linked to this paycheck, or "Unlinked". |
+
+## Expected Income (`EXPECT`)
+
+One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Dashboard work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.
+
+Named range `TBL_EXPECT` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Source ID | `id` | text | input |  |
+| B | Person | `person` | text | dropdown: LIST_PERSONS |  |
+| C | Employer / Source | `employer` | text | input |  |
+| D | Pay Frequency | `frequency` | text | dropdown: LIST_PAY_FREQUENCIES |  |
+| E | Typical Gross (per paycheck) | `typicalGross` | currency | input |  |
+| F | Typical Take-Home (per paycheck) | `typicalTakeHome` | currency | input |  |
+| G | Active? | `active` | text | checkbox |  |
+| H | Paychecks per Month (average) | `perMonth` | text | calculated | `=IF([@id]="","",SWITCH([@frequency],"Weekly",52/12,"Biweekly",26/12,"Semimonthly",2,"Monthly",1,0))` |
+| I | Typical Month Take-Home | `monthlyTakeHome` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@perMonth]),0))` |
+| J | Typical Month Gross | `monthlyGross` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalGross])*N([@perMonth]),0))` |
+| K | Last Paycheck | `lastPayDate` | date | calculated | `=IF([@id]="","",IFERROR(LET(d,MAXIFS([INCOME.payDate],[INCOME.person],[@person],[INCOME.employer],[@employer]),IF(d=0,"",d)),""))` |
+| L | Last Take-Home | `lastTakeHome` | currency | calculated | `=IF(OR([@id]="",[@lastPayDate]=""),"",SUMIFS([INCOME.takeHome],[INCOME.person],[@person],[INCOME.employer],[@employer],[INCOME.payDate],[@lastPayDate]))` |
+| M | Last vs Typical | `deviation` | currency | calculated | `=IF(OR([@lastTakeHome]="",N([@typicalTakeHome])=0),"",[@lastTakeHome]-[@typicalTakeHome])` — How far the latest paycheck was from the typical amount; a standing difference means the typical amount needs updating. |
+| N | Paydays This Month | `paydaysThisMonth` | text | calculated | `=IF([@id]="","",LET(ms,DATE(YEAR(TODAY()),MONTH(TODAY()),1),me,EOMONTH(ms,0),IFERROR(IF([@frequency]="Biweekly",IF(N([@lastPayDate])=0,26/12,INT((me-N([@last…` — Biweekly and weekly pay are counted from the last pay date and the pay cycle, so a three-paycheck month shows 3; until a paycheck exists the yearly average is used (26/12 or 52/12). Semimonthly is 2, monthly 1. |
+| O | Expected This Month | `expectedThisMonth` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))` |
+| P | Notes | `notes` | text | input |  |
 
 ## Transactions (`TX`)
 
@@ -395,12 +421,19 @@ Named range `TBL_PLAN` covers the header row through the last formula row.
 |---|---|---|---|---|---|
 | A | Plan ID | `id` | text | calculated | `=IF([@month]="","","PLAN-"&TEXT([@month],"yyyymm"))` |
 | B | Month | `month` | month (1st-of-month date) | input (date) |  |
-| C | Monthly Flexible Target | `target` | currency | input |  |
+| C | Monthly Flexible Target | `target` | currency | input | Changed in 3.4: an override. Leave blank and the month uses Flexible Target (auto): expected take-home + income adjustment − bills − debt payments − planned savings. Type a number here to use it instead. |
 | D | Flexible Spent | `flexSpent` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month…` |
-| E | Amount Available | `available` | currency | calculated | `=IF([@id]="","",N([@target])-[@flexSpent])` |
+| E | Amount Available | `available` | currency | calculated | `=IF([@id]="","",N([@effectiveTarget])-[@flexSpent])` |
 | F | Suggested This Week | `suggestedWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),b…` |
 | G | Spent This Week | `spentWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),SUMIFS([TX.amount],[TX.date],">="&…` |
 | H | Notes | `notes` | text | input |  |
+| I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N…` — Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists). |
+| J | Income Adjustment | `incomeAdjustment` | currency | input | Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered. |
+| K | Bills (Recurring, monthly) | `bills` | currency | calculated | `=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))` — Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). |
+| L | Debt Payments (planned) | `debtPayments` | currency | calculated | `=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans")))` — Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments. |
+| M | Planned Savings | `plannedSavings` | currency | calculated | `=IF([@id]="","",SUM([FUNDS.plannedMonthly]))` — Added in 3.4: Planned Monthly across Savings & Reserves. Raise or lower those to decide what goes to savings. |
+| N | Flexible Target (auto) | `autoTarget` | currency | calculated | `=IF([@id]="","",N([@expectedIncome])+N([@incomeAdjustment])-N([@bills])-N([@debtPayments])-N([@plannedSavings]))` — Added in 3.4: what is left for flexible spending after bills, debt payments and planned savings. |
+| O | Target in Use | `effectiveTarget` | currency | calculated | `=IF([@id]="","",IF(N([@target])>0,[@target],N([@autoTarget])))` — Added in 3.4: the override when one is typed, otherwise the automatic target. Amount Available and the weekly guidance use this. |
 
 ## Monthly Summary (`SUMMARY`)
 
@@ -498,6 +531,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |
 | DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
 | FREQUENCIES | Frequencies | Weekly, Biweekly, Monthly, Quarterly, Semiannual, Annual |
+| PAY_FREQUENCIES | Pay Frequencies | Weekly, Biweekly, Semimonthly, Monthly |
 | RECURRING_GROUPS | Recurring Groups | Housing, Utilities, Loans, Insurance, Subscriptions, Memberships, Other |
 | PAYMENT_TYPES | Payment Types | Bill, Subscription, Loan Payment, Insurance Premium, Membership, Transfer, Other |
 | TX_STATUSES | Transaction Statuses | Pending, Posted, Reviewed |
