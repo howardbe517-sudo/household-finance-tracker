@@ -240,6 +240,7 @@ g.__fetchHandler.fn = (url, payload) => {
   if (url.endsWith('/link/token/create')) return { body: { link_token: linkPhase === 2 ? 'lt-2' : 'lt-1', hosted_link_url: 'https://secure.plaid.com/hl/test', expiration: '2026-12-31T00:00:00Z' } };
   if (url.endsWith('/link/token/get')) return { body: { link_sessions: [{ finished_at: todayIso, results: { item_add_results: [payload.link_token === 'lt-2' ? { public_token: 'public-2', institution: { institution_id: 'ins_2', name: 'Sample Loan Servicer' } } : { public_token: 'public-1', institution: { institution_id: 'ins_1', name: 'Sample Bank' } }] } }] } };
   if (url.endsWith('/item/public_token/exchange')) return { body: payload.public_token === 'public-2' ? { access_token: 'access-2', item_id: 'item-2' } : { access_token: 'access-1', item_id: 'item-1' } };
+  if (url.endsWith('/accounts/balance/get')) { g.__liveCalls = (g.__liveCalls || 0) + 1; return { body: { accounts: [{ account_id: 'pa1', type: 'depository', balances: { current: 1500, available: 1300.5 } }, { account_id: 'pa2', type: 'credit', balances: { current: 410, available: 4590 } }] } }; }
   if (url.endsWith('/accounts/get') && payload.access_token === 'access-2') return { body: { accounts: [{ account_id: 'sl1', name: 'Direct Loan - Subsidized', mask: '0001', type: 'loan', subtype: 'student', balances: { current: 5200 } }, { account_id: 'sl2', name: 'Direct Loan - Unsubsidized', mask: '0002', type: 'loan', subtype: 'student', balances: { current: 7300 } }] } };
   if (url.endsWith('/accounts/get')) return { body: { accounts: [{ account_id: 'pa1', name: 'Everyday Checking', mask: '1111', type: 'depository', subtype: 'checking', balances: { current: 1234.56 } }, { account_id: 'pa2', name: 'Rewards Card', mask: '2222', type: 'credit', subtype: 'credit card', balances: { current: 420 } }] } };
   if (url.endsWith('/liabilities/get')) {
@@ -296,7 +297,7 @@ if (byExt.t1 && byExt.t1.status === 'Imported' && byExt.t1.ruleId === 'RULE-001'
 if (byExt.t2 && byExt.t2.status === 'Needs Split' && byExt.t2.accountId === acc14.id) ok('split-required merchant held in staging on the new card account'); else bad('t2: ' + JSON.stringify(byExt.t2));
 if (byExt.t4 && byExt.t5 && byExt.t4.pairedImportId === byExt.t5.importId && byExt.t4.suggestedType === 'Debt Payment' && byExt.t4.suggestedDebtId === cardRow.id && byExt.t5.suggestedType === 'Transfer' && byExt.t4.status === 'Imported' && byExt.t5.status === 'Imported') ok('card payment auto-paired: bank side Debt Payment to the card\'s Debts row, card side Transfer, both imported'); else bad('pair t4/t5: ' + JSON.stringify([byExt.t4, byExt.t5].map(s => s && [s.suggestedType, s.status, s.pairedImportId])));
 if (!byExt.t3) ok('transaction before the start date was not staged'); else bad('t3 staged despite start date');
-if (near(R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`), 1200.1)) ok('balances from the sync written to Accounts'); else bad('balance not updated');
+if (near(R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`), 1300.5)) ok('balances from the first sync written to Accounts (live pull: checking shows the available balance)'); else bad('balance not updated: ' + R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`));
 const conn2 = R(`readTable_(TABLES.CONN)[0]`);
 if (conn2.status === 'Active' && conn2.syncCursor === 'c2' && !conn2.lastError) ok('connection Active with cursor saved after a successful sync'); else bad('conn after sync: ' + JSON.stringify(conn2));
 // second sync: posted replaces pending, bank removes t1
@@ -308,6 +309,15 @@ if (s2.added === 1 && s2.removed === 1 && byExt3.t2.status === 'Superseded' && b
 const t1tx = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='${byExt.t1.importedTxId}'; })[0]`);
 if (byExt3.t1.status === 'Removed' && t1tx && t1tx.isDeleted === true) ok('a transaction the bank removed is soft-deleted, never erased'); else bad('removal: ' + JSON.stringify([byExt3.t1.status, t1tx && t1tx.isDeleted]));
 if (R(`readTable_(TABLES.CONN)[0].syncCursor`) === 'c3') ok('cursor advanced to c3'); else bad('cursor not advanced');
+// Sync now pulls live balances: checking keeps the available figure (pending taken out), the card the posted balance owed
+g.__liveCalls = 0;
+const liveRes = R(`syncNow()`)[0];
+const acc7Live = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='ACC-007'; })[0].currentBalance`);
+const acc14Live = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id==='${acc14.id}'; })[0].currentBalance`);
+if (g.__liveCalls === 1 && liveRes.live === true && near(acc7Live, 1300.5) && near(acc14Live, 410) && /pulled live from the bank/.test(g.__alerts.slice(-1)[0][1])) ok('Sync now asks the bank for live balances: checking shows the available balance, the card the posted balance owed'); else bad('live sync: ' + JSON.stringify([g.__liveCalls, liveRes && liveRes.live, acc7Live, acc14Live]));
+g.__liveCalls = 0;
+R(`syncAllConnections()`);
+if (g.__liveCalls === 0) ok('the nightly sync keeps the lighter cached read (no live pull)'); else bad('nightly made a live pull');
 // re-running with nothing new changes nothing
 syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
