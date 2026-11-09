@@ -441,7 +441,11 @@ function updateBalances_(plaidAccounts, accountMap) {
   (plaidAccounts || []).forEach(a => {
     const row = accountMap[a.account_id];
     if (!row || !a.balances) return;
-    const bal = a.balances.current === null || a.balances.current === undefined ? a.balances.available : a.balances.current;
+    // what the bank shows when you log in: for checking and savings the available balance (pending
+    // items already taken out); for cards and loans the posted balance owed
+    const b = a.balances;
+    const prefer = a.type === 'depository' ? [b.available, b.current] : [b.current, b.available];
+    const bal = prefer.filter(v => v !== null && v !== undefined)[0];
     if (bal === null || bal === undefined) return;
     sh.getRange(row.__row, colIndex_(def, 'currentBalance')).setValue(Number(bal));
     sh.getRange(row.__row, colIndex_(def, 'lastUpdated')).setValue(now);
@@ -454,11 +458,12 @@ function updateBalances_(plaidAccounts, accountMap) {
 function syncConnectionById_(connId) {
   const conn = readTable_(tdef_('CONN')).filter(c => c.id === connId)[0];
   if (!conn) throw new Error('Connection not found: ' + connId);
-  return syncConnection_(conn);
+  return syncConnection_(conn, { live: true });
 }
 
 /** Sync one connection. Returns a summary object; records errors on the Connections row instead of throwing. */
-function syncConnection_(conn) {
+function syncConnection_(conn, opts) {
+  opts = opts || {};
   const summary = { connectionId: conn.id, institution: conn.institution, added: 0, updated: 0, removed: 0, autoImported: 0, balances: 0, skippedBeforeStart: 0, error: '' };
   try {
     layoutCheck_();
@@ -495,6 +500,14 @@ function syncConnection_(conn) {
     } else {
       const res = plaidCall_('/accounts/get', { access_token: token });
       summary.balances = updateBalances_(res.accounts, accountMap);
+    }
+    if (opts.live && accounts.length) {
+      // a real-time pull from the bank (slower; a manual Sync now only). Plaid's cached balances above stand if it fails.
+      try {
+        const live = plaidCall_('/accounts/balance/get', { access_token: token, options: { account_ids: accounts.map(a => a.externalAccountId) } });
+        const n = updateBalances_(live.accounts, accountMap);
+        if (n) { summary.balances = n; summary.live = true; }
+      } catch (e) { summary.liveError = String(e && e.message || e); }
     }
     if (products.indexOf('transactions') >= 0 || products.indexOf('liabilities') >= 0) summary.liabilities = syncLiabilities_(conn, token, accountMap);
     setConnectionStatus_(conn.id, 'Active', summarizeSync_(summary), '');
@@ -610,9 +623,9 @@ function ensureMonthRows_() {
 }
 
 /** Nightly trigger and Finance Tracker → Bank feed → Sync now. */
-function syncAllConnections() {
+function syncAllConnections(opts) {
   const conns = readTable_(tdef_('CONN')).filter(c => c.status === 'Active' || c.status === 'Needs Attention');
-  const results = conns.map(syncConnection_);
+  const results = conns.map(c => syncConnection_(c, opts));
   try { ensureMonthRows_(); } catch (e) { Logger.log('ensureMonthRows_: ' + (e && e.message || e)); }
   try { refreshDebtPauseFormats_(); } catch (e) { Logger.log('refreshDebtPauseFormats_: ' + (e && e.message || e)); }
   try { ensureExpectedIncome_(); } catch (e) { Logger.log('ensureExpectedIncome_: ' + (e && e.message || e)); }
@@ -625,8 +638,8 @@ function syncAllConnections() {
 
 function syncNow() {
   plaidConfig_();
-  const results = syncAllConnections();
-  alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r)).join('\n') : 'No active connections yet. Use Bank feed → Connect a bank.');
+  const results = syncAllConnections({ live: true });
+  alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r) + (r.live ? ' · balances pulled live from the bank' : (r.liveError ? ' · live balance pull failed (' + r.liveError.slice(0, 80) + '); Plaid\'s last balances kept' : ''))).join('\n') + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }
 

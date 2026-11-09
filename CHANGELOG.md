@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-09 — Sync now pulls live balances; checking and savings show the available balance
+- What changed: the owner saw a checking balance higher than at the bank
+  after paying a card, and Sync now did not move it. Two causes, two fixes.
+  (1) The sync read Plaid's cached balances (refreshed about once a day);
+  **Bank feed → Sync now** and a connection's first sync now ask Plaid for a
+  real-time pull from the bank (`/accounts/balance/get`), while the nightly
+  run keeps the lighter cached read. If the live pull fails, the cached
+  figures stand and the dialog says so. (2) Checking and savings now keep
+  the **available** balance (pending items already taken out), which is what
+  the bank shows on login; cards and loans keep the posted balance owed.
+- Files changed in `apps-script/`: `Plaid.gs` (deployed on merge). Nothing
+  to run; the next Sync now shows the live figures.
+- Tested: Node (Sync now makes one live call per connection and writes the
+  available balance for checking and the posted balance for the card; the
+  nightly sync makes no live call; a live pull that returns nothing keeps
+  the cached balances). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/live-balances`
+
 ## 2026-11-09 — Dashboard polish; funds fill themselves; averages over months that have paychecks
 - What changed:
   - **Dashboard**: the three month cards and the three flexible boxes now
