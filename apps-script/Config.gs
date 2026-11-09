@@ -46,6 +46,7 @@ const SHEETS = {
   STAGING: 'Import Staging',
   RULES: 'Import Rules',
   CONN: 'Connections',
+  PASTE: 'Paste Import',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -57,7 +58,7 @@ const TAB_ORDER = [
   SHEETS.INCOME, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
-  SHEETS.ACCOUNTS, SHEETS.LOG,
+  SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG,
 ];
 
 const COLORS = {
@@ -823,6 +824,23 @@ const DASH_ACCOUNTS = {
     { label: 'Savings', sub: 'Independent Bank', type: 'Savings', institution: 'Independent Bank' },
   ],
   cards: ['Independent Bank', 'American Express', 'Capital One'],
+};
+
+/**
+ * Paste Import: which tables accept a pasted block, and how a pasted row is recognised as already
+ * present (so a block pasted twice adds nothing). Keys are column keys of the table.
+ */
+const PASTE_IMPORT = {
+  tables: {
+    INCOME: { dedupe: ['person', 'payDate', 'gross'], extras: ['stubTakeHome'] },
+    CREDIT: { dedupe: ['person', 'scoreDate'] },
+    RECUR: { dedupe: ['name'] },
+    QDR: { dedupe: ['debtId', 'quarterEnd'] },
+    TX: { dedupe: ['date', 'amount', 'description', 'accountId'] },
+  },
+  marker: 'HFT-IMPORT',
+  version: 'v1',
+  firstRow: 5,
 };
 
 // Plaid's free Trial cap on connected institutions (the dashboard's "connections"), as shown on the owner's plan page.

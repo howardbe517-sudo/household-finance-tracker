@@ -162,6 +162,10 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   `DASH.SHIFT` rows below its handoff position, and the upgrade reads the
   Selected Month and checklist through named ranges (legacy addresses as a
   fallback) before rebuilding.
+- Paste Import (`PasteImport.gs`): the owner pastes a tab-separated block
+  (marker line, header line, rows) produced by a Claude skill in `skills/`;
+  `importPastedRows_` validates, de-duplicates and writes rows to the table
+  named in the marker. The skill never touches the Sheet.
 - `autoFillRow_` (onEdit) gives a typed row its next ID, ticks Active on a
   new Recurring Payments row and fills Next Payment Date from Due Day.
 - `ensureMonthRows_` (run by every sync) keeps a Monthly Plan row and the
