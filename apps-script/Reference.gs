@@ -232,7 +232,7 @@ function buildAppSetup_(withSample) {
   });
   line('Monthly Budget · Actual: now excludes soft-deleted transactions (bug fix).');
   line('Dashboard · Payroll Deductions: Federal Tax amount and % formulas restored for Ben, Valerie and Household.');
-  line('Categories · Childcare (Nanny, Daycare / Preschool, Babysitting, Before & After School Care, Other Childcare) is separate from Child Expenses (Clothing, Medical, Activities, Education, Supplies, Toys, Other); the Financial Summary shows each and the two combined.');
+  line('Categories · Childcare (one subcategory, Nanny) is separate from Child Expenses (Clothing, Medical, Activities, Education, Supplies, Toys, Other); the Financial Summary shows each and the two combined. Only rows ticked Active? on the Categories tab appear in the dropdowns.');
   r++;
 
   section('Validation Flag messages (Transactions column Z)');

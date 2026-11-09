@@ -237,7 +237,13 @@ function upgradeLists_() {
     report.push('Added list: ' + list.header);
   });
   DERIVED_LISTS.forEach(list => {
-    if (ss.getRangeByName('LIST_' + list.key)) return;
+    const existing = ss.getRangeByName('LIST_' + list.key);
+    if (existing) {
+      // the formula itself may change between versions (e.g. to honour Active?); rewrite it in place
+      const cell = existing.getSheet().getRange(existing.getRow(), existing.getColumn());
+      if (!sameFormula_(cell.getFormula(), list.formula)) { cell.setFormula(list.formula); report.push('List ' + list.header + ': formula updated'); }
+      return;
+    }
     const col = nextFreeCol();
     sh.getRange(4, col).setValue(list.header).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold').setWrap(true);
     sh.getRange(LIST_FIRST_ROW, col).setFormula(list.formula);

@@ -203,7 +203,7 @@ function buildFinancialSummary_() {
   header('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_HEADER, ['', 'This Month', 'Average per Month', 'Share of Spending']);
   const catSpend = (cat, monthCrit) => 'SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Expense",[TX.isDeleted],"<>TRUE",' + monthCrit + ')-SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Refund",[TX.isDeleted],"<>TRUE",' + monthCrit + ')';
   const thisMonth = '[TX.month],' + CUR;
-  [{ row: FINSUM.CHILD_CARE, label: 'Childcare (nanny, daycare, sitters)', cat: 'Childcare' }, { row: FINSUM.CHILD_OTHER, label: 'Other child expenses', cat: 'Child Expenses' }].forEach(c => {
+  [{ row: FINSUM.CHILD_CARE, label: 'Childcare (nanny)', cat: 'Childcare' }, { row: FINSUM.CHILD_OTHER, label: 'Other child expenses', cat: 'Child Expenses' }].forEach(c => {
     put('A' + c.row, c.label).setFontWeight('bold');
     put('B' + c.row, F('=' + catSpend(c.cat, thisMonth)));
     put('C' + c.row, F('=IFERROR((' + catSpend(c.cat, inPeriod('TX')) + ')/' + DIV + ',0)'));
@@ -217,7 +217,7 @@ function buildFinancialSummary_() {
   sh.getRange('D' + FINSUM.CHILD_CARE + ':D' + FINSUM.CHILD_ALL).setNumberFormat(FORMATS.percent);
   sh.getRange('A' + FINSUM.CHILD_ALL + ':D' + FINSUM.CHILD_ALL).setBackground(COLORS.PALE_BLUE).setFontWeight('bold');
   sh.getRange('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_ALL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('E' + FINSUM.CHILD_CARE + ':I' + FINSUM.CHILD_ALL, 'Childcare is what you pay someone to watch the children (Nanny, Daycare / Preschool, Babysitting, Before & After School Care). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.')
+  mergePut('E' + FINSUM.CHILD_CARE + ':I' + FINSUM.CHILD_ALL, 'Childcare is what you pay someone to watch the children (the nanny). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
 
   /* --- Net worth --- */

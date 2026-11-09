@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.6-childcare-2026-11-09',
-  BUILD_VERSION: '1.6.0',
+  SCHEMA_VERSION: '3.7-nanny-only-2026-11-09',
+  BUILD_VERSION: '1.6.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -143,12 +143,14 @@ const LISTS = [
 
 /** Lists derived by formula from the taxonomy table on the Categories tab. */
 const DERIVED_LISTS = [
+  // Only rows ticked Active? (column G) feed the dropdowns, so a retired pair stops being offered
+  // while rows that already use it still read.
   { key: 'ALL_CATEGORIES', header: 'All Categories (auto)',
-    formula: '=IFERROR(UNIQUE(FILTER($B$5:$B,$B$5:$B<>"")),"")' },
+    formula: '=IFERROR(UNIQUE(FILTER($B$5:$B,($B$5:$B<>"")*($G$5:$G=TRUE))),"")' },
   { key: 'EXPENSE_CATEGORIES', header: 'Expense Categories (auto)',
-    formula: '=IFERROR(UNIQUE(FILTER($B$5:$B,($B$5:$B<>"")*($B$5:$B<>"Income")*($B$5:$B<>"Savings")*($B$5:$B<>"Debt Payments"))),"")' },
+    formula: '=IFERROR(UNIQUE(FILTER($B$5:$B,($B$5:$B<>"")*($G$5:$G=TRUE)*($B$5:$B<>"Income")*($B$5:$B<>"Savings")*($B$5:$B<>"Debt Payments"))),"")' },
   { key: 'ALL_SUBCATEGORIES', header: 'All Subcategories (auto)',
-    formula: '=IFERROR(SORT(UNIQUE(FILTER($D$5:$D,$D$5:$D<>""))),"")' },
+    formula: '=IFERROR(SORT(UNIQUE(FILTER($D$5:$D,($D$5:$D<>"")*($G$5:$G=TRUE)))),"")' },
 ];
 const LIST_FIRST_COL = 10;   // column J on Categories
 const LIST_FIRST_ROW = 5;
@@ -197,11 +199,9 @@ const TAXONOMY = [
 
   // Childcare (paying someone to watch the children) is its own category so it can be budgeted
   // and seen apart from the other child costs; the Financial Summary shows both and the total.
+  // The household has one form of childcare, a nanny, so this is the only subcategory (owner,
+  // 2026-11-09). A category with one active subcategory needs no subcategory choice on review.
   ['Childcare', 'Nanny', 'Need', 'Fixed', 'Fixed'],
-  ['Childcare', 'Daycare / Preschool', 'Need', 'Fixed', 'Fixed'],
-  ['Childcare', 'Babysitting', 'Need', 'Variable', 'Flexible'],
-  ['Childcare', 'Before & After School Care', 'Need', 'Fixed', 'Fixed'],
-  ['Childcare', 'Other Childcare', 'Need', 'Variable', 'Flexible'],
 
   ['Child Expenses', 'Clothing', 'Need', 'Variable', 'Flexible'],
   ['Child Expenses', 'Medical', 'Need', 'Variable', 'Unexpected'],

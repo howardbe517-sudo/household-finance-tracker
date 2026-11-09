@@ -119,7 +119,7 @@ function sampleDataset_() {
     expense(m, 6, 'Sample Electric Co.', 140, 'Housing', 'Electric', { recurring: true });
     expense(m, 8, 'Sample Internet', 70, 'Housing', 'Internet', { recurring: true });
     expense(m, 12, 'Sample Wireless', 95, 'Housing', 'Cell Phone', { recurring: true });
-    expense(m, 3, 'Sample Child Care Center', 900, 'Childcare', 'Daycare / Preschool', { recurring: true });
+    expense(m, 3, 'Sample Child Care Center', 900, 'Childcare', 'Nanny', { recurring: true });
     expense(m, 15, 'Sample Auto Insurance', 160, 'Insurance', 'Auto Insurance', { recurring: true });
     expense(m, 9, 'Sample Streaming', 15.99, 'Entertainment', 'Streaming Services', { recurring: true, accountId: 'ACC-003' });
     expense(m, 2, 'Sample Gym', 45, 'Health', 'Gym & Fitness', { recurring: true, person: 'Ben', hhPersonal: 'Personal' });
