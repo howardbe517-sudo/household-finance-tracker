@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 14px 18px; }
+  h3 { margin: 0 0 6px; font-size: 14px; color: #17324D; }
+  .muted { color: #5F6B7A; font-size: 12px; }
+  textarea { width: 100%; box-sizing: border-box; height: 220px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; border: 1px solid #C9D2DC; border-radius: 8px; padding: 8px; white-space: pre; overflow: auto; }
+  .box { background: #E8F0F7; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+  .warn { background: #FFF3CD; color: #7A4E00; } .ok { background: #EAF6EE; color: #24563A; } .err { background: #F8D5DA; color: #842029; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  button:disabled { opacity: .6; cursor: default; }
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  ul { margin: 6px 0; padding-left: 18px; } li { margin: 2px 0; }
+</style>
+</head>
+<body>
+  <h3>Paste the block from Claude</h3>
+  <p class="muted">Copy the whole code block Claude gave you (it starts with <b>HFT-IMPORT</b>) and paste it below. Nothing is written until you click Import.</p>
+  <textarea id="t" placeholder="HFT-IMPORT	v1	INCOME&#10;payDate	person	employer	…" spellcheck="false"></textarea>
+  <div class="actions"><button class="primary" id="prev" onclick="preview()">Check it</button><button onclick="google.script.host.close()">Close</button></div>
+  <div id="out"></div>
+<script>
+  var TEXT = '';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function msg(cls, html) { return '<div class="box ' + cls + '">' + html + '</div>'; }
+  function busy(on, label) { var b = document.getElementById('prev'); b.disabled = on; b.textContent = label || 'Check it'; }
+  function preview() {
+    TEXT = document.getElementById('t').value;
+    if (!TEXT.trim()) { document.getElementById('out').innerHTML = msg('warn', 'Paste the block first.'); return; }
+    busy(true, 'Checking…'); document.getElementById('out').innerHTML = '';
+    google.script.run.withSuccessHandler(function (r) {
+      busy(false);
+      if (r.status !== 'preview') { document.getElementById('out').innerHTML = msg(r.status === 'error' ? 'err' : 'warn', esc(r.message)); return; }
+      var h = msg('ok', '<b>' + esc(r.message) + '</b>' + (r.preview && r.preview.length ? '<ul>' + r.preview.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + (r.imported > r.preview.length ? '<li>… and ' + (r.imported - r.preview.length) + ' more</li>' : '') + '</ul>' : ''));
+      if (r.dupes && r.dupes.length) h += msg('warn', 'Already in ' + esc(r.sheet) + ', will be skipped: ' + esc(r.dupes.join(', ')));
+      if (r.warnings && r.warnings.length) h += msg('warn', 'Please check after importing:<ul>' + r.warnings.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>');
+      h += '<div class="actions"><button class="primary" id="go" onclick="doImport()">Import ' + r.imported + ' row(s) into ' + esc(r.sheet) + '</button></div>';
+      document.getElementById('out').innerHTML = h;
+    }).withFailureHandler(function (e) { busy(false); document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); }).previewPastedText(TEXT);
+  }
+  function doImport() {
+    var b = document.getElementById('go'); b.disabled = true; b.textContent = 'Importing…';
+    google.script.run.withSuccessHandler(function (r) {
+      document.getElementById('out').innerHTML = msg(r.status === 'imported' ? 'ok' : (r.status === 'error' ? 'err' : 'warn'), esc(r.message).replace(/\n/g, '<br>')) + (r.status === 'imported' ? '<p class="muted">Open the ' + esc(r.table === 'INCOME' ? 'Income' : r.table) + ' tab to see the new rows. You can paste another block now.</p>' : '') + '<div class="actions"><button onclick="google.script.host.close()">Close</button></div>';
+      if (r.status === 'imported') document.getElementById('t').value = '';
+    }).withFailureHandler(function (e) { document.getElementById('out').innerHTML = msg('err', esc(e.message || e)); }).importPastedText(TEXT);
+  }
+</script>
+</body>
+</html>

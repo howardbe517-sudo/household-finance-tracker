@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-09 — Import from Claude: a paste window
+- What changed: **Finance Tracker → Import from Claude (paste)…** opens a
+  window with a text box. Paste the block, click **Check it** to see what
+  would be added (one line per row, duplicates to be skipped, anything to
+  check afterwards), then **Import N row(s)**. The Paste Import tab remains
+  as a fallback (**Import the Paste Import tab**). Both paths share one
+  importer; the window also accepts Windows line endings and a
+  comma-separated block.
+- Files changed in `apps-script/`: `PasteImport.gs`, new
+  `PasteImportDialog.html`, `Main.gs` (deployed on merge). Nothing to run.
+- Tested: Node (preview writes nothing and lists the row; import writes it;
+  the same text again is reported as already imported; CSV accepted). Not
+  yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/paste-import-dialog`
+
 ## 2026-11-09 — "Paused" shown in front of the rate
 - What changed: while a debt's interest pause is in effect, the Interest Rate
   (APR) cell displays as "Paused · 6.0%" (the number underneath is unchanged,
