@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## 2026-11-09 — Dashboard for the month; Financial Summary for the whole picture
+- What changed (the owner's design): the Dashboard now holds only this
+  month's working numbers, and a new **Financial Summary** tab (second tab)
+  holds the standing picture.
+  - **Dashboard**: the accounts block (unchanged); then "This month" with
+    the Selected Month and three cards: **Expected Gross Income** (faded,
+    with what has landed so far and each person's paycheck count), **Expected
+    Take-Home** (the one that stands out, from Monthly Plan for the selected
+    month) and **Spent So Far** (with the flexible part); a line showing how
+    the flexible figure is reached; Current Flexible Spending; the Monthly
+    Review Checklist (now full width, tick boxes in column A). Income by
+    Person, Credit Scores, Payroll Deductions, the Savings & Reserves table
+    and the debt footnote left the Dashboard. The paycheck-count dot fix is
+    included.
+  - **Financial Summary**: **Averages over the last N full months** (N typed
+    in B3, default 3, kept by the upgrade) for gross, take-home, spending and
+    savings (with the savings rate); **Month by month** for the last twelve
+    months (gross, take-home, spending, savings, debt payments, left over);
+    then, in the owner's order, **Savings & Reserves** (with Planned Monthly
+    and the planned-savings total), **Debts** (household, student loans, all,
+    estimated monthly interest, minimums, PSLF), **Income by Person**
+    (averages per month over the period plus last month's take-home),
+    **Payroll Deductions** (averages per month), **Credit Scores**, and **Net
+    worth** (tracked, excluding student loans, assets, investments &
+    retirement).
+  - QA checks the Dashboard cards against Monthly Plan and Monthly Summary,
+    and the Summary's averages, payroll averages and credit scores against
+    the raw tables. App Setup's tab list describes both tabs.
+- Files changed in `apps-script/`: `Config.gs` (new tab), `Dashboard.gs`,
+  new `FinancialSummary.gs`, `Main.gs`, `Upgrade.gs`, `QA.gs`,
+  `Reference.gs` (deployed on merge). Then Finance Tracker → Upgrade
+  workbook once (rebuilds the Dashboard, builds the Financial Summary,
+  reorders the tabs; the Selected Month and the checklist ticks carry over).
+- Tested: Node (card labels and sources; Summary sections in order with the
+  months input named; payroll and credit formulas on the Summary; tab
+  order; upgrade path incl. the checklist moving from column G to A). Not
+  yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/two-page-dashboard`
+
 ## 2026-11-09 — Paycheck counts on the Dashboard line shown as whole numbers
 - What changed: the "Expected this month" line read "Ben 2. paychecks"; whole
   counts now show as "2" and fractional (average) counts as "2.2".

@@ -59,6 +59,11 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull request `claude/two-page-dashboard`: Dashboard trimmed to the month
+  (gross faded, take-home prominent, spent so far); new Financial Summary
+  tab with averages, month by month, funds, debts, income by person, payroll
+  deductions, credit scores, net worth. Includes the paycheck-count dot fix
+  (pull request #24 becomes redundant).
 - Pull request `claude/expected-income` (schema 3.4): Expected Income tab,
   automatic flexible target on Monthly Plan, Dashboard expected line. After
   merge: Upgrade workbook, then check the created Expected Income rows.

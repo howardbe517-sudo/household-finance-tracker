@@ -35,6 +35,7 @@ function buildWorkbook(options) {
   // Phase 5 — dashboard & docs
   ensureExpectedIncome_();
   buildDashboard_();
+  buildFinancialSummary_();
   buildPasteImport_();
   buildGoals_();
   buildReminders_();

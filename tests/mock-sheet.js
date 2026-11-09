@@ -148,6 +148,7 @@ function dvBuilder() {
   const b = {
     requireCheckbox() { spec.type = 'checkbox'; return b; },
     requireDate() { spec.type = 'date'; return b; },
+    requireNumberBetween(lo, hi) { spec.type = 'number'; spec.lo = lo; spec.hi = hi; return b; },
     requireValueInRange(r, show) { spec.type = 'range'; spec.range = r; return b; },
     requireValueInList(vals) { spec.type = 'list'; spec.values = vals; return b; },
     setAllowInvalid(v) { spec.allowInvalid = v; return b; },

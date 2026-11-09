@@ -71,6 +71,8 @@ function upgradeWorkbookLocked_() {
   const exp = withRetry_('Expected Income rows', () => ensureExpectedIncome_());
   if (exp && exp.created) report.push('Expected Income: ' + exp.created + ' row(s) created from the paychecks on Income');
   withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
+  const fsMonths = (ss.getRangeByName('FINSUM_MONTHS') || { getValue: () => '' }).getValue();
+  withRetry_('Financial Summary', () => { buildFinancialSummary_(); if (Number(fsMonths) >= 1) ss.getRangeByName('FINSUM_MONTHS').setValue(Number(fsMonths)); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
   withRetry_('Reminders', () => buildReminders_());
@@ -277,7 +279,7 @@ function readDashboardInputs_() {
   // named ranges when the current layout built them; otherwise the addresses of the older layout
   const ss = ss_();
   const monthRange = ss.getRangeByName('DASH_SELECTED_MONTH') || sh.getRange(DASH.LEGACY_SELECTED_MONTH);
-  const checksRange = ss.getRangeByName('DASH_CHECKLIST') || sh.getRange('G' + DASH.LEGACY_FUNDS_FIRST + ':G' + (DASH.LEGACY_FUNDS_FIRST + DASH.FUNDS_COUNT - 1));
+  const checksRange = ss.getRangeByName('DASH_CHECKLIST') || sh.getRange('G' + DASH.LEGACY_FUNDS_FIRST + ':G' + (DASH.LEGACY_FUNDS_FIRST + DASH.CHECK_COUNT - 1));
   return { month: monthRange.getValue(), checks: checksRange.getValues() };
 }
 
@@ -298,5 +300,5 @@ function restoreDashboardInputs_(d) {
   if (!d) return;
   const sh = ss_().getSheetByName(SHEETS.DASH);
   if (d.month instanceof Date) sh.getRange(DASH.SELECTED_MONTH).setValue(d.month);
-  if (d.checks) sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)).setValues(d.checks.map(r => [r[0] === true]));
+  if (d.checks) { const r = ss_().getRangeByName('DASH_CHECKLIST'); if (r && r.getNumRows() === d.checks.length) r.setValues(d.checks.map(x => [x[0] === true])); }
 }

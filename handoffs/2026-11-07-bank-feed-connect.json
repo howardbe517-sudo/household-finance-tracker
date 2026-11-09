@@ -16,7 +16,7 @@
           "note": "If the menu still looks like the old one, the deploy has not run yet; check the Actions tab on GitHub or tell me."
         },
         {
-          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, adds the **Paste Import** and **Expected Income** tabs, the new Monthly Plan columns, rebuilds the **Dashboard** with the accounts block at the top, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
+          "text": "Run **Finance Tracker → Upgrade workbook (keeps data)** once. It adds the new Debts columns, the Connections column, the **Goals** and **Reminders** tabs, adds the **Paste Import** and **Expected Income** tabs, the new Monthly Plan columns, rebuilds the **Dashboard** as this month's page and builds the new **Financial Summary** tab, puts the tabs in the new order (Dashboard, Savings & Reserves, Debts first), adds Pension to the Account Type list and the settings on App Setup. Your rows are untouched.",
           "note": "Skip this if the upgrade report already lists those columns. It takes well under a minute."
         },
         {
@@ -177,8 +177,17 @@
           "note": "Bills come from active Recurring Payments (rent is there; the rest build up as you make rules from bills in review). Planned Savings is the Planned Monthly column on Savings & Reserves: raise it to send more to savings and the flexible target drops to match."
         },
         {
-          "text": "Back on the **Dashboard**, the line under the four month cards reads \"Expected this month: take-home … − bills … − debt payments … − planned savings … = flexible …\". Current Flexible Spending further down shows the weekly guidance from that figure and says whether the target is automatic or set by hand.",
-          "note": "The actual cards above the line still show what has landed so far this month, so you can see both."
+          "text": "Back on the **Dashboard**, the three cards for the Selected Month are Expected Gross Income (faded on purpose), **Expected Take-Home** and Spent So Far, with the line beneath showing take-home − bills − debt payments − planned savings = flexible. Current Flexible Spending further down shows the weekly guidance from that figure.",
+          "note": "The small print under the first two cards shows what has actually landed so far this month and each person's paycheck count."
+        }
+      ]
+    },
+    {
+      "heading": "The Financial Summary tab",
+      "steps": [
+        {
+          "text": "Open **Financial Summary** (second tab). B3 holds how many full months the averages cover (3 to start; type 6 for a longer view). Below the four averages: month by month, Savings & Reserves, Debts, Income by Person and Payroll Deductions as monthly averages, Credit Scores, and Net worth at the bottom.",
+          "note": "The current month is left out of the averages because it is not finished. Everything here is calculated; the one thing you type is B3."
         }
       ]
     }

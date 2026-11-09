@@ -215,29 +215,13 @@ function qaReport_() {
     const selRow = summary.filter(s => mk(s.month) === selKey)[0];
     const gross = sumWhere(inc, i => mk(i.month) === selKey, 'gross');
     const take = sumWhere(inc, i => mk(i.month) === selKey, 'takeHome');
-    const vals = dash.getRange('A6:H6').getValues()[0];
+    const planRow = readTable_(tdef_('PLAN')).filter(p => mk(p.month) === selKey)[0];
+    const takeCard = dash.getRange('D' + DASH.CARD_ROW_VALUE).getValue();
+    const spentCard = dash.getRange('G' + DASH.CARD_ROW_VALUE).getValue();
     const problems = [];
-    if (!near(vals[0], gross)) problems.push('Gross card ' + money(vals[0]) + ' ≠ ' + money(gross));
-    if (!near(vals[2], take)) problems.push('Take-Home card ' + money(vals[2]) + ' ≠ ' + money(take));
-    if (selRow && !near(vals[4], selRow.spending)) problems.push('Spending card ≠ Monthly Summary');
-    if (selRow && !near(vals[6], selRow.totalSavings)) problems.push('Total Savings card ≠ Monthly Summary');
-    if (problems.length) fail('Dashboard cards (' + selKey + '): ' + problems.join('; ')); else pass('Dashboard cards match Income and Monthly Summary for ' + selKey);
-
-    const groups = [['A', 'B', 'C', 'Ben'], ['D', 'E', 'F', 'Valerie'], ['G', 'H', 'I', null]];
-    const hdrProblems = [];
-    const fedProblems = [];
-    groups.forEach(g => {
-      const h = dash.getRange(g[0] + DASH.PAYROLL_HEADER + ':' + g[2] + DASH.PAYROLL_HEADER).getValues()[0];
-      if (h[0] !== 'Deduction' || h[1] !== 'Amount' || h[2] !== '% of Gross') hdrProblems.push(g[3] || 'Household');
-      const fed = dash.getRange(g[1] + DASH.PAYROLL_FIRST).getValue();
-      const expFed = sumWhere(inc, i => mk(i.month) === selKey && (!g[3] || i.person === g[3]), 'fedTax');
-      if (!near(fed, expFed)) fedProblems.push((g[3] || 'Household') + ' ' + money(fed) + ' ≠ ' + money(expFed));
-      const tot = dash.getRange(g[1] + DASH.PAYROLL_TOTAL).getValue();
-      const expTot = sumWhere(inc, i => mk(i.month) === selKey && (!g[3] || i.person === g[3]), 'totalDed');
-      if (!near(tot, expTot)) fedProblems.push((g[3] || 'Household') + ' total ' + money(tot) + ' ≠ ' + money(expTot));
-    });
-    if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');
-    if (fedProblems.length) fail('Payroll Federal Tax / totals: ' + fedProblems.join('; ')); else pass('Payroll Deductions: Federal Tax and Total rows match Income for Ben, Valerie and Household');
+    if (planRow && !near(takeCard, Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0))) problems.push('Expected Take-Home card ' + money(takeCard) + ' ≠ Monthly Plan ' + money(Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0)));
+    if (selRow && !near(spentCard, selRow.spending)) problems.push('Spent So Far card ' + money(spentCard) + ' ≠ Monthly Summary ' + money(selRow.spending));
+    if (problems.length) fail('Dashboard cards (' + selKey + '): ' + problems.join('; ')); else pass('Dashboard cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
 
     const awaiting = dash.getRange('F' + DASH.SELECTED_MONTH.replace(/\D/g, '')).getFormula();
     if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard shows the awaiting-review count from Import Staging'); else fail('Dashboard awaiting-review line missing');
@@ -245,13 +229,46 @@ function qaReport_() {
     const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
     if (flexLabel.indexOf(expLabel) < 0) fail('Current Flexible Spending label "' + flexLabel + '" does not name the current month'); else pass('Current Flexible Spending follows today\'s month (' + expLabel + ')');
 
+  }
+
+  /* 12. financial summary */
+  const fs = ss.getSheetByName(SHEETS.FINSUM);
+  if (!fs) fail('Financial Summary missing');
+  else {
+    const nMonths = Number(fs.getRange(FINSUM.MONTHS_CELL).getValue()) || 3;
+    const cur = monthStart_(today);
+    const pStart = addMonths_(cur, -nMonths), pEnd = addMonths_(cur, -1);
+    const inP = (r) => r.month instanceof Date && r.month >= pStart && r.month <= pEnd;
+    const avgGross = sumWhere(inc, inP, 'gross') / nMonths, avgTake = sumWhere(inc, inP, 'takeHome') / nMonths;
+    const avgSpend = sumWhere(summary, inP, 'spending') / nMonths, avgSave = sumWhere(summary, inP, 'totalSavings') / nMonths;
+    const cardsRow = fs.getRange('A' + FINSUM.CARD_VALUE + ':H' + FINSUM.CARD_VALUE).getValues()[0];
+    const fsProblems = [];
+    if (!near(cardsRow[0], avgGross)) fsProblems.push('avg gross ' + money(cardsRow[0]) + ' ≠ ' + money(avgGross));
+    if (!near(cardsRow[2], avgTake)) fsProblems.push('avg take-home ' + money(cardsRow[2]) + ' ≠ ' + money(avgTake));
+    if (!near(cardsRow[4], avgSpend)) fsProblems.push('avg spending ' + money(cardsRow[4]) + ' ≠ ' + money(avgSpend));
+    if (!near(cardsRow[6], avgSave)) fsProblems.push('avg savings ' + money(cardsRow[6]) + ' ≠ ' + money(avgSave));
+    if (fsProblems.length) fail('Financial Summary averages (' + nMonths + ' months): ' + fsProblems.join('; ')); else pass('Financial Summary averages over ' + nMonths + ' full month(s) match Income and Monthly Summary');
+    const groups = [['A', 'B', 'C', 'Ben'], ['D', 'E', 'F', 'Valerie'], ['G', 'H', 'I', null]];
+    const hdrProblems = [], fedProblems = [];
+    groups.forEach(g => {
+      const h = fs.getRange(g[0] + FINSUM.PAYROLL_HEADER + ':' + g[2] + FINSUM.PAYROLL_HEADER).getValues()[0];
+      if (h[0] !== 'Deduction' || h[1] !== 'Amount' || h[2] !== '% of Gross') hdrProblems.push(g[3] || 'Household');
+      const fed = fs.getRange(g[1] + FINSUM.PAYROLL_FIRST).getValue();
+      const expFed = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'fedTax') / nMonths;
+      if (!near(fed, expFed)) fedProblems.push((g[3] || 'Household') + ' ' + money(fed) + ' ≠ ' + money(expFed));
+      const tot = fs.getRange(g[1] + FINSUM.PAYROLL_TOTAL).getValue();
+      const expTot = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'totalDed') / nMonths;
+      if (!near(tot, expTot)) fedProblems.push((g[3] || 'Household') + ' total ' + money(tot) + ' ≠ ' + money(expTot));
+    });
+    if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');
+    if (fedProblems.length) fail('Payroll Federal Tax / totals (averages): ' + fedProblems.join('; ')); else pass('Payroll Deductions: Federal Tax and Total rows match the Income averages for Ben, Valerie and Household');
     const credit = readTable_(tdef_('CREDIT')).filter(c => c.scoreDate instanceof Date && c.score !== '');
-    [['Ben', DASH.CREDIT_BEN], ['Valerie', DASH.CREDIT_VAL]].forEach(p => {
+    [['Ben', FINSUM.CREDIT_BEN], ['Valerie', FINSUM.CREDIT_VAL]].forEach(p => {
       const rows = credit.filter(c => c.person === p[0]).sort((a, b) => b.scoreDate - a.scoreDate);
-      const shown = dash.getRange('B' + p[1]).getValue();
-      if (!rows.length) { if (shown === '') pass('Credit score ' + p[0] + ': no entries yet, Dashboard shows blank'); else fail('Credit score ' + p[0] + ': Dashboard shows ' + shown + ' but no entries exist'); }
-      else if (Number(shown) === Number(rows[0].score)) pass('Credit score ' + p[0] + ': Dashboard shows latest (' + rows[0].score + ' on ' + mk(rows[0].scoreDate) + ')');
-      else fail('Credit score ' + p[0] + ': Dashboard shows ' + shown + ' but latest is ' + rows[0].score);
+      const shown = fs.getRange('B' + p[1]).getValue();
+      if (!rows.length) { if (shown === '') pass('Credit score ' + p[0] + ': no entries yet, Financial Summary shows blank'); else fail('Credit score ' + p[0] + ': Financial Summary shows ' + shown + ' but no entries exist'); }
+      else if (Number(shown) === Number(rows[0].score)) pass('Credit score ' + p[0] + ': Financial Summary shows latest (' + rows[0].score + ' on ' + mk(rows[0].scoreDate) + ')');
+      else fail('Credit score ' + p[0] + ': Financial Summary shows ' + shown + ' but latest is ' + rows[0].score);
     });
   }
 
