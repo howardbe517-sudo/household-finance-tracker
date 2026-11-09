@@ -22,8 +22,6 @@ const DASH = {
   FLEX_BAR: 32, FLEX_LABEL: 33, FLEX_VALUE: 34, FLEX_SUB: 35,
   FUNDS_BAR: 37, FUNDS_HEADER: 38, FUNDS_FIRST: 39, FUNDS_COUNT: 8,
   FOOTNOTE: 48,
-  // Reminders panel (columns K:N) beside the cards
-  SIDE_COL: 11, SIDE_WIDTH: 4, REMINDERS_BAR: 1, REMINDERS_FIRST: 3, REMINDERS_ROWS: 10,
 };
 
 /* Financial Goals live on their own tab (Goals); see buildGoals_. */
@@ -71,13 +69,11 @@ function buildDashboard_() {
   sh.clearConditionalFormatRules();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
-  ensureSheetSize_(sh, 52, DASH.SIDE_COL + DASH.SIDE_WIDTH - 1);
+  ensureSheetSize_(sh, 52, 9);
   sh.setHiddenGridlines(true);
   sh.setColumnWidth(1, 200);
   for (let c = 2; c <= 9; c++) sh.setColumnWidth(c, 118);
-  sh.setColumnWidth(10, 24);
-  for (let c = DASH.SIDE_COL; c < DASH.SIDE_COL + DASH.SIDE_WIDTH; c++) sh.setColumnWidth(c, 130);
-  sh.getRange(1, 1, 52, DASH.SIDE_COL + DASH.SIDE_WIDTH - 1).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  sh.getRange(1, 1, 52, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
 
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
@@ -256,19 +252,43 @@ function buildDashboard_() {
   mergePut('A48:I48', F('="Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab — household debt "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"<>Student Loans"),"$#,##0")&" · student loans "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"Student Loans"),"$#,##0")&IFERROR(" · PSLF (lowest loan) "&TEXTJOIN(", ",TRUE,MAP(UNIQUE(FILTER([DEBTS.owner],([DEBTS.group]="Student Loans")*([DEBTS.pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([DEBTS.pslfEstimated],[DEBTS.owner],o,[DEBTS.group],"Student Loans")&"/120"))),"")&". Balances are kept off the everyday Dashboard on purpose."'))
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
-  /* --- Reminders (calculated, beside the cards): what needs a hand, e.g. a PSLF count that is due a check --- */
-  const gc = DASH.SIDE_COL, gw = DASH.SIDE_WIDTH;
-  styleSectionBar_(sh.getRange(DASH.REMINDERS_BAR, gc, 1, gw), 'Reminders');
-  sh.setRowHeight(DASH.REMINDERS_BAR, 40);
-  sh.getRange(2, gc, 1, gw).merge().setValue('Things only you can do. Financial goals are on the Goals tab.').setFontSize(9).setFontColor(COLORS.MUTED_TEXT);
-  const remBox = sh.getRange(DASH.REMINDERS_FIRST, gc, DASH.REMINDERS_ROWS, gw).merge();
-  remBox.setFormula(F('=LET(m,IFERROR(N(SETTING_PSLF_REMINDER_MONTHS),12),due,TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([DEBTS.id]<>"")*([DEBTS.group]="Student Loans")*(([DEBTS.pslfAsOf]="")+([DEBTS.pslfAsOf]<EDATE(TODAY(),-m))),"PSLF count for "&[DEBTS.name]&": "&IF([DEBTS.pslfAsOf]="","never entered","last confirmed "&TEXT([DEBTS.pslfAsOf],"mmm d, yyyy"))&". Read it on studentaid.gov and update Debts.",""))),IF(due="","Nothing due. PSLF counts are flagged after "&m&" months (App Setup).","• "&SUBSTITUTE(due,CHAR(10),CHAR(10)&"• ")))'));
-  remBox.setWrap(true).setVerticalAlignment('top').setFontSize(10).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
-    .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  setNamedRange_('DASH_REMINDERS', remBox);
-
   /* --- protection: warning-only, except inputs --- */
   const prot = sh.protect().setDescription('Dashboard is calculated. Change the Selected Month in B3 or tick the checklist; write goals on the Goals tab; edit data on the raw tabs.');
   prot.setWarningOnly(true);
   prot.setUnprotectedRanges([sh.getRange('B3'), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))]);
+}
+
+/* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook. */
+const REMINDERS = { WIDTH: 8, BOX_FIRST: 4, BOX_ROWS: 14 };
+
+function buildReminders_() {
+  const sh = getOrCreateSheet_(SHEETS.REMINDERS);
+  const F = (t) => resolveFormula_(t, null, null);
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
+  sh.clear(); // SAFETY-APPROVED: the Reminders tab is calculated (one formula box); rebuilt by buildWorkbook / upgradeWorkbook
+  sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
+  const lastRow = REMINDERS.BOX_FIRST + REMINDERS.BOX_ROWS + 3;
+  ensureSheetSize_(sh, lastRow, REMINDERS.WIDTH);
+  sh.setHiddenGridlines(true);
+  for (let c = 1; c <= REMINDERS.WIDTH; c++) sh.setColumnWidth(c, 120);
+  sh.getRange(1, 1, lastRow, REMINDERS.WIDTH).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  sh.getRange(1, 1, 1, REMINDERS.WIDTH).merge().setValue('Reminders').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(18).setFontWeight('bold');
+  sh.setRowHeight(1, 44);
+  sh.getRange(2, 1, 1, REMINDERS.WIDTH).merge().setValue('The few things the bank feed cannot do for you. This list is calculated: it clears itself when you update the value. The nightly sync emails it at most once a month while something is listed (switch and timings on App Setup). Finance Tracker → Show reminders shows the same list.')
+    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setWrap(true);
+  sh.setRowHeight(2, 48);
+  const personsList = (LISTS.filter(l => l.key === 'PERSONS')[0] || { values: [] }).values;
+  const creditLines = personsList.map(pn => 'IF(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '")<EDATE(TODAY(),-c),"Credit score for ' + pn + ': "&IF(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '")=0,"never entered","last entered "&TEXT(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '"),"mmm d, yyyy"))&". Enter it on the Credit Scores tab.","")').join(',');
+  const remBox = sh.getRange(REMINDERS.BOX_FIRST, 1, REMINDERS.BOX_ROWS, REMINDERS.WIDTH).merge();
+  remBox.setFormula(F('=LET(m,IFERROR(N(SETTING_PSLF_REMINDER_MONTHS),12),c,IFERROR(N(SETTING_CREDIT_REMINDER_MONTHS),3),due,TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([DEBTS.id]<>"")*([DEBTS.group]="Student Loans")*(([DEBTS.pslfAsOf]="")+([DEBTS.pslfAsOf]<EDATE(TODAY(),-m))),"PSLF count for "&[DEBTS.name]&": "&IF([DEBTS.pslfAsOf]="","never entered","last confirmed "&TEXT([DEBTS.pslfAsOf],"mmm d, yyyy"))&". Read it on studentaid.gov and update Debts.","")),' + creditLines + '),IF(due="","Nothing due. PSLF counts are flagged after "&m&" months and credit scores after "&c&" months (App Setup).","• "&SUBSTITUTE(due,CHAR(10),CHAR(10)&"• ")))'));
+  remBox.setWrap(true).setVerticalAlignment('top').setFontSize(12).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
+    .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  for (let r = REMINDERS.BOX_FIRST; r < REMINDERS.BOX_FIRST + REMINDERS.BOX_ROWS; r++) sh.setRowHeight(r, 26);
+  setNamedRange_('REMINDERS_BOX', remBox);
+  const note = REMINDERS.BOX_FIRST + REMINDERS.BOX_ROWS + 1;
+  sh.getRange(note, 1, 1, REMINDERS.WIDTH).merge().setValue('Where to update each item: PSLF counts on Debts (PSLF Official Count and PSLF Count As Of), credit scores on the Credit Scores tab, the pension note on Accounts, the tax debt balance on Quarterly Debt Review.')
+    .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setWrap(true);
+  sh.setRowHeight(note, 36);
+  const prot = sh.protect().setDescription('Reminders are calculated. Update the values on their own tabs.');
+  prot.setWarningOnly(true);
 }

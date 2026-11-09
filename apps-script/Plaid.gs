@@ -615,9 +615,9 @@ function syncNow() {
 /* ---------- reminders: the few things that still need a hand ---------- */
 
 /**
- * What is due for the owner to do by hand. Today that is one thing: a student loan's PSLF
- * official count that was never entered, or was last confirmed more than the App Setup setting
- * (default 12 months) ago. Returns [{ key, text }].
+ * What is due for the owner to do by hand: a student loan's PSLF official count never entered or
+ * last confirmed more than SETTING_PSLF_REMINDER_MONTHS ago (default 12), and a person's credit
+ * score never entered or older than SETTING_CREDIT_REMINDER_MONTHS (default 3). Returns [{ key, text }].
  */
 function dueReminders_() {
   const ss = ss_();
@@ -629,6 +629,16 @@ function dueReminders_() {
     const asOf = d.pslfAsOf instanceof Date ? d.pslfAsOf : null;
     if (asOf && asOf >= cutoff) return;
     out.push({ key: 'pslf:' + d.id, text: 'PSLF count for ' + d.name + ': ' + (asOf ? 'last confirmed ' + Utilities.formatDate(asOf, 'America/Detroit', 'MMM d, yyyy') : 'never entered') + '. Read it on studentaid.gov and update PSLF Official Count and PSLF Count As Of on Debts.' });
+  });
+  const creditRange = ss.getRangeByName('SETTING_CREDIT_REMINDER_MONTHS');
+  const creditMonths = creditRange && Number(creditRange.getValue()) > 0 ? Number(creditRange.getValue()) : 3;
+  const creditCutoff = addMonths_(monthStart_(new Date()), -creditMonths);
+  const scores = readTable_(tdef_('CREDIT')).filter(s => s.scoreDate instanceof Date);
+  const persons = (LISTS.filter(l => l.key === 'PERSONS')[0] || { values: [] }).values;
+  persons.forEach(pn => {
+    const latest = scores.filter(s => s.person === pn).sort((a, b) => b.scoreDate - a.scoreDate)[0];
+    if (latest && latest.scoreDate >= creditCutoff) return;
+    out.push({ key: 'credit:' + pn, text: 'Credit score for ' + pn + ': ' + (latest ? 'last entered ' + Utilities.formatDate(latest.scoreDate, 'America/Detroit', 'MMM d, yyyy') : 'never entered') + '. Enter the latest score on the Credit Scores tab (any free score you already look at).' });
   });
   return out;
 }

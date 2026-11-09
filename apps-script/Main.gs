@@ -35,6 +35,7 @@ function buildWorkbook(options) {
   // Phase 5 — dashboard & docs
   buildDashboard_();
   buildGoals_();
+  buildReminders_();
   buildAppSetup_(opts.sample);
   buildSources_();
   buildStartHere_(opts.sample);
