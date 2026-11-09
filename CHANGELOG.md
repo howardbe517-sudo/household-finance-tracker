@@ -24,6 +24,14 @@
   Google.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 - Branch: `claude/dashboard-card-fixes`
+## 2026-11-09 — Reminders is the last tab
+- What changed: the Reminders tab moves from fifth to last in the tab
+  order, as the owner asked. Nothing else moves.
+- Files changed in `apps-script/`: `Config.gs` (deployed on merge). Then
+  Finance Tracker → Upgrade workbook once (it reorders the tabs).
+- Tested: Node. Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/reminders-last-tab`
 
 ## 2026-11-09 — Accounts at the top of the Dashboard; new tab order; typed rows get their IDs
 - What changed:
