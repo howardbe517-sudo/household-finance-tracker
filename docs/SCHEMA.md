@@ -11,7 +11,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 14 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
-| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 14 | yes |
+| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
@@ -113,13 +113,15 @@ Named range `TBL_EXPECT` covers the header row through the last formula row.
 | E | Typical Gross (per paycheck) | `typicalGross` | currency | input |  |
 | F | Typical Take-Home (per paycheck) | `typicalTakeHome` | currency | input |  |
 | G | Active? | `active` | text | checkbox |  |
-| H | Paychecks per Month | `perMonth` | text | calculated | `=IF([@id]="","",SWITCH([@frequency],"Weekly",52/12,"Biweekly",26/12,"Semimonthly",2,"Monthly",1,0))` |
-| I | Expected Monthly Take-Home | `monthlyTakeHome` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@perMonth]),0))` |
-| J | Expected Monthly Gross | `monthlyGross` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalGross])*N([@perMonth]),0))` |
+| H | Paychecks per Month (average) | `perMonth` | text | calculated | `=IF([@id]="","",SWITCH([@frequency],"Weekly",52/12,"Biweekly",26/12,"Semimonthly",2,"Monthly",1,0))` |
+| I | Typical Month Take-Home | `monthlyTakeHome` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@perMonth]),0))` |
+| J | Typical Month Gross | `monthlyGross` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalGross])*N([@perMonth]),0))` |
 | K | Last Paycheck | `lastPayDate` | date | calculated | `=IF([@id]="","",IFERROR(LET(d,MAXIFS([INCOME.payDate],[INCOME.person],[@person],[INCOME.employer],[@employer]),IF(d=0,"",d)),""))` |
 | L | Last Take-Home | `lastTakeHome` | currency | calculated | `=IF(OR([@id]="",[@lastPayDate]=""),"",SUMIFS([INCOME.takeHome],[INCOME.person],[@person],[INCOME.employer],[@employer],[INCOME.payDate],[@lastPayDate]))` |
 | M | Last vs Typical | `deviation` | currency | calculated | `=IF(OR([@lastTakeHome]="",N([@typicalTakeHome])=0),"",[@lastTakeHome]-[@typicalTakeHome])` — How far the latest paycheck was from the typical amount; a standing difference means the typical amount needs updating. |
-| N | Notes | `notes` | text | input |  |
+| N | Paydays This Month | `paydaysThisMonth` | text | calculated | `=IF([@id]="","",LET(ms,DATE(YEAR(TODAY()),MONTH(TODAY()),1),me,EOMONTH(ms,0),IFERROR(IF([@frequency]="Biweekly",IF(N([@lastPayDate])=0,26/12,INT((me-N([@last…` — Biweekly and weekly pay are counted from the last pay date and the pay cycle, so a three-paycheck month shows 3; until a paycheck exists the yearly average is used (26/12 or 52/12). Semimonthly is 2, monthly 1. |
+| O | Expected This Month | `expectedThisMonth` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))` |
+| P | Notes | `notes` | text | input |  |
 
 ## Transactions (`TX`)
 
@@ -425,7 +427,7 @@ Named range `TBL_PLAN` covers the header row through the last formula row.
 | F | Suggested This Week | `suggestedWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),b…` |
 | G | Spent This Week | `spentWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),SUMIFS([TX.amount],[TX.date],">="&…` |
 | H | Notes | `notes` | text | input |  |
-| I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",SUM([EXPECT.monthlyTakeHome]))` — Added in 3.4: the sum of Expected Income rows that are Active. |
+| I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N…` — Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists). |
 | J | Income Adjustment | `incomeAdjustment` | currency | input | Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered. |
 | K | Bills (Recurring, monthly) | `bills` | currency | calculated | `=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))` — Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). |
 | L | Debt Payments (planned) | `debtPayments` | currency | calculated | `=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans")))` — Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments. |

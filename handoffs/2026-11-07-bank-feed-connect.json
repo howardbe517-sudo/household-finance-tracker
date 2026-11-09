@@ -170,7 +170,7 @@
       "steps": [
         {
           "text": "After the upgrade, open the new **Expected Income** tab (right after Income). It has one row per regular paycheck, made from the stubs you imported. Check two things on each row: **Pay Frequency** (Weekly, Biweekly, Semimonthly or Monthly) and **Typical Take-Home (per paycheck)**. Fix either by typing over it.",
-          "note": "Rows made from a single stub guess Biweekly and say so in Notes. Untick Active on a paycheck that has ended. Expected Monthly Take-Home on the right is what the plan works from."
+          "note": "Rows made from a single stub guess Biweekly and say so in Notes. Untick Active on a paycheck that has ended. Biweekly pay means two months a year have three paychecks: Paydays This Month and Expected This Month on the right show the real count for the current month, worked out from the last pay date."
         },
         {
           "text": "Open **Monthly Plan**. For this month, Expected Take-Home (auto), Bills, Debt Payments and Planned Savings fill in and **Flexible Target (auto)** is what is left. Leave **Monthly Flexible Target** blank to use it; type a number there only to override a month. Put extra income or a shortfall for the month in **Income Adjustment**.",

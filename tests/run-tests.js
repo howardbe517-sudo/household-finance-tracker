@@ -37,7 +37,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 26 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('26 tabs in the owner\'s order (Dashboard, Savings & Reserves, Debts first; Paste Import with the feed tabs; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 28, EXPECT: 14 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 28, EXPECT: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -75,7 +75,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -370,6 +370,9 @@ const planSh = g.__ss.getSheetByName(SHEETS.PLAN), planDef = TABLES.PLAN;
 const fAuto = planSh.getRange(planDef.firstRow, planDef.columns.findIndex(c => c.key === 'autoTarget') + 1).getFormula(), fAvail = planSh.getRange(planDef.firstRow, planDef.columns.findIndex(c => c.key === 'available') + 1).getFormula(), fExp = planSh.getRange(planDef.firstRow, planDef.columns.findIndex(c => c.key === 'expectedIncome') + 1).getFormula();
 const effCol = colL(planDef.columns.findIndex(c => c.key === 'effectiveTarget') + 1);
 if (/Expected Income/.test(fExp) && fAvail.indexOf('$' + effCol + planDef.firstRow) >= 0 && /Recurring Payments/.test(planSh.getRange(planDef.firstRow, planDef.columns.findIndex(c => c.key === 'bills') + 1).getFormula()) && fAuto.indexOf('-') > 0) ok('Monthly Plan: expected take-home, bills, debt payments and planned savings feed the automatic target; Amount Available uses the target in use'); else bad('plan formulas: ' + JSON.stringify([fExp, fAvail, fAuto]));
+const pim = (f, last, ms) => R(`paydaysInMonth_('${f}', ${last ? "new Date('" + last + "T00:00:00')" : 'null'}, new Date('${ms}T00:00:00'))`);
+if (pim('Biweekly', '2026-11-06', '2026-11-01') === 2 && pim('Biweekly', '2026-11-06', '2027-01-01') === 3 && pim('Biweekly', '2026-11-06', '2026-10-01') === 2 && pim('Weekly', '2026-11-06', '2026-11-01') === 4 && pim('Semimonthly', '2026-11-06', '2026-11-01') === 2 && near(pim('Biweekly', null, '2026-11-01'), 26 / 12)) ok('paydays per month counted from the pay cycle: biweekly from Nov 6 gives 2 in November, 3 in January, the yearly average until a pay date exists'); else bad('paydaysInMonth_: ' + [pim('Biweekly', '2026-11-06', '2026-11-01'), pim('Biweekly', '2026-11-06', '2027-01-01'), pim('Biweekly', '2026-11-06', '2026-10-01'), pim('Weekly', '2026-11-06', '2026-11-01')].join(','));
+if (/INT\(\(me-N\(/.test(fExp) && /\/14\)/.test(fExp) && /SUMPRODUCT/.test(fExp)) ok('Monthly Plan expected take-home counts each source\'s paydays in that month'); else bad('expectedIncome formula: ' + fExp);
 if (/Expected this month/.test(dash.getRange('A' + (DASH.CARD_ROW_SUB + 1)).getFormula()) && /\(automatic\)/.test(dash.getRange('A' + DASH.FLEX_SUB).getFormula())) ok('Dashboard shows the expected month under the cards and says whether the target is automatic or set by hand'); else bad('dashboard expected line missing');
 
 /* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */

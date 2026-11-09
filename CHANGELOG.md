@@ -6,15 +6,20 @@
   landed so far):
   - **Expected Income** tab (after Income): one row per regular paycheck
     (person + employer) with Pay Frequency, Typical Gross and Typical
-    Take-Home per paycheck, Active?, and calculated Paychecks per Month,
-    Expected Monthly Take-Home / Gross, Last Paycheck, Last Take-Home and
-    Last vs Typical (tinted when $50 or more off). Rows are created
+    Take-Home per paycheck, Active?, and calculated Paychecks per Month
+    (average), Typical Month Take-Home / Gross, Last Paycheck, Last
+    Take-Home, Last vs Typical (tinted when $50 or more off), Paydays This
+    Month and Expected This Month. Biweekly and weekly paydays are counted
+    per month from the last pay date and the pay cycle, so the two
+    three-paycheck months a year show 3 (the yearly average is used until a
+    first paycheck exists); semimonthly is 2, monthly 1. Rows are created
     automatically from the paychecks on Income (frequency guessed from the
     pay-date gaps, semimonthly told apart from biweekly by whether paydays
     stay on the same calendar days; typical amounts are the median of the
     last three), by the upgrade, the nightly sync and the pay stub import.
     The owner corrects a row when the guess is wrong.
-  - **Monthly Plan** gains Expected Take-Home (auto), Income Adjustment
+  - **Monthly Plan** gains Expected Take-Home (auto: each source times its
+    paydays in that month), Income Adjustment
     (entered, + or −), Bills (active Recurring Payments except the Loans
     group), Debt Payments (the larger of Debts minimums and the Loans group),
     Planned Savings (Planned Monthly across Savings & Reserves), Flexible
@@ -23,8 +28,8 @@
     now use Target in Use.
   - **Dashboard**: a line under the four cards reads "Expected this month:
     take-home … − bills … − debt payments … − planned savings … = flexible …
-    (automatic / set by hand)"; the flexible-spending card says which target
-    is in use. QA recomputes the automatic target; the AI snapshot states
+    (automatic / set by hand)" with each person's paycheck count for the
+    month; the flexible-spending card says which target is in use. QA recomputes the automatic target; the AI snapshot states
     expected regular income and how the target was arrived at.
   - Schema 3.4 (one new table, seven appended Monthly Plan columns, two
     changed formulas, one new list).
