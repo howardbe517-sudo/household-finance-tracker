@@ -15,19 +15,20 @@
 
 // Rows of the Dashboard. The accounts block (rows 3–7) and the "This month" bar (row 9) come first;
 // everything the handoff specified follows, DASH.SHIFT rows lower than its original position.
+// Rows of the Dashboard: the accounts block (rows 3–7), then this month only. The whole-household
+// view (averages, income by person, payroll deductions, credit scores, funds, net worth) lives
+// on the Financial Summary tab (FINSUM in FinancialSummary.gs).
+// paydays of each Expected Income source inside the month [ms, me] (see Config EXPECT / PLAN notes)
+const PD = 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=0,26/12,INT((me-N([EXPECT.lastPayDate]))/14)+INT((N([EXPECT.lastPayDate])-ms)/14)+1),IF([EXPECT.frequency]="Weekly",IF(N([EXPECT.lastPayDate])=0,52/12,INT((me-N([EXPECT.lastPayDate]))/7)+INT((N([EXPECT.lastPayDate])-ms)/7)+1),IF([EXPECT.frequency]="Semimonthly",2,IF([EXPECT.frequency]="Monthly",1,0)))),0)';
+
 const DASH = {
-  SHIFT: 7,
   ACCT_HEADER: 3, ACCT_FIRST: 4, MONTH_BAR: 9,
   SELECTED_MONTH: 'B10',
-  CARD_ROW_LABEL: 12, CARD_ROW_VALUE: 13, CARD_ROW_SUB: 14,
-  INCOME_HEADER: 17, INCOME_BEN: 18, INCOME_VAL: 19, INCOME_HH: 20,
-  CREDIT_HEADER: 23, CREDIT_BEN: 24, CREDIT_VAL: 25,
-  PAYROLL_GROUPS: 29, PAYROLL_HEADER: 30, PAYROLL_FIRST: 31, PAYROLL_TOTAL: 37,
-  FLEX_BAR: 39, FLEX_LABEL: 40, FLEX_VALUE: 41, FLEX_SUB: 42,
-  FUNDS_BAR: 44, FUNDS_HEADER: 45, FUNDS_FIRST: 46, FUNDS_COUNT: 8,
-  FOOTNOTE: 55,
-  LAST_ROW: 59,
-  // where the inputs sat before the accounts block existed (read once by the upgrade)
+  CARD_ROW_LABEL: 12, CARD_ROW_VALUE: 13, CARD_ROW_SUB: 14, EXPECT_LINE: 15,
+  FLEX_BAR: 17, FLEX_LABEL: 18, FLEX_VALUE: 19, FLEX_SUB: 20,
+  CHECK_BAR: 22, CHECK_HEADER: 23, CHECK_FIRST: 24, CHECK_COUNT: 8,
+  LAST_ROW: 34,
+  // where the inputs sat in older layouts (read once by the upgrade when no named range exists)
   LEGACY_SELECTED_MONTH: 'B3', LEGACY_FUNDS_FIRST: 39,
 };
 
@@ -91,7 +92,7 @@ function buildDashboard_() {
   /* --- title & selected month --- */
   mergePut('A1:I1', 'Household Finance Dashboard').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'Accounts show tonight\'s balances from the bank feed. The monthly cards, Income by Person and Payroll Deductions follow the Selected Month. Current Flexible Spending always follows today\'s month and week.')
+  mergePut('A2:I2', 'This month\'s working numbers: tonight\'s balances, what is coming in, what is suggested, what has been spent. The whole picture (averages, income by person, deductions, credit scores, funds, net worth) is on the Financial Summary tab.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
   /* --- accounts block: checking and savings (left), credit cards with due dates (right) --- */
   const q = (s) => String(s).replace(/"/g, '""');
@@ -146,105 +147,38 @@ function buildDashboard_() {
   mergePut('F10:I10', F('=IFERROR(LET(n,COUNTIF([STAGING.status],"Needs Review")+COUNTIF([STAGING.status],"Needs Split"),IF(n=0,"Import Staging: nothing awaiting review",n&" imported transaction(s) awaiting review on Import Staging")),"")'))
     .setFontSize(9).setHorizontalAlignment('right').setFontColor(COLORS.MUTED_TEXT);
 
-  /* --- four cards --- */
+  /* --- three cards: expected gross (faded), expected take-home (the one that matters), spent so far --- */
+  const selMatch = 'MATCH(' + SEL + ',[PLAN.month],0)';
+  const paydaysSel = 'LET(ms,' + SEL + ',me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.{col}])*' + PD + '))';
+  const countsSel = 'IFERROR(TEXTJOIN(", ",TRUE,LET(ms,' + SEL + ',me,EOMONTH(ms,0),ARRAYFORMULA(IF([EXPECT.active]=TRUE,[EXPECT.person]&" "&LET(pc,' + PD + ',IF(pc=INT(pc),TEXT(pc,"0"),TEXT(pc,"0.0")))&" paycheck"&IF(' + PD + '=1,"","s"),"")))),"")';
   const cards = [
-    { cols: 'A:B', label: 'Household Gross Income', color: COLORS.CARD_GROSS, sub: 'Income table · gross pay',
-      f: F('=SUMIFS([INCOME.gross],[INCOME.month],' + SEL + ')') },
-    { cols: 'C:D', label: 'Household Take-Home', color: COLORS.CARD_TAKEHOME, sub: 'Income table · take-home pay',
-      f: F('=SUMIFS([INCOME.takeHome],[INCOME.month],' + SEL + ')') },
-    { cols: 'E:F', label: 'Spending', color: COLORS.CARD_SPENDING, sub: 'Monthly Summary · expenses − refunds',
-      f: F('=IFERROR(INDEX([SUMMARY.spending],MATCH(' + SEL + ',[SUMMARY.month],0)),0)') },
-    { cols: 'G:H', label: 'Total Savings', color: COLORS.CARD_SAVINGS, sub: 'Monthly Summary · cash savings + payroll retirement',
-      f: F('=IFERROR(INDEX([SUMMARY.totalSavings],MATCH(' + SEL + ',[SUMMARY.month],0)),0)') },
+    { cols: 'A:C', label: 'Expected Gross Income', color: COLORS.PALE_BLUE, faded: true,
+      f: F('=' + paydaysSel.replace('{col}', 'typicalGross')),
+      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.gross],[INCOME.month],' + SEL + '),"$#,##0")&" · "&' + countsSel) },
+    { cols: 'D:F', label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
+      f: F('=IFERROR(INDEX([PLAN.expectedIncome],' + selMatch + ')+N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),' + paydaysSel.replace('{col}', 'typicalTakeHome') + ')'),
+      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.takeHome],[INCOME.month],' + SEL + '),"$#,##0")&IFERROR(IF(N(INDEX([PLAN.incomeAdjustment],' + selMatch + '))<>0," · incl. "&TEXT(INDEX([PLAN.incomeAdjustment],' + selMatch + '),"+$#,##0;-$#,##0")&" adjustment",""),"")') },
+    { cols: 'G:I', label: 'Spent So Far', color: COLORS.CARD_SPENDING,
+      f: F('=IFERROR(INDEX([SUMMARY.spending],MATCH(' + SEL + ',[SUMMARY.month],0)),0)'),
+      sub: F('="expenses − refunds · flexible "&TEXT(IFERROR(INDEX([PLAN.flexSpent],' + selMatch + '),0),"$#,##0")') },
   ];
   cards.forEach(card => {
     const [c1, c2] = card.cols.split(':');
-    mergePut(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_LABEL, card.label).setBackground(card.color).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(c1 + DASH.CARD_ROW_VALUE + ':' + c2 + DASH.CARD_ROW_VALUE, card.f).setBackground(card.color).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    const fg = card.faded ? COLORS.MUTED_TEXT : COLORS.TEXT;
+    mergePut(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_LABEL, card.label).setBackground(card.color).setFontWeight(card.faded ? 'normal' : 'bold').setFontColor(fg).setHorizontalAlignment('center');
+    mergePut(c1 + DASH.CARD_ROW_VALUE + ':' + c2 + DASH.CARD_ROW_VALUE, card.f).setBackground(card.color).setFontSize(card.faded ? 14 : 20).setFontWeight(card.faded ? 'normal' : 'bold').setFontColor(fg).setHorizontalAlignment('center').setNumberFormat('$#,##0');
     mergePut(c1 + DASH.CARD_ROW_SUB + ':' + c2 + DASH.CARD_ROW_SUB, card.sub).setBackground(card.color).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
     sh.getRange(c1 + DASH.CARD_ROW_LABEL + ':' + c2 + DASH.CARD_ROW_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
-  sh.setRowHeight(DASH.CARD_ROW_VALUE, 42);
-  // expected month under the actual cards: what we make, what is spoken for, what is free
-  const selMatch = 'MATCH(' + SEL + ',[PLAN.month],0)';
-  mergePut('A' + (DASH.CARD_ROW_SUB + 1) + ':I' + (DASH.CARD_ROW_SUB + 1), F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
-    '"Expected this month: take-home "&TEXT(ei+adj,"$#,##0")&IF(adj<>0," (incl. "&TEXT(adj,"+$#,##0;-$#,##0")&" adjustment)","")&IFERROR(" ("&TEXTJOIN(", ",TRUE,LET(ms,' + SEL + ',me,EOMONTH(ms,0),ARRAYFORMULA(IF([EXPECT.active]=TRUE,[EXPECT.person]&" "&TEXT(' + 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=0,26/12,INT((me-N([EXPECT.lastPayDate]))/14)+INT((N([EXPECT.lastPayDate])-ms)/14)+1),IF([EXPECT.frequency]="Weekly",IF(N([EXPECT.lastPayDate])=0,52/12,INT((me-N([EXPECT.lastPayDate]))/7)+INT((N([EXPECT.lastPayDate])-ms)/7)+1),IF([EXPECT.frequency]="Semimonthly",2,IF([EXPECT.frequency]="Monthly",1,0)))),0)' + ',"0.#")&" paychecks",""))))&")","")&" − bills "&TEXT(b,"$#,##0")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"Expected income appears once this month has a Monthly Plan row and Expected Income has your paychecks.")'))
+  sh.setRowHeight(DASH.CARD_ROW_VALUE, 44);
+  // how the flexible figure is reached
+  mergePut('A' + DASH.EXPECT_LINE + ':I' + DASH.EXPECT_LINE, F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
+    '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
     .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
 
-  /* --- Income by Person (A:E) --- */
-  styleSectionBar_(sh.getRange('A16:E16'), '="Income by Person — "&TEXT(' + SEL + ',"mmmm yyyy")');
-  sh.getRange('A16').setFormula('="Income by Person — "&TEXT(' + SEL + ',"mmmm yyyy")');
-  header('A17:E17', ['Person', 'Gross', 'Take-Home', 'Deductions', 'Take-Home %']);
-  const personRows = [
-    { row: DASH.INCOME_BEN, name: 'Ben', color: COLORS.BEN },
-    { row: DASH.INCOME_VAL, name: 'Valerie', color: COLORS.VALERIE },
-  ];
-  personRows.forEach(p => {
-    put('A' + p.row, p.name).setFontWeight('bold');
-    put('B' + p.row, F('=SUMIFS([INCOME.gross],[INCOME.month],' + SEL + ',[INCOME.person],$A' + p.row + ')'));
-    put('C' + p.row, F('=SUMIFS([INCOME.takeHome],[INCOME.month],' + SEL + ',[INCOME.person],$A' + p.row + ')'));
-    put('D' + p.row, '=B' + p.row + '-C' + p.row);
-    put('E' + p.row, '=IF(B' + p.row + '>0,C' + p.row + '/B' + p.row + ',"")');
-    sh.getRange('A' + p.row + ':E' + p.row).setBackground(p.color);
-  });
-  const hh = DASH.INCOME_HH;
-  put('A' + hh, 'Household').setFontWeight('bold');
-  put('B' + hh, '=SUM(B' + DASH.INCOME_BEN + ':B' + DASH.INCOME_VAL + ')');
-  put('C' + hh, '=SUM(C' + DASH.INCOME_BEN + ':C' + DASH.INCOME_VAL + ')');
-  put('D' + hh, '=B' + hh + '-C' + hh);
-  put('E' + hh, '=IF(B' + hh + '>0,C' + hh + '/B' + hh + ',"")');
-  sh.getRange('A' + hh + ':E' + hh).setBackground(COLORS.HOUSEHOLD).setFontWeight('bold');
-  sh.getRange('B18:D20').setNumberFormat(FORMATS.currency);
-  sh.getRange('E18:E20').setNumberFormat(FORMATS.percent);
-  sh.getRange('A17:E20').setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-
-  /* --- Credit Scores — Latest (A:E) --- */
-  styleSectionBar_(sh.getRange('A22:E22'), 'Credit Scores — Latest');
-  header('A23:E23', ['Person', 'Score', 'Rating', 'Updated', 'Position (300–850)']);
-  [{ row: DASH.CREDIT_BEN, name: 'Ben', color: COLORS.BEN }, { row: DASH.CREDIT_VAL, name: 'Valerie', color: COLORS.VALERIE }].forEach(p => {
-    const r = p.row;
-    put('A' + r, p.name).setFontWeight('bold');
-    put('D' + r, F('=IF(MAXIFS([CREDIT.scoreDate],[CREDIT.person],$A' + r + ')=0,"",MAXIFS([CREDIT.scoreDate],[CREDIT.person],$A' + r + '))')).setNumberFormat(FORMATS.date);
-    put('B' + r, F('=IF($D' + r + '="","",IFERROR(INDEX(FILTER([CREDIT.score],[CREDIT.person]=$A' + r + ',[CREDIT.scoreDate]=$D' + r + '),1),""))')).setNumberFormat(FORMATS.int).setFontWeight('bold');
-    put('C' + r, '=IF($B' + r + '="","No score yet",IFS($B' + r + '<580,"Poor",$B' + r + '<670,"Fair",$B' + r + '<740,"Good",$B' + r + '<800,"Very Good",TRUE,"Exceptional"))');
-    put('E' + r, '=IF($B' + r + '="","",SPARKLINE(($B' + r + '-300)/550,{"charttype","bar";"max",1;"color1","' + COLORS.TEAL + '"}))');
-    sh.getRange('A' + r + ':E' + r).setBackground(p.color);
-  });
-  sh.getRange('A23:E25').setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A26:I26', 'Enter scores on the Credit Scores tab (monthly). Scale: 300–579 Poor · 580–669 Fair · 670–739 Good · 740–799 Very Good · 800–850 Exceptional.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
-
-  /* --- Payroll Deductions --- */
-  styleSectionBar_(sh.getRange('A28:I28'), '');
-  sh.getRange('A28').setFormula('="Payroll Deductions — "&TEXT(' + SEL + ',"mmmm yyyy")');
-  const groups = [
-    { c1: 'A', c2: 'B', c3: 'C', name: 'Ben', color: COLORS.BEN, person: 'Ben', grossCell: '$B$' + DASH.INCOME_BEN },
-    { c1: 'D', c2: 'E', c3: 'F', name: 'Valerie', color: COLORS.VALERIE, person: 'Valerie', grossCell: '$B$' + DASH.INCOME_VAL },
-    { c1: 'G', c2: 'H', c3: 'I', name: 'Household', color: COLORS.HOUSEHOLD, person: null, grossCell: '$B$' + DASH.INCOME_HH },
-  ];
-  const deductions = [
-    ['Federal Tax', 'fedTax'], ['State / Local Tax', 'stateTax'], ['Social Security & Medicare', 'ssMed'],
-    ['Health / Insurance', 'health'], ['Retirement', 'retirement'], ['Other Deductions', 'otherDed'], ['Total Deductions', 'totalDed'],
-  ];
-  groups.forEach(g => {
-    mergePut(g.c1 + DASH.PAYROLL_GROUPS + ':' + g.c3 + DASH.PAYROLL_GROUPS, g.name).setBackground(g.color).setFontWeight('bold').setHorizontalAlignment('center');
-    header(g.c1 + DASH.PAYROLL_HEADER + ':' + g.c3 + DASH.PAYROLL_HEADER, ['Deduction', 'Amount', '% of Gross']);
-    deductions.forEach((d, i) => {
-      const r = DASH.PAYROLL_FIRST + i;
-      put(g.c1 + r, d[0]);
-      const crit = g.person ? ',[INCOME.person],"' + g.person + '"' : '';
-      put(g.c2 + r, F('=SUMIFS([INCOME.' + d[1] + '],[INCOME.month],' + SEL + crit + ')')).setNumberFormat(FORMATS.currency);
-      put(g.c3 + r, '=IF(' + g.grossCell + '>0,' + g.c2 + r + '/' + g.grossCell + ',"")').setNumberFormat(FORMATS.percent);
-    });
-    const block = sh.getRange(g.c1 + DASH.PAYROLL_FIRST + ':' + g.c3 + DASH.PAYROLL_TOTAL);
-    block.setBackground(g.color);
-    sh.getRange(g.c1 + DASH.PAYROLL_TOTAL + ':' + g.c3 + DASH.PAYROLL_TOTAL).setFontWeight('bold');
-    sh.getRange(g.c1 + DASH.PAYROLL_HEADER + ':' + g.c3 + DASH.PAYROLL_TOTAL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  });
-
   /* --- Current Flexible Spending (follows TODAY) --- */
-  styleSectionBar_(sh.getRange('A39:I39'), '');
-  sh.getRange('A39').setFormula('="Current Flexible Spending — "&TEXT(TODAY(),"mmmm yyyy")');
+  styleSectionBar_(sh.getRange('A' + DASH.FLEX_BAR + ':I' + DASH.FLEX_BAR), '');
+  sh.getRange('A' + DASH.FLEX_BAR).setFormula('="Current Flexible Spending — "&TEXT(TODAY(),"mmmm yyyy")');
   const planMatch = 'MATCH(' + CUR_MONTH + ',[PLAN.month],0)';
   const flex = [
     { cols: ['A', 'C'], label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
@@ -261,59 +195,44 @@ function buildDashboard_() {
     sh.getRange(b.cols[0] + DASH.FLEX_LABEL + ':' + b.cols[1] + DASH.FLEX_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
   sh.setRowHeight(DASH.FLEX_VALUE, 42);
+  const av = 'A' + DASH.FLEX_VALUE;
   sh.setConditionalFormatRules([
-    cfRule_(sh.getRange('A41:C41'), '=AND(ISNUMBER(A41),A41<0)', COLORS.OVER_FILL, COLORS.OVER_FONT),
-    cfRule_(sh.getRange('A41:C41'), '=AND(ISNUMBER(A41),A41>=0)', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
-    cfRule_(sh.getRange('F46:F53'), '=F46="Funded"', COLORS.UNDER_FILL, COLORS.UNDER_FONT, { bold: true }),
-    cfRule_(sh.getRange('F46:F53'), '=OR(F46="Behind",F46="Past Target Date")', COLORS.OVER_FILL, COLORS.OVER_FONT),
-    cfRule_(sh.getRange('B18:D20'), '=AND(B18=0,$B$10<>"")', null, COLORS.MUTED_TEXT),
+    cfRule_(sh.getRange(av + ':C' + DASH.FLEX_VALUE), '=AND(ISNUMBER(' + av + '),' + av + '<0)', COLORS.OVER_FILL, COLORS.OVER_FONT),
+    cfRule_(sh.getRange(av + ':C' + DASH.FLEX_VALUE), '=AND(ISNUMBER(' + av + '),' + av + '>=0)', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
     cfRule_(sh.getRange('F10:I10'), '=ISNUMBER(SEARCH("awaiting review on",F10))', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
   ]);
 
-  /* --- Savings & Reserves + checklist --- */
-  styleSectionBar_(sh.getRange('A44:F44'), 'Savings & Reserves');
-  styleSectionBar_(sh.getRange('G44:I44'), 'Monthly Review Checklist');
-  header('A45:F45', ['Fund Name', 'Target', 'Current', 'Amount Needed', '% Funded', 'Status']);
-  header('G45:G45', ['Done']);
-  sh.getRange('H45:I45').merge().setValue('Item');
-  styleHeader_(sh.getRange('H45:I45'));
-  const fundCols = [['name', 'A'], ['target', 'B'], ['current', 'C'], ['amountNeeded', 'D'], ['pctFunded', 'E'], ['status', 'F']];
-  for (let k = 1; k <= DASH.FUNDS_COUNT; k++) {
-    const r = DASH.FUNDS_FIRST + k - 1;
-    fundCols.forEach(fc => {
-      put(fc[1] + r, F('=IF(INDEX([FUNDS.id],' + k + ')="","",INDEX([FUNDS.' + fc[0] + '],' + k + '))'));
-    });
-    sh.getRange('B' + r + ':D' + r).setNumberFormat(FORMATS.currency);
-    sh.getRange('E' + r).setNumberFormat(FORMATS.percent);
-  }
+  /* --- Monthly Review Checklist --- */
+  styleSectionBar_(sh.getRange('A' + DASH.CHECK_BAR + ':I' + DASH.CHECK_BAR), 'Monthly Review Checklist');
+  header('A' + DASH.CHECK_HEADER + ':A' + DASH.CHECK_HEADER, ['Done']);
+  sh.getRange('B' + DASH.CHECK_HEADER + ':I' + DASH.CHECK_HEADER).merge().setValue('Item');
+  styleHeader_(sh.getRange('B' + DASH.CHECK_HEADER + ':I' + DASH.CHECK_HEADER));
   const checklist = [
     'Categorize every new transaction (no blank categories).',
     'Clear all Validation Flags on Transactions.',
     'Confirm this month\'s paychecks are in Income.',
     'Compare Monthly Budget planned vs. actual.',
     'Review Planned Irregular and Unexpected purchases.',
-    'Set next month\'s flexible target on Monthly Plan.',
+    'Check next month\'s flexible target on Monthly Plan (automatic unless you set one).',
     'Adjust Savings & Reserves targets if needed.',
     'Complete this month\'s Monthly Review row.',
   ];
   checklist.forEach((item, i) => {
-    const r = DASH.FUNDS_FIRST + i;
-    sh.getRange('G' + r).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build()).setHorizontalAlignment('center');
-    sh.getRange('H' + r + ':I' + r).merge().setValue(item).setFontSize(9).setWrap(true);
+    const r = DASH.CHECK_FIRST + i;
+    sh.getRange('A' + r).setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build()).setHorizontalAlignment('center');
+    sh.getRange('B' + r + ':I' + r).merge().setValue(item).setFontSize(10);
   });
-  sh.getRange('A45:F53').setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange('G45:I53').setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-
-  /* --- footnote --- */
-  mergePut('A55:I55', F('="Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab — household debt "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"<>Student Loans"),"$#,##0")&" · student loans "&TEXT(SUMIFS([DEBTS.latestBalance],[DEBTS.group],"Student Loans"),"$#,##0")&IFERROR(" · PSLF (lowest loan) "&TEXTJOIN(", ",TRUE,MAP(UNIQUE(FILTER([DEBTS.owner],([DEBTS.group]="Student Loans")*([DEBTS.pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([DEBTS.pslfEstimated],[DEBTS.owner],o,[DEBTS.group],"Student Loans")&"/120"))),"")&". Balances are kept off the everyday Dashboard on purpose."'))
+  const checkLast = DASH.CHECK_FIRST + DASH.CHECK_COUNT - 1;
+  sh.getRange('A' + DASH.CHECK_HEADER + ':I' + checkLast).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  mergePut('A' + (checkLast + 2) + ':I' + (checkLast + 2), 'Averages, income by person, payroll deductions, credit scores, savings funds and net worth are on the Financial Summary tab.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
   /* --- protection: warning-only, except inputs --- */
   const prot = sh.protect().setDescription('Dashboard is calculated. Change the Selected Month in B10 or tick the checklist; write goals on the Goals tab; edit data on the raw tabs.');
   prot.setWarningOnly(true);
   setNamedRange_('DASH_SELECTED_MONTH', sh.getRange(DASH.SELECTED_MONTH));
-  setNamedRange_('DASH_CHECKLIST', sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1)));
-  prot.setUnprotectedRanges([sh.getRange(DASH.SELECTED_MONTH), sh.getRange('G' + DASH.FUNDS_FIRST + ':G' + (DASH.FUNDS_FIRST + DASH.FUNDS_COUNT - 1))]);
+  setNamedRange_('DASH_CHECKLIST', sh.getRange('A' + DASH.CHECK_FIRST + ':A' + checkLast));
+  prot.setUnprotectedRanges([sh.getRange(DASH.SELECTED_MONTH), sh.getRange('A' + DASH.CHECK_FIRST + ':A' + checkLast)]);
 }
 
 /* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook. */

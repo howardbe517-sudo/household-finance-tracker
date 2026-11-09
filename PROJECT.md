@@ -25,7 +25,8 @@ the App Setup tab; both are generated from `Config.gs`.
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
-| Dashboard | Tonight's balances for checking, savings and the cards (rows 3–7), then the monthly snapshot for the Selected Month (B10) + Current Flexible Spending for today's week | — | Columns A:I; accounts block A:D / F:I; four cards A:H; compact Income by Person and Credit Scores A:E; payroll groups A:C / D:F / G:I |
+| Financial Summary | Averages over the last N full months (B3), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Net worth | — | Columns A:I; `FinancialSummary.gs`, constants in `FINSUM` |
+| Dashboard | This month only: tonight's balances (rows 3–7), expected gross (faded), expected take-home and spent so far for the Selected Month (B10), the flexible line, Current Flexible Spending, the review checklist | — | Columns A:I; accounts block A:D / F:I; three cards A:C / D:F / G:I; compact Income by Person and Credit Scores A:E; payroll groups A:C / D:F / G:I |
 | Income | Paycheck database, authoritative for gross, deductions, take-home | 4 | A:S (S = Linked Deposit TX, calculated) |
 | Transactions | Master ledger | 4 | A:AF, 32 columns; Validation Flag Z, Split Difference AE |
 | Recurring Payments | Expected obligations with summaries | 40 | Presentation rows 1–38; raw table from row 41 |

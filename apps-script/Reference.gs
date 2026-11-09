@@ -298,7 +298,8 @@ function buildStartHere_(withSample) {
 
   section('Tab guide');
   [
-    ['Dashboard', 'Tonight\'s account balances, then the monthly snapshot for the Selected Month (B10) plus Current Flexible Spending for the actual current week.'],
+    ['Dashboard', 'This month: tonight\'s account balances, expected income for the Selected Month (B10), spending so far, and Current Flexible Spending for the actual current week.'],
+    ['Financial Summary', 'The whole picture: averages over the last N full months (B3), month by month, savings funds, debts, income by person, payroll deductions, credit scores, net worth.'],
     ['Income', 'Paycheck database — gross, deductions, take-home. Authoritative for payroll.'],
     ['Transactions', 'Master ledger. Validation Flag (col Z) tells you what is missing.'],
     ['Recurring Payments', 'Expected bills and subscriptions (not actual payments).'],

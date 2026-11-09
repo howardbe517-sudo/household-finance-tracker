@@ -26,6 +26,7 @@ const HFT = {
 const SHEETS = {
   START: 'Start Here',
   DASH: 'Dashboard',
+  FINSUM: 'Financial Summary',
   GOALS: 'Goals',
   REMINDERS: 'Reminders',
   INCOME: 'Income',
@@ -55,7 +56,7 @@ const SHEETS = {
 const TAB_ORDER = [
   // The owner's order (2026-11-09): the three tabs looked at most first, then goals and reminders,
   // the ledgers and derived tables, and the setup and feed tabs at the end.
-  SHEETS.DASH, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  SHEETS.DASH, SHEETS.FINSUM, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.START, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.STAGING, SHEETS.RULES, SHEETS.CONN,
