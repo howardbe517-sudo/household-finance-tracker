@@ -59,6 +59,11 @@ Last updated: 2026-11-07 (bank feed deployed and first bank connected)
   automatically when it writes past the cap (`writeRows_` → `extendTable_`).
 
 ## In progress
+- Pull requests `claude/reminders-last-tab` (#17) and
+  `claude/dashboard-card-fixes` (#18) awaiting merge. Connected so far:
+  Capital One, Fidelity, Independent Bank (checking, savings, Elan card),
+  American Express. Owner to delete Accounts row 8 (ACC-009) and Debts row
+  10 (DEBT-006) by hand.
 - Pull request `claude/accounts-dashboard` (stacked on
   `claude/credit-score-reminder`): accounts block at the top of the
   Dashboard, new tab order, auto IDs for typed rows. Owner's rent row on

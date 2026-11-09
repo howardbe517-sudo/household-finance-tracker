@@ -822,7 +822,12 @@ const DASH_ACCOUNTS = {
     { label: 'Checking', sub: 'Independent Bank', type: 'Checking', institution: 'Independent Bank' },
     { label: 'Savings', sub: 'Independent Bank', type: 'Savings', institution: 'Independent Bank' },
   ],
-  cards: ['Independent Bank', 'American Express', 'Capital One'],
+  // label shown, and the texts the Accounts row's Institution may contain (Elan runs Independent Bank's card)
+  cards: [
+    { label: 'Independent Bank', patterns: ['Independent Bank', 'Elan'] },
+    { label: 'American Express', patterns: ['American Express', 'Amex'] },
+    { label: 'Capital One', patterns: ['Capital One'] },
+  ],
 };
 
 // Plaid's free Trial cap on connected institutions (the dashboard's "connections"), as shown on the owner's plan page.
