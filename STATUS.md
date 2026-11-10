@@ -1,8 +1,10 @@
 # STATUS
 
 Last updated: 2026-11-10 (parked savings, Spending tab and Start Here
-guide merged; pull request `claude/savings-line-yours`: the Dashboard
-Savings line is the money that is yours, bank balance faded under it)
+guide merged; pull requests `claude/savings-line-yours` (Dashboard
+Savings line = the money that is yours) and, stacked on it,
+`claude/parked-cycle` (parked pots count the current cycle, capped at one
+payment))
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
