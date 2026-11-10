@@ -1,0 +1,45 @@
+{
+  "title": "Spending Tab and Guide",
+  "key": "household-finance-tracker-2026-11-10-spending-tab",
+  "subtitle": "A Spending tab for the month by category, the recurring bills and six months side by side; Start Here becomes the guide to the tracker; new tab order. One upgrade.",
+  "intro": [
+    "After the pull requests merge, the code is already in your Sheet. The upgrade adds the Spending tab, rewrites Start Here and reorders the tabs.",
+    "**What does not change:** no rows, balances or entered values. Existing tab names and headers stay the same; Start Here keeps its name but its text is new."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before Spending tab 2026-11-10`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "note": "The report should include \"Added tab: Spending\". If it says the upgrade is already current, wait a minute and run it again."
+        },
+        {
+          "text": "Check the tab strip: **Start Here, Financial Summary, Dashboard, Spending, Savings & Reserves, Debts, Goals**, then the rest as before, Reminders last.",
+          "done": "Spending is the fourth tab."
+        }
+      ]
+    },
+    {
+      "heading": "Look at the two new pages",
+      "steps": [
+        {
+          "text": "Open **Start Here**. It now explains the tracker: the tabs in order, how money gets in, and the definitions (Spending Type, Need/Want, categories, what counts as spending, Parked for Bills, and more).",
+          "done": "The Definitions section is there and reads right for your household. Tell me anything you would word differently."
+        },
+        {
+          "text": "Open **Spending**. The month follows the Dashboard's Selected Month. The category table lists this month largest first; the **Children** row shows childcare and child expenses together, with the two amounts in their own colours on the right and a two-colour bar. Below: recurring payments with Paid This Month, the flexible subcategories, and six months by category.",
+          "done": "Numbers match what you expect from Transactions. Rows for categories with no spending in the last four months are hidden; they appear when spending does."
+        }
+      ]
+    }
+  ]
+}

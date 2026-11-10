@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-11-10 — Spending tab; Start Here rewritten as the owner's guide; new tab order
+- What changed. (1) **New Spending tab** (fourth tab): follows the
+  Dashboard's Selected Month. Four tiles (spent so far with last month and
+  the 3-month average, fixed vs flexible, needs vs wants, recurring bills
+  with how many are paid this month); **by category, largest first**, with
+  budget, last month, 3-month average, share and a bar, where Childcare and
+  Child Expenses appear together as **Children** with a two-colour bar and
+  the two amounts in their own colours; **recurring payments** in one list
+  with a paid-this-month check (a Transactions row in the month with the
+  same category and subcategory for at least 90% of the amount); the
+  flexible subcategories; and **six months by category**. A definitions
+  note closes the tab. All formulas; `buildSpending_` in new `Spending.gs`;
+  the upgrade adds and redraws it. (2) **Start Here rewritten** as the guide
+  to the tracker: what it is, the tabs in order, how money gets in, the
+  definitions (Spending Type, Need/Want, category vs subcategory, what is
+  not spending, expected take-home, Parked for Bills, Planned Extra Payment,
+  Selected Month vs this week), the menu in plain words. The old
+  getting-started checklist stays only while sample data is loaded.
+  (3) **Tab order**: Start Here, Financial Summary, Dashboard, Spending,
+  Savings & Reserves, Debts, Goals, then as before; Reminders last.
+- Schema: `SCHEMA_VERSION` 3.10-spending-tab-2026-11-10, `BUILD_VERSION`
+  1.9.0. No table change.
+- Files changed in `apps-script/`: new `Spending.gs`; `Config.gs`,
+  `Main.gs`, `Reference.gs`, `Upgrade.gs` (deployed on merge). Run
+  **Finance Tracker → Upgrade workbook (keeps data)** once.
+- Tested: Node (tab count and order, the Spending formulas: month link,
+  sorted categories with Children, two-colour sparkline, recurring list and
+  paid check, six-month table, definitions note; whole suite green). Not yet
+  tried in Google: the live figures and the sparklines.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/spending-tab` (stacked on `claude/parked-for-bills`)
+
 ## 2026-11-10 — Money parked in savings for bills, kept apart from the savings that are yours
 - What changed: the owner pays the car loan from savings and moves money
   into savings for it each paycheck; the savings balance therefore mixes
