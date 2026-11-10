@@ -136,4 +136,9 @@ bank, check a result.
 - Never commit directly to `main`. Work on a branch and open a pull request.
 - One pull request per change, with a plain-language summary and the list of
   files that changed in `apps-script/` (the deploy pushes them all).
-- The owner reviews the diff and merges; the merge deploys.
+- Merging (owner's standing instruction, 2026-11-10): the agent merges each
+  pull request itself as soon as both checks (tests, safety) pass, without
+  waiting to be asked, then watches the deploy and tells the owner what
+  landed and what to run in the Sheet. Never merge with a failing check.
+  Stacked pull requests merge in order (rebase the next one onto `main`
+  after the one below it lands).

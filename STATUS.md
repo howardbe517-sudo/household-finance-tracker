@@ -1,10 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-10 (parked savings, Spending tab and Start Here
-guide merged; pull requests `claude/savings-line-yours` (Dashboard
-Savings line = the money that is yours) and, stacked on it,
-`claude/parked-cycle` (parked pots count the current cycle, capped at one
-payment))
+Last updated: 2026-11-10 (everything through `claude/parked-cycle` merged
+and deployed; the owner now lets the agent merge pull requests as soon as
+checks pass, see AGENTS.md section 7)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
