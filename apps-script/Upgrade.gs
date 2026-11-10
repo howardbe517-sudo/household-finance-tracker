@@ -78,6 +78,8 @@ function upgradeWorkbookLocked_() {
   withRetry_('Financial Summary', () => { buildFinancialSummary_(); if (Number(fsMonths) >= 1) ss.getRangeByName('FINSUM_MONTHS').setValue(Number(fsMonths)); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
+  if (!ss.getSheetByName(SHEETS.SPEND)) report.push('Added tab: ' + SHEETS.SPEND);
+  withRetry_('Spending', () => buildSpending_());
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());

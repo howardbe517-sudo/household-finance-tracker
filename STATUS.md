@@ -1,8 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-10 (payoff planner merged; pull request
-`claude/parked-for-bills`: money parked in savings for bills kept apart
-from the savings that are permanently there)
+Last updated: 2026-11-10 (payoff planner merged; pull requests
+`claude/parked-for-bills` (parked savings) and, stacked on it,
+`claude/spending-tab` (Spending tab, Start Here guide, new tab order))
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,

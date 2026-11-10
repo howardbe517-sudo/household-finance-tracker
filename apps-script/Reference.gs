@@ -318,57 +318,59 @@ function buildStartHere_(withSample) {
     r++;
   };
 
-  section('How the workbook thinks');
-  line('One record = one row. Every table has a stable ID. Months are real first-of-month dates. Financial rows are never deleted — tick "Is Deleted" instead.');
-  line('Income is the source of truth for paychecks. Transactions is the source of truth for spending. Everything else (Monthly Summary, Dashboard, budgets, funds, debts) is calculated from those two tables and the reference tables.');
-  line('Spending = Expense − Refund. Savings transfers, debt payments, account transfers and Split Parent rows are never counted as spending. Split children are.');
+  section('What this tracker is');
+  line('A household finance workbook that fills itself in. The bank feed brings in balances and transactions every night; paychecks come in from pay stubs through Finance Tracker → Import from Claude; everything you see on the summary tabs is calculated from those records. You type very little: a category now and then, the few numbers no lender provides.');
+  line('Spending = Expense − Refund. Debt payments, savings transfers, account transfers and Split Parent rows are never spending. Income is take-home from paychecks. Months are calendar months. Financial rows are never deleted; a row is marked deleted instead and every total skips it.');
   r++;
 
-  section('Review cadence (deliberately light)');
-  line('Weekly — categorize new transactions, clear Validation Flags, glance at Current Flexible Spending on the Dashboard.', { bold: false, right: '5–10 minutes' });
-  line('Monthly — enter paychecks in Income, compare Monthly Budget planned vs. actual, set next month\'s flexible target on Monthly Plan, complete a Monthly Review row.', { right: '30 minutes' });
-  line('Quarterly (Mar · Jun · Sep · Dec) — update Quarterly Debt Review balances, check interest rates and payoff progress.', { right: '20 minutes' });
-  line('Quarterly or annually — Finance Tracker → Record net worth snapshot. Credit scores can be entered monthly on Credit Scores.', { right: '10 minutes' });
-  r++;
-
-  section('Getting started' + (withSample ? ' (sample data is loaded — every row is tagged SAMPLE)' : ''));
-  check('Open Finance Tracker → Run QA checks and confirm there are no formula errors.');
-  check('Accounts: enter owner, current balance and Last Updated for ACC-006 to ACC-013 (your real accounts).');
-  check('Debts: enter your real debts, then add a Quarterly Debt Review row for each with the current balance.');
-  check('Savings & Reserves: enter your real funds with starting amounts, targets and target dates.');
-  check('Income: enter this month\'s paychecks (gross, each deduction, deposit account).');
-  check('Monthly Plan: set this month\'s Monthly Flexible Target.');
-  check('Monthly Budget: enter Planned amounts per category for this month.');
-  check('Recurring Payments: enter your real bills, subscriptions and memberships.');
-  check('Credit Scores: enter the latest score for each person (no scores are pre-filled).');
-  check('When your real data is in: Finance Tracker → Clear sample data…');
-  check('Later: connect Plaid to Import Staging, add receipt AI for splits, and deploy the Apps Script web app (see App Setup).');
-  r++;
-
-  section('Tab guide');
+  section('The tabs, in the order they sit');
   [
-    ['Dashboard', 'This month: tonight\'s account balances, expected income for the Selected Month (B10), spending so far, and Current Flexible Spending for the actual current week.'],
-    ['Financial Summary', 'The whole picture: averages over the last N full months (B3), month by month, savings funds, debts, income by person, payroll deductions, credit scores, net worth.'],
-    ['Income', 'Paycheck database — gross, deductions, take-home. Authoritative for payroll.'],
-    ['Transactions', 'Master ledger. Validation Flag (col Z) tells you what is missing.'],
-    ['Recurring Payments', 'Expected bills and subscriptions (not actual payments).'],
-    ['Monthly Budget', 'Planned vs. actual by main category.'],
-    ['Monthly Plan', 'One flexible-spending target per month and the Monday–Sunday weekly guidance.'],
-    ['Monthly Summary', 'Calculated monthly results. Read-only.'],
-    ['Savings & Reserves', 'Emergency fund, sinking funds and goals, fed by Savings transactions.'],
-    ['Debts', 'Master debt table with estimated interest; balances come from Quarterly Debt Review.'],
-    ['Quarterly Debt Review', 'Debt balance snapshots each quarter.'],
-    ['Net Worth Snapshots', 'History plus a live tracked-net-worth helper.'],
-    ['Accounts', 'Bank, card, investment, retirement and asset accounts.'],
-    ['Monthly Review', 'Month-end review rows (numbers pulled from Monthly Summary).'],
-    ['Categories', 'Taxonomy and every dropdown list.'],
-    ['App Setup', 'Architecture, settings, data dictionary.'],
-    ['Sources', 'Guidance behind the design.'],
-    ['Import Staging', 'Landing table for Plaid / CSV imports.'],
-    ['Change Log', 'Append-only audit history.'],
-    ['Credit Scores', 'Manual monthly score history.'],
+    ['Start Here', 'This page: how the tracker works and what its words mean.'],
+    ['Financial Summary', 'The whole picture: averages over the last months, month by month, Children (childcare and other child costs), Savings & Reserves, Debts, income by person, payroll deductions, credit scores, net worth.'],
+    ['Dashboard', 'This month: tonight\'s balances (with savings split into parked for bills and yours to keep), rows waiting for review, expected take-home, spent so far, the flexible figure and this week\'s suggestion, the monthly checklist. Change the month in B10.'],
+    ['Spending', 'Where the money went for the Selected Month: by category (largest first, Children shown together and apart), fixed vs flexible, needs vs wants, every recurring bill with paid-this-month, the flexible subcategories, and six months side by side.'],
+    ['Savings & Reserves', 'Funds: the emergency fund and investment accounts fed by the bank feed, sinking funds, and Parked for Bills pots (money passing through savings for a bill).'],
+    ['Debts', 'Every debt with its rate, minimum, due day, live balance where the lender is connected, estimated interest, PSLF progress, interest pauses and the planned extra payment from the Payoff planner.'],
+    ['Goals', 'Five big text boxes for goals in your own words.'],
+    ['Income · Expected Income', 'Income is the paycheck database (gross, deductions, take-home). Expected Income holds the typical paycheck per employer and the pay frequency, which drive the expected monthly take-home and the automatic flexible target.'],
+    ['Transactions · Import Staging', 'Transactions is the master ledger. Import Staging is where bank rows land first; reviewing a row is pick a Category, tick Reviewed?, and the next sync takes it in.'],
+    ['Recurring Payments', 'Expected bills, subscriptions and loan payments with their day of the month; they feed the monthly plan and the Spending tab.'],
+    ['Monthly Budget · Monthly Plan · Monthly Summary · Monthly Review', 'Planned vs actual by category; the flexible target and weekly guidance (automatic unless you set one); calculated monthly results; your month-end notes.'],
+    ['Quarterly Debt Review · Net Worth Snapshots · Credit Scores', 'Debt balances by quarter where no lender is connected; net worth history; credit scores typed in by hand.'],
+    ['Reminders', 'Last tab: the few things only you can do (PSLF counts, credit scores), also emailed monthly.'],
+    ['Categories · App Setup · Sources · Import Rules · Connections · Paste Import · Accounts · Change Log', 'The machinery: the category list and dropdowns, settings, design sources, the rules that classify bank rows, the bank logins, the paste-import landing area, the account list, and the audit log.'],
   ].forEach(([tab, what]) => line(tab + ' — ' + what));
   r++;
+
+  section('How money gets in');
+  line('Bank feed: every night (and on Finance Tracker → Bank feed → Sync now) the connected banks send balances and new transactions. Balances update Accounts, Savings & Reserves, Debts and the Dashboard. Transactions land on Import Staging.');
+  line('Rules: an Import Rule matches a bank description ("CAPITAL ONE AUTO" → Debt Payment on the car loan). A rule marked Auto-import sends matching rows straight to Transactions; others pre-fill the row for you. Make one from any staged row with Finance Tracker → Make a rule from the selected row. Every sync re-checks the waiting rows against the rules.');
+  line('Review: for a row no rule knows, pick a Category and tick Reviewed?. The next sync imports it. A category with one subcategory (Childcare → Nanny) fills itself in; a wider category uses its "Other" line unless you pick one.');
+  line('Paychecks: give Claude a pay stub, paste the block it returns into Finance Tracker → Import from Claude. The Income row, the expected income and the deposit match-up follow.');
+  line('By hand, rarely: PSLF counts from studentaid.gov, credit scores, the HSA balance until it connects, the amount parked in savings when a new Parked for Bills pot starts. The Reminders tab nags about the first two.');
+  r++;
+
+  section('Definitions');
+  line('Spending Type — how much control you have over an expense month to month. Fixed: the same every month and already committed (rent, car insurance, the nanny, subscriptions, the gym). Flexible: day-to-day spending you steer week by week (groceries, dining out, fuel, personal care, pharmacy, toys). Planned Irregular: expected but not monthly (property tax, registration, travel, annual fees). Unexpected: could not be planned (doctor visits, medical bills, repairs). The Dashboard\'s Current Flexible Spending and the weekly suggestion count only Flexible rows, because that is the part you can still change this month.', { bold: false });
+  line('Need / Want — could it be cut if it had to be? Groceries, childcare, utilities and insurance are Needs; dining out, coffee, entertainment and toys are Wants. A line can be a Want and Fixed at the same time (a streaming service): committed, but cuttable.');
+  line('Both defaults come from the subcategory on the Categories tab and fill in when a transaction is categorized. Change them on any single transaction when a purchase does not fit its usual pattern.');
+  line('Category and Subcategory — the category is the grouping the budget and the Spending tab work with (Housing, Food, Childcare, Child Expenses …); the subcategory is the line inside it (Groceries, Dining Out, Nanny, Toys). Childcare is what you pay someone to watch the children; Child Expenses is everything else for them. The Spending tab shows them together as Children and apart in their own colours.');
+  line('Spending — expenses minus refunds. Not spending: a Debt Payment (money to a loan or card balance), Savings (money into a fund or investment), a Transfer between your own accounts, and a Split Parent (a receipt split into children, which are the spending).');
+  line('Expected Take-Home — the paychecks expected this month at their typical amounts, counted by how many paydays fall in the month (a biweekly pay has three some months). Flexible target = expected take-home ± adjustment − bills − debt payments − planned savings; the Dashboard shows the arithmetic.');
+  line('Parked for Bills — a fund on Savings & Reserves for money moved into savings to pay a bill later. Deposits tagged for it add to it, the bill going out takes from it; the savings balance minus the parked money is what is yours to keep. Set up for the car payment.');
+  line('Planned Extra Payment — the extra you chose in the Payoff planner for a debt, or the household extra on App Setup; the monthly plan treats it like a bill.');
+  line('Selected Month vs this week — the Dashboard cards and the Spending tab follow the Selected Month (B10 on the Dashboard); Current Flexible Spending always follows today\'s week.');
+  r++;
+
+  section('The menu, in plain words');
+  line('Bank feed → Sync now: fresh balances from the banks, new transactions, rules re-checked, reviewed rows imported. Import from Claude (paste): pay stubs in. Payoff planner: the slider for extra debt payments. Show reminders: what only you can do. Run QA checks: recomputes the key totals and compares them with the formulas. Upgrade workbook (keeps data): after a change to the script, redraws the calculated tabs and adds new columns without touching your rows.');
+  r++;
+
+  if (withSample) {
+    section('Sample data is loaded (every row is tagged SAMPLE)');
+    check('When your real data is in: Finance Tracker → Clear sample data…');
+    r++;
+  }
 
   section('Rules the app (and humans) must keep');
   APP_RULES.forEach((rule, i) => line((i + 1) + '. ' + rule));
