@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-10 — Dashboard: Savings shows what is yours; the bank balance sits under it, faded
+- What changed: the owner wanted the Savings line to be the money that is
+  actually savings. The **Savings** line is now the bank balance minus the
+  Parked for Bills pots on that account (money passing through for the car
+  payment). Under it, a faded line **Savings + bill transfers** shows the
+  bank balance itself with the parked amount noted. The two earlier helper
+  rows ("of which parked for bills", "Savings that are yours to keep") are
+  gone; the block is three lines again. `BUILD_VERSION` 1.9.1.
+- Files changed in `apps-script/`: `Dashboard.gs`, `Config.gs` (deployed
+  on merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once
+  (the same run covers the Spending tab if not run yet).
+- Tested: Node (the Savings formula subtracts the parked pots, the faded
+  line shows the bank balance, suite green). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/savings-line-yours`
+
 ## 2026-11-10 — Spending tab; Start Here rewritten as the owner's guide; new tab order
 - What changed. (1) **New Spending tab** (fourth tab): follows the
   Dashboard's Selected Month. Four tiles (spent so far with last month and

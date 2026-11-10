@@ -1,8 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-10 (payoff planner merged; pull requests
-`claude/parked-for-bills` (parked savings) and, stacked on it,
-`claude/spending-tab` (Spending tab, Start Here guide, new tab order))
+Last updated: 2026-11-10 (parked savings, Spending tab and Start Here
+guide merged; pull request `claude/savings-line-yours`: the Dashboard
+Savings line is the money that is yours, bank balance faded under it)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
