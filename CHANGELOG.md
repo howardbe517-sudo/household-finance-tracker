@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-10 — Parked for Bills counts the current cycle only, capped at one payment
+- What changed: the owner wants anything beyond one car payment to count
+  as savings. A **Parked for Bills** fund now holds only the tagged deposits
+  made since the last tagged bill payment (the current cycle); the Starting
+  Amount seed is treated as spent once the first payment goes out; and when
+  the fund has a **Target Amount** (one payment's worth) the parked figure is
+  capped there. A fifth weekly transfer in a long month, or anything left
+  over from an earlier cycle, therefore reads as savings on the Dashboard
+  and on the emergency fund. Run QA mirrors the same arithmetic. The
+  owner's car-payment pot got Target Amount = the monthly payment.
+  `BUILD_VERSION` 1.9.2.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `QA.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once.
+- Tested: Node (fund formulas: cycle deposits since the last payment, the
+  cap, the per-pot subtraction on backed funds and on the Dashboard; suite
+  green). Not yet tried in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/parked-cycle` (stacked on `claude/savings-line-yours`)
+
 ## 2026-11-10 — Dashboard: Savings shows what is yours; the bank balance sits under it, faded
 - What changed: the owner wanted the Savings line to be the money that is
   actually savings. The **Savings** line is now the bank balance minus the

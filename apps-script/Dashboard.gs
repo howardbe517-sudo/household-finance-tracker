@@ -114,8 +114,9 @@ function buildDashboard_() {
   const savingsLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
   const anySav = savingsLine ? '(' + pats(savingsLine).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0' : 'FALSE';
   const savId = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Savings",' + anySav + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
-  const parkedOf = (col) => 'SUMIFS([FUNDS.' + col + '],[FUNDS.fundType],"Parked for Bills",[FUNDS.backingAccount],id)';
-  const parkedExpr = 'IFERROR(LET(id,' + savId + ',IF(id="",0,' + parkedOf('starting') + '+' + parkedOf('contributions') + '-' + parkedOf('withdrawals') + ')),0)';
+  // each Parked for Bills pot on the account: starting + contributions − withdrawals, capped at its Target Amount when set
+  const potAmt = '(N(+[FUNDS.starting])+N(+[FUNDS.contributions])-N(+[FUNDS.withdrawals]))';
+  const parkedExpr = 'IFERROR(LET(id,' + savId + ',IF(id="",0,SUMPRODUCT(([FUNDS.fundType]="Parked for Bills")*([FUNDS.backingAccount]=id)*IF((N(+[FUNDS.target])>0)*(' + potAmt + '>N(+[FUNDS.target])),N(+[FUNDS.target]),' + potAmt + ')))),0)';
   DASH_ACCOUNTS.main.forEach((line, i) => {
     const r = DASH.ACCT_FIRST + i;
     const isSav = line === savingsLine;
