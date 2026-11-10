@@ -454,6 +454,15 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (/\[DEBTS\.plannedExtra\]/.test(dpF) && /SETTING_DEBT_EXTRA_ALL/.test(dpF)) ok('Monthly Plan debt payments add the planned extras and the household plan amount'); else bad('plan formula: ' + dpF);
   if (R(`(function(){ showPayoffPlanner(); return true; })()`) === true) ok('Payoff planner dialog opens from a template that includes PayoffMath'); else bad('showPayoffPlanner failed');
 })();
+/* Parked for Bills: fund formulas, dashboard rows */
+(function () {
+  const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
+  const fcol = (k) => fundsDef.columns.filter(c => c.key === k)[0].f;
+  const fundTypes = vm.runInContext("LISTS.filter(function(l){ return l.key==='FUND_TYPES'; })[0].values", ctx);
+  if (fundTypes.indexOf('Parked for Bills') >= 0 && /"Transfer"/.test(fcol('contributions')) && /"Debt Payment"/.test(fcol('withdrawals')) && /"Parked for Bills"/.test(fcol('current')) && /\[@fundType\]<>"Parked for Bills"/.test(fcol('current'))) ok('Parked for Bills: a fund type; tagged transfers count as contributions, tagged debt payments as withdrawals; a backed fund shows its balance minus the parked funds on the same account'); else bad('parked fund formulas: ' + [fcol('contributions'), fcol('withdrawals'), fcol('current')].join(' | ').slice(0, 300));
+  const parkedF = dash.getRange('B' + DASH.ACCT_PARKED).getFormula(), yoursF = dash.getRange('B' + DASH.ACCT_YOURS).getFormula();
+  if (dash.getRange('A' + DASH.ACCT_PARKED).getValue() === 'of which parked for bills' && /"Parked for Bills"/.test(parkedF) && /'Savings & Reserves'/.test(parkedF) && /Savings that are yours to keep/.test(dash.getRange('A' + DASH.ACCT_YOURS).getValue()) && yoursF === '=IF(OR(NOT(ISNUMBER(B5)),NOT(ISNUMBER(B6))),"—",B5-B6)') ok('Dashboard savings block: "of which parked for bills" and "Savings that are yours to keep" under the savings line'); else bad('dashboard parked rows: ' + JSON.stringify([dash.getRange('A' + DASH.ACCT_PARKED).getValue(), parkedF.slice(0, 80), yoursF]));
+})();
 if (/Take-home/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /= flexible/.test(dash.getRange('A' + DASH.EXPECT_LINE).getFormula()) && /\(automatic\)/.test(dash.getRange('A' + DASH.FLEX_SUB).getFormula())) ok('Dashboard shows how the flexible figure is reached and says whether the target is automatic or set by hand'); else bad('dashboard expected line missing: ' + dash.getRange('A' + DASH.EXPECT_LINE).getFormula().slice(0, 80));
 
 /* 10c. Paste Import: a pb_block from the pay stub skill becomes Income rows */

@@ -146,7 +146,7 @@ function buildAppSetup_(withSample) {
   const sh = getOrCreateSheet_(SHEETS.SETUP);
   sh.clear(); // SAFETY-APPROVED: App Setup is a documentation tab rebuilt by buildWorkbook
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
-  ensureSheetSize_(sh, 160, 8);
+  ensureSheetSize_(sh, 240, 8); // the data dictionary grows with every column note; keep headroom
   const W = 8;
   sh.setColumnWidths(1, 1, 230);
   sh.setColumnWidth(2, 110);
