@@ -137,10 +137,19 @@ function qaReport_() {
   if (!plans.some(p => mk(p.month) === curKey)) info('No Monthly Plan row for the current month — Dashboard flexible section will say "No plan row".');
 
   /* 6. funds */
-  readTable_(tdef_('FUNDS')).forEach(f => {
-    const contrib = sumWhere(live, t => t.fundId === f.id && t.type === 'Savings', 'amount');
-    const wd = sumWhere(live, t => t.fundId === f.id && t.type === 'Expense', 'amount') - sumWhere(live, t => t.fundId === f.id && t.type === 'Refund', 'amount');
-    const exp = Number(f.starting || 0) + contrib - wd;
+  const fundRows = readTable_(tdef_('FUNDS')).filter(f => f.id);
+  const accBal = {};
+  readTable_(tdef_('ACCOUNTS')).forEach(a => { accBal[a.id] = Number(a.currentBalance || 0); });
+  const ownAmount = (f) => {
+    const contrib = sumWhere(live, t => t.fundId === f.id && (t.type === 'Savings' || t.type === 'Transfer'), 'amount');
+    const wd = sumWhere(live, t => t.fundId === f.id && (t.type === 'Expense' || t.type === 'Debt Payment'), 'amount') - sumWhere(live, t => t.fundId === f.id && t.type === 'Refund', 'amount');
+    return { contrib, wd, amount: Number(f.starting || 0) + contrib - wd };
+  };
+  fundRows.forEach(f => {
+    const own = ownAmount(f);
+    const contrib = own.contrib, wd = own.wd;
+    const parkedHere = f.backingAccount && f.fundType !== 'Parked for Bills' ? fundRows.filter(p => p.fundType === 'Parked for Bills' && p.backingAccount === f.backingAccount).reduce((s, p) => s + ownAmount(p).amount, 0) : 0;
+    const exp = f.backingAccount && f.fundType !== 'Parked for Bills' ? (accBal[f.backingAccount] || 0) - parkedHere : own.amount;
     if (!near(f.current, exp)) fail('Fund ' + f.id + ' ' + f.name + ': Current ' + money(f.current) + ' ≠ ' + money(exp));
     else pass('Fund ' + f.id + ' ' + f.name + ': current ' + money(exp) + ' (+' + money(contrib) + ' / −' + money(wd) + ')');
   });

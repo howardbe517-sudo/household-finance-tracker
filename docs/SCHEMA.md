@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.8-payoff-planner-2026-11-09**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.9-parked-for-bills-2026-11-10**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -205,9 +205,9 @@ Named range `TBL_FUNDS` covers the header row through the last formula row.
 | C | Fund Type | `fundType` | text | dropdown: LIST_FUND_TYPES |  |
 | D | Target Amount | `target` | currency | input |  |
 | E | Starting Amount | `starting` | currency | input |  |
-| F | Contributions | `contributions` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE"))` |
-| G | Withdrawals | `withdrawals` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Refund",[TX…` |
-| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",IF([@backingAccount]<>"",IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0),N([@starting])+[@contributio…` — Changed in 3.5: a fund with a Backing Account shows that account's live balance (from the bank feed); otherwise starting + contributions − withdrawals as before. |
+| F | Contributions | `contributions` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[…` — Changed in 3.9: a Transfer that carries this Fund ID counts too (money moved into savings and parked for a bill). |
+| G | Withdrawals | `withdrawals` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Debt Paymen…` — Changed in 3.9: a Debt Payment that carries this Fund ID counts too (the parked money going out to the bill). |
+| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",IF(AND([@backingAccount]<>"",[@fundType]<>"Parked for Bills"),IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id]…` — Changed in 3.9: a fund with a Backing Account shows that account's live balance minus whatever "Parked for Bills" funds hold on the same account, so it reads as the money that is permanently there. A Parked for Bills fund itself is starting + contributions − withdrawals: transfers tagged with its Fund ID in, bill payments tagged with it out. |
 | I | Target Date | `targetDate` | date | input (date) |  |
 | J | Planned Monthly | `plannedMonthly` | currency | input |  |
 | K | Amount Needed | `amountNeeded` | currency | calculated | `=IF([@id]="","",MAX(N([@target])-[@current],0))` |
@@ -529,7 +529,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | OWNERS | Owners | Ben, Valerie, Household |
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
-| FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |
+| FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other, Parked for Bills |
 | DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
 | FREQUENCIES | Frequencies | Weekly, Biweekly, Monthly, Quarterly, Semiannual, Annual |
 | PAY_FREQUENCIES | Pay Frequencies | Weekly, Biweekly, Semimonthly, Monthly |

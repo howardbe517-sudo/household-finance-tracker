@@ -1,0 +1,50 @@
+{
+  "title": "Savings: Parked vs Yours",
+  "key": "household-finance-tracker-2026-11-10-parked-for-bills",
+  "subtitle": "Money you move into savings for a bill is tracked apart from the savings that are permanently yours. One upgrade, one number to type.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade changes three fund formulas and adds two rows under Savings on the Dashboard.",
+    "**What does not change:** no rows, balances or entered values. Tab names and headers stay the same. The fund and the two rules for the car payment are already in place."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before parked-for-bills 2026-11-10`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "note": "The report should mention formula changes on Savings & Reserves and that the Dashboard was redrawn."
+        }
+      ]
+    },
+    {
+      "heading": "Tell it what is parked today",
+      "steps": [
+        {
+          "text": "Open **Savings & Reserves**. The row **Car payment money (parked in savings)** has type Parked for Bills. In its **Starting Amount**, type the amount sitting in savings right now that is meant for the car payment. If nothing is parked at the moment, type 0.",
+          "done": "The Current Amount of that row shows the number you typed. The Independent Bank Savings row above it shows the bank balance minus that number."
+        },
+        {
+          "text": "Open the **Dashboard**. Under the Savings line, \"of which parked for bills\" shows the parked amount and \"Savings that are yours to keep\" shows the rest.",
+          "done": "The two numbers add up to the savings balance."
+        }
+      ]
+    },
+    {
+      "heading": "How it keeps itself right from here",
+      "steps": [
+        {
+          "text": "When you move money from checking to savings with **CAR PAYMENT** in the memo, the savings-side deposit imports as a Transfer tagged to the parked fund, so the parked amount goes up. When the car payment comes out of savings on the 2nd, its Debt Payment carries the same tag, so the parked amount goes down. Nothing to tick.",
+          "note": "Any other bill you pay from savings can work the same way: add a Parked for Bills fund for it, then make a rule for its deposit memo (Type Transfer, that Fund) and give the bill's own rule the same Fund. Ask me and I will set it up."
+        }
+      ]
+    }
+  ]
+}

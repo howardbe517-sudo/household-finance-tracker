@@ -1,8 +1,8 @@
 # STATUS
 
-Last updated: 2026-11-09 (sync-imports-reviewed merged; pull request
-`claude/payoff-planner`: slider dialog for extra debt payments, one debt
-or all, with saved plans that the Monthly Plan subtracts)
+Last updated: 2026-11-10 (payoff planner merged; pull request
+`claude/parked-for-bills`: money parked in savings for bills kept apart
+from the savings that are permanently there)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,

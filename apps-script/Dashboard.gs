@@ -22,7 +22,7 @@
 const PD = 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=0,26/12,INT((me-N([EXPECT.lastPayDate]))/14)+INT((N([EXPECT.lastPayDate])-ms)/14)+1),IF([EXPECT.frequency]="Weekly",IF(N([EXPECT.lastPayDate])=0,52/12,INT((me-N([EXPECT.lastPayDate]))/7)+INT((N([EXPECT.lastPayDate])-ms)/7)+1),IF([EXPECT.frequency]="Semimonthly",2,IF([EXPECT.frequency]="Monthly",1,0)))),0)';
 
 const DASH = {
-  ACCT_HEADER: 3, ACCT_FIRST: 4, MONTH_BAR: 9,
+  ACCT_HEADER: 3, ACCT_FIRST: 4, ACCT_PARKED: 6, ACCT_YOURS: 7, MONTH_BAR: 9,
   SELECTED_MONTH: 'B10', REVIEW_LINE: 11,
   CARD_ROW_LABEL: 12, CARD_ROW_VALUE: 13, CARD_ROW_SUB: 14, EXPECT_LINE: 15,
   FLEX_BAR: 17, FLEX_LABEL: 18, FLEX_VALUE: 19, FLEX_SUB: 20,
@@ -116,6 +116,21 @@ function buildDashboard_() {
     mergePut('C' + r + ':D' + r, F('=IF(' + countOf(line, line.type) + '=0,"not connected yet",IFERROR(LET(d,' + maxOf(line, line.type, 'lastSynced') + ',IF(d=0,"",TEXT(d,"mmm d, h:mm am/pm"))),""))')).setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
     sh.setRowHeight(r, 28);
   });
+  // money parked in savings for bills (Parked for Bills funds on the savings account) and what is permanently there
+  const savingsLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
+  if (savingsLine) {
+    const savRow = DASH.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(savingsLine);
+    const anySav = '(' + pats(savingsLine).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0';
+    const savId = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Savings",' + anySav + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
+    const parkedOf = (col) => 'SUMIFS([FUNDS.' + col + '],[FUNDS.fundType],"Parked for Bills",[FUNDS.backingAccount],id)';
+    put('A' + DASH.ACCT_PARKED, 'of which parked for bills').setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
+    put('B' + DASH.ACCT_PARKED, F('=IFERROR(LET(id,' + savId + ',IF(id="","—",' + parkedOf('starting') + '+' + parkedOf('contributions') + '-' + parkedOf('withdrawals') + ')),"—")')).setNumberFormat(FORMATS.currency).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
+    mergePut('C' + DASH.ACCT_PARKED + ':D' + DASH.ACCT_PARKED, 'transfers tagged for a bill, not yet paid out').setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
+    put('A' + DASH.ACCT_YOURS, 'Savings that are yours to keep').setFontWeight('bold').setBackground(COLORS.CARD_GROSS);
+    put('B' + DASH.ACCT_YOURS, '=IF(OR(NOT(ISNUMBER(B' + savRow + ')),NOT(ISNUMBER(B' + DASH.ACCT_PARKED + '))),"—",B' + savRow + '-B' + DASH.ACCT_PARKED + ')').setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
+    mergePut('C' + DASH.ACCT_YOURS + ':D' + DASH.ACCT_YOURS, 'balance minus the parked money').setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
+    sh.setRowHeight(DASH.ACCT_PARKED, 22); sh.setRowHeight(DASH.ACCT_YOURS, 28);
+  }
   DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = DASH.ACCT_FIRST + i;
     put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
@@ -130,9 +145,9 @@ function buildDashboard_() {
   put('F' + cardTotalRow, 'Total owed on cards').setFontWeight('bold').setBackground(COLORS.PALE_BLUE);
   put('G' + cardTotalRow, '=SUMPRODUCT(N(+G' + DASH.ACCT_FIRST + ':G' + (cardTotalRow - 1) + '))').setNumberFormat(FORMATS.currency).setFontWeight('bold').setHorizontalAlignment('right').setBackground(COLORS.PALE_BLUE);
   sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
-  sh.getRange('A' + DASH.ACCT_HEADER + ':D' + (DASH.ACCT_FIRST + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A' + DASH.ACCT_HEADER + ':D' + (savingsLine ? DASH.ACCT_YOURS : DASH.ACCT_FIRST + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('F' + DASH.ACCT_HEADER + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A8:I8', 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender.')
+  mergePut('A8:I8', 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. "Parked for bills" is money moved into savings for a bill (a Parked for Bills fund on Savings & Reserves) that has not gone out yet.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 
   /* --- This month --- */

@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-10 — Money parked in savings for bills, kept apart from the savings that are yours
+- What changed: the owner pays the car loan from savings and moves money
+  into savings for it each paycheck; the savings balance therefore mixes
+  money that is passing through with money that is permanently there.
+  (1) New fund type **Parked for Bills** on Savings & Reserves. Such a fund
+  names the savings account in Backing Account ID; a **Transfer** that
+  carries its Fund ID (the deposit into savings tagged for the bill) adds
+  to it and a **Debt Payment** or Expense that carries its Fund ID (the bill
+  going out) takes from it, so it always holds what is parked right now.
+  (2) A fund backed by an account (the emergency fund) now shows the live
+  balance **minus** the Parked for Bills funds on the same account, so it
+  reads as the money that is yours to keep. (3) The Dashboard savings line
+  gains two rows: "of which parked for bills" and "Savings that are yours
+  to keep". Run QA recomputes funds by the same rules (and now treats
+  backed funds correctly). No column change; formula changes are applied by
+  the upgrade.
+- Also done by hand in the owner's Sheet: fund FUND-005 "Car payment money
+  (parked in savings)" of type Parked for Bills on the savings account;
+  Import Rule RULE-006 (deposits into savings whose memo says CAR PAYMENT →
+  Transfer with that Fund ID); RULE-001 (the car payment) now carries the
+  same Fund ID. The owner types today's parked amount into the fund's
+  Starting Amount once.
+- Schema: `SCHEMA_VERSION` 3.9-parked-for-bills-2026-11-10, `BUILD_VERSION`
+  1.8.0; App Setup gets more rows for the growing data dictionary.
+- Files changed in `apps-script/`: `Config.gs`, `Dashboard.gs`, `QA.gs`,
+  `Reference.gs` (deployed on merge). Run **Finance Tracker → Upgrade
+  workbook (keeps data)** once.
+- Tested: Node (fund type and formulas, Dashboard rows, build with a Parked
+  for Bills fund present, whole suite green). Not yet tried in Google: the
+  live figures.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/parked-for-bills`
+
 ## 2026-11-09 — Payoff planner: a slider for extra payments, one debt or all, with saved plans
 - What changed: **Finance Tracker → Payoff planner…** opens a dialog with a
   slider. *One debt at a time*: pick a debt, drag "extra per month", and
