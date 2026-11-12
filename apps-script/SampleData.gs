@@ -267,6 +267,7 @@ function writeSampleData_() {
   writeRows_(tdef_('REVIEW'), d.reviews, tdef_('REVIEW').firstRow);
   writeRows_(tdef_('NW'), d.netWorth, tdef_('NW').firstRow);
   writeSampleImportData_();
+  linkUtilityPayments_(); // the sample utility payments become sample bills on Utility Bills
   return d;
 }
 
@@ -311,7 +312,7 @@ function writeSampleImportData_() {
 }
 
 /** Tables whose sample rows can be identified by a Notes column starting with SAMPLE. */
-const SAMPLE_TABLES = ['TX', 'INCOME', 'EXPECT', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS', 'STAGING', 'RULES'];
+const SAMPLE_TABLES = ['TX', 'INCOME', 'EXPECT', 'RECUR', 'UTIL', 'FUNDS', 'DEBTS', 'QDR', 'BUDGET', 'PLAN', 'REVIEW', 'NW', 'ACCOUNTS', 'STAGING', 'RULES'];
 
 function isSampleRow_(def, row) {
   const notes = String(row.notes || '');

@@ -1,0 +1,49 @@
+{
+  "title": "Utilities Tab",
+  "key": "household-finance-tracker-2026-11-12-utilities",
+  "subtitle": "A Utilities tab with a Show menu, cost-by-month and year-over-year charts, and the bill history; utility payments file themselves as bills. One upgrade, then Claude loads your gas history.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade adds two tabs: Utilities, after Spending, and Utility Bills, the table it reads, after Recurring Payments.",
+    "**What does not change:** no rows, balances or entered values. Existing tab names and headers stay the same."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before Utilities tab`."
+        }
+      ]
+    },
+    {
+      "heading": "Add the tabs",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "note": "The report should include \"Added tab: Utility Bills\" and \"Added tab: Utilities\"."
+        },
+        {
+          "text": "Tell Claude the upgrade is done. Claude loads your DTE gas bills into the Utility Bills tab.",
+          "done": "Utility Bills lists the gas bills, one row each, newest due on December 2 marked Due."
+        },
+        {
+          "text": "Open **Finance Tracker → Bank feed → Sync now**. Utility payments already in Transactions, such as the Consumers Energy payment, are filed as paid bills.",
+          "done": "Utility Bills gains an Electric row for the Consumers Energy payment."
+        }
+      ]
+    },
+    {
+      "heading": "Try the tab",
+      "steps": [
+        {
+          "text": "Open **Utilities**. With Show set to **All utilities**, the cost-by-month chart has a line per utility and a dotted total; the tiles add everything up.",
+          "done": "The gas line climbs in winter and falls in summer."
+        },
+        {
+          "text": "Change **Show** (cell B3) to **Gas**. The tiles, both charts and the bill history switch to gas alone. Switch back to All utilities when done.",
+          "note": "Water and more electric history arrive when you send those statements to Claude, or through Finance Tracker → Import from Claude."
+        }
+      ]
+    }
+  ]
+}

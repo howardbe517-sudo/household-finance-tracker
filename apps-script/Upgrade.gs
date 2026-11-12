@@ -80,6 +80,11 @@ function upgradeWorkbookLocked_() {
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
   if (!ss.getSheetByName(SHEETS.SPEND)) report.push('Added tab: ' + SHEETS.SPEND);
   withRetry_('Spending', () => buildSpending_());
+  const utilShow = (ss.getRangeByName('UTIL_SHOW') || { getValue: () => '' }).getValue();
+  if (!ss.getSheetByName(SHEETS.UTILITIES)) report.push('Added tab: ' + SHEETS.UTILITIES);
+  withRetry_('Utilities', () => { buildUtilities_(); if (utilShow) ss.getRangeByName('UTIL_SHOW').setValue(utilShow); });
+  const ub = withRetry_('Utility Bills', () => linkUtilityPayments_());
+  if (ub && (ub.linked || ub.created)) report.push('Utility Bills: ' + ub.created + ' bill(s) filed from utility payments, ' + ub.linked + ' matched to a bill already there');
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
