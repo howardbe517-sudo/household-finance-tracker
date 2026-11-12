@@ -107,9 +107,9 @@ class Sheet {
     for (const [k, cell] of this.grid) { const [r, c] = k.split(',').map(Number); if (c >= start && c < start + n) continue; ng.set(r + ',' + (c >= start + n ? c - n : c), cell); }
     this.grid = ng; this.maxCols -= n; return this;
   }
-  setColumnWidth(c, w) { this.colWidths[c] = w; return this; }
-  setColumnWidths(c, n, w) { for (let i = 0; i < n; i++) this.colWidths[c + i] = w; return this; }
-  setRowHeight(r, h) { this.rowHeights[r] = h; return this; }
+  setColumnWidth(c, w) { if (c < 1 || c > this.maxCols) throw new Error('Those columns are out of bounds. (mock: column ' + c + ' on ' + this.name + ', ' + this.maxCols + ' wide)'); this.colWidths[c] = w; return this; }
+  setColumnWidths(c, n, w) { if (c < 1 || c + n - 1 > this.maxCols) throw new Error('Those columns are out of bounds. (mock: columns ' + c + '+' + n + ' on ' + this.name + ')'); for (let i = 0; i < n; i++) this.colWidths[c + i] = w; return this; }
+  setRowHeight(r, h) { if (r < 1 || r > this.maxRows) throw new Error('Those rows are out of bounds. (mock: row ' + r + ' on ' + this.name + ', ' + this.maxRows + ' tall)'); this.rowHeights[r] = h; return this; }
   setFrozenRows(n) { this.frozenRows = n; return this; } setFrozenColumns(n) { this.frozenCols = n; return this; }
   clear() { this.grid = new Map(); this.merges = []; return this; }
   clearConditionalFormatRules() { this.cfRules = []; return this; }

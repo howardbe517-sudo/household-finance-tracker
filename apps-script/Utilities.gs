@@ -41,7 +41,7 @@ function buildUtilities_() {
   const dataCols = 1 + types.length + 1; // month, each utility, total
   ensureSheetSize_(sh, UTILITIES.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
-  [110, 130, 160, 105, 70, 95, 90, 75, 110, 30, 30].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  [110, 130, 160, 105, 80, 95, 90, 80, 110].forEach((w, i) => sh.setColumnWidth(i + 1, w)); // nine columns: the tab ends at I
   sh.getRange(1, 1, UTILITIES.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
