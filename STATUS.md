@@ -33,9 +33,12 @@ AGENTS.md section 7)
 - **American Express has sent no transactions** since it was connected on
   2026-11-08 (balance and lender data arrive). Asked the owner to try
   Bank feed → Repair a connection for Amex.
-- **No nightly sync recorded on 2026-11-12** (last 2026-11-11 05:21 for
-  the first four logins). Asked the owner to check Bank feed → Status and
-  turn nightly sync on if it is off.
+- (Corrected) The nightly sync is not missing: the Sheet runs on
+  America/Detroit time, where it was still 2026-11-11 evening; the last run
+  was 2026-11-11 05:21 and the next is the following 5 a.m.
+- The card-merchant rules added 2026-11-11/12 take effect at the next sync
+  (Sync now or the nightly run); until then the Elan purchases wait on
+  Import Staging and Spent So Far does not include them.
 - Amazon Prime: price, monthly or yearly, and paying card unknown; no
   Prime charge on any connected card since 2026-11-01. The owner will check
   amazon.com → Prime membership.
