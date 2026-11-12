@@ -34,8 +34,14 @@ AGENTS.md section 7)
   After the owner's upgrade, load the DTE gas history (18 bills, July 2025
   to the bill due 2026-12-02, from the account-history PDF the owner sent;
   the bill due 2026-09-03 was hidden on the page and worked out from DTE's
-  2026 total) straight into Utility Bills. Electric (Consumers Energy) and
-  water histories to follow when the owner sends them.
+  2026 total) straight into Utility Bills. Also received and ready to
+  load: Consumers Energy electric history (18 bills, June 2025 to the bill
+  due 2026-12-01) and City of Grand Rapids water and sewer (4 quarterly
+  bills due January, April, July and October 2026; record each quarter's
+  own charges, late fees in Notes). The owner has not yet run the upgrade
+  that creates the Utility Bills tab. Open: whether the October water bill
+  is paid, and whether the owner pays water in full or by the city's
+  monthly option.
 
 ## Open items
 - **American Express has sent no transactions** since it was connected on

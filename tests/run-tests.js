@@ -492,6 +492,12 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const ub2 = R(`readTable_(TABLES.UTIL)`);
   const gasBill = ub2.filter(b => b.id === 'UB-0900')[0], water = ub2.filter(b => b.txId === 'TX-900002')[0];
   if (run1.linked === 1 && run1.created === 1 && run2.linked === 0 && run2.created === 0 && gasBill.status === 'Paid' && gasBill.txId === 'TX-900001' && water && water.utility === 'Water & Sewer' && water.status === 'Paid') ok('a utility payment completes its Due bill (within $1 and 25 days); one with no bill adds a paid bill; running again changes nothing'); else bad('linkUtilityPayments_: ' + JSON.stringify([run1, run2, gasBill && [gasBill.status, gasBill.txId], water]));
+  // a card payment a few dollars over the bill (processing fee) still completes the bill, and the fee is noted
+  R(`writeRows_(TABLES.UTIL, [{ id: 'UB-0950', utility: 'Electric', provider: 'Sample Electric Co', dueDate: new Date(2024, 10, 2), amount: 176.82, status: 'Due', source: 'Statement', notes: 'SAMPLE test' }])`);
+  R(`writeRows_(TABLES.TX, [{ id: 'TX-900003', date: new Date(2024, 10, 3), description: 'SAMPLE ELECTRIC CARD PMT', amount: 179.81, type: 'Expense', category: 'Housing', subcategory: 'Electric', accountId: 'ACC-001', notes: 'SAMPLE test' }])`);
+  const run3 = R(`linkUtilityPayments_()`);
+  const feeBill = R(`readTable_(TABLES.UTIL).filter(function(b){ return b.id==='UB-0950'; })[0]`);
+  if (run3.linked === 1 && run3.created === 0 && feeBill.txId === 'TX-900003' && feeBill.status === 'Paid' && near(feeBill.amount, 176.82) && /\$2\.99 over the bill/.test(feeBill.notes)) ok('a card payment a few dollars over its bill still completes the bill; the bill keeps its amount and the fee is noted'); else bad('fee match: ' + JSON.stringify([run3, feeBill]));
   const pasteSpec = vm.runInContext('PASTE_IMPORT.tables.UTIL', ctx);
   if (pasteSpec && pasteSpec.dedupe.join() === 'utility,dueDate,amount') ok('past bills can be imported from statements through the paste window (Utility Bills, deduplicated by utility, due date and amount)'); else bad('paste UTIL spec');
 })();

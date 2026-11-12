@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-12 — Utility payments a few dollars over the bill still match it
+- What changed: paying a utility by card can add a flat processing fee, so
+  the payment on the card runs a few dollars over the bill. The match in
+  `linkUtilityPayments_` now also accepts a payment up to $5 (or 3%) over
+  the bill; the bill keeps its own amount and the difference is written to
+  its Notes. Without this, such a payment was filed as a second bill.
+  `BUILD_VERSION` 1.10.1.
+- Files changed in `apps-script/`: `Utilities.gs`, `Config.gs` (deployed on
+  merge). Nothing extra to run beyond the pending Upgrade workbook.
+- Tested: Node (a payment $2.99 over its bill completes it, amount kept,
+  fee noted; suite green). Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utility-fee-match`
+
 ## 2026-11-12 — Utilities tab and Utility Bills table
 - What changed, following the owner's approved mockup. (1) New raw table
   **Utility Bills** (`TABLES.UTIL`): one row per bill with utility,

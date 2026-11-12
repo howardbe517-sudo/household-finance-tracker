@@ -171,7 +171,7 @@ function buildUtilities_() {
  * File every utility payment on Transactions as a paid bill on Utility Bills. A payment is a
  * Transactions row (not deleted, Expense) whose subcategory is in UTILITY_FROM_SUBCATEGORY and that
  * no bill names yet. It completes the bill of the same utility, with no Transaction ID, within $1
- * (or 1%) of its amount and 25 days of its due date (a Due bill becomes Paid; a Paid bill from a
+ * (or 1%) of its amount, or up to $5 (or 3%) over it for a card fee, and 25 days of its due date (a Due bill becomes Paid; a Paid bill from a
  * statement gets the link). Otherwise it adds a Paid bill dated the payment day. Safe to run again:
  * a payment already named by a bill is skipped. Returns { linked, created }.
  */
@@ -191,13 +191,16 @@ function linkUtilityPayments_() {
   pays.sort((a, b) => a.date - b.date).forEach(t => {
     const utility = UTILITY_FROM_SUBCATEGORY[t.subcategory];
     const amt = Math.abs(Number(t.amount || 0));
-    const bill = bills.filter(b => !b.txId && b.utility === utility && b.dueDate instanceof Date &&
-      Math.abs(Number(b.amount || 0) - amt) <= Math.max(1, amt * 0.01) && Math.abs(b.dueDate - t.date) <= 25 * 86400000)
+    // the payment may run a little over the bill: paying a utility by card often adds a flat processing fee
+    const fits = (b) => { const diff = amt - Number(b.amount || 0); return Math.abs(diff) <= Math.max(1, amt * 0.01) || (diff > 0 && diff <= Math.max(5, amt * 0.03)); };
+    const bill = bills.filter(b => !b.txId && b.utility === utility && b.dueDate instanceof Date && fits(b) && Math.abs(b.dueDate - t.date) <= 25 * 86400000)
       .sort((a, b) => Math.abs(a.dueDate - t.date) - Math.abs(b.dueDate - t.date))[0];
     if (bill) {
       sh.getRange(bill.__row, col('txId')).setValue(t.id);
       sh.getRange(bill.__row, col('status')).setValue('Paid');
       if (!(bill.paidDate instanceof Date)) sh.getRange(bill.__row, col('paidDate')).setValue(t.date);
+      const over = Math.round((amt - Number(bill.amount || 0)) * 100) / 100;
+      if (over >= 0.5) sh.getRange(bill.__row, col('notes')).setValue((bill.notes ? bill.notes + ' · ' : '') + 'Paid $' + amt.toFixed(2) + ', $' + over.toFixed(2) + ' over the bill (card or processing fee).');
       bill.txId = t.id;
       linked++;
     } else {
