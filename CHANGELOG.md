@@ -1,5 +1,52 @@
 # CHANGELOG
 
+## 2026-11-12 — Rent counts as a fixed cost from the 1st: bills that record themselves
+- Why (the owner's request): rent never changes and should show in Spending
+  as a fixed amount every month. It is paid by Venmo, in one payment or
+  several, and the bank description for Venmo says nothing, so no rule can
+  recognise it and Housing showed only the electric bill.
+- Schema 3.13: one column appended to Recurring Payments, **Record
+  Automatically?** (`autoRecord`, checkbox, last column). Delivered by
+  `upgradeWorkbook`; nothing renamed or reordered.
+- New `RecurringAuto.gs`. `recordRecurringBills_()` handles every active
+  Monthly row that is ticked:
+  - on or after the due day it writes one Expense to Transactions for the
+    month (the bill's Category and Subcategory, Spending Type from the
+    category defaults), marked "Recorded automatically … [REC-id|yyyy-mm]";
+  - that entry holds only what real payments have not covered: real
+    Expenses (minus Refunds) in the same month, Category and Subcategory
+    reduce it, and once they reach the Amount the entry is soft-deleted
+    (Is Deleted + Deleted At, never removed). If a payment is later moved
+    to another subcategory, the entry is restored for the uncovered part.
+    The month therefore counts the bill once: the Amount, or the real
+    payments if they come to more.
+  - it reconciles this month and the two before it; past months are never
+    back-filled. Weekly and other non-monthly rows are skipped and named
+    in the report. Changes are written to the Change Log.
+- Runs with every sync, the upgrade, after reviewed rows are imported, and
+  from `onEdit` when a relevant Recurring Payments or Transactions cell is
+  edited (so ticking the box records the bill at once).
+- Paid This Month? on the Spending tab and the recurring hover list now
+  count real payments only (an automatic entry is not a payment) and add
+  part payments together.
+- `SCHEMA_VERSION` 3.13-auto-record-2026-11-12, `BUILD_VERSION` 1.14.0.
+- Files changed in `apps-script/`: `RecurringAuto.gs` (new), `Config.gs`,
+  `Spending.gs`, `Plaid.gs`, `Upgrade.gs`, `Import.gs`, `Main.gs`,
+  `Reference.gs` (deployed on merge). Run **Finance Tracker → Upgrade
+  workbook (keeps data)**, then tick the box on the Rent row; step page
+  `handoffs/2026-11-12-spending-this-month.json`.
+- In the Sheet (not in the repository): the Rent row now names the paying
+  account and how it works; the Venmo payment of November 2 that the owner
+  had marked Housing was given the rent subcategory so it imports as a
+  rent payment.
+- Tested: Node (plan for a month, create once, second run adds nothing,
+  part payment shrinks the entry, full payment soft-deletes it, a
+  recategorized payment restores it, weekly rows skipped, the paid check
+  ignores automatic entries; 265 checks; safety check). Not yet confirmed
+  in Google: the first real run is the owner's upgrade and tick.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/record-rent-automatically`
+
 ## 2026-11-12 — Hover lists on the Spending tiles
 - Why (the owner's request): hovering over Fixed vs flexible, Needs vs wants
   or Recurring bills should show what is behind the number, and the lists

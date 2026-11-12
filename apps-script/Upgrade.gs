@@ -89,6 +89,8 @@ function upgradeWorkbookLocked_() {
   if (ub && (ub.linked || ub.created)) report.push('Utility Bills: ' + ub.created + ' bill(s) filed from utility payments, ' + ub.linked + ' matched to a bill already there');
   const dep = withRetry_('Income from deposits', () => ensureIncomeFromDeposits_());
   if (dep && describeIncomeFromDeposits_(dep)) report.push('Income: ' + describeIncomeFromDeposits_(dep));
+  const auto = withRetry_('Bills recorded automatically', () => recordRecurringBills_());
+  if (auto && describeRecurringAuto_(auto)) { report.push('Recurring bills: ' + describeRecurringAuto_(auto)); refreshSpendingNotes_(); }
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());

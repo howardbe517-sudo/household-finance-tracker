@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.12-fees-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.13-auto-record-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -13,7 +13,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
-| RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
+| RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 20 | yes |
 | UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
@@ -192,6 +192,7 @@ Named range `TBL_RECUR` covers the header row through the last formula row.
 | Q | Renewal / Review Date | `renewalDate` | date | input (date) |  |
 | R | Notes | `notes` | text | input |  |
 | S | Match / Source | `matchSource` | text | input |  |
+| T | Record Automatically? | `autoRecord` | text | checkbox | Added in 3.13: tick for a fixed monthly bill that should count from its due day whether or not the bank has shown the payment (rent paid by Venmo). The sync writes it to Transactions at the Amount and reduces that entry as real payments with the same Category and Subcategory arrive, so the bill counts once. |
 
 ## Utility Bills (`UTIL`)
 

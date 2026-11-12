@@ -645,6 +645,8 @@ function syncAllConnections(opts) {
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
   // paycheck deposits count as income the day they land: each Income-type deposit without a paycheck gets its Income row
   try { results.income = ensureIncomeFromDeposits_(); } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); }
+  // bills ticked Record Automatically? (rent): this month's entry on its due day, reduced by the real payments that have arrived
+  try { results.recurring = recordRecurringBills_(); } catch (e) { Logger.log('recordRecurringBills_: ' + (e && e.message || e)); }
   // the hover lists on the Spending tiles (fixed and flexible, needs and wants, recurring bills) follow what just came in
   try { refreshSpendingNotes_(); } catch (e) { Logger.log('refreshSpendingNotes_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
@@ -665,6 +667,7 @@ function syncNow() {
     + '\n\nImport Rules re-checked on the waiting rows: ' + rules.updated + ' updated, ' + rules.imported + ' imported into Transactions.'
     + '\nRows you ticked Reviewed?: ' + rev.imported + ' imported into Transactions.' + (rev.problems.length ? '\n' + rev.problems.length + ' reviewed row(s) still need something:\n' + rev.problems.slice(0, 8).join('\n') : '')
     + (describeIncomeFromDeposits_(results.income) ? '\n\nIncome: ' + describeIncomeFromDeposits_(results.income) + '.' : '')
+    + (describeRecurringAuto_(results.recurring) ? '\n\nRecurring bills: ' + describeRecurringAuto_(results.recurring) : '')
     + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }

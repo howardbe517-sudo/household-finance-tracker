@@ -207,7 +207,8 @@ function buildSpending_() {
   put('A' + recFirst, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[RECUR.name],[RECUR.group],[RECUR.monthlyEq],[RECUR.nextPayment]},[RECUR.active]=TRUE,[RECUR.name]<>""),4,TRUE),' + SPEND.REC_ROWS + ',4),"")'));
   for (let r = recFirst; r <= recLast; r++) {
     put('E' + r, F('=IF($A' + r + '="","",IFERROR(LET(i,MATCH($A' + r + ',[RECUR.name],0),cat,INDEX([RECUR.category],i),sub,INDEX([RECUR.subcategory],i),a,N(INDEX([RECUR.amount],i)),' +
-      'IF(COUNTIFS([TX.month],' + M + ',[TX.category],cat,[TX.subcategory],sub,[TX.amount],">="&a*0.9,[TX.isDeleted],"<>TRUE")>0,"yes","not yet")),""))')).setHorizontalAlignment('center');
+      // paid = real payments this month (an entry recorded automatically is not a payment) reach 90% of the bill; several part payments count together
+      'IF(SUMIFS([TX.amount],[TX.month],' + M + ',[TX.category],cat,[TX.subcategory],sub,[TX.type],"Expense",[TX.isDeleted],"<>TRUE",[TX.notes],"<>*' + AUTO_RECORD_MARK + '*")>=MAX(0.01,a*0.9),"yes","not yet")),""))')).setHorizontalAlignment('center');
   }
   sh.getRange('C' + recFirst + ':C' + recLast).setNumberFormat(FORMATS.currency);
   sh.getRange('D' + recFirst + ':D' + recLast).setNumberFormat('mmm d');
@@ -375,7 +376,8 @@ function spendingNoteTexts_(txRows, recurRows, month, stamp) {
     const a = Number(r.amount || 0);
     return ({ Weekly: a * 52 / 12, Biweekly: a * 26 / 12, Monthly: a, Quarterly: a / 3, Semiannual: a / 6, Annual: a / 12 })[r.frequency] || a;
   };
-  const paid = (r) => rows.some(t => t.type === 'Expense' && t.category === r.category && t.subcategory === r.subcategory && Number(t.amount || 0) >= Number(r.amount || 0) * 0.9);
+  // real payments this month toward a bill; an entry recorded automatically is not a payment
+  const paidSum = (r) => rows.filter(t => t.type === 'Expense' && t.category === r.category && t.subcategory === r.subcategory && String(t.notes || '').indexOf(AUTO_RECORD_MARK) < 0).reduce((s, t) => s + Number(t.amount || 0), 0);
   const total = active.reduce((s, r) => s + perMonth(r), 0);
   const rec = ['Recurring bills: ' + moneyNote_(total) + ' a month, ' + active.length + ' active', ''];
   const byGroup = {};
@@ -385,8 +387,10 @@ function spendingNoteTexts_(txRows, recurRows, month, stamp) {
     byGroup[p[0]].sort((a, b) => perMonth(b) - perMonth(a)).forEach(r => {
       const amt = r.amount === '' || r.amount === null || r.amount === undefined ? 'amount not set' : moneyNote_(r.amount) + ' ' + String(r.frequency || 'Monthly').toLowerCase() + (r.frequency && r.frequency !== 'Monthly' ? ' (' + moneyNote_(perMonth(r)) + ' a month)' : '');
       const due = r.frequency === 'Weekly' || r.frequency === 'Biweekly' || !ord(r.dueDay) ? '' : ', due the ' + ord(r.dueDay);
-      const state = r.category && r.subcategory && Number(r.amount) > 0 ? (paid(r) ? '  · paid in ' + label : '  · not seen yet in ' + label) : '';
-      rec.push('  ' + String(r.name).trim() + '  ' + amt + due + state);
+      const got = r.category && r.subcategory && Number(r.amount) > 0 ? paidSum(r) : -1;
+      const state = got < 0 ? '' : got >= Number(r.amount) * 0.9 ? '  · paid in ' + label : got > 0 ? '  · ' + moneyNote_(got) + ' paid so far in ' + label : '  · not seen yet in ' + label;
+      const auto = r.autoRecord === true ? '  · counted automatically from its due day' : '';
+      rec.push('  ' + String(r.name).trim() + '  ' + amt + due + state + auto);
     });
     rec.push('');
   });
