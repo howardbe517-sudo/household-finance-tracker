@@ -29,6 +29,14 @@ AGENTS.md section 7)
 - The owner still has to run **Upgrade workbook** once after PR #40 and
   **Sync now** (step page `handoffs/2026-11-12-wrap-up.json`).
 
+## Utilities (2026-11-12)
+- Pull request `claude/utilities-tab`: Utilities tab + Utility Bills table.
+  After the owner's upgrade, load the DTE gas history (18 bills, July 2025
+  to the bill due 2026-12-02, from the account-history PDF the owner sent;
+  the bill due 2026-09-03 was hidden on the page and worked out from DTE's
+  2026 total) straight into Utility Bills. Electric (Consumers Energy) and
+  water histories to follow when the owner sends them.
+
 ## Open items
 - **American Express has sent no transactions** since it was connected on
   2026-11-08 (balance and lender data arrive). Asked the owner to try

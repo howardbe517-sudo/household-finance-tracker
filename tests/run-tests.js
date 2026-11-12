@@ -37,7 +37,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 28 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('28 tabs in the owner\'s order (Start Here, Financial Summary, Dashboard, Spending first; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 30 && JSON.stringify(names) === JSON.stringify(TAB_ORDER)) ok('30 tabs in the owner\'s order (Start Here, Financial Summary, Dashboard, Spending, Utilities first; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 19, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 16, FUNDS: 16 };
@@ -395,12 +395,12 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const dashSh = g.__ss.getSheetByName(SHEETS.DASH), goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[6] === SHEETS.GOALS) ok('Goals tab (seventh tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[7] === SHEETS.GOALS) ok('Goals tab (eighth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
 const dSh = g.__ss.getSheetByName(SHEETS.DASH);
 const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
 if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Dashboard opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('dashboard accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
 if (dSh.getRange('A9').getValue() === 'This month' && dSh.getRange('A10').getValue() === 'Selected Month' && dSh.getRange('A12').getValue() === 'Expected Take-Home' && dSh.getRange('A' + DASH.CHECK_BAR).getValue() === 'Monthly Review Checklist' && g.__ss.namedRanges.has('DASH_SELECTED_MONTH') && /^B10(:B10)?$/.test(g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation())) ok('the month cards and the flexible section sit under a "This month" bar; Selected Month is B10 with a named range; the checklist closes the page'); else bad('dashboard shift: ' + JSON.stringify([dSh.getRange('A9').getValue(), dSh.getRange('A10').getValue(), dSh.getRange('A12').getValue(), dSh.getRange('A' + DASH.CHECK_BAR).getValue(), g.__ss.namedRanges.has('DASH_SELECTED_MONTH'), g.__ss.getRangeByName('DASH_SELECTED_MONTH') && g.__ss.getRangeByName('DASH_SELECTED_MONTH').getA1Notation()]));
-if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.DASH && TAB_ORDER[3] === SHEETS.SPEND && TAB_ORDER[4] === SHEETS.FUNDS && TAB_ORDER[5] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Dashboard, Spending, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.DASH && TAB_ORDER[3] === SHEETS.SPEND && TAB_ORDER[4] === SHEETS.UTILITIES && TAB_ORDER[5] === SHEETS.FUNDS && TAB_ORDER[6] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Dashboard, Spending, Utilities, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
 /* 10d. Expected Income from the paychecks on Income; the automatic flexible target */
 const colL = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
 const expRows = R(`readTable_(TABLES.EXPECT)`);
@@ -474,6 +474,26 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
 (function () {
   const cardF = dash.getRange('G' + DASH.ACCT_FIRST).getFormula();
   if (/SUMPRODUCT\(\(\(ISNUMBER\(SEARCH\("Independent Bank"/.test(cardF) && /ISNUMBER\(SEARCH\("Elan"/.test(cardF) && !/SUMIFS\('Accounts'/.test(cardF)) ok('Dashboard card line matches its issuer names with one OR test, so a card whose bank name contains two of them counts once'); else bad('card line formula: ' + cardF.slice(0, 160));
+})();
+(function () {
+  const uSh = ss.getSheetByName(SHEETS.UTILITIES);
+  const showDv = uSh.getRange('B3').getDataValidation();
+  const histF = uSh.getRange('A' + vm.runInContext('UTILITIES.HIST_FIRST', ctx)).getFormula();
+  const gasHdr = uSh.getRange(vm.runInContext('colLetter_(UTILITIES.DATA_COL + 1) + UTILITIES.DATA_HEADER', ctx)).getFormula();
+  const charts = uSh.getCharts();
+  if (uSh.getRange('B3').getValue() === 'All utilities' && showDv && /All utilities/.test(JSON.stringify(showDv)) && /Water & Sewer/.test(JSON.stringify(showDv)) && ss.namedRanges.has('UTIL_SHOW') && /'Utility Bills'/.test(histF) && /\$B\$3="All utilities"/.test(histF) && /"Gas"/.test(gasHdr) && /\$B\$3/.test(gasHdr) && charts.length === 2 && charts.every(c => c.type === 'LINE')) ok('Utilities tab: a Show dropdown (All utilities or one utility) that the tiles, both line charts and the bill history follow'); else bad('utilities tab: ' + JSON.stringify([uSh.getRange('B3').getValue(), !!showDv, histF.slice(0, 80), gasHdr.slice(0, 80), charts.length]));
+  // the sample electric payments were filed as sample bills
+  const ub = R(`readTable_(TABLES.UTIL)`);
+  if (ub.length > 0 && ub.every(b => ['Electric', 'Internet', 'Gas', 'Water & Sewer', 'Phone', 'Trash & Recycling'].indexOf(b.utility) >= 0 && b.status === 'Paid' && b.txId && /^SAMPLE/.test(b.notes))) ok('sample utility payments are filed as paid sample bills on Utility Bills (' + ub.length + ')'); else bad('sample bills: ' + JSON.stringify(ub.slice(0, 2)));
+  // a statement bill is completed by its payment; an unknown payment adds a bill; a second run changes nothing
+  R(`writeRows_(TABLES.UTIL, [{ id: 'UB-0900', utility: 'Gas', provider: 'Sample Gas Co', dueDate: new Date(2024, 9, 5), amount: 29.9, status: 'Due', source: 'Statement', notes: 'SAMPLE test' }])`);
+  R(`writeRows_(TABLES.TX, [{ id: 'TX-900001', date: new Date(2024, 9, 3), description: 'SAMPLE GAS CO AUTOPAY', amount: 29.9, type: 'Expense', category: 'Housing', subcategory: 'Natural Gas', accountId: 'ACC-001', notes: 'SAMPLE test' }, { id: 'TX-900002', date: new Date(2024, 9, 20), description: 'SAMPLE CITY WATER', amount: 61.25, type: 'Expense', category: 'Housing', subcategory: 'Water & Sewer', accountId: 'ACC-001', notes: 'SAMPLE test' }])`);
+  const run1 = R(`linkUtilityPayments_()`), run2 = R(`linkUtilityPayments_()`);
+  const ub2 = R(`readTable_(TABLES.UTIL)`);
+  const gasBill = ub2.filter(b => b.id === 'UB-0900')[0], water = ub2.filter(b => b.txId === 'TX-900002')[0];
+  if (run1.linked === 1 && run1.created === 1 && run2.linked === 0 && run2.created === 0 && gasBill.status === 'Paid' && gasBill.txId === 'TX-900001' && water && water.utility === 'Water & Sewer' && water.status === 'Paid') ok('a utility payment completes its Due bill (within $1 and 25 days); one with no bill adds a paid bill; running again changes nothing'); else bad('linkUtilityPayments_: ' + JSON.stringify([run1, run2, gasBill && [gasBill.status, gasBill.txId], water]));
+  const pasteSpec = vm.runInContext('PASTE_IMPORT.tables.UTIL', ctx);
+  if (pasteSpec && pasteSpec.dedupe.join() === 'utility,dueDate,amount') ok('past bills can be imported from statements through the paste window (Utility Bills, deduplicated by utility, due date and amount)'); else bad('paste UTIL spec');
 })();
 (function () {
   const rcSh = ss.getSheetByName(SHEETS.RECUR);

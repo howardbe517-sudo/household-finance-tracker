@@ -150,6 +150,14 @@ CF_BUILDERS.SUMMARY = (sh, def) => {
   ]);
 };
 
+CF_BUILDERS.UTIL = (sh, def) => {
+  const s = cellRef_(def, 'status');
+  sh.setConditionalFormatRules([
+    cfRule_(colRange_(sh, def, 'status'), '=' + s + '="Due"', COLORS.WARN_FILL, COLORS.WARN_FONT),
+    cfRule_(colRange_(sh, def, 'status'), '=' + s + '="Paid"', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
+  ]);
+};
+
 CF_BUILDERS.REVIEW = (sh, def) => {
   const s = cellRef_(def, 'status');
   sh.setConditionalFormatRules([
@@ -309,7 +317,7 @@ function buildNetWorthHelper_(sh, def) {
 /* ---------- orchestration for phases 2–4 ---------- */
 
 function buildCoreTables_() {
-  ['INCOME', 'EXPECT', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
+  ['INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);

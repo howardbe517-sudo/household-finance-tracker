@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.10-spending-tab-2026-11-10',
-  BUILD_VERSION: '1.9.5',
+  SCHEMA_VERSION: '3.11-utilities-2026-11-12',
+  BUILD_VERSION: '1.10.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -50,6 +50,8 @@ const SHEETS = {
   CONN: 'Connections',
   PASTE: 'Paste Import',
   SPEND: 'Spending',
+  UTILITIES: 'Utilities',
+  UTIL: 'Utility Bills',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -59,8 +61,8 @@ const TAB_ORDER = [
   // the ledgers and derived tables, and the setup and feed tabs at the end. Import Staging sits
   // right after Transactions because the owner reviews it often.
   // 2026-11-10: Start Here (the guide) first, then Financial Summary, Dashboard, Spending.
-  SHEETS.START, SHEETS.FINSUM, SHEETS.DASH, SHEETS.SPEND, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.START, SHEETS.FINSUM, SHEETS.DASH, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
@@ -127,6 +129,8 @@ const LISTS = [
   { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Tax Debt', 'Other'] },
   { key: 'FREQUENCIES', header: 'Frequencies', values: ['Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Semiannual', 'Annual'] },
   { key: 'PAY_FREQUENCIES', header: 'Pay Frequencies', values: ['Weekly', 'Biweekly', 'Semimonthly', 'Monthly'] },
+  { key: 'UTILITY_TYPES', header: 'Utility Types', values: ['Gas', 'Electric', 'Water & Sewer', 'Trash & Recycling', 'Internet', 'Phone', 'Other'] },
+  { key: 'BILL_STATUSES', header: 'Bill Statuses', values: ['Paid', 'Due'] },
   { key: 'RECURRING_GROUPS', header: 'Recurring Groups', values: ['Housing', 'Utilities', 'Loans', 'Insurance', 'Subscriptions', 'Memberships', 'Other'] },
   { key: 'PAYMENT_TYPES', header: 'Payment Types', values: ['Bill', 'Subscription', 'Loan Payment', 'Insurance Premium', 'Membership', 'Transfer', 'Other'] },
   { key: 'TX_STATUSES', header: 'Transaction Statuses', values: ['Pending', 'Posted', 'Reviewed'] },
@@ -633,6 +637,32 @@ TABLES.CREDIT = {
   ],
 };
 
+TABLES.UTIL = {
+  key: 'UTIL', sheet: SHEETS.UTIL, headerRow: 4, firstRow: 5, lastRow: 504,
+  title: 'Utility Bills — One Row per Bill',
+  note: 'Every gas, electric, water and other utility bill. Each utility payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric, Water & Sewer, Trash & Recycling, Internet or Cell Phone) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.',
+  idPrefix: 'UB', idPattern: 'UB-0001', logChanges: true,
+  columns: [
+    { key: 'id', h: 'Bill ID', w: 90 },
+    { key: 'utility', h: 'Utility', w: 120, v: { list: 'UTILITY_TYPES' } },
+    { key: 'provider', h: 'Provider', w: 170 },
+    { key: 'dueDate', h: 'Due Date', w: 100, fmt: C.date, v: { date: true } },
+    { key: 'periodEnd', h: 'Billing Period Ends', w: 120, fmt: C.date, v: { date: true } },
+    { key: 'days', h: 'Days Billed', w: 85, fmt: C.int },
+    { key: 'amount', h: 'Amount', w: 95, fmt: C.cur },
+    { key: 'status', h: 'Status', w: 80, v: { list: 'BILL_STATUSES' } },
+    { key: 'paidDate', h: 'Paid On', w: 100, fmt: C.date, v: { date: true } },
+    { key: 'txId', h: 'Transaction ID', w: 115 },
+    { key: 'month', h: 'Month', w: 95, fmt: C.month, f: '=IF([@dueDate]="","",DATE(YEAR([@dueDate]),MONTH([@dueDate]),1))' },
+    { key: 'perDay', h: 'Cost per Day', w: 95, fmt: C.cur, f: '=IF(OR([@amount]="",N([@days])=0),"",[@amount]/[@days])' },
+    { key: 'source', h: 'Source', w: 140 },
+    { key: 'notes', h: 'Notes', w: 240 },
+  ],
+};
+
+/** Transactions subcategories (under Housing) that are utility payments, and the utility each one files under. */
+const UTILITY_FROM_SUBCATEGORY = { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer', 'Trash & Recycling': 'Trash & Recycling', 'Internet': 'Internet', 'Cell Phone': 'Phone' };
+
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Import Staging — Raw Bank Imports',
@@ -886,7 +916,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**
@@ -918,6 +948,7 @@ const PASTE_IMPORT = {
     RECUR: { dedupe: ['name'] },
     QDR: { dedupe: ['debtId', 'quarterEnd'] },
     TX: { dedupe: ['date', 'amount', 'description', 'accountId'] },
+    UTIL: { dedupe: ['utility', 'dueDate', 'amount'] },
   },
   marker: 'HFT-IMPORT',
   version: 'v1',

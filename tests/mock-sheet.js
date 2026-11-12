@@ -119,6 +119,10 @@ class Sheet {
   protect() { const p = new Protection(this); this.protections.push(p); return p; }
   getProtections() { return this.protections.slice(); }
   setTabColor() { return this; }
+  newChart() { const sheet = this; const c = { ranges: [], options: {}, type: null, pos: null }; const b = { setChartType(t) { c.type = t; return b; }, addRange(r) { c.ranges.push(r); return b; }, setNumHeaders() { return b; }, setPosition(r, col) { c.pos = [r, col]; return b; }, setOption(k, v) { c.options[k] = v; return b; }, build() { return c; } }; return b; }
+  insertChart(c) { (this.charts = this.charts || []).push(c); return this; }
+  getCharts() { return (this.charts || []).slice(); }
+  removeChart(c) { this.charts = (this.charts || []).filter(x => x !== c); return this; }
   activate() { this.ss.active = this; return this; }
 }
 
@@ -230,6 +234,7 @@ function makeGlobals() {
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) },
     ContentService: { createTextOutput: (t) => ({ _t: t, setMimeType() { return this; }, getContent() { return this._t; } }), MimeType: { JSON: 'JSON' } },
     UrlFetchApp,
+    Charts: { ChartType: { LINE: 'LINE', COLUMN: 'COLUMN', BAR: 'BAR' } },
     HtmlService: { createHtmlOutputFromFile: (name) => htmlOut('<file:' + name + '>'), createHtmlOutput: (html) => htmlOut(html), createTemplateFromFile: (name) => ({ evaluate: () => htmlOut('<template:' + name + '>') }) },
     ScriptApp: {
       getProjectTriggers: () => triggers.slice(),

@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## 2026-11-12 — Utilities tab and Utility Bills table
+- What changed, following the owner's approved mockup. (1) New raw table
+  **Utility Bills** (`TABLES.UTIL`): one row per bill with utility,
+  provider, due date, billing period end, days billed, amount, status
+  (Paid / Due), paid date, transaction ID, and calculated month and cost
+  per day. New lists `UTILITY_TYPES` (Gas, Electric, Water & Sewer, Trash
+  & Recycling, Internet, Phone, Other) and `BILL_STATUSES`. (2) New
+  **Utilities** tab (fifth, after Spending): a **Show** dropdown in B3
+  (All utilities or one utility, named `UTIL_SHOW`, kept by the upgrade)
+  that every tile, chart and table follows; tiles for the next bill, the
+  last 12 months, the average per month and the latest bill against a year
+  earlier; a **cost by month** line chart (one line per utility, a dotted
+  total line when showing all) and a **this year vs last year** line chart,
+  both real Sheets charts drawn from calculated data to the right of the
+  tab; and the bill history, newest first, with cost per day and the change
+  from a year earlier. (3) `linkUtilityPayments_` runs on every sync, on
+  the upgrade and after the sample data: each Transactions expense whose
+  subcategory is Natural Gas, Electric, Water & Sewer, Trash & Recycling,
+  Internet or Cell Phone, and that no bill names yet, completes the bill of
+  the same utility within $1 (or 1%) and 25 days, or adds a paid bill.
+  (4) Past bills can come in from statements through the paste window
+  (`PASTE_IMPORT.tables.UTIL`, deduplicated by utility, due date and
+  amount). Sample bills are tagged SAMPLE and cleared with the rest.
+- Schema: new table and two lists, added by the upgrade; no existing
+  header or column changed. `SCHEMA_VERSION` 3.11-utilities-2026-11-12,
+  `BUILD_VERSION` 1.10.0. `docs/SCHEMA.md` regenerated.
+- Also done by hand in the owner's Sheet: Import Rule RULE-023 (DTE ENERGY
+  → Housing / Natural Gas, auto-import).
+- Files changed in `apps-script/`: new `Utilities.gs`; `Config.gs`,
+  `Main.gs`, `Plaid.gs`, `Reference.gs`, `SampleData.gs`, `Tables.gs`,
+  `Upgrade.gs` (deployed on merge). Run **Finance Tracker → Upgrade
+  workbook (keeps data)** once; the owner's DTE statement history is then
+  loaded into Utility Bills from the Sheet side (not stored here).
+- Tested: Node (30 tabs in order; the Show dropdown, its named range and
+  the formulas that follow it; two line charts; sample bills filed and
+  tagged; a payment completes its Due bill, an unmatched payment adds a
+  bill, a second run changes nothing; paste-import spec; upgrade of an
+  older workbook adds the table and tab). Not yet seen in Google: the
+  charts' look and legends.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utilities-tab`
+
 ## 2026-11-12 — Dashboard counts each card once
 - What changed: the Independent Bank card line showed the Elan card twice
   ($550.80 for a $275.40 balance). The line adds up every card whose bank

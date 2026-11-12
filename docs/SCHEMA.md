@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.10-spending-tab-2026-11-10**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.11-utilities-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -14,6 +14,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
+| UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 14 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
@@ -191,6 +192,29 @@ Named range `TBL_RECUR` covers the header row through the last formula row.
 | Q | Renewal / Review Date | `renewalDate` | date | input (date) |  |
 | R | Notes | `notes` | text | input |  |
 | S | Match / Source | `matchSource` | text | input |  |
+
+## Utility Bills (`UTIL`)
+
+Every gas, electric, water and other utility bill. Each utility payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric, Water & Sewer, Trash & Recycling, Internet or Cell Phone) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.
+
+Named range `TBL_UTIL` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Bill ID | `id` | text | input |  |
+| B | Utility | `utility` | text | dropdown: LIST_UTILITY_TYPES |  |
+| C | Provider | `provider` | text | input |  |
+| D | Due Date | `dueDate` | date | input (date) |  |
+| E | Billing Period Ends | `periodEnd` | date | input (date) |  |
+| F | Days Billed | `days` | integer | input |  |
+| G | Amount | `amount` | currency | input |  |
+| H | Status | `status` | text | dropdown: LIST_BILL_STATUSES |  |
+| I | Paid On | `paidDate` | date | input (date) |  |
+| J | Transaction ID | `txId` | text | input |  |
+| K | Month | `month` | month (1st-of-month date) | calculated | `=IF([@dueDate]="","",DATE(YEAR([@dueDate]),MONTH([@dueDate]),1))` |
+| L | Cost per Day | `perDay` | currency | calculated | `=IF(OR([@amount]="",N([@days])=0),"",[@amount]/[@days])` |
+| M | Source | `source` | text | input |  |
+| N | Notes | `notes` | text | input |  |
 
 ## Savings & Reserves (`FUNDS`)
 
@@ -533,6 +557,8 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
 | FREQUENCIES | Frequencies | Weekly, Biweekly, Monthly, Quarterly, Semiannual, Annual |
 | PAY_FREQUENCIES | Pay Frequencies | Weekly, Biweekly, Semimonthly, Monthly |
+| UTILITY_TYPES | Utility Types | Gas, Electric, Water & Sewer, Trash & Recycling, Internet, Phone, Other |
+| BILL_STATUSES | Bill Statuses | Paid, Due |
 | RECURRING_GROUPS | Recurring Groups | Housing, Utilities, Loans, Insurance, Subscriptions, Memberships, Other |
 | PAYMENT_TYPES | Payment Types | Bill, Subscription, Loan Payment, Insurance Premium, Membership, Transfer, Other |
 | TX_STATUSES | Transaction Statuses | Pending, Posted, Reviewed |

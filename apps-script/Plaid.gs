@@ -641,6 +641,8 @@ function syncAllConnections(opts) {
   try { results.rules = reclassifyOpenRows_(importContext_(), null); } catch (e) { Logger.log('reclassifyOpenRows_: ' + (e && e.message || e)); }
   // rows the owner ticked Reviewed? go in too, so a sync is the only step after a review
   try { results.reviewed = importReviewedRows_(); } catch (e) { Logger.log('importReviewedRows_: ' + (e && e.message || e)); }
+  // utility payments that reached Transactions become paid bills on Utility Bills (the Utilities tab charts them)
+  try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   if (results.rules && (results.rules.updated || results.rules.imported)) lines.push('Rules: ' + results.rules.updated + ' waiting row(s) updated, ' + results.rules.imported + ' imported');
