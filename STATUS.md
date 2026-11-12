@@ -1,8 +1,9 @@
 # STATUS
 
-Last updated: 2026-11-10 (everything through `claude/parked-cycle` merged
-and deployed; the owner now lets the agent merge pull requests as soon as
-checks pass, see AGENTS.md section 7)
+Last updated: 2026-11-12 (Elan card connected as its own login, CONN-005,
+with purchases flowing; pull request `claude/nightly-balances` fixes
+balances not refreshing on quiet nights. The agent merges pull requests
+once checks pass, see AGENTS.md section 7)
 
 ## Where the owner is (2026-11-09)
 - Connected: Capital One, Fidelity, Independent Bank (checking, savings,
