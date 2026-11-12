@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-12 — Subscriptions and memberships added up together
+- What changed: the owner wants subscriptions and memberships totalled.
+  The Recurring Payments band's "Subscriptions (Monthly)" becomes
+  **Subscriptions & Memberships (Monthly)** and sums both recurring groups.
+  The Spending tab's Recurring bills tile now says "subscriptions $X ·
+  memberships $Y" under its total. A calculated band label changed; no
+  table header, column or tab name changed. `BUILD_VERSION` 1.9.4.
+- Also done by hand in the owner's Sheet: Import Rules RULE-008 to
+  RULE-018 for the card's regular merchants (Meijer and Target pre-fill
+  only, because those trips get split; the rest import themselves), and
+  Recurring Payments rows for Netflix, Audible and the Ring plan
+  (Subscriptions) and YMCA (Memberships).
+- Files changed in `apps-script/`: `Tables.gs`, `Spending.gs`, `Config.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once.
+- Tested: Node (band label and formula, Spending tile text; suite green).
+  Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/subscriptions-total`
+
 ## 2026-11-12 — The nightly sync refreshes balances on quiet nights
 - What changed: on 2026-11-11 the nightly sync recorded "0 balance(s)" for
   every card and bank login, so the Dashboard kept the balances from the

@@ -172,7 +172,8 @@ function buildRecurringTop_(sh, def) {
   const kpis = [
     ['Total Recurring (Monthly)', R('=SUMIFS([@@monthlyEq],[@@active],TRUE)')],
     ['Total Recurring (Annual)', '=A5*12'],
-    ['Subscriptions (Monthly)', R('=SUMIFS([@@monthlyEq],[@@group],"Subscriptions",[@@active],TRUE)')],
+    // the owner wants subscriptions and memberships added up together (2026-11-12)
+    ['Subscriptions & Memberships (Monthly)', R('=SUMIFS([@@monthlyEq],[@@group],"Subscriptions",[@@active],TRUE)+SUMIFS([@@monthlyEq],[@@group],"Memberships",[@@active],TRUE)')],
     ['Active Items', R('=COUNTIFS([@@id],"<>",[@@active],TRUE)')],
   ];
   kpis.forEach((k, i) => {
