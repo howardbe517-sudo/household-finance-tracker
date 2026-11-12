@@ -200,6 +200,7 @@ function linkUtilityPayments_() {
       sh.getRange(bill.__row, col('status')).setValue('Paid');
       if (!(bill.paidDate instanceof Date)) sh.getRange(bill.__row, col('paidDate')).setValue(t.date);
       const over = Math.round((amt - Number(bill.amount || 0)) * 100) / 100;
+      if (over >= 0.5) sh.getRange(bill.__row, col('cardFee')).setValue(Math.round((Number(bill.cardFee || 0) + over) * 100) / 100);
       if (over >= 0.5) sh.getRange(bill.__row, col('notes')).setValue((bill.notes ? bill.notes + ' · ' : '') + 'Paid $' + amt.toFixed(2) + ', $' + over.toFixed(2) + ' over the bill (card or processing fee).');
       bill.txId = t.id;
       linked++;

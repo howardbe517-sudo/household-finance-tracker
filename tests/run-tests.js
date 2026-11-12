@@ -498,6 +498,10 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const run3 = R(`linkUtilityPayments_()`);
   const feeBill = R(`readTable_(TABLES.UTIL).filter(function(b){ return b.id==='UB-0950'; })[0]`);
   if (run3.linked === 1 && run3.created === 0 && feeBill.txId === 'TX-900003' && feeBill.status === 'Paid' && near(feeBill.amount, 176.82) && /\$2\.99 over the bill/.test(feeBill.notes)) ok('a card payment a few dollars over its bill still completes the bill; the bill keeps its amount and the fee is noted'); else bad('fee match: ' + JSON.stringify([run3, feeBill]));
+  if (near(feeBill.cardFee, 2.99)) ok('the card fee is written to the bill\'s Card Fee column'); else bad('card fee column: ' + JSON.stringify(feeBill.cardFee));
+  const feeF = fsSh.getRange('B' + FINSUM.FEES_CARD).getFormula(), lateF = fsSh.getRange('C' + FINSUM.FEES_LATE).getFormula();
+  const cats2 = R(`readTable_(TABLES.CATS)`);
+  if (/Fees/.test(fsSh.getRange('A' + FINSUM.FEES_BAR).getValue()) && /'Utility Bills'/.test(feeF) && /"Card & Processing Fees"/.test(feeF) && /YEAR\(TODAY\(\)\)/.test(feeF) && /"Late Fees"/.test(lateF) && /EDATE\(TODAY\(\),-12\)/.test(lateF) && /'Debts'/.test(fsSh.getRange('B' + FINSUM.FEES_INTEREST).getFormula()) && fsSh.getRange('A' + FINSUM.NW_BAR).getValue() === 'Net worth' && cats2.some(c => c.subcategory === 'Card & Processing Fees') && cats2.some(c => c.subcategory === 'Late Fees')) ok('Financial Summary has a Fees block (card and processing, late, bank; this year and last 12 months; debt interest as an estimate) above Net worth, with matching subcategories'); else bad('fees block: ' + JSON.stringify([fsSh.getRange('A' + FINSUM.FEES_BAR).getValue(), feeF.slice(0, 100), lateF.slice(0, 80)]));
   const pasteSpec = vm.runInContext('PASTE_IMPORT.tables.UTIL', ctx);
   if (pasteSpec && pasteSpec.dedupe.join() === 'utility,dueDate,amount') ok('past bills can be imported from statements through the paste window (Utility Bills, deduplicated by utility, due date and amount)'); else bad('paste UTIL spec');
 })();

@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.11-utilities-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.12-fees-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -14,7 +14,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 19 | yes |
-| UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 14 | yes |
+| UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
@@ -215,6 +215,8 @@ Named range `TBL_UTIL` covers the header row through the last formula row.
 | L | Cost per Day | `perDay` | currency | calculated | `=IF(OR([@amount]="",N([@days])=0),"",[@amount]/[@days])` |
 | M | Source | `source` | text | input |  |
 | N | Notes | `notes` | text | input |  |
+| O | Card Fee | `cardFee` | currency | input | Added in 3.12: what the payment ran over the bill when it was paid by card (a processing fee). Filled in by the sync when it matches the payment to the bill; the Financial Summary totals it under Fees. |
+| P | Late Fee | `lateFee` | currency | input | Added in 3.12: a late fee the utility added to this bill. Typed in or loaded from statements; the Financial Summary totals it under Fees. The Amount stays the bill's own charges. |
 
 ## Savings & Reserves (`FUNDS`)
 
@@ -667,6 +669,8 @@ Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_E
 | Taxes | Tax Preparation | Need | Variable | Planned Irregular |
 | Taxes | Other Taxes | Need | Variable | Planned Irregular |
 | Miscellaneous | Bank Fees | Need | Variable | Unexpected |
+| Miscellaneous | Card & Processing Fees | Want | Variable | Unexpected |
+| Miscellaneous | Late Fees | Want | Variable | Unexpected |
 | Miscellaneous | Postage & Shipping | Need | Variable | Flexible |
 | Miscellaneous | Other | Want | Variable | Flexible |
 | Savings | Emergency Fund |  |  |  |

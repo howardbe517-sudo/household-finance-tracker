@@ -326,7 +326,7 @@ function buildStartHere_(withSample) {
   section('The tabs, in the order they sit');
   [
     ['Start Here', 'This page: how the tracker works and what its words mean.'],
-    ['Financial Summary', 'The whole picture: averages over the last months, month by month, Children (childcare and other child costs), Savings & Reserves, Debts, income by person, payroll deductions, credit scores, net worth.'],
+    ['Financial Summary', 'The whole picture: averages over the last months, month by month, Children (childcare and other child costs), Fees (card, late and bank fees for the year), Savings & Reserves, Debts, income by person, payroll deductions, credit scores, net worth.'],
     ['Dashboard', 'This month: tonight\'s balances (with savings split into parked for bills and yours to keep), rows waiting for review, expected take-home, spent so far, the flexible figure and this week\'s suggestion, the monthly checklist. Change the month in B10.'],
     ['Spending', 'Where the money went for the Selected Month: by category (largest first, Children shown together and apart), fixed vs flexible, needs vs wants, every recurring bill with paid-this-month, the flexible subcategories, and six months side by side.'],
     ['Utilities', 'Gas, electric, water and the other utility bills: the next bill, the last 12 months, cost by month and this year against last year, with a Show menu at the top for one utility or all of them.'],

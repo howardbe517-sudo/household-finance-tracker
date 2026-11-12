@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-11-12 — Fees: card processing fees and late fees totalled for the year
+- What changed: the owner wants the cost of paying by card noted in the
+  yearly picture. (1) Utility Bills gains two appended columns, **Card Fee**
+  (what a payment ran over its bill; the sync fills it in when it matches
+  the payment) and **Late Fee** (typed or loaded from statements; Amount
+  stays the bill's own charges). (2) Two new subcategories under
+  Miscellaneous, **Card & Processing Fees** and **Late Fees**, for fees
+  that are their own transaction or are split off another payment.
+  (3) The Financial Summary gains a **Fees** block above Net worth: card
+  and processing fees, late fees, bank fees and their total, for this year
+  and for the last 12 months, plus the estimated yearly interest on debts
+  as a separate line that is not added into the total.
+- Schema: two appended columns on Utility Bills, two taxonomy rows (added
+  by the upgrade). `SCHEMA_VERSION` 3.12-fees-2026-11-12, `BUILD_VERSION`
+  1.11.0. `docs/SCHEMA.md` regenerated.
+- Files changed in `apps-script/`: `Config.gs`, `FinancialSummary.gs`,
+  `Reference.gs`, `Utilities.gs` (deployed on merge). Run **Finance
+  Tracker → Upgrade workbook (keeps data)** once (the pending run covers
+  it).
+- Tested: Node (fee written to Card Fee on a match, the Fees block
+  formulas, the new subcategories on the Categories tab; suite green). Not
+  yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/fees-tracking`
+
 ## 2026-11-12 — Utility payments a few dollars over the bill still match it
 - What changed: paying a utility by card can add a flat processing fee, so
   the payment on the card runs a few dollars over the bill. The match in

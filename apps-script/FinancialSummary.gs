@@ -15,8 +15,9 @@ const FINSUM = {
   PAYROLL_BAR: 46, PAYROLL_GROUPS: 47, PAYROLL_HEADER: 48, PAYROLL_FIRST: 49, PAYROLL_TOTAL: 55,
   CREDIT_BAR: 57, CREDIT_HEADER: 58, CREDIT_BEN: 59, CREDIT_VAL: 60, CREDIT_NOTE: 61,
   CHILD_BAR: 63, CHILD_HEADER: 64, CHILD_CARE: 65, CHILD_OTHER: 66, CHILD_ALL: 67,
-  NW_BAR: 69, NW_LABEL: 70, NW_VALUE: 71, NW_NOTE: 72,
-  LAST_ROW: 74,
+  FEES_BAR: 69, FEES_HEADER: 70, FEES_CARD: 71, FEES_LATE: 72, FEES_BANK: 73, FEES_TOTAL: 74, FEES_INTEREST: 75,
+  NW_BAR: 77, NW_LABEL: 78, NW_VALUE: 79, NW_NOTE: 80,
+  LAST_ROW: 82,
 };
 
 function buildFinancialSummary_() {
@@ -218,6 +219,32 @@ function buildFinancialSummary_() {
   sh.getRange('A' + FINSUM.CHILD_ALL + ':D' + FINSUM.CHILD_ALL).setBackground(COLORS.PALE_BLUE).setFontWeight('bold');
   sh.getRange('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_ALL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   mergePut('E' + FINSUM.CHILD_CARE + ':I' + FINSUM.CHILD_ALL, 'Childcare is what you pay someone to watch the children (the nanny). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.')
+    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+
+  /* --- Fees: what paying costs (card processing fees, late fees, bank fees), this year and the last 12 months --- */
+  styleSectionBar_(sh.getRange('A' + FINSUM.FEES_BAR + ':I' + FINSUM.FEES_BAR), 'Fees — what paying costs');
+  header('A' + FINSUM.FEES_HEADER + ':C' + FINSUM.FEES_HEADER, ['', 'This Year', 'Last 12 Months']);
+  const YTD = 'DATE(YEAR(TODAY()),1,1)', L12 = 'EDATE(TODAY(),-12)';
+  const txFee = (sub, from) => '(SUMIFS([TX.amount],[TX.subcategory],"' + sub + '",[TX.type],"Expense",[TX.isDeleted],"<>TRUE",[TX.date],">="&' + from + ')-SUMIFS([TX.amount],[TX.subcategory],"' + sub + '",[TX.type],"Refund",[TX.isDeleted],"<>TRUE",[TX.date],">="&' + from + '))';
+  const billFee = (col, from) => 'SUMIFS([UTIL.' + col + '],[UTIL.dueDate],">="&' + from + ')';
+  [
+    { row: FINSUM.FEES_CARD, label: 'Card and processing fees', f: (from) => billFee('cardFee', from) + '+' + txFee('Card & Processing Fees', from) },
+    { row: FINSUM.FEES_LATE, label: 'Late fees', f: (from) => billFee('lateFee', from) + '+' + txFee('Late Fees', from) },
+    { row: FINSUM.FEES_BANK, label: 'Bank fees', f: (from) => txFee('Bank Fees', from) },
+  ].forEach(x => {
+    put('A' + x.row, x.label).setFontWeight('bold');
+    put('B' + x.row, F('=' + x.f(YTD)));
+    put('C' + x.row, F('=' + x.f(L12)));
+  });
+  put('A' + FINSUM.FEES_TOTAL, 'All fees').setFontWeight('bold');
+  put('B' + FINSUM.FEES_TOTAL, '=SUM(B' + FINSUM.FEES_CARD + ':B' + FINSUM.FEES_BANK + ')');
+  put('C' + FINSUM.FEES_TOTAL, '=SUM(C' + FINSUM.FEES_CARD + ':C' + FINSUM.FEES_BANK + ')');
+  sh.getRange('A' + FINSUM.FEES_TOTAL + ':C' + FINSUM.FEES_TOTAL).setBackground(COLORS.PALE_BLUE).setFontWeight('bold');
+  put('A' + FINSUM.FEES_INTEREST, 'Interest on debts (estimate)').setFontColor(COLORS.MUTED_TEXT);
+  mergePut('B' + FINSUM.FEES_INTEREST + ':C' + FINSUM.FEES_INTEREST, F('=SUM([DEBTS.estAnnualInterest])')).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
+  sh.getRange('B' + FINSUM.FEES_CARD + ':C' + FINSUM.FEES_INTEREST).setNumberFormat(FORMATS.currency);
+  sh.getRange('A' + FINSUM.FEES_HEADER + ':C' + FINSUM.FEES_INTEREST).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  mergePut('D' + FINSUM.FEES_CARD + ':I' + FINSUM.FEES_INTEREST, 'Card and processing fees: what a payment ran over its bill when paid by card (Card Fee on Utility Bills, filled in by the sync) plus any transaction categorized Miscellaneous / Card & Processing Fees. Late fees: Late Fee on Utility Bills plus transactions categorized Miscellaneous / Late Fees. A fee hidden inside another payment can be split off with Finance Tracker → Split the selected row. Interest is a year at today\'s balances and rates from the Debts tab, not added into All fees.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
 
   /* --- Net worth --- */

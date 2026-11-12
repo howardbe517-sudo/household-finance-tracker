@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.11-utilities-2026-11-12',
-  BUILD_VERSION: '1.10.1',
+  SCHEMA_VERSION: '3.12-fees-2026-11-12',
+  BUILD_VERSION: '1.11.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -272,6 +272,9 @@ const TAXONOMY = [
   ['Taxes', 'Other Taxes', 'Need', 'Variable', 'Planned Irregular'],
 
   ['Miscellaneous', 'Bank Fees', 'Need', 'Variable', 'Unexpected'],
+  // what paying costs (the owner, 2026-11-12): fees for paying by card and late fees, totalled on the Financial Summary
+  ['Miscellaneous', 'Card & Processing Fees', 'Want', 'Variable', 'Unexpected'],
+  ['Miscellaneous', 'Late Fees', 'Want', 'Variable', 'Unexpected'],
   ['Miscellaneous', 'Postage & Shipping', 'Need', 'Variable', 'Flexible'],
   ['Miscellaneous', 'Other', 'Want', 'Variable', 'Flexible'],
 
@@ -657,6 +660,10 @@ TABLES.UTIL = {
     { key: 'perDay', h: 'Cost per Day', w: 95, fmt: C.cur, f: '=IF(OR([@amount]="",N([@days])=0),"",[@amount]/[@days])' },
     { key: 'source', h: 'Source', w: 140 },
     { key: 'notes', h: 'Notes', w: 240 },
+    { key: 'cardFee', h: 'Card Fee', w: 85, fmt: C.cur,
+      note: 'Added in 3.12: what the payment ran over the bill when it was paid by card (a processing fee). Filled in by the sync when it matches the payment to the bill; the Financial Summary totals it under Fees.' },
+    { key: 'lateFee', h: 'Late Fee', w: 85, fmt: C.cur,
+      note: 'Added in 3.12: a late fee the utility added to this bill. Typed in or loaded from statements; the Financial Summary totals it under Fees. The Amount stays the bill\'s own charges.' },
   ],
 };
 
