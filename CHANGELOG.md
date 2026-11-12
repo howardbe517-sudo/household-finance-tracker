@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-12 — Fix: the upgrade stopped on the Utilities tab ("Those columns are out of bounds")
+- What happened: 1.11.2 trimmed the Utilities tab to nine columns when the
+  chart numbers moved under the charts, but the column-width list still had
+  eleven entries. Google refused the width for column 10, so the upgrade
+  stopped after clearing the tab and left it blank. No data was affected:
+  the bills live on Utility Bills. The Node mock did not check widths
+  against the sheet size, so the tests passed.
+- Fix: the width list has nine entries. The mock now throws, as Google
+  does, when a column width or row height is set outside the sheet; with
+  the old code it reproduces the error. `BUILD_VERSION` 1.11.4.
+- Files changed in `apps-script/`: `Utilities.gs`, `Config.gs` (deployed on
+  merge). Run **Finance Tracker → Upgrade workbook (keeps data)** again; it
+  redraws the Utilities tab and finishes the steps the failed run skipped.
+- Tested: Node (suite green; the old code fails with the same message under
+  the stricter mock). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utilities-width-fix`
+
 ## 2026-11-12 — Utilities charts: every month labelled, each line in its own colour
 - What changed: (1) the cost-by-month chart printed every third month on
   its axis; the month column is now text ("Jul 25") and the axis is told to
