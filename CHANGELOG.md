@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-12 — Dashboard counts each card once
+- What changed: the Independent Bank card line showed the Elan card twice
+  ($550.80 for a $275.40 balance). The line adds up every card whose bank
+  name contains "Independent Bank" or "Elan", one SUMIFS per name, and the
+  card's bank had been renamed by hand to "ELAN CardMember Service
+  (Independent Bank card)", which contains both. The bank name was fixed in
+  the Sheet the same minute; the formula now tests all the names in one
+  pass per row (SUMPRODUCT with an OR), so an account counts once however
+  many names it matches. Debts and net worth were never affected.
+  `BUILD_VERSION` 1.9.5. STATUS.md and the 2026-11-12 step page also
+  corrected: the nightly sync was not missing (the Sheet's day was still
+  2026-11-11 in Michigan).
+- Files changed in `apps-script/`: `Dashboard.gs`, `Config.gs` (deployed
+  on merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once
+  (the same run as the one already pending).
+- Tested: Node (card and checking/savings lines use the one-pass formula;
+  suite green). Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-card-once`
+
 ## 2026-11-12 — Subscriptions and memberships added up together
 - What changed: the owner wants subscriptions and memberships totalled.
   The Recurring Payments band's "Subscriptions (Monthly)" becomes

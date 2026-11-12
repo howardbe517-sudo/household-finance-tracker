@@ -98,8 +98,12 @@ function buildDashboard_() {
   const q = (s) => String(s).replace(/"/g, '""');
   const pats = (line) => line.patterns || [line.institution];
   const crit = (pat, type) => '[ACCOUNTS.institution],"*' + q(pat) + '*",[ACCOUNTS.accountType],"' + q(type) + '",[ACCOUNTS.includeNW],"Yes"';
-  const countOf = (line, type) => pats(line).map(pt => 'COUNTIFS(' + crit(pt, type) + ',[ACCOUNTS.connectionId],"<>")').join('+');
-  const sumOf = (line, type, col) => pats(line).map(pt => 'SUMIFS([ACCOUNTS.' + col + '],' + crit(pt, type) + ')').join('+');
+  // An account whose institution matches more than one pattern (e.g. "Elan … Independent Bank") must count
+  // once: match any pattern with one OR test per row instead of adding a SUMIFS per pattern (2026-11-12).
+  const anyPat = (line) => '((' + pats(line).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0)';
+  const rowsOf = (line, type) => anyPat(line) + '*([ACCOUNTS.accountType]="' + q(type) + '")*([ACCOUNTS.includeNW]="Yes")';
+  const countOf = (line, type) => 'SUMPRODUCT(' + rowsOf(line, type) + '*([ACCOUNTS.connectionId]<>""))';
+  const sumOf = (line, type, col) => 'SUMPRODUCT(' + rowsOf(line, type) + '*N(+[ACCOUNTS.' + col + ']))';
   const maxOf = (line, type, col) => 'MAX(' + pats(line).map(pt => 'MAXIFS([ACCOUNTS.' + col + '],' + crit(pt, type) + ')').join(',') + ')';
   const balanceOf = (line, type) => 'IF(' + countOf(line, type) + '=0,"—",' + sumOf(line, type, 'currentBalance') + ')';
   header('A' + DASH.ACCT_HEADER + ':B' + DASH.ACCT_HEADER, ['Account', 'Balance']);

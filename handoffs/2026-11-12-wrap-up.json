@@ -29,12 +29,8 @@
       ]
     },
     {
-      "heading": "Two checks on the bank feed",
+      "heading": "One check on the bank feed",
       "steps": [
-        {
-          "text": "Open **Finance Tracker → Bank feed → Status**. If it says the nightly sync is off, use **Turn nightly sync on**.",
-          "note": "No nightly sync was recorded this morning. If Status says it is on, tell Claude."
-        },
         {
           "text": "Open **Finance Tracker → Bank feed → Repair a connection…** and pick **American Express**. Sign in again when Plaid asks. This uses no new slot.",
           "done": "After the next sync, Amex purchases appear on Import Staging. Until now the Amex login has sent its balance but no transactions."
