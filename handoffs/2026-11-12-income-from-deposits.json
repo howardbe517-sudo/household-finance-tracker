@@ -1,0 +1,63 @@
+{
+  "title": "Paychecks Without Pay Stubs",
+  "key": "household-finance-tracker-2026-11-12-income-from-deposits",
+  "subtitle": "A paycheck now counts as income the day it lands in checking. No pay stub needed. One upgrade, then two quick checks.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. From then on every sync does this on its own: each paycheck deposit on Transactions gets its own row on the Income tab, at the amount that was deposited.",
+    "**What is real and what is estimated:** the take-home is always the real deposit. For an employer you have given me a stub for, the gross pay and the taxes on that row are estimated from the last stub, in the same proportions. Those rows say \"From bank deposit\" in Notes.",
+    "**What does not change:** no rows, balances or entered values. The paychecks already on Income stay exactly as they are. Tab names and column headers stay the same."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before paychecks from deposits 2026-11-12`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.12.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "note": "This is the check that stops an upgrade from running on the old code."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report includes a line that starts with \"Income:\" and says one deposit was counted as income without a stub."
+        }
+      ]
+    },
+    {
+      "heading": "Check the result",
+      "steps": [
+        {
+          "text": "Open the **Income** tab. There is one new row at the bottom for the Martha's Vineyard paycheck dated November 6. Its **Take-Home Pay** is the amount that reached checking, and its Notes begin with \"From bank deposit\".",
+          "done": "The Linked Deposit TX column on that row shows a transaction number instead of \"Unlinked\"."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "The problem about a missing Source Income ID is gone."
+        },
+        {
+          "text": "Open the **Dashboard**. Under Expected Take-Home, \"landed so far\" now includes that paycheck.",
+          "done": "The number went up by the amount of the deposit."
+        }
+      ]
+    },
+    {
+      "heading": "From here on",
+      "steps": [
+        {
+          "text": "Nothing to do for a paycheck. I added two rules so the Martha's Vineyard and Rockford Schools payroll deposits import on their own; the next sync after a payday adds the paycheck to Income.",
+          "note": "A pay stub is optional. Giving me one every few months, or after a raise or a change in withholding, keeps the gross pay and tax figures on the Financial Summary accurate. When you do, it replaces the estimate for that paycheck instead of adding a second one."
+        },
+        {
+          "text": "Any other money that comes in and that you mark as Income on Import Staging (a gift, a refund, side income) is counted the same way, at the amount deposited.",
+          "note": "If a deposit lands within a few days of a stub from the same employer but the amounts do not match, the sync leaves it alone and tells you, so a paycheck is never counted twice."
+        }
+      ]
+    }
+  ]
+}

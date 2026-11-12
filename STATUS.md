@@ -1,7 +1,7 @@
 # STATUS
 
-Last updated: 2026-11-12 (end of session: everything merged and deployed
-through PR #40; the agent merges pull requests once checks pass, see
+Last updated: 2026-11-12 (income from deposits, build 1.12.0; earlier:
+everything merged and deployed through PR #51; the agent merges pull requests once checks pass, see
 AGENTS.md section 7)
 
 ## Where the owner is (2026-11-12)
@@ -28,6 +28,23 @@ AGENTS.md section 7)
   Netlify, Amazon Prime (price unknown), membership YMCA.
 - The owner still has to run **Upgrade workbook** once after PR #40 and
   **Sync now** (step page `handoffs/2026-11-12-wrap-up.json`).
+
+## Income from deposits (2026-11-12, build 1.12.0)
+- The owner will not upload every pay stub. A paycheck deposit in checking
+  now becomes its own Income row at the next sync (see CHANGELOG and
+  PROJECT.md). Gross and deductions on those rows are estimates from the
+  last stub per employer; take-home is the real deposit. A stub is optional
+  and replaces the estimate when pasted.
+- In the Sheet: Import Rules RULE-024 (Martha's Vineyard payroll, hourly)
+  and RULE-025 (Rockford Schools payroll, salary), both checking only,
+  Person Ben, auto-import.
+- The owner has to run **Upgrade workbook** once (step page
+  `handoffs/2026-11-12-income-from-deposits.json`). Expected result: the
+  one unlinked payroll deposit gets its Income row and the QA flag
+  "Missing Source Income ID" clears.
+- Open: Valerie's pay has not been seen arriving in a connected account
+  (her stub mentions a savings allocation). Until it is, her paychecks
+  count only from stubs.
 
 ## Utilities (2026-11-12)
 - Utilities tab, Utility Bills table and the Fees block on the Financial

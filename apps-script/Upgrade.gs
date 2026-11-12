@@ -85,6 +85,8 @@ function upgradeWorkbookLocked_() {
   withRetry_('Utilities', () => { buildUtilities_(); if (utilShow) ss.getRangeByName('UTIL_SHOW').setValue(utilShow); });
   const ub = withRetry_('Utility Bills', () => linkUtilityPayments_());
   if (ub && (ub.linked || ub.created)) report.push('Utility Bills: ' + ub.created + ' bill(s) filed from utility payments, ' + ub.linked + ' matched to a bill already there');
+  const dep = withRetry_('Income from deposits', () => ensureIncomeFromDeposits_());
+  if (dep && describeIncomeFromDeposits_(dep)) report.push('Income: ' + describeIncomeFromDeposits_(dep));
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());

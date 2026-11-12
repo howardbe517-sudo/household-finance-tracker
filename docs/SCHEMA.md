@@ -73,7 +73,7 @@ Named range `TBL_ACCOUNTS` covers the header row through the last formula row.
 
 ## Income (`INCOME`)
 
-Authoritative source for gross pay, payroll deductions and take-home. One row per paycheck. Bank deposits imported into Transactions link back here through Source Income ID.
+Authoritative source for gross pay, payroll deductions and take-home. One row per paycheck. Bank deposits imported into Transactions link back here through Source Income ID. A deposit with no pay stub gets its row here automatically (Notes: From bank deposit); its gross and deductions are estimates until a stub replaces them.
 
 Named range `TBL_INCOME` covers the header row through the last formula row.
 

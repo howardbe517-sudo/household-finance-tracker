@@ -230,10 +230,11 @@ function extendFormulaRows() {
   alert_('Extend formula rows', 'Added 500 calculated rows to ' + n + ' tables.');
 }
 
-/** Fill Source Income ID on Income-type transactions that match exactly one paycheck. */
+/** Menu: link Income deposits to their pay stubs, and give the ones with no stub an Income row of their own (every sync does the same). */
 function linkIncomeDeposits() {
-  const r = linkIncomeDeposits_();
-  alert_('Link income deposits', r.linked + ' deposit(s) linked.\n' + r.ambiguous + ' had more than one matching paycheck (link by hand).\n' + r.none + ' had no matching paycheck within 5 days.' + (r.details.length ? '\n\n' + r.details.slice(0, 20).join('\n') : ''));
+  const r = ensureIncomeFromDeposits_();
+  alert_('Paycheck deposits', (describeIncomeFromDeposits_(r) || 'Every Income deposit on Transactions already has its paycheck on Income.')
+    + (r.details.length ? '\n\n' + r.details.slice(0, 20).join('\n') : '') + '\n\nThis also happens on its own with every sync.');
 }
 
 /** Links Income-type transactions to paychecks by take-home amount and date; returns counts (no dialog). */
@@ -249,7 +250,7 @@ function linkIncomeDeposits_() {
   const details = [];
   tx.filter(t => t.type === 'Income' && !t.sourceIncomeId && t.isDeleted !== true && t.date instanceof Date).forEach(t => {
     const cands = inc.filter(i => !used[i.id] && i.payDate instanceof Date
-      && Math.abs(Number(i.takeHome) - Number(t.amount)) <= 0.01
+      && Math.abs(incomeTakeHome_(i) - Number(t.amount)) <= 0.01
       && Math.abs((i.payDate - t.date) / 86400000) <= 5
       && (!t.accountId || !i.depositAccount || i.depositAccount === t.accountId));
     if (cands.length === 1) {

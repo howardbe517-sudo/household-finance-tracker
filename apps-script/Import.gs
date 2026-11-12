@@ -63,7 +63,8 @@ function classifyRow_(row, ctx) {
   const isCard = acct.accountType === 'Credit Card';
   const isLoan = acct.accountType === 'Loan';
   const amount = Number(row.amount || 0);
-  const rule = findRule_(ctx.rules || [], row);
+  // an Income rule is for money coming in: a purchase at a shop that shares an employer's name must never be counted as pay
+  const rule = findRule_((ctx.rules || []).filter(r => !(r.type === 'Income' && amount > 0)), row);
   if (isLoan && !rule) {
     // Activity inside a loan account is never income or spending: a payment received is the
     // loan's side of a Debt Payment (recorded from the paying account); interest is tracked on Debts.
@@ -142,7 +143,7 @@ function applyPair_(pair) {
 function matchIncome_(amount, date, accountId, incomeRows, usedIds) {
   const abs = Math.abs(Number(amount || 0));
   const cands = (incomeRows || []).filter(i => !usedIds[i.id] && i.payDate instanceof Date
-    && Math.abs(Number(i.takeHome) - abs) <= 0.01 && dayDiff_(i.payDate, date) <= 5
+    && Math.abs(incomeTakeHome_(i) - abs) <= 0.01 && dayDiff_(i.payDate, date) <= 5
     && (!accountId || !i.depositAccount || i.depositAccount === accountId));
   return cands.length === 1 ? cands[0] : null;
 }
@@ -429,6 +430,7 @@ function importReviewedRows() {
   let msg = r.imported + ' row(s) imported into Transactions.';
   if (r.problems.length) msg += '\n\n' + r.problems.length + ' reviewed row(s) could not be imported yet:\n' + r.problems.slice(0, 15).join('\n') + (r.problems.length > 15 ? '\n…' : '');
   if (!r.reviewed) msg = 'No rows are ticked Reviewed? on Import Staging. Tick the rows you have checked (a Category is enough for an expense), then run this again or wait for the next sync.';
+  if (r.imported) { try { const dep = describeIncomeFromDeposits_(ensureIncomeFromDeposits_()); if (dep) msg += '\n\nIncome: ' + dep + '.'; } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); } }
   alert_('Import reviewed rows', msg);
   return { imported: r.imported, problems: r.problems };
 }

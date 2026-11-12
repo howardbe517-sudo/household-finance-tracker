@@ -252,7 +252,7 @@ function buildAppSetup_(withSample) {
     'Bank feed → Status / Set history start date / Connect a bank / Finish connecting / Repair a connection / Sync now / nightly sync on-off.',
     'Upgrade workbook (keeps data) — adds new tabs, columns and lists after a script update; never deletes rows.',
     'Run QA checks — scans every tab for formula errors and re-computes key totals independently.',
-    'Link income deposits — fills Source Income ID on Income-type transactions that match a paycheck by amount and date.',
+    'Link income deposits — links Income-type transactions to their pay stub by amount and date, and gives a deposit with no stub its own row on Income so it counts (every sync does the same).',
     'Split a transaction… — turns a bank transaction into a Split Parent with balanced child rows.',
     'Record net worth snapshot — appends this month\'s row from the live helper on Net Worth Snapshots.',
     'Extend formula rows — adds 500 more calculated rows to every table.',
@@ -319,7 +319,7 @@ function buildStartHere_(withSample) {
   };
 
   section('What this tracker is');
-  line('A household finance workbook that fills itself in. The bank feed brings in balances and transactions every night; paychecks come in from pay stubs through Finance Tracker → Import from Claude; everything you see on the summary tabs is calculated from those records. You type very little: a category now and then, the few numbers no lender provides.');
+  line('A household finance workbook that fills itself in. The bank feed brings in balances and transactions every night; a paycheck counts as income the day it lands in checking, with no pay stub needed; everything you see on the summary tabs is calculated from those records. You type very little: a category now and then, the few numbers no lender provides.');
   line('Spending = Expense − Refund. Debt payments, savings transfers, account transfers and Split Parent rows are never spending. Income is take-home from paychecks. Months are calendar months. Financial rows are never deleted; a row is marked deleted instead and every total skips it.');
   r++;
 
@@ -333,7 +333,7 @@ function buildStartHere_(withSample) {
     ['Savings & Reserves', 'Funds: the emergency fund and investment accounts fed by the bank feed, sinking funds, and Parked for Bills pots (money passing through savings for a bill).'],
     ['Debts', 'Every debt with its rate, minimum, due day, live balance where the lender is connected, estimated interest, PSLF progress, interest pauses and the planned extra payment from the Payoff planner.'],
     ['Goals', 'Five big text boxes for goals in your own words.'],
-    ['Income · Expected Income', 'Income is the paycheck database (gross, deductions, take-home). Expected Income holds the typical paycheck per employer and the pay frequency, which drive the expected monthly take-home and the automatic flexible target.'],
+    ['Income · Expected Income', 'Income is the paycheck database (gross, deductions, take-home). A paycheck that arrives in checking gets its row here on its own; Notes say "From bank deposit" and, without a stub, the gross and deductions on it are estimates. Expected Income holds the typical paycheck per employer and the pay frequency, which drive the expected monthly take-home and the automatic flexible target.'],
     ['Transactions · Import Staging', 'Transactions is the master ledger. Import Staging is where bank rows land first; reviewing a row is pick a Category, tick Reviewed?, and the next sync takes it in.'],
     ['Utility Bills', 'One row per utility bill. Utility payments from the bank feed file themselves here; past bills come in from statements through Import from Claude.'],
     ['Recurring Payments', 'Expected bills, subscriptions and loan payments with their day of the month; they feed the monthly plan and the Spending tab.'],
@@ -348,7 +348,7 @@ function buildStartHere_(withSample) {
   line('Bank feed: every night (and on Finance Tracker → Bank feed → Sync now) the connected banks send balances and new transactions. Balances update Accounts, Savings & Reserves, Debts and the Dashboard. Transactions land on Import Staging.');
   line('Rules: an Import Rule matches a bank description ("CAPITAL ONE AUTO" → Debt Payment on the car loan). A rule marked Auto-import sends matching rows straight to Transactions; others pre-fill the row for you. Make one from any staged row with Finance Tracker → Make a rule from the selected row. Every sync re-checks the waiting rows against the rules.');
   line('Review: for a row no rule knows, pick a Category and tick Reviewed?. The next sync imports it. A category with one subcategory (Childcare → Nanny) fills itself in; a wider category uses its "Other" line unless you pick one.');
-  line('Paychecks: give Claude a pay stub, paste the block it returns into Finance Tracker → Import from Claude. The Income row, the expected income and the deposit match-up follow.');
+  line('Paychecks: nothing to do. When the deposit reaches checking and is imported as Income, the next sync adds it to Income at the amount deposited. For a known employer the gross pay and deductions are estimated from the last pay stub you gave; the take-home is always the real deposit. A pay stub is optional: give Claude one now and then (Finance Tracker → Import from Claude) to keep the gross and tax figures accurate, and it replaces the estimate for that paycheck.');
   line('By hand, rarely: PSLF counts from studentaid.gov, credit scores, the HSA balance until it connects, the amount parked in savings when a new Parked for Bills pot starts. The Reminders tab nags about the first two.');
   r++;
 
@@ -365,7 +365,7 @@ function buildStartHere_(withSample) {
   r++;
 
   section('The menu, in plain words');
-  line('Bank feed → Sync now: fresh balances from the banks, new transactions, rules re-checked, reviewed rows imported. Import from Claude (paste): pay stubs in. Payoff planner: the slider for extra debt payments. Show reminders: what only you can do. Run QA checks: recomputes the key totals and compares them with the formulas. Upgrade workbook (keeps data): after a change to the script, redraws the calculated tabs and adds new columns without touching your rows.');
+  line('Bank feed → Sync now: fresh balances from the banks, new transactions, rules re-checked, reviewed rows imported. Import from Claude (paste): an optional pay stub, or other rows Claude prepared. Payoff planner: the slider for extra debt payments. Show reminders: what only you can do. Run QA checks: recomputes the key totals and compares them with the formulas. Upgrade workbook (keeps data): after a change to the script, redraws the calculated tabs and adds new columns without touching your rows.');
   r++;
 
   if (withSample) {
