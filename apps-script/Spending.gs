@@ -61,7 +61,7 @@ function buildSpending_() {
     { cols: ['E', 'F'], label: 'Needs vs wants', f: F('=IFERROR(TEXT(' + spendBy('needWant', 'Need', M) + '/' + spendAll(M) + ',"0%")&" / "&TEXT(' + spendBy('needWant', 'Want', M) + '/' + spendAll(M) + ',"0%"),"—")'), fmt: '@',
       sub: F('=TEXT(' + spendBy('needWant', 'Need', M) + ',"$#,##0")&" needs · "&TEXT(' + spendBy('needWant', 'Want', M) + ',"$#,##0")&" wants"') },
     { cols: ['G', 'I'], label: 'Recurring bills', f: F('=SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE)'), fmt: '$#,##0" / mo"',
-      sub: F('=COUNTIFS([RECUR.active],TRUE)&" active · "&COUNTIF($E$' + SPEND.REC_FIRST + ':$E$' + (SPEND.REC_FIRST + SPEND.REC_ROWS - 1) + ',"yes")&" paid this month · loans count as debt payments on the Dashboard"') },
+      sub: F('="subscriptions "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Subscriptions"),"$#,##0")&" · memberships "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Memberships"),"$#,##0")&" · "&COUNTIFS([RECUR.active],TRUE)&" active, "&COUNTIF($E$' + SPEND.REC_FIRST + ':$E$' + (SPEND.REC_FIRST + SPEND.REC_ROWS - 1) + ',"yes")&" paid this month"') },
   ];
   tiles.forEach(t => {
     mergePut(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_LABEL, t.label).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center');
