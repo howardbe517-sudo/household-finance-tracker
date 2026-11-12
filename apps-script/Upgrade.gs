@@ -79,7 +79,7 @@ function upgradeWorkbookLocked_() {
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
   if (!ss.getSheetByName(SHEETS.SPEND)) report.push('Added tab: ' + SHEETS.SPEND);
-  withRetry_('Spending', () => { buildSpending_(); restoreDashboardInputs_(dash); if (SPEND.COMPARE.indexOf(compare) >= 0) ss.getRangeByName('SPEND_COMPARE').setValue(compare); });
+  withRetry_('Spending', () => { buildSpending_(); restoreDashboardInputs_(dash); if (SPEND.COMPARE.indexOf(compare) >= 0) ss.getRangeByName('SPEND_COMPARE').setValue(compare); refreshSpendingNotes_(); });
   // the Dashboard tab of an older build: its month view is now the top of Spending and its accounts block the top of Financial Summary
   if (withRetry_('Dashboard tab', () => retireDashboard_())) report.push('Dashboard tab retired (emptied and hidden): this month is now the top of the Spending tab, account balances the top of the Financial Summary. The Selected Month and checklist ticks were carried over.');
   const utilShow = (ss.getRangeByName('UTIL_SHOW') || { getValue: () => '' }).getValue();

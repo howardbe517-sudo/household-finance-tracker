@@ -20,7 +20,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.13.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.13.1`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
           "note": "This is the check that stops an upgrade from running on the old code."
         },
         {
@@ -39,6 +39,11 @@
         {
           "text": "Look at **Compare with** (cell E3). It is a dropdown: last 3, 6 or 12 full months, or the same 3 months last year. It decides which months make up the \"typical month\" everywhere on the tab, and the small line beside it names the months counted.",
           "note": "Your transactions start in November, so for now Typical Month shows a dash and the line says no full month is recorded yet. The averages fill in on December 1. \"Same 3 months last year\" needs a year of history."
+        },
+        {
+          "text": "Rest the mouse on the **Fixed vs flexible** tile (the label, the number or the small line under it). A note opens listing what counted as fixed and what counted as flexible this month, largest first, with who was paid. Do the same on **Needs vs wants** and on **Recurring bills**, which lists every recurring bill with its amount, when it is due and whether this month's payment has been seen.",
+          "note": "A small dark triangle in the corner of a cell means it has a note. The lists refresh on their own with every sync and when you change the month, a transaction or a recurring bill; each one says when it was last written.",
+          "done": "The recurring list includes the nanny as a weekly bill, with its monthly amount beside it. If anything sits under the wrong heading, change its Spending Type or Need/Want on Transactions and the list follows."
         },
         {
           "text": "Scroll to **By category**. The columns are This Month, Budget, Last Month, Typical Month and Used, then the bar. Once there is a typical month, each bar fills toward it and turns red if the category goes past it.",

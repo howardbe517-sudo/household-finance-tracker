@@ -59,7 +59,10 @@ class Range {
   getMergedRanges() {
     return this.sheet.merges.map(parseA1).filter(m => !(m.row + m.numRows - 1 < this.row || m.row > this.row + this.numRows - 1 || m.col + m.numCols - 1 < this.col || m.col > this.col + this.numCols - 1)).map(m => ({ getA1Notation: () => colLetter(m.col) + m.row }));
   }
-  setNote() { return this; }
+  setNote(n) { this.sheet._get(this.row, this.col).note = n; return this; }
+  setNotes(ns) { for (let r = 0; r < this.numRows; r++) for (let c = 0; c < this.numCols; c++) this.sheet._get(this.row + r, this.col + c).note = ns[r][c]; return this; }
+  getNote() { return this.sheet._get(this.row, this.col).note || ''; }
+  clearNote() { this._each((r, c) => { const cell = this.sheet.grid.get(r + ',' + c); if (cell) cell.note = ''; }); return this; }
 }
 ['setBackground', 'setFontColor', 'setFontWeight', 'setFontSize', 'setFontStyle', 'setWrap', 'setVerticalAlignment', 'setHorizontalAlignment', 'setBorder', 'setStrikethrough', 'setFontLine', 'setFontFamily', 'setBackgrounds', 'setFontColors', 'setTextStyle', 'activate'].forEach(m => { Range.prototype[m] = function () { return this; }; });
 

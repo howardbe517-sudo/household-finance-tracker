@@ -48,6 +48,7 @@ function buildSpending_() {
   sh.clear(); // SAFETY-APPROVED: the Spending tab is calculated; its three inputs (Selected Month, Compare with, checklist ticks) are read by the upgrade first and written back
   sh.clearConditionalFormatRules();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearNote(); // the tiles' hover lists are rewritten by refreshSpendingNotes_
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, SPEND.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
@@ -311,4 +312,105 @@ function buildSpending_() {
   setNamedRange_('SPEND_COMPARE', sh.getRange(SPEND.COMPARE_CELL));
   setNamedRange_('DASH_CHECKLIST', checks);
   prot.setUnprotectedRanges([sh.getRange(SPEND.MONTH_CELL), sh.getRange('E3:F3'), checks]);
+}
+
+/* ---------- hover notes on the three tiles: the lists behind the numbers ---------- */
+
+function moneyNote_(n) {
+  const v = Math.round(Number(n || 0) * 100) / 100;
+  return (v < 0 ? '-$' : '$') + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * The text of the three hover notes. Pure.
+ *   txRows     Transactions rows ({ date, amount, type, category, subcategory, description, spendingType, needWant, isDeleted })
+ *   recurRows  Recurring Payments rows ({ name, group, category, subcategory, amount, frequency, monthlyEq, dueDay, active })
+ *   month      any date in the month to describe
+ *   stamp      text for the "as of" line (may be '')
+ * Returns { fixedFlex, needsWants, recurring }. Spending is expenses minus refunds; deleted rows,
+ * transfers, savings, debt payments and Split Parents are left out, as everywhere else.
+ */
+function spendingNoteTexts_(txRows, recurRows, month, stamp) {
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const inMonth = (d) => d instanceof Date && month instanceof Date && d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth();
+  const label = month instanceof Date ? MONTHS[month.getMonth()] + ' ' + month.getFullYear() : 'this month';
+  const rows = (txRows || []).filter(t => t.isDeleted !== true && inMonth(t.date) && (t.type === 'Expense' || t.type === 'Refund'));
+  const foot = (stamp ? 'As of ' + stamp + '. ' : '') + 'This list refreshes with every sync and when you change the month.';
+  // one block per value of a column: a heading with the total, then each subcategory with its amount and who was paid
+  const blocks = (col, order, missing) => {
+    const groups = {};
+    rows.forEach(t => {
+      const g = t[col] || missing;
+      const sub = t.subcategory || t.category || 'No category yet';
+      const amt = (t.type === 'Refund' ? -1 : 1) * Number(t.amount || 0);
+      const G = groups[g] = groups[g] || { total: 0, subs: {} };
+      const S = G.subs[sub] = G.subs[sub] || { total: 0, names: [] };
+      G.total += amt; S.total += amt;
+      const nm = String(t.description || '').trim();
+      if (nm && S.names.indexOf(nm) < 0) S.names.push(nm);
+    });
+    const keys = order.filter(k => groups[k]).concat(Object.keys(groups).filter(k => order.indexOf(k) < 0).sort());
+    if (!keys.length) return ['Nothing recorded yet for ' + label + '.'];
+    const out = [];
+    keys.forEach(k => {
+      out.push(k.toUpperCase() + ': ' + moneyNote_(groups[k].total));
+      Object.keys(groups[k].subs).map(s => [s, groups[k].subs[s]]).sort((a, b) => b[1].total - a[1].total).slice(0, 25).forEach(p => {
+        const names = p[1].names;
+        out.push('  ' + p[0] + '  ' + moneyNote_(p[1].total) + (names.length ? '  (' + names.slice(0, 4).join(', ') + (names.length > 4 ? ', +' + (names.length - 4) + ' more' : '') + ')' : ''));
+      });
+      out.push('');
+    });
+    return out;
+  };
+  const fixedFlex = [label + ': what counts as fixed and what counts as flexible', ''].concat(blocks('spendingType', ['Fixed', 'Flexible', 'Planned Irregular', 'Unexpected'], 'No spending type yet'))
+    .concat(['To move something, change its Spending Type on Transactions (or the default on Categories).', foot]).join('\n');
+  const needsWants = [label + ': what counts as a need and what counts as a want', ''].concat(blocks('needWant', ['Need', 'Want'], 'Not marked yet'))
+    .concat(['To move something, change its Need/Want on Transactions (or the default on Categories).', foot]).join('\n');
+
+  // recurring bills: every active row by group, with whether this month's payment has been seen
+  const active = (recurRows || []).filter(r => r.active === true && r.name);
+  const ord = (n) => { const d = Number(n); if (!d) return ''; const s = (d % 100 >= 11 && d % 100 <= 13) ? 'th' : ['th', 'st', 'nd', 'rd'][d % 10] || 'th'; return d + s; };
+  const perMonth = (r) => {
+    if (typeof r.monthlyEq === 'number') return r.monthlyEq;
+    const a = Number(r.amount || 0);
+    return ({ Weekly: a * 52 / 12, Biweekly: a * 26 / 12, Monthly: a, Quarterly: a / 3, Semiannual: a / 6, Annual: a / 12 })[r.frequency] || a;
+  };
+  const paid = (r) => rows.some(t => t.type === 'Expense' && t.category === r.category && t.subcategory === r.subcategory && Number(t.amount || 0) >= Number(r.amount || 0) * 0.9);
+  const total = active.reduce((s, r) => s + perMonth(r), 0);
+  const rec = ['Recurring bills: ' + moneyNote_(total) + ' a month, ' + active.length + ' active', ''];
+  const byGroup = {};
+  active.forEach(r => { (byGroup[r.group || 'Other'] = byGroup[r.group || 'Other'] || []).push(r); });
+  Object.keys(byGroup).map(g => [g, byGroup[g].reduce((s, r) => s + perMonth(r), 0)]).sort((a, b) => b[1] - a[1]).forEach(p => {
+    rec.push(p[0].toUpperCase() + ': ' + moneyNote_(p[1]) + ' a month');
+    byGroup[p[0]].sort((a, b) => perMonth(b) - perMonth(a)).forEach(r => {
+      const amt = r.amount === '' || r.amount === null || r.amount === undefined ? 'amount not set' : moneyNote_(r.amount) + ' ' + String(r.frequency || 'Monthly').toLowerCase() + (r.frequency && r.frequency !== 'Monthly' ? ' (' + moneyNote_(perMonth(r)) + ' a month)' : '');
+      const due = r.frequency === 'Weekly' || r.frequency === 'Biweekly' || !ord(r.dueDay) ? '' : ', due the ' + ord(r.dueDay);
+      const state = r.category && r.subcategory && Number(r.amount) > 0 ? (paid(r) ? '  · paid in ' + label : '  · not seen yet in ' + label) : '';
+      rec.push('  ' + String(r.name).trim() + '  ' + amt + due + state);
+    });
+    rec.push('');
+  });
+  if (!active.length) rec.push('No active rows on Recurring Payments.', '');
+  rec.push('Add or change a bill on the Recurring Payments tab.', foot);
+  return { fixedFlex, needsWants, recurring: rec.join('\n') };
+}
+
+/**
+ * Writes the three hover notes on the Spending tiles (label, number and small line of each tile, so
+ * hovering anywhere on a tile shows its list). Runs after a build or upgrade, with every sync, after
+ * reviewed rows are imported, and from onEdit when the Month, a transaction or a recurring bill is
+ * edited. Changes notes only. Returns true when it wrote them.
+ */
+function refreshSpendingNotes_() {
+  const ss = ss_();
+  const sh = ss.getSheetByName(SHEETS.SPEND);
+  if (!sh || sh.getRange('A' + SPEND.TILE_LABEL).getValue() !== 'Fixed vs flexible') return false;
+  const sel = sh.getRange(SPEND.MONTH_CELL).getValue();
+  const month = sel instanceof Date ? sel : new Date();
+  const stamp = Utilities.formatDate(new Date(), 'America/Detroit', 'MMM d, h:mm a');
+  const t = spendingNoteTexts_(readTable_(tdef_('TX')), readTable_(tdef_('RECUR')), month, stamp);
+  [['A', t.fixedFlex], ['C', t.needsWants], ['F', t.recurring]].forEach(p => {
+    sh.getRange(p[0] + SPEND.TILE_LABEL + ':' + p[0] + SPEND.TILE_SUB).setNotes([[p[1]], [p[1]], [p[1]]]);
+  });
+  return true;
 }

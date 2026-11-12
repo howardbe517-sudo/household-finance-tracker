@@ -531,6 +531,41 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const spSh = ss.getSheetByName(SHEETS.SPEND);
   const catF = spSh.getRange('A' + SPEND.CAT_FIRST).getFormula(), barF = spSh.getRange('G' + SPEND.CAT_FIRST).getFormula(), recF = spSh.getRange('A' + SPEND.REC_FIRST).getFormula(), paidF = spSh.getRange('E' + SPEND.REC_FIRST).getFormula();
   if (spSh.getRange('A1').getValue() === 'Spending' && spSh.getRange(SPEND.MONTH_CELL).getFormula() === '' && /"Children"/.test(catF) && /SORT\(FILTER/.test(catF) && /'Monthly Budget'/.test(catF) && /SPARKLINE/.test(barF) && /"color2"/.test(barF) && /'Recurring Payments'/.test(recF) && /"not yet"/.test(paidF) && spSh.getRange('A' + SPEND.HIST_FIRST).getFormula() === '=EDATE($B$3,-0)' && /Childcare/.test(spSh.getRange('C' + SPEND.HIST_HEADER).getValue()) && /Spending Type/.test(spSh.getRange('A' + SPEND.NOTE_ROW).getValue())) ok('Spending tab: the month is typed on it; categories sorted with Children combined and a two-colour bar; recurring list with paid-this-month; six months by category; definitions note'); else bad('spending tab: ' + JSON.stringify([spSh.getRange('A1').getValue(), catF.slice(0, 100), barF.slice(0, 60), recF.slice(0, 60), paidF.slice(0, 60)]));
+  // hover lists on the three tiles (1.13.1)
+  (function () {
+    const tx = `[
+      { date: new Date(2026, 10, 2), amount: 900, type: 'Expense', category: 'Housing', subcategory: 'Mortgage or Rent', description: 'SAMPLE LANDLORD', spendingType: 'Fixed', needWant: 'Need' },
+      { date: new Date(2026, 10, 3), amount: 60, type: 'Expense', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE MARKET', spendingType: 'Flexible', needWant: 'Need' },
+      { date: new Date(2026, 10, 9), amount: 45.5, type: 'Expense', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE CO-OP', spendingType: 'Flexible', needWant: 'Need' },
+      { date: new Date(2026, 10, 9), amount: 5.5, type: 'Refund', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE MARKET', spendingType: 'Flexible', needWant: 'Need' },
+      { date: new Date(2026, 10, 10), amount: 12, type: 'Expense', category: 'Food', subcategory: 'Coffee & Snacks', description: 'SAMPLE CAFE', spendingType: 'Flexible', needWant: 'Want' },
+      { date: new Date(2026, 10, 11), amount: 1234.5, type: 'Expense', category: 'Health', subcategory: 'Doctor', description: 'SAMPLE CLINIC', spendingType: 'Unexpected', needWant: '' },
+      { date: new Date(2026, 10, 11), amount: 400, type: 'Transfer', description: 'TO SAVINGS' },
+      { date: new Date(2026, 10, 12), amount: 77, type: 'Expense', category: 'Food', subcategory: 'Dining Out', description: 'DELETED ROW', spendingType: 'Flexible', needWant: 'Want', isDeleted: true },
+      { date: new Date(2026, 9, 30), amount: 50, type: 'Expense', category: 'Food', subcategory: 'Dining Out', description: 'LAST MONTH', spendingType: 'Flexible', needWant: 'Want' }]`;
+    const rec = `[
+      { name: 'Rent', group: 'Housing', category: 'Housing', subcategory: 'Mortgage or Rent', amount: 900, frequency: 'Monthly', dueDay: 1, active: true },
+      { name: 'Sitter', group: 'Other', category: 'Childcare', subcategory: 'Nanny', amount: 60, frequency: 'Weekly', dueDay: '', active: true },
+      { name: 'Streaming', group: 'Subscriptions', category: 'Entertainment', subcategory: 'Streaming Services', amount: '', frequency: 'Monthly', dueDay: 22, active: true },
+      { name: 'Old gym', group: 'Memberships', category: 'Health', subcategory: 'Gym & Fitness', amount: 30, frequency: 'Monthly', dueDay: 3, active: false }]`;
+    const n = R(`spendingNoteTexts_(${tx}, ${rec}, new Date(2026, 10, 1), 'Nov 12, 6:00 PM')`);
+    const ff = n.fixedFlex, nw = n.needsWants, rc = n.recurring;
+    if (/^November 2026/.test(ff) && /FIXED: \$900\.00\n  Mortgage or Rent  \$900\.00  \(SAMPLE LANDLORD\)/.test(ff) && /FLEXIBLE: \$112\.00\n  Groceries  \$100\.00  \(SAMPLE MARKET, SAMPLE CO-OP\)\n  Coffee & Snacks  \$12\.00/.test(ff) && /UNEXPECTED: \$1,234\.50/.test(ff) && ff.indexOf('FIXED') < ff.indexOf('FLEXIBLE') && !/DELETED ROW|LAST MONTH|TO SAVINGS/.test(ff) && /As of Nov 12, 6:00 PM/.test(ff)) ok('fixed vs flexible note: each spending type with its total, then its subcategories (largest first) with who was paid; refunds come off; deleted rows, transfers and other months are left out'); else bad('fixed/flex note:\n' + ff);
+    if (/NEED: \$1,000\.00/.test(nw) && /WANT: \$12\.00\n  Coffee & Snacks/.test(nw) && /NOT MARKED YET: \$1,234\.50\n  Doctor/.test(nw) && /change its Need\/Want/.test(nw)) ok('needs vs wants note: needs, wants and anything not marked yet, each with its subcategories'); else bad('needs/wants note:\n' + nw);
+    if (/^Recurring bills: \$1,160\.00 a month, 3 active/.test(rc) && /HOUSING: \$900\.00 a month\n  Rent  \$900\.00 monthly, due the 1st  · paid in November 2026/.test(rc) && /Sitter  \$60\.00 weekly \(\$260\.00 a month\)  · not seen yet in November 2026/.test(rc) && /Streaming  amount not set, due the 22nd/.test(rc) && !/Old gym/.test(rc) && rc.indexOf('HOUSING') < rc.indexOf('OTHER')) ok('recurring bills note: every active bill by group (largest first) with its amount, frequency, due day and whether this month\'s payment has been seen; inactive bills are left out'); else bad('recurring note:\n' + rc);
+    const sp = ss.getSheetByName(SHEETS.SPEND);
+    const did = R(`refreshSpendingNotes_()`);
+    const notes = ['A', 'C', 'F'].map(c => [SPEND.TILE_LABEL, SPEND.TILE_VALUE, SPEND.TILE_SUB].map(r => sp.getRange(c + r).getNote()));
+    if (did === true && notes.every(col => col.every(x => x && x === col[0])) && /what counts as fixed/.test(notes[0][0]) && /what counts as a need/.test(notes[1][0]) && /^Recurring bills: /.test(notes[2][0]) && /SAMPLE/.test(notes[2][0] + notes[0][0])) ok('the three Spending tiles carry their lists as hover notes on the label, the number and the small line'); else bad('tile notes: ' + JSON.stringify([did, notes.map(col => col.map(x => String(x).slice(0, 30)))]));
+    // the list follows a change: a new recurring bill shows after the next refresh
+    R(`writeRows_(TABLES.RECUR, [{ id: 'REC-950', name: 'SAMPLE Test Bill', paymentType: 'Bill', group: 'Other', category: 'Housing', subcategory: 'Internet', amount: 41, frequency: 'Monthly', dueDay: 9, active: true, notes: 'SAMPLE test' }])`);
+    const before = sp.getRange('F' + SPEND.TILE_VALUE).getNote();
+    R(`refreshSpendingNotes_()`);
+    const after = sp.getRange('F' + SPEND.TILE_VALUE).getNote();
+    if (!/SAMPLE Test Bill/.test(before) && /SAMPLE Test Bill  \$41\.00 monthly, due the 9th/.test(after)) ok('the recurring list picks up a new bill at the next refresh'); else bad('note refresh: ' + after.slice(0, 200));
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'apps-script', 'Plaid.gs'), 'utf8') + require('fs').readFileSync(require('path').join(__dirname, '..', 'apps-script', 'Main.gs'), 'utf8') + require('fs').readFileSync(require('path').join(__dirname, '..', 'apps-script', 'Upgrade.gs'), 'utf8');
+    if ((src.match(/refreshSpendingNotes_\(\)/g) || []).length >= 4) ok('the notes are refreshed by every sync, by the upgrade, by a new build and from onEdit'); else bad('refreshSpendingNotes_ hooks missing');
+  })();
   // typical month, Compare with, the average bars and the checklist (1.13.0)
   (function () {
     const H = SPEND.HELP_ROW, wsF = spSh.getRange('B' + H).getFormula(), weF = spSh.getRange('C' + H).getFormula(), kF = spSh.getRange('D' + H).getFormula();
