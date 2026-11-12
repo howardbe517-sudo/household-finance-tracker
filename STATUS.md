@@ -1,31 +1,58 @@
 # STATUS
 
-Last updated: 2026-11-12 (Elan card connected as its own login, CONN-005,
-with purchases flowing; pull request `claude/nightly-balances` fixes
-balances not refreshing on quiet nights. The agent merges pull requests
-once checks pass, see AGENTS.md section 7)
+Last updated: 2026-11-12 (end of session: everything merged and deployed
+through PR #40; the agent merges pull requests once checks pass, see
+AGENTS.md section 7)
 
-## Where the owner is (2026-11-09)
-- Connected: Capital One, Fidelity, Independent Bank (checking, savings,
-  Elan card), American Express. Live balances on Sync now (PR #27 merged).
-- Import Staging holds the first real bank rows; transfers auto-imported,
-  the rest wait for review. Car payment set up by hand in the Sheet
-  (RULE-001, REC-002, car-loan minimum and due day on Debts).
-- Set up by hand in the Sheet on 2026-11-09: rules for Acorns, Fidelity
-  and State Farm; recurring rows for car insurance and the $100 tax plan;
-  Planned Monthly on the Acorns and Fidelity funds; the IRS tax debt row.
-  Still unknown: Acorns frequency, tax payment day and bank wording, the
-  account that pays State Farm.
-- HealthEquity HSA is not connected (Plaid shows a warning on that
-  institution); the owner will retry later and can type the balance on
-  Accounts meanwhile. Valerie's November paychecks have not landed yet
-  (expected figures include her; actuals do not until a paycheck posts or a
-  stub is pasted). Offered, not yet accepted: a "current month so far" row
-  at the top of the Financial Summary history.
-- Open questions: American Express transactions have not arrived yet
-  (Plaid still preparing history); the Elan card's charges may need Elan
-  connected as its own institution; the owner may want a review window
-  later (option 2, declined for now in favour of the tab move and banner).
+## Where the owner is (2026-11-12)
+- Connected (5 logins): Capital One (card + auto loan), Fidelity (Roth
+  IRA), Independent Bank (checking, savings), American Express, and Elan
+  (CONN-005) for the Independent Bank card. The Elan card row (ACC-017)
+  was moved from the Independent Bank login, which only showed its balance,
+  to the Elan login, which carries purchases; its last four are now 7763
+  (2498 was the account number). Purchases from 2026-11-01 are flowing.
+- Live balances on Sync now; from PR #39 the nightly run also refreshes
+  balances when a bank has nothing new.
+- Tabs: Start Here (the guide), Financial Summary, Dashboard, Spending,
+  Savings & Reserves, Debts, Goals, … Reminders last.
+- Rules in the Sheet (Import Rules): car payment, Acorns, Fidelity, State
+  Farm, Elan payment (both sides), car-payment transfers into savings
+  (parked pot FUND-005, Starting Amount 71.64, Target one payment), and the
+  card's merchants (Netflix, Audible, Marathon, Consumers Energy, YMCA,
+  Ring, Lyon Street Cafe, Martha's Vineyard, Nantucket Baking, Apple,
+  Anthropic, Netlify, Amazon Prime auto-import; Meijer and Target pre-fill
+  only because those trips get split). Every sync re-applies rules and
+  imports rows ticked Reviewed?.
+- Recurring Payments: rent (1st), car payment (2nd), car insurance (2nd),
+  IRS plan (15th), subscriptions Netflix, Audible, Ring, Apple, Anthropic,
+  Netlify, Amazon Prime (price unknown), membership YMCA.
+- The owner still has to run **Upgrade workbook** once after PR #40 and
+  **Sync now** (step page `handoffs/2026-11-12-wrap-up.json`).
+
+## Open items
+- **American Express has sent no transactions** since it was connected on
+  2026-11-08 (balance and lender data arrive). Asked the owner to try
+  Bank feed → Repair a connection for Amex.
+- **No nightly sync recorded on 2026-11-12** (last 2026-11-11 05:21 for
+  the first four logins). Asked the owner to check Bank feed → Status and
+  turn nightly sync on if it is off.
+- Amazon Prime: price, monthly or yearly, and paying card unknown; no
+  Prime charge on any connected card since 2026-11-01. The owner will check
+  amazon.com → Prime membership.
+- Elan card: due day, minimum payment and APR not on Debts (Elan's login
+  offers no liabilities data); needed for the Dashboard Due cell and the
+  Payoff planner's all-debts view.
+- Still unknown: how rent is paid, Acorns frequency, the account that pays
+  State Farm, the $500 Venmo on 2026-11-02, the bank wording of the IRS
+  payment (rule to add when it first appears on 2026-11-15).
+- HealthEquity HSA and the MOHELA student loans (Mohela - DOE accounts)
+  not connected; Plaid showed a warning on both. Retry later.
+- Housekeeping the owner can do: delete Accounts rows ACC-009 and ACC-014
+  and Debts row DEBT-006 (duplicates, marked in their Notes); the leftover
+  `claude/ci-probe` branch on GitHub.
+- Offered, not yet taken: a "current month so far" row on the Financial
+  Summary history; a Reminders line for connections not synced in two
+  days.
 
 ## Works
 - The full build (`buildWorkbookWithSample` / `buildWorkbookEmpty`): now 22

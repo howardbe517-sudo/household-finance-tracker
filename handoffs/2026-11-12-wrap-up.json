@@ -1,0 +1,53 @@
+{
+  "title": "Wrap-up for November 12",
+  "key": "household-finance-tracker-2026-11-12-wrap-up",
+  "subtitle": "Everything from today is merged and in your Sheet. One upgrade, one sync, and two quick checks on the bank feed.",
+  "intro": [
+    "Today's changes: the Elan card now brings in its purchases, balances refresh every night even when nothing new was spent, subscriptions and memberships are added up together, and the card's regular merchants have rules.",
+    "**What does not change:** no rows, balances or entered values. Tab names and column headers stay the same."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before upgrade 2026-11-12`."
+        }
+      ]
+    },
+    {
+      "heading": "Bring the Sheet up to date",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "On Recurring Payments, the band near the top reads \"Subscriptions & Memberships (Monthly)\". On Spending, the Recurring bills tile shows subscriptions and memberships separately."
+        },
+        {
+          "text": "Open **Finance Tracker → Bank feed → Sync now**.",
+          "done": "Most of the Elan card's purchases move from Import Staging to Transactions. Meijer, Amazon and a few one-offs stay for you to categorize; tick Reviewed? and the next sync takes them in."
+        }
+      ]
+    },
+    {
+      "heading": "Two checks on the bank feed",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Bank feed → Status**. If it says the nightly sync is off, use **Turn nightly sync on**.",
+          "note": "No nightly sync was recorded this morning. If Status says it is on, tell Claude."
+        },
+        {
+          "text": "Open **Finance Tracker → Bank feed → Repair a connection…** and pick **American Express**. Sign in again when Plaid asks. This uses no new slot.",
+          "done": "After the next sync, Amex purchases appear on Import Staging. Until now the Amex login has sent its balance but no transactions."
+        }
+      ]
+    },
+    {
+      "heading": "When you have it",
+      "steps": [
+        {
+          "text": "Find the Amazon Prime price on amazon.com → Account → **Prime membership**: the amount, monthly or yearly, and the card it is charged to. Send it to Claude, who fills in the Amazon Prime row on Recurring Payments."
+        }
+      ]
+    }
+  ]
+}
