@@ -431,6 +431,7 @@ function importReviewedRows() {
   if (r.problems.length) msg += '\n\n' + r.problems.length + ' reviewed row(s) could not be imported yet:\n' + r.problems.slice(0, 15).join('\n') + (r.problems.length > 15 ? '\n…' : '');
   if (!r.reviewed) msg = 'No rows are ticked Reviewed? on Import Staging. Tick the rows you have checked (a Category is enough for an expense), then run this again or wait for the next sync.';
   if (r.imported) { try { const dep = describeIncomeFromDeposits_(ensureIncomeFromDeposits_()); if (dep) msg += '\n\nIncome: ' + dep + '.'; } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); } }
+  if (r.imported) { try { const auto = describeRecurringAuto_(recordRecurringBills_()); if (auto) msg += '\n\nRecurring bills: ' + auto; } catch (e) { Logger.log('recordRecurringBills_: ' + (e && e.message || e)); } }
   if (r.imported) { try { refreshSpendingNotes_(); } catch (e) { Logger.log('refreshSpendingNotes_: ' + (e && e.message || e)); } }
   alert_('Import reviewed rows', msg);
   return { imported: r.imported, problems: r.problems };

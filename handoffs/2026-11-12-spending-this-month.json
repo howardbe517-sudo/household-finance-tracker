@@ -1,7 +1,7 @@
 {
   "title": "Spending and Summary Tabs",
   "key": "household-finance-tracker-2026-11-12-spending-this-month",
-  "subtitle": "Spending becomes the page for this month, with averages beside it. Account balances move to the top of Financial Summary. The Dashboard tab is retired. One upgrade, then a few checks.",
+  "subtitle": "Spending becomes the page for this month, with averages beside it and rent counted from the 1st. Account balances move to the top of Financial Summary. The Dashboard tab is retired. One upgrade, one tick, one sync.",
   "intro": [
     "After the pull request merges, the code is already in your Sheet. The upgrade redraws the Spending and Financial Summary tabs and puts the old Dashboard tab away.",
     "**What does not change:** no rows, balances or entered values. Transactions, Income, Debts and every other data tab stay exactly as they are. The month you had selected and your checklist ticks carry over to the Spending tab.",
@@ -20,12 +20,32 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.13.1`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.14.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
           "note": "This is the check that stops an upgrade from running on the old code."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
           "done": "The report includes a line that starts with \"Dashboard tab retired\". When it finishes you are on the Spending tab, and the Dashboard tab is no longer in the tab strip."
+        }
+      ]
+    },
+    {
+      "heading": "Rent as a fixed cost",
+      "steps": [
+        {
+          "text": "Open **Recurring Payments** and find the **Rent** row. Scroll right to the new last column, **Record Automatically?**, and tick the box on that row.",
+          "note": "This tells the tracker to count rent from the 1st of every month at the amount on that row, without waiting for the bank. Only tick it for a bill that is the same every month. If the new row has not appeared after a minute, carry on: the sync in the next step adds it.",
+          "done": "Within a few seconds a new row appears at the bottom of **Transactions**: \"Rent (recorded automatically)\", dated the 1st of this month, for the rent amount."
+        },
+        {
+          "text": "Open **Finance Tracker → Bank feed → Sync now**.",
+          "note": "The Venmo payment from November 2 that you had marked Housing is waiting on Import Staging. I gave it the subcategory Mortgage or Rent, so this sync brings it in as a rent payment.",
+          "done": "On Transactions, the Venmo payment is there as Housing / Mortgage or Rent, and the \"Rent (recorded automatically)\" row has gone down by exactly that payment. Together they add up to one month of rent."
+        },
+        {
+          "text": "From now on, when a Venmo payment for rent shows on **Import Staging**, give it **Category** Housing and **Subcategory** Mortgage or Rent, and tick Reviewed? as usual.",
+          "note": "Each rent payment you categorize takes that much off the automatic entry. When the payments add up to the full rent, the automatic entry is marked deleted. Rent is never counted twice, and you do not have to do anything else.",
+          "done": "On the Spending tab, Housing includes the full rent, and the Recurring bills hover list shows Rent with how much has been paid so far."
         }
       ]
     },

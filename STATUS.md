@@ -50,12 +50,15 @@ AGENTS.md section 7)
 - In the Sheet: REC-013 Nanny, weekly, on Recurring Payments (the owner:
   roughly the same every week), so the monthly plan's bills include
   childcare and the flexible figure is lower by its monthly equivalent.
-- Open, asked 2026-11-12: how rent is paid. The owner wants rent to show as
-  a fixed amount in spending every month. Rent is on Recurring Payments
-  (REC-001) and in the plan's bills, but no rent transaction has reached
-  Transactions; a staged Venmo row the owner marked Housing may be part of
-  it. Decide between a rule on the real payment and recording rent
-  automatically each month once the owner answers.
+- Rent (answered 2026-11-12): paid by Venmo; the owner wants it recorded on
+  the 1st at the fixed amount. Build 1.14.0 (schema 3.13) adds Record
+  Automatically? on Recurring Payments and `recordRecurringBills_`. After
+  the upgrade the owner ticks the box on the Rent row (REC-001); Venmo
+  rent payments get Housing / Mortgage or Rent on Import Staging and
+  reduce the automatic entry. The staged Venmo payment of November 2 has
+  been given that subcategory.
+- Edge to watch: a rent payment made in the last days of the month before
+  counts in that month, not the month it is for.
 
 ## Income from deposits (2026-11-12, build 1.12.0)
 - The owner will not upload every pay stub. A paycheck deposit in checking

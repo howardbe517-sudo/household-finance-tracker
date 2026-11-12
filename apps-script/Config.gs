@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.12-fees-2026-11-12',
-  BUILD_VERSION: '1.13.1',
+  SCHEMA_VERSION: '3.13-auto-record-2026-11-12',
+  BUILD_VERSION: '1.14.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -507,6 +507,8 @@ TABLES.RECUR = {
     { key: 'renewalDate', h: 'Renewal / Review Date', w: 125, fmt: C.date, v: { date: true } },
     { key: 'notes', h: 'Notes', w: 220 },
     { key: 'matchSource', h: 'Match / Source', w: 160 },
+    { key: 'autoRecord', h: 'Record Automatically?', w: 110, v: { checkbox: true },
+      note: 'Added in 3.13: tick for a fixed monthly bill that should count from its due day whether or not the bank has shown the payment (rent paid by Venmo). The sync writes it to Transactions at the Amount and reduces that entry as real payments with the same Category and Subcategory arrive, so the bill counts once.' },
   ],
 };
 

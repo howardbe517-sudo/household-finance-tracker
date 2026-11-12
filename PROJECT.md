@@ -68,6 +68,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/RuleDialog.html` | Dialog: make an Import Rule from the selected staged row |
 | `apps-script/ConnectDialog.html` | Dialog: connect a bank in three steps (kind → Plaid → map accounts) |
 | `apps-script/IncomeDeposits.gs` | Paychecks counted from the bank deposit: `ensureIncomeFromDeposits_`, employer matching, the estimate from the last stub, and the stub-replaces-estimate helpers used by Paste Import |
+| `apps-script/RecurringAuto.gs` | Bills recorded automatically: `recordRecurringBills_`, the pure `autoRecordPlan_`, and the report line |
 | `apps-script/Utilities.gs` | Utilities tab (Show dropdown, tiles, cost-by-month and year-over-year line charts, bill history) and `linkUtilityPayments_`, which files utility payments as bills |
 | `apps-script/Spending.gs` | Spending tab ("this month"): the three inputs, month cards, Current Flexible Spending, categories beside a typical month (Children combined), recurring payments with paid-this-month, flexible subcategories, six months by category, average bars, checklist |
 | `apps-script/Payoff.gs` | Payoff planner: reads debts and the saved plan, writes Planned Extra Payment / the household plan |
@@ -199,6 +200,13 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   `ensureExpectedIncome_`, and are overwritten in place (same ID) when a
   stub for that paycheck is pasted later. A deposit next to an unlinked
   stub with a different take-home is held for the owner.
+- Bills that record themselves (`RecurringAuto.gs`): a Monthly Recurring
+  Payments row ticked Record Automatically? is written to Transactions on
+  its due day by `recordRecurringBills_`. The entry holds the bill minus
+  the month's real payments in the same Category and Subcategory, and is
+  soft-deleted once they cover it, so the bill counts once. Entries carry
+  "Recorded automatically" and a `[REC-id|yyyy-mm]` key in Notes; formulas
+  that ask "was it paid" exclude them. Used for rent (paid by Venmo).
 - Paste Import (`PasteImport.gs`): the owner pastes a tab-separated block
   (marker line, header line, rows) produced by a Claude skill in `skills/`;
   `importPastedRows_` validates, de-duplicates and writes rows to the table

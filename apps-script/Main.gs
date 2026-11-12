@@ -122,6 +122,7 @@ function rebuildWorkbookPrompt() {
 
 function onEdit(e) {
   let notesDue = false; // the Spending tiles' hover lists follow the month, the transactions and the recurring bills
+  let billsDue = false; // bills recorded automatically follow the recurring rows and the payments categorized on Transactions
   try {
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
@@ -137,6 +138,7 @@ function onEdit(e) {
     if (r.getNumRows() === 1 && r.getNumColumns() === 1 && r.getColumn() <= def.columns.length) {
       const ck = def.columns[r.getColumn() - 1].key;
       notesDue = key === 'RECUR' || (key === 'TX' && ['date', 'description', 'amount', 'type', 'category', 'subcategory', 'needWant', 'spendingType', 'isDeleted'].indexOf(ck) >= 0);
+      billsDue = (key === 'RECUR' && ['autoRecord', 'amount', 'category', 'subcategory', 'dueDay', 'active', 'frequency'].indexOf(ck) >= 0) || (key === 'TX' && ['date', 'amount', 'type', 'category', 'subcategory', 'isDeleted'].indexOf(ck) >= 0);
     }
     const now = new Date();
     const who = userEmail_();
@@ -155,7 +157,10 @@ function onEdit(e) {
     appendChangeLog_({ table: key, recordId: id, field: c.h, oldValue: e.oldValue === undefined ? '' : e.oldValue, newValue: newVal, action: 'Update', user: who });
     stampTx_(def, sh, r, e, now, who);
   } catch (err) { /* never block the user's edit */ }
-  finally { if (notesDue) { try { refreshSpendingNotes_(); } catch (err2) { /* notes are a convenience */ } } }
+  finally {
+    if (billsDue) { try { recordRecurringBills_(); } catch (err3) { /* the next sync does the same */ } }
+    if (notesDue) { try { refreshSpendingNotes_(); } catch (err2) { /* notes are a convenience */ } }
+  }
 }
 
 /**
