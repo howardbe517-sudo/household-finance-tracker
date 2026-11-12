@@ -24,7 +24,7 @@ const UTILITIES = {
 };
 
 function utilityTypes_() {
-  return (LISTS.filter(l => l.key === 'UTILITY_TYPES')[0] || { values: [] }).values;
+  return UTILITY_TRACKED.slice();
 }
 
 function buildUtilities_() {
@@ -52,7 +52,7 @@ function buildUtilities_() {
   /* --- title, Show --- */
   mergePut('A1:I1', 'Utilities').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'Gas, electric, water and the other utility bills: what is due, what they have cost, and how each month compares with a year ago. Pick a utility in Show to see it alone. Bills come from the Utility Bills tab, which every sync keeps up to date.')
+  mergePut('A2:I2', 'Gas, electric and water, the bills that change from month to month: what is due, what they have cost, and how each month compares with a year ago. Pick a utility in Show to see it alone. Bills come from the Utility Bills tab, which every sync keeps up to date.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9).setWrap(true);
   sh.setRowHeight(2, 30);
   put('A3', 'Show').setFontWeight('bold');

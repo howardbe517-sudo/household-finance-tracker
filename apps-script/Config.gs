@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.12-fees-2026-11-12',
-  BUILD_VERSION: '1.11.0',
+  BUILD_VERSION: '1.11.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -643,7 +643,7 @@ TABLES.CREDIT = {
 TABLES.UTIL = {
   key: 'UTIL', sheet: SHEETS.UTIL, headerRow: 4, firstRow: 5, lastRow: 504,
   title: 'Utility Bills — One Row per Bill',
-  note: 'Every gas, electric, water and other utility bill. Each utility payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric, Water & Sewer, Trash & Recycling, Internet or Cell Phone) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.',
+  note: 'Every gas, electric and water bill: the utility bills that change from month to month. Each such payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric or Water & Sewer) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.',
   idPrefix: 'UB', idPattern: 'UB-0001', logChanges: true,
   columns: [
     { key: 'id', h: 'Bill ID', w: 90 },
@@ -668,7 +668,13 @@ TABLES.UTIL = {
 };
 
 /** Transactions subcategories (under Housing) that are utility payments, and the utility each one files under. */
-const UTILITY_FROM_SUBCATEGORY = { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer', 'Trash & Recycling': 'Trash & Recycling', 'Internet': 'Internet', 'Cell Phone': 'Phone' };
+const UTILITY_FROM_SUBCATEGORY = { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer' };
+/**
+ * The utilities the Utilities tab tracks: only the bills that change from month to month (the
+ * owner, 2026-11-12). Fixed bills such as internet, phone and trash are regular recurring payments
+ * and stay on Recurring Payments and the Spending tab.
+ */
+const UTILITY_TRACKED = ['Gas', 'Electric', 'Water & Sewer'];
 
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,

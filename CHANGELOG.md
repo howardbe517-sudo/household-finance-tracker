@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-12 — Utilities tab tracks only the bills that change each month
+- What changed: the owner only wants variable bills on the Utilities tab.
+  It now tracks **Gas, Electric and Water & Sewer** (`UTILITY_TRACKED`):
+  the Show dropdown offers only those, the chart has a line only for those,
+  and the sync files only those payments as bills. Internet, phone and
+  trash payments are no longer filed on Utility Bills; they stay on
+  Recurring Payments and the Spending tab. The Utility Types list itself is
+  unchanged. `BUILD_VERSION` 1.11.1.
+- Files changed in `apps-script/`: `Config.gs`, `Utilities.gs`,
+  `Reference.gs` (deployed on merge). Run **Finance Tracker → Upgrade
+  workbook (keeps data)** once to redraw the tab.
+- Tested: Node (dropdown has no Internet, Phone or Trash; only gas,
+  electric and water sample payments are filed; suite green). Not yet seen
+  in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utilities-variable-only`
+
 ## 2026-11-12 — Fees: card processing fees and late fees totalled for the year
 - What changed: the owner wants the cost of paying by card noted in the
   yearly picture. (1) Utility Bills gains two appended columns, **Card Fee**
