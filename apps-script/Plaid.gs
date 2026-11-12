@@ -716,7 +716,7 @@ function dueReminders_() {
 /** Finance Tracker → Show reminders. */
 function showReminders() {
   const due = dueReminders_();
-  alert_('Reminders', due.length ? due.map(r => '• ' + r.text).join('\n\n') : 'Nothing due. The Dashboard\'s Reminders box shows the same list.');
+  alert_('Reminders', due.length ? due.map(r => '• ' + r.text).join('\n\n') : 'Nothing due. The Reminders tab shows the same list.');
 }
 
 /**

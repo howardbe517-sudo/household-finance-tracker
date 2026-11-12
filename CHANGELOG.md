@@ -1,5 +1,63 @@
 # CHANGELOG
 
+## 2026-11-12 — Two tabs instead of three: Spending is "this month", Financial Summary is "where you stand"
+- Why (the owner's request): the Dashboard's month view belongs with
+  spending, and its balances belong with the summary. The owner also asked
+  for averages beside the running month, a sideways bar graph of average
+  spending by category, and no "on pace" projection, because months differ
+  too much (summer against work months) for a projection to mean much.
+- Spending tab (rebuilt, `SPEND` rows changed): the Selected Month is typed
+  here now (B3). Top to bottom: review banner, Expected Take-Home and Spent
+  So Far, how the flexible figure is reached, three tiles, Current Flexible
+  Spending (follows today), categories beside a Typical Month with Used and
+  a bar that fills toward the typical month (red past it), recurring
+  payments, flexible subcategories, six months by category, Average
+  spending by category (one sideways bar per category, largest first), the
+  Monthly Review Checklist.
+- Typical month: a new dropdown, Compare with (E3), chooses the months that
+  are averaged: last 3, 6 or 12 full months, or the same three months one
+  year back (for seasons). Months with no spending are skipped, never
+  counted as zero; a dash shows until one full month exists. The 3-Month
+  Avg and Share columns are gone. Nothing on the tab predicts.
+- Financial Summary: the accounts block (checking, savings split into yours
+  and parked for bills, each card with owed and due, total owed) is now
+  rows 3–8. Every other row moved down 7 (`FINSUM` constants; the months
+  input is B10, the window cells row 11).
+- Dashboard tab: retired. A new workbook has none. On an existing workbook
+  the upgrade reads the Selected Month and checklist ticks, rebuilds
+  Spending, writes them back, and then empties and hides the old Dashboard
+  tab (`retireDashboard_`, which runs only once the Selected Month's named
+  range points at Spending). The tab is hidden, not deleted; the owner can
+  delete it by hand.
+- Names and schema: no table, column or header changed. Named ranges keep
+  their names and move: `DASH_SELECTED_MONTH` → Spending!B3,
+  `DASH_CHECKLIST` → Spending!A101:A108. New: `SPEND_COMPARE` (Spending!E3).
+  `TAB_ORDER` no longer lists Dashboard (29 tabs). `SHEETS.DASH` remains so
+  the old tab can be found. The `sh.clear()` in `retireDashboard_` carries a
+  SAFETY-APPROVED note: the tab is calculated and its two inputs are
+  already on Spending when it runs.
+- Run QA: the month-card, banner and flexible-label checks read the
+  Spending tab; the accounts-block check reads the Financial Summary; a new
+  check recomputes the typical month from Transactions in JavaScript
+  (`typicalMonth_`) and compares it with the tab.
+- `BUILD_VERSION` 1.13.0. Start Here, App notes, PROJECT.md and AGENTS.md
+  wording updated to match.
+- Files changed in `apps-script/`: `Spending.gs`, `Dashboard.gs`,
+  `FinancialSummary.gs`, `Upgrade.gs`, `Main.gs`, `QA.gs`, `Config.gs`,
+  `Reference.gs`, `Plaid.gs`, `Payoff.gs` (deployed on merge). Run
+  **Finance Tracker → Upgrade workbook (keeps data)** once; step page
+  `handoffs/2026-11-12-spending-this-month.json`.
+- Tested: Node (253 checks: new layout, inputs under their named ranges,
+  Compare with window formulas, typical-month table, average bars, no pace
+  wording, `typicalMonth_`, upgrade from a workbook that still has a
+  Dashboard tab carries month, ticks and Compare with and hides the tab;
+  safety check). Not yet confirmed in Google: the mock does not evaluate
+  formulas, so the new Spending formulas (MAP/LAMBDA, SPARKLINE, the
+  Compare with window) are first exercised by the owner's upgrade; Run QA
+  covers the cards, the typical month and the accounts block there.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/spending-is-this-month`
+
 ## 2026-11-12 — Reminder: a fresh pay stub per employer every six months
 - Why: paychecks now count from the bank deposit, and the stub is what the
   gross pay and deductions are estimated from. The owner asked for a

@@ -46,7 +46,7 @@ jargon, and ask clarifying questions when something is unclear.
 - Any function that changes many rows needs a dry-run or a confirmation that
   says what it will change before it changes it.
 - Do not rename tabs, column headers, or named ranges unless asked. The
-  Dashboard, Monthly Summary, the future app, and the owner's habits depend
+  Spending tab, Financial Summary, Monthly Summary, the future app, and the owner's habits depend
   on them. List any such change in `CHANGELOG.md` and `docs/SCHEMA.md`.
 
 ## 3. Development rules
@@ -61,7 +61,7 @@ jargon, and ask clarifying questions when something is unclear.
 - Keep the financial model exactly as the handoff defines it: Income is
   authoritative for paychecks; Spending = Expense − Refund; Savings, Debt
   Payment, Transfer, and Split Parent rows are never spending; split children
-  are; Dashboard cards follow the Selected Month while Current Flexible
+  are; the Spending tab's cards follow the Selected Month while Current Flexible
   Spending follows today's week; months are first-of-month dates.
 - Read the existing code and trace what calls a function before changing it.
   Prefer a targeted fix over a rewrite. Do not remove code that looks unused

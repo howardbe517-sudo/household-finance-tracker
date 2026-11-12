@@ -116,6 +116,9 @@ class Sheet {
   setConditionalFormatRules(rules) { this.cfRules = rules; return this; }
   getConditionalFormatRules() { return this.cfRules; }
   setHiddenGridlines(b) { this.hiddenGridlines = b; return this; }
+  hideSheet() { this.hidden = true; return this; }
+  showSheet() { this.hidden = false; return this; }
+  isSheetHidden() { return this.hidden === true; }
   protect() { const p = new Protection(this); this.protections.push(p); return p; }
   getProtections() { return this.protections.slice(); }
   setTabColor() { return this; }

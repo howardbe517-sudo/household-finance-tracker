@@ -134,7 +134,7 @@ function qaReport_() {
       if (!near(p.spentWeek, expSpentWeek)) fail('Monthly Plan (current month): Spent This Week ' + money(p.spentWeek) + ' ≠ ' + money(expSpentWeek));
     }
   });
-  if (!plans.some(p => mk(p.month) === curKey)) info('No Monthly Plan row for the current month — Dashboard flexible section will say "No plan row".');
+  if (!plans.some(p => mk(p.month) === curKey)) info('No Monthly Plan row for the current month — the Current Flexible Spending boxes on Spending will say "No plan row".');
 
   /* 6. funds */
   const fundRows = readTable_(tdef_('FUNDS')).filter(f => f.id);
@@ -224,23 +224,41 @@ function qaReport_() {
   else info(conns.length + ' bank connection(s)' + (conns.length ? '; ' + conns.filter(c => c.status === 'Active').length + ' active' : ''));
   info(waiting + ' staged row(s) awaiting review');
 
-  /* 11. dashboard */
-  const dash = ss.getSheetByName(SHEETS.DASH);
-  if (!dash) fail('Dashboard missing');
+  /* 11. this month (top of the Spending tab) and the accounts block (top of the Financial Summary) */
+  const sp = ss.getSheetByName(SHEETS.SPEND);
+  if (!sp) fail('Spending tab missing');
   else {
-    const sel = dash.getRange(DASH.SELECTED_MONTH).getValue();
+    const sel = sp.getRange(SPEND.MONTH_CELL).getValue();
     const selKey = mk(sel);
     const selRow = summary.filter(s => mk(s.month) === selKey)[0];
     const gross = sumWhere(inc, i => mk(i.month) === selKey, 'gross');
     const take = sumWhere(inc, i => mk(i.month) === selKey, 'takeHome');
     const planRow = readTable_(tdef_('PLAN')).filter(p => mk(p.month) === selKey)[0];
-    const takeCard = dash.getRange('A' + DASH.CARD_ROW_VALUE).getValue();
-    const spentCard = dash.getRange('F' + DASH.CARD_ROW_VALUE).getValue();
+    const takeCard = sp.getRange('A' + SPEND.CARD_VALUE).getValue();
+    const spentCard = sp.getRange('E' + SPEND.CARD_VALUE).getValue();
     const problems = [];
     if (planRow && !near(takeCard, Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0))) problems.push('Expected Take-Home card ' + money(takeCard) + ' ≠ Monthly Plan ' + money(Number(planRow.expectedIncome || 0) + Number(planRow.incomeAdjustment || 0)));
     if (selRow && !near(spentCard, selRow.spending)) problems.push('Spent So Far card ' + money(spentCard) + ' ≠ Monthly Summary ' + money(selRow.spending));
-    if (problems.length) fail('Dashboard cards (' + selKey + '): ' + problems.join('; ')); else pass('Dashboard cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
+    if (problems.length) fail('Spending tab cards (' + selKey + '): ' + problems.join('; ')); else pass('Spending tab cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
 
+    // the typical month: recompute the Compare with window from Transactions and compare with the total row
+    const typ = typicalMonth_(tx, sel, sp.getRange(SPEND.COMPARE_CELL).getValue());
+    const typShown = sp.getRange('E' + (SPEND.CAT_FIRST + SPEND.CAT_ROWS)).getValue();
+    const kShown = sp.getRange('D' + SPEND.HELP_ROW).getValue();
+    if (sel instanceof Date) {
+      if (Number(kShown) !== typ.months) fail('Spending tab: Compare with counts ' + kShown + ' month(s) with spending but Transactions has ' + typ.months + ' in ' + typ.label);
+      else if (typ.months > 0 && !near(typShown, typ.total)) fail('Spending tab: Typical Month total ' + money(typShown) + ' ≠ ' + money(typ.total) + ' recomputed from Transactions over ' + typ.label);
+      else pass('Spending tab: Typical Month matches Transactions (' + (typ.months ? typ.months + ' month(s) in ' + typ.label + ', ' + money(typ.total) + ' a month' : 'no full month in ' + typ.label + ' yet') + ')');
+    }
+
+    const awaiting = sp.getRange('A' + SPEND.REVIEW_LINE).getFormula();
+    if (awaiting.indexOf('Needs Review') >= 0) pass('Spending tab banner counts the rows waiting for review on Import Staging'); else fail('Spending tab review banner missing (row ' + SPEND.REVIEW_LINE + ')');
+    const flexLabel = sp.getRange('A' + SPEND.FLEX_BAR).getDisplayValue();
+    const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
+    if (flexLabel.indexOf(expLabel) < 0) fail('Current Flexible Spending label "' + flexLabel + '" does not name the current month'); else pass('Current Flexible Spending follows today\'s month (' + expLabel + ')');
+  }
+  const fsAcct = ss.getSheetByName(SHEETS.FINSUM);
+  if (fsAcct) {
     // the accounts block: each line is the sum of the Accounts rows whose institution contains one of its names
     const accRows = readTable_(tdef_('ACCOUNTS'));
     const lineSum = (line, type) => {
@@ -251,28 +269,21 @@ function qaReport_() {
     const acctProblems = [];
     DASH_ACCOUNTS.cards.forEach((card, i) => {
       const exp = lineSum(card, 'Credit Card');
-      const shown = dash.getRange('G' + (DASH.ACCT_FIRST + i)).getValue();
+      const shown = fsAcct.getRange('G' + (FINSUM.ACCT_FIRST + i)).getValue();
       if (exp.connected && !near(shown, exp.sum)) acctProblems.push(card.label + ' card shows ' + money(shown) + ' but its Accounts rows add up to ' + money(exp.sum));
     });
     DASH_ACCOUNTS.main.filter(l => l.type === 'Checking').forEach(line => {
       const exp = lineSum(line, line.type);
-      const shown = dash.getRange('B' + (DASH.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(line))).getValue();
+      const shown = fsAcct.getRange('B' + (FINSUM.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(line))).getValue();
       if (exp.connected && !near(shown, exp.sum)) acctProblems.push(line.label + ' shows ' + money(shown) + ' but its Accounts rows add up to ' + money(exp.sum));
     });
     const savLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
     if (savLine) {
       const exp = lineSum(savLine, 'Savings');
-      const shown = dash.getRange('B' + DASH.ACCT_WITH_BILLS).getValue();
+      const shown = fsAcct.getRange('B' + FINSUM.ACCT_WITH_BILLS).getValue();
       if (exp.connected && !near(shown, exp.sum)) acctProblems.push('Savings + bill transfers shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
     }
-    if (acctProblems.length) fail('Dashboard accounts block: ' + acctProblems.join('; ')); else pass('Dashboard accounts block: each card, checking and the savings bank balance match their Accounts rows');
-
-    const awaiting = dash.getRange('A' + DASH.REVIEW_LINE).getFormula();
-    if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard banner counts the rows waiting for review on Import Staging'); else fail('Dashboard review banner missing (row ' + DASH.REVIEW_LINE + ')');
-    const flexLabel = dash.getRange('A' + DASH.FLEX_BAR).getDisplayValue();
-    const expLabel = Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM yyyy');
-    if (flexLabel.indexOf(expLabel) < 0) fail('Current Flexible Spending label "' + flexLabel + '" does not name the current month'); else pass('Current Flexible Spending follows today\'s month (' + expLabel + ')');
-
+    if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card, checking and the savings bank balance match their Accounts rows');
   }
 
   /* 12. financial summary */
@@ -320,4 +331,33 @@ function qaReport_() {
   }
 
   return { checks, failures, lines };
+}
+
+/**
+ * The typical month the Spending tab should show, recomputed in plain JavaScript. Pure.
+ *   txRows   Transactions rows ({ date, amount, type, isDeleted })
+ *   selected the Selected Month (a Date)
+ *   compare  the Compare with choice (one of SPEND.COMPARE)
+ * Returns { months, total, label }: how many months of the window have spending, the average
+ * spending (expenses − refunds) of those months, and the window as text.
+ */
+function typicalMonth_(txRows, selected, compare) {
+  if (!(selected instanceof Date)) return { months: 0, total: 0, label: '' };
+  const first = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  const n = compare === SPEND.COMPARE[1] ? 6 : compare === SPEND.COMPARE[2] ? 12 : 3;
+  const ws = compare === SPEND.COMPARE[3] ? addMonths_(first, -13) : addMonths_(first, -n);
+  const we = compare === SPEND.COMPARE[3] ? addMonths_(first, -11) : addMonths_(first, -1);
+  const key = (d) => d.getFullYear() * 12 + d.getMonth();
+  const seen = {};
+  let sum = 0;
+  (txRows || []).forEach(t => {
+    if (t.isDeleted === true || !(t.date instanceof Date) || (t.type !== 'Expense' && t.type !== 'Refund')) return;
+    const k = key(t.date);
+    if (k < key(ws) || k > key(we)) return;
+    seen[k] = true;
+    sum += (t.type === 'Expense' ? 1 : -1) * Number(t.amount || 0);
+  });
+  const months = Object.keys(seen).length;
+  const fmt = (d) => Utilities.formatDate(d, 'America/Detroit', 'MMM yyyy');
+  return { months, total: months ? Math.round(sum / months * 100) / 100 : 0, label: fmt(ws) + ' – ' + fmt(we) };
 }

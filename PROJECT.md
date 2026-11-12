@@ -25,8 +25,8 @@ the App Setup tab; both are generated from `Config.gs`.
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
-| Financial Summary | Averages over the last N full months (B3), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Net worth | — | Columns A:I; `FinancialSummary.gs`, constants in `FINSUM` |
-| Dashboard | This month only: tonight's balances (rows 3–7), expected gross (faded), expected take-home and spent so far for the Selected Month (B10), the flexible line, Current Flexible Spending, the review checklist | — | Columns A:I; accounts block A:D / F:I; three cards A:C / D:F / G:I; compact Income by Person and Credit Scores A:E; payroll groups A:C / D:F / G:I |
+| Financial Summary | Where the household stands: tonight's balances (the accounts block, rows 3–8), then averages over the last N full months (B10), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Children, Fees, Net worth | — | Columns A:I; accounts block A:D / F:I; `FinancialSummary.gs`, constants in `FINSUM` |
+| Spending | How this month is going: Month (B3) and Compare with (E3) inputs, review banner, Expected Take-Home and Spent So Far, the flexible line, three tiles, Current Flexible Spending (follows today), categories beside a typical month, recurring payments, flexible subcategories, six months, average spending by category (bars), Monthly Review Checklist | — | Columns A:I; `Spending.gs`, constants in `SPEND`. The Dashboard tab was retired on 2026-11-12 (build 1.13.0); an existing one is emptied and hidden by the upgrade |
 | Income | Paycheck database, authoritative for gross, deductions, take-home | 4 | A:S (S = Linked Deposit TX, calculated) |
 | Transactions | Master ledger | 4 | A:AF, 32 columns; Validation Flag Z, Split Difference AE |
 | Recurring Payments | Expected obligations with summaries | 40 | Presentation rows 1–38; raw table from row 41 |
@@ -55,7 +55,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/Helpers.gs` | Formula token resolver, generic table builder, formats, validations, named ranges, row lookup/append, change-log writer |
 | `apps-script/Reference.gs` | Categories (taxonomy + lists), Accounts, App Setup, Sources, Start Here |
 | `apps-script/Tables.gs` | Conditional formatting per table, Recurring Payments and Debts presentation sections, Net Worth helper, phase orchestration |
-| `apps-script/Dashboard.gs` | The Dashboard |
+| `apps-script/Dashboard.gs` | What is left of the retired Dashboard: the accounts block builder (`buildAccountsBlock_`, drawn on Financial Summary), `retireDashboard_`, the shared paydays expression, and the Goals and Reminders tabs |
 | `apps-script/SampleData.gs` | Fictional, date-relative sample data tagged `SAMPLE`; the list of tables it touches |
 | `apps-script/QA.gs` | `runQA()` — error scan, structure checks, independent recomputation of totals |
 | `apps-script/Main.gs` | `buildWorkbook()`, the Finance Tracker menu, `onEdit` change-log capture, maintenance helpers (link deposits, split, snapshot, extend rows, clear sample data) |
@@ -69,7 +69,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/ConnectDialog.html` | Dialog: connect a bank in three steps (kind → Plaid → map accounts) |
 | `apps-script/IncomeDeposits.gs` | Paychecks counted from the bank deposit: `ensureIncomeFromDeposits_`, employer matching, the estimate from the last stub, and the stub-replaces-estimate helpers used by Paste Import |
 | `apps-script/Utilities.gs` | Utilities tab (Show dropdown, tiles, cost-by-month and year-over-year line charts, bill history) and `linkUtilityPayments_`, which files utility payments as bills |
-| `apps-script/Spending.gs` | Spending tab: tiles, categories largest first (Children combined), recurring payments with paid-this-month, flexible subcategories, six months by category |
+| `apps-script/Spending.gs` | Spending tab ("this month"): the three inputs, month cards, Current Flexible Spending, categories beside a typical month (Children combined), recurring payments with paid-this-month, flexible subcategories, six months by category, average bars, checklist |
 | `apps-script/Payoff.gs` | Payoff planner: reads debts and the saved plan, writes Planned Extra Payment / the household plan |
 | `apps-script/PayoffPlanner.html` | Dialog: slider for extra payments, one debt or all debts (Avalanche / Snowball), save a plan |
 | `apps-script/PayoffMath.html` | The payoff arithmetic (pure JS), included by the dialog and loaded by the Node tests |
@@ -138,14 +138,21 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   children do; a split parent's children must sum to its amount.
 - A purchase paid from a sinking or emergency fund is still spending in the
   month it happens, and it reduces the fund.
-- Dashboard cards, Income by Person and Payroll Deductions follow the Selected
-  Month (B3). Current Flexible Spending always follows today's month and
-  Monday–Sunday week. Only Spending Type = Flexible feeds weekly guidance.
+- The Spending tab follows the Selected Month (Spending!B3, named
+  `DASH_SELECTED_MONTH`; on the Dashboard before 1.13.0). Current Flexible
+  Spending always follows today's month and Monday–Sunday week. Only
+  Spending Type = Flexible feeds weekly guidance.
+- "Typical month" on the Spending tab is the average of the months chosen by
+  Compare with (`SPEND_COMPARE`: last 3, 6 or 12 full months, or the same
+  three months a year back), counting only months that have spending. The
+  window sits in three calculated cells on `SPEND.HELP_ROW`. Nothing on the
+  tab projects the rest of the month (the owner declined a pace figure).
 - Months are stored as first-of-month dates; IDs are never renamed; raw tables
   have no merged cells; financial rows are never hard-deleted.
-- Monthly Summary and the Dashboard are read-only for the app; the app writes
+- Monthly Summary, Spending and the Financial Summary are read-only for the app; the app writes
   only to raw tables and never to calculated columns.
-- Debt stays off the everyday Dashboard apart from the one-line footnote.
+- Debt stays off the everyday Spending tab; card balances are in the accounts
+  block on the Financial Summary.
   Student loans (Debt Group = Student Loans) are totalled separately from
   household debt everywhere except net worth, which counts all debt.
 - Sample data is removed only through Clear sample data…, never by rebuilding
@@ -162,13 +169,16 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   an older build too). The Reminders tab's box (`REMINDERS_BOX`) is calculated
   from Debts and Credit Scores. `dueReminders_`
   lists hand-entered values that have gone stale (PSLF counts); the
-  Dashboard Reminders box shows the same by formula and `sendReminders_`
+  Reminders tab shows the same by formula and `sendReminders_`
   emails it at most monthly from the nightly sync.
-- The Dashboard's accounts block (rows 3–7, layout in `DASH_ACCOUNTS`) is
-  formulas over Accounts and Debts; every later Dashboard row sits
-  `DASH.SHIFT` rows below its handoff position, and the upgrade reads the
-  Selected Month and checklist through named ranges (legacy addresses as a
-  fallback) before rebuilding.
+- The accounts block (layout in `DASH_ACCOUNTS`, built by
+  `buildAccountsBlock_`) is formulas over Accounts and Debts and sits at the
+  top of the Financial Summary (rows 3–8); every other Financial Summary row
+  is 7 lower than before 1.13.0. The upgrade reads the Selected Month, the
+  checklist ticks and Compare with through their named ranges before
+  rebuilding Spending and writes them back; `retireDashboard_` then empties
+  and hides an old Dashboard tab, but only once `DASH_SELECTED_MONTH` points
+  at the Spending tab.
 - Expected Income (`ExpectedIncome.gs`): one row per person + employer,
   created from Income by `ensureExpectedIncome_` (frequency from pay-date
   gaps, typical amounts the median of the last three). Monthly Plan derives

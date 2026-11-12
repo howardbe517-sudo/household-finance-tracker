@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.12-fees-2026-11-12',
-  BUILD_VERSION: '1.12.1',
+  BUILD_VERSION: '1.13.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -61,7 +61,9 @@ const TAB_ORDER = [
   // the ledgers and derived tables, and the setup and feed tabs at the end. Import Staging sits
   // right after Transactions because the owner reviews it often.
   // 2026-11-10: Start Here (the guide) first, then Financial Summary, Dashboard, Spending.
-  SHEETS.START, SHEETS.FINSUM, SHEETS.DASH, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  // 2026-11-12: the Dashboard tab is retired; its month view is the top of Spending and its
+  // accounts block the top of Financial Summary. SHEETS.DASH stays so an old tab can be found and hidden.
+  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
@@ -386,7 +388,7 @@ TABLES.INCOME = {
 TABLES.EXPECT = {
   key: 'EXPECT', sheet: SHEETS.EXPECT, headerRow: 4, firstRow: 5, lastRow: 54,
   title: 'Expected Income — Regular Paychecks',
-  note: 'One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Dashboard work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.',
+  note: 'One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Spending tab work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.',
   idPrefix: 'EXP', idPattern: 'EXP-001', logChanges: true,
   columns: [
     { key: 'id', h: 'Source ID', w: 90 },
@@ -600,7 +602,7 @@ TABLES.DEBTS = {
 TABLES.QDR = {
   key: 'QDR', sheet: SHEETS.QDR, headerRow: 4, firstRow: 5, lastRow: 404,
   title: 'Quarterly Debt Review',
-  note: 'Debt balances are reviewed in March, June, September and December instead of on the everyday Dashboard. One row per debt per quarter. Ending Balance feeds the Debts table and Monthly Summary.',
+  note: 'Debt balances are reviewed in March, June, September and December instead of on the everyday Spending tab. One row per debt per quarter. Ending Balance feeds the Debts table and Monthly Summary.',
   idPrefix: 'QDR', idPattern: 'QDR-2026Q3-DEBT-001', logChanges: true,
   columns: [
     { key: 'id', h: 'Review ID', w: 170 },
@@ -625,7 +627,7 @@ TABLES.QDR = {
 TABLES.CREDIT = {
   key: 'CREDIT', sheet: SHEETS.CREDIT, headerRow: 4, firstRow: 5, lastRow: 304,
   title: 'Credit Scores — Monthly History',
-  note: 'Manual monthly entry (Plaid does not supply consumer FICO scores). The Dashboard shows the newest row per person automatically. Score ID is generated from the date, person and row.',
+  note: 'Manual monthly entry (Plaid does not supply consumer FICO scores). The Financial Summary shows the newest row per person automatically. Score ID is generated from the date, person and row.',
   idPrefix: 'CS', idPattern: 'CS-20261107-B-001', logChanges: true,
   columns: [
     { key: 'id', h: 'Score ID', w: 160,
@@ -933,7 +935,7 @@ const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'UTI
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**
- * The accounts block at the top of the Dashboard (the owner's choice, 2026-11-09): checking and
+ * The accounts block at the top of the Financial Summary (on the Dashboard until 2026-11-12; the owner's choice, 2026-11-09): checking and
  * savings on the left, the credit cards on the right in this order. Each line sums the Accounts
  * rows whose institution contains the text and whose type matches. Edit here to change the block.
  */
@@ -1005,7 +1007,7 @@ const APP_RULES = [
   'Never hard-delete a financial record: tick Is Deleted and set Deleted At.',
   'Store month values as first-of-month dates, never as text.',
   'Payroll retirement contributions belong in Income, not Transactions.',
-  'Dashboard monthly cards follow the Selected Month (Dashboard!B3).',
+  'The Spending tab\'s monthly cards follow the Selected Month (Spending!B3, named DASH_SELECTED_MONTH).',
   'Current Flexible Spending always follows today\'s calendar month and Monday–Sunday week.',
-  'Derived sheets (Monthly Summary, Dashboard) are read-only; the app never writes to them.',
+  'Derived sheets (Monthly Summary, Spending, Financial Summary) are read-only; the app never writes to them.',
 ];

@@ -1,0 +1,80 @@
+{
+  "title": "Spending and Summary Tabs",
+  "key": "household-finance-tracker-2026-11-12-spending-this-month",
+  "subtitle": "Spending becomes the page for this month, with averages beside it. Account balances move to the top of Financial Summary. The Dashboard tab is retired. One upgrade, then a few checks.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade redraws the Spending and Financial Summary tabs and puts the old Dashboard tab away.",
+    "**What does not change:** no rows, balances or entered values. Transactions, Income, Debts and every other data tab stay exactly as they are. The month you had selected and your checklist ticks carry over to the Spending tab.",
+    "This upgrade also covers the two earlier changes from today (paychecks counted from the deposit, and the pay stub reminder) if you have not run it since."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before two-tab layout 2026-11-12`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.13.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "note": "This is the check that stops an upgrade from running on the old code."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report includes a line that starts with \"Dashboard tab retired\". When it finishes you are on the Spending tab, and the Dashboard tab is no longer in the tab strip."
+        }
+      ]
+    },
+    {
+      "heading": "Check the Spending tab",
+      "steps": [
+        {
+          "text": "At the top, **Month** (cell B3) shows the month you had selected on the Dashboard. To look at another month, type any date in that month here.",
+          "done": "Below it you see the review banner, then Expected Take-Home and Spent So Far, then Current Flexible Spending with this week's three boxes."
+        },
+        {
+          "text": "Look at **Compare with** (cell E3). It is a dropdown: last 3, 6 or 12 full months, or the same 3 months last year. It decides which months make up the \"typical month\" everywhere on the tab, and the small line beside it names the months counted.",
+          "note": "Your transactions start in November, so for now Typical Month shows a dash and the line says no full month is recorded yet. The averages fill in on December 1. \"Same 3 months last year\" needs a year of history."
+        },
+        {
+          "text": "Scroll to **By category**. The columns are This Month, Budget, Last Month, Typical Month and Used, then the bar. Once there is a typical month, each bar fills toward it and turns red if the category goes past it.",
+          "done": "The categories and amounts for this month match what you saw before. No cell shows an error such as #NAME?, #REF! or #ERROR!. If one does, tell me which cell."
+        },
+        {
+          "text": "Scroll further down to **Average spending by category**. This is the sideways bar graph: one bar per category, largest first.",
+          "note": "It is empty until December for the same reason. The note under it says so."
+        },
+        {
+          "text": "At the bottom, the **Monthly Review Checklist** has the same ticks it had on the Dashboard.",
+          "done": "Your ticks carried over."
+        }
+      ]
+    },
+    {
+      "heading": "Check the Financial Summary",
+      "steps": [
+        {
+          "text": "Open **Financial Summary**. The top now shows checking, savings (with the faded \"Savings + bill transfers\" line under it) and the three cards with what is owed and when each is due.",
+          "done": "The balances match what the Dashboard showed. Everything that was on this tab before is still there, a little lower on the page."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "The lines about the Spending tab cards, the Typical Month and the Financial Summary accounts block all pass."
+        }
+      ]
+    },
+    {
+      "heading": "The old Dashboard tab",
+      "steps": [
+        {
+          "text": "Nothing to do. The Dashboard tab is emptied and hidden, not deleted, so nothing breaks if a bookmark still points to it.",
+          "note": "If you want it gone for good: open **View → Hidden sheets** and pick Dashboard to bring it back, then right-click its tab and choose Delete. Everything it showed now lives on Spending and Financial Summary."
+        }
+      ]
+    }
+  ]
+}
