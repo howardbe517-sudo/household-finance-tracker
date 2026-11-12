@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-12 — Utilities: the chart numbers move under the charts
+- What changed: the calculated chart data sat to the right of the tab
+  (columns L onward), which the owner found awkward. It is now two styled
+  tables under the charts: **cost by month** in columns A onward and
+  **this year vs last year** from column G, with the bill history below
+  them. The charts read the tables in their new place; nothing is left to
+  the right of column I. `BUILD_VERSION` 1.11.2.
+- Files changed in `apps-script/`: `Utilities.gs`, `Config.gs` (deployed on
+  merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once; the
+  same run shortens the Show dropdown to gas, electric and water.
+- Tested: Node (table positions, chart ranges, nothing right of the tab;
+  suite green). Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utilities-data-below`
+
 ## 2026-11-12 — Utilities tab tracks only the bills that change each month
 - What changed: the owner only wants variable bills on the Utilities tab.
   It now tracks **Gas, Electric and Water & Sewer** (`UTILITY_TRACKED`):
