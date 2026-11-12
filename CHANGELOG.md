@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-11-12 — Fix: a Dashboard card matched by one name added up every card
+- What happened: since 1.9.5 each accounts-block line tests the bank name
+  with `(ISNUMBER(SEARCH(name, institution)) + …) > 0`. With two names the
+  `+` makes numbers; with one name it compared TRUE/FALSE with 0, and in
+  Sheets a boolean is greater than any number, so FALSE>0 is TRUE and the
+  line matched every account of its type. Capital One (one name) showed
+  the sum of all three cards and the card total doubled it. Checking and
+  Savings (also one name) were right only because there is one of each.
+  Accounts, Debts and net worth were never wrong.
+- Fix: every name test adds `+0` before the comparison (one helper,
+  `namesHit`, now builds all three uses). Run QA gains a check that
+  recomputes each card line, checking, and the savings bank balance from
+  the Accounts rows and compares them with the Dashboard cells, so a wrong
+  formula in this block is reported. `BUILD_VERSION` 1.11.5.
+- Files changed in `apps-script/`: `Dashboard.gs`, `QA.gs`, `Config.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once.
+- Tested: Node (no bare boolean comparison left in any Dashboard formula;
+  the Capital One formula carries `+0`; suite green). The mock does not
+  evaluate formulas, which is why this reached the Sheet; the new QA check
+  covers it there. Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/dashboard-single-name-fix`
+
 ## 2026-11-12 — Fix: the upgrade stopped on the Utilities tab ("Those columns are out of bounds")
 - What happened: 1.11.2 trimmed the Utilities tab to nine columns when the
   chart numbers moved under the charts, but the column-width list still had

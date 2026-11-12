@@ -472,6 +472,13 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (/"Parked for Bills"/.test(savF) && /'Savings & Reserves'/.test(savF) && /^=LET\(b,/.test(savF) && dash.getRange('A' + DASH.ACCT_WITH_BILLS).getValue() === 'Savings + bill transfers' && !/"Parked for Bills"/.test(fullF) && /SUMPRODUCT/.test(fullF) && /parked for bills/.test(subF)) ok('Dashboard savings line is the money that is yours (balance minus the parked pots); the faded line under it is the bank balance with the parked amount noted'); else bad('dashboard savings rows: ' + JSON.stringify([savF.slice(0, 80), dash.getRange('A' + DASH.ACCT_WITH_BILLS).getValue(), fullF.slice(0, 60), subF.slice(0, 60)]));
 })();
 (function () {
+  // a single-name line (Capital One, Checking) must not compare TRUE/FALSE with 0: in Sheets FALSE>0 is TRUE
+  const dashF = ss.allFormulas.filter(f => f.sheet === SHEETS.DASH && /ISNUMBER\(SEARCH\("/.test(f.f) && f.a1 !== 'A' + DASH.REVIEW_LINE).map(f => f.f);
+  const bare = dashF.filter(f => /ISNUMBER\(SEARCH\("[^"]*",[^)]*\)\)\)>0/.test(f));
+  const capF = dash.getRange('G' + (DASH.ACCT_FIRST + 2)).getFormula();
+  if (dashF.length >= 6 && !bare.length && /ISNUMBER\(SEARCH\("Capital One",'Accounts'!\$C\$5:\$C\)\)\+0\)>0/.test(capF)) ok('Dashboard name tests are forced to numbers (+0) so a line matched by one name does not match every account'); else bad('boolean name test: ' + JSON.stringify([dashF.length, bare.slice(0, 1), capF.slice(0, 140)]));
+})();
+(function () {
   const cardF = dash.getRange('G' + DASH.ACCT_FIRST).getFormula();
   if (/SUMPRODUCT\(\(\(ISNUMBER\(SEARCH\("Independent Bank"/.test(cardF) && /ISNUMBER\(SEARCH\("Elan"/.test(cardF) && !/SUMIFS\('Accounts'/.test(cardF)) ok('Dashboard card line matches its issuer names with one OR test, so a card whose bank name contains two of them counts once'); else bad('card line formula: ' + cardF.slice(0, 160));
 })();

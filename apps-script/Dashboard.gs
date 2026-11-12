@@ -100,7 +100,10 @@ function buildDashboard_() {
   const crit = (pat, type) => '[ACCOUNTS.institution],"*' + q(pat) + '*",[ACCOUNTS.accountType],"' + q(type) + '",[ACCOUNTS.includeNW],"Yes"';
   // An account whose institution matches more than one pattern (e.g. "Elan … Independent Bank") must count
   // once: match any pattern with one OR test per row instead of adding a SUMIFS per pattern (2026-11-12).
-  const anyPat = (line) => '((' + pats(line).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0)';
+  // "+0" matters: with a single name the test would be TRUE/FALSE compared with 0, and in Sheets a
+  // boolean is greater than any number, so FALSE>0 is TRUE and every account would match (2026-11-12).
+  const namesHit = (line) => '((' + pats(line).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + '+0)>0)';
+  const anyPat = namesHit;
   const rowsOf = (line, type) => anyPat(line) + '*([ACCOUNTS.accountType]="' + q(type) + '")*([ACCOUNTS.includeNW]="Yes")';
   const countOf = (line, type) => 'SUMPRODUCT(' + rowsOf(line, type) + '*([ACCOUNTS.connectionId]<>""))';
   const sumOf = (line, type, col) => 'SUMPRODUCT(' + rowsOf(line, type) + '*N(+[ACCOUNTS.' + col + ']))';
@@ -116,7 +119,7 @@ function buildDashboard_() {
   // Savings shows what is yours to keep: the bank balance minus the Parked for Bills pots on that account
   // (money passing through for a bill). The row under it shows the bank balance itself, faded.
   const savingsLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
-  const anySav = savingsLine ? '(' + pats(savingsLine).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0' : 'FALSE';
+  const anySav = savingsLine ? namesHit(savingsLine) : 'FALSE';
   const savId = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Savings",' + anySav + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
   // each Parked for Bills pot on the account: starting + contributions − withdrawals, capped at its Target Amount when set
   const potAmt = '(N(+[FUNDS.starting])+N(+[FUNDS.contributions])-N(+[FUNDS.withdrawals]))';
@@ -141,7 +144,7 @@ function buildDashboard_() {
     const r = DASH.ACCT_FIRST + i;
     put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
     put('G' + r, F('=' + balanceOf(card, 'Credit Card'))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
-    const anyPat = '(' + pats(card).map(pt => 'ISNUMBER(SEARCH("' + q(pt) + '",[ACCOUNTS.institution]))').join('+') + ')>0';
+    const anyPat = namesHit(card);
     const idOf = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + anyPat + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
     mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))),"")'))
       .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_SPENDING);
