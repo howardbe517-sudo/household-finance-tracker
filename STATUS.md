@@ -38,7 +38,8 @@ AGENTS.md section 7)
   load: Consumers Energy electric history (18 bills, June 2025 to the bill
   due 2026-12-01) and City of Grand Rapids water and sewer (4 quarterly
   bills due January, April, July and October 2026; record each quarter's
-  own charges, late fees in Notes). The owner has not yet run the upgrade
+  own charges, late fees in the Late Fee column added by
+  `claude/fees-tracking`). The owner has not yet run the upgrade
   that creates the Utility Bills tab. Open: whether the October water bill
   is paid, and whether the owner pays water in full or by the city's
   monthly option.
