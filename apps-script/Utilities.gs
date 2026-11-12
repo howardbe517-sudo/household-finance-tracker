@@ -102,12 +102,14 @@ function buildUtilities_() {
   put(L(totCol) + UTILITIES.DATA_HEADER, '=IF(' + SEL + '=' + ALL + ',"All utilities","")');
   for (let k = 0; k < UTILITIES.MONTHS; k++) {
     const r = UTILITIES.DATA_FIRST + k;
-    put(L(dc) + r, '=EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),' + (k - (UTILITIES.MONTHS - 2)) + ')').setNumberFormat('mmm yy');
+    // the month is written as text ("Jul 25") so the chart treats the months as labels and prints every one
+    const mExpr = 'EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),' + (k - (UTILITIES.MONTHS - 2)) + ')';
+    put(L(dc) + r, '=TEXT(' + mExpr + ',"mmm yy")');
     types.forEach((u, j) => {
       const hdr = L(dc + 1 + j) + '$' + UTILITIES.DATA_HEADER;
-      put(L(dc + 1 + j) + r, F('=IF(' + hdr + '="","",LET(v,SUMIFS([UTIL.amount],[UTIL.utility],"' + u + '",[UTIL.month],$' + L(dc) + r + '),IF(v=0,"",v)))'));
+      put(L(dc + 1 + j) + r, F('=IF(' + hdr + '="","",LET(v,SUMIFS([UTIL.amount],[UTIL.utility],"' + u + '",[UTIL.month],' + mExpr + '),IF(v=0,"",v)))'));
     });
-    put(L(totCol) + r, F('=IF(' + L(totCol) + '$' + UTILITIES.DATA_HEADER + '="","",LET(v,SUMIFS([UTIL.amount],[UTIL.month],$' + L(dc) + r + '),IF(v=0,"",v)))'));
+    put(L(totCol) + r, F('=IF(' + L(totCol) + '$' + UTILITIES.DATA_HEADER + '="","",LET(v,SUMIFS([UTIL.amount],[UTIL.month],' + mExpr + '),IF(v=0,"",v)))'));
   }
   const dataLast = UTILITIES.DATA_FIRST + UTILITIES.MONTHS - 1;
   sh.getRange(UTILITIES.DATA_FIRST, dc + 1, UTILITIES.MONTHS, types.length + 1).setNumberFormat(FORMATS.currency);
@@ -140,6 +142,7 @@ function buildUtilities_() {
     .setNumHeaders(1)
     .setPosition(UTILITIES.CHART1_ROW, 1, 0, 0)
     .setOption('title', 'Cost by month').setOption('legend', { position: 'bottom' }).setOption('series', series)
+    .setOption('hAxis', { showTextEvery: 1, slantedText: true, slantedTextAngle: 45, textStyle: { fontSize: 10 } })
     .setOption('vAxis', { format: '$#,##0' }).setOption('interpolateNulls', false)
     .setOption('width', 900).setOption('height', 340)
     .build();
@@ -149,7 +152,8 @@ function buildUtilities_() {
     .setNumHeaders(1)
     .setPosition(UTILITIES.CHART2_ROW, 1, 0, 0)
     .setOption('title', 'This year vs last year').setOption('legend', { position: 'bottom' })
-    .setOption('series', { 0: { color: UTILITIES.LAST_YEAR_COLOR, lineWidth: 2, lineDashStyle: [6, 4], pointSize: 4 }, 1: { color: '#C2551F', lineWidth: 3, pointSize: 5 } })
+    .setOption('series', { 0: { color: UTILITIES.LAST_YEAR_COLOR, lineWidth: 2, lineDashStyle: [6, 4], pointSize: 4 }, 1: { color: UTILITIES.TOTAL_COLOR, lineWidth: 3, pointSize: 5 } })
+    .setOption('hAxis', { showTextEvery: 1 })
     .setOption('vAxis', { format: '$#,##0' }).setOption('interpolateNulls', false)
     .setOption('width', 900).setOption('height', 340)
     .build();
@@ -176,6 +180,41 @@ function buildUtilities_() {
   const prot = sh.protect().setDescription('The Utilities tab is calculated. Change Show in B3; bills live on the Utility Bills tab.');
   prot.setWarningOnly(true);
   prot.setUnprotectedRanges([sh.getRange(UTILITIES.SHOW_CELL)]);
+  try { refreshUtilityChartColors_(); } catch (e) { /* colours are cosmetic; the next edit of Show or the next sync sets them */ }
+}
+
+/**
+ * Give each line on the Utilities charts its utility's own colour. Sheets leaves an empty column
+ * out of a chart and numbers the remaining lines 0, 1, 2…, so the colours have to be set for the
+ * lines actually drawn: the utilities the Show choice includes that have at least one bill, then
+ * the dotted total when showing all. Runs when Show is edited, after every sync and on rebuild.
+ * `selection` is the new Show value when known (from the edit event).
+ */
+function refreshUtilityChartColors_(selection) {
+  const sh = ss_().getSheetByName(SHEETS.UTILITIES);
+  if (!sh) return;
+  const sel = selection || String(sh.getRange(UTILITIES.SHOW_CELL).getValue() || UTILITIES.ALL);
+  const all = sel === UTILITIES.ALL;
+  const bills = readTable_(tdef_('UTIL')).filter(b => b.utility && b.dueDate instanceof Date);
+  const has = {};
+  bills.forEach(b => { has[b.utility] = true; });
+  const drawn = utilityTypes_().filter(u => (all || u === sel) && has[u]);
+  const s1 = {};
+  drawn.forEach((u, i) => { s1[i] = { color: UTILITIES.COLORS[u] || COLORS.NAVY, lineWidth: 3, pointSize: 5 }; });
+  if (all && drawn.length) s1[drawn.length] = { color: UTILITIES.TOTAL_COLOR, lineWidth: 1, lineDashStyle: [2, 3], pointSize: 0 };
+  // year over year: last year grey and dashed, this year in the utility's colour (the total colour when showing all)
+  const y = new Date().getFullYear();
+  const mine = bills.filter(b => all || b.utility === sel);
+  const lastYear = mine.some(b => b.dueDate.getFullYear() === y - 1), thisYear = mine.some(b => b.dueDate.getFullYear() === y);
+  const thisStyle = { color: all ? UTILITIES.TOTAL_COLOR : (UTILITIES.COLORS[sel] || UTILITIES.TOTAL_COLOR), lineWidth: 3, pointSize: 5 };
+  const lastStyle = { color: UTILITIES.LAST_YEAR_COLOR, lineWidth: 2, lineDashStyle: [6, 4], pointSize: 4 };
+  const s2 = lastYear && thisYear ? { 0: lastStyle, 1: thisStyle } : (thisYear ? { 0: thisStyle } : { 0: lastStyle });
+  sh.getCharts().forEach(c => {
+    const row = c.getContainerInfo().getAnchorRow();
+    const series = row === UTILITIES.CHART1_ROW ? s1 : (row === UTILITIES.CHART2_ROW ? s2 : null);
+    if (series) sh.updateChart(c.modify().setOption('series', series).build());
+  });
+  return { drawn, series: s1, yearOverYear: s2 };
 }
 
 /**
@@ -226,5 +265,6 @@ function linkUtilityPayments_() {
     fresh.forEach(r => { r.id = def.idPrefix + '-' + String(next++).padStart(4, '0'); });
     writeRows_(def, fresh);
   }
+  if (fresh.length) { try { refreshUtilityChartColors_(); } catch (e) { /* cosmetic */ } }
   return { linked, created: fresh.length };
 }
