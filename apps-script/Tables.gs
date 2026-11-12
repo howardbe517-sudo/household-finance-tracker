@@ -242,13 +242,15 @@ function buildDebtsTop_(sh, def) {
   sh.getRange(1, 1).setValue(def.title).setFontColor(COLORS.WHITE).setFontSize(14).setFontWeight('bold');
   sh.setRowHeight(1, 32);
   styleNoteRow_(sh, 2, def.note, W);
+  // 2026-11-12 (the owner's choice): one household total instead of household / student loans / all debt, and no
+  // "Current Quarter Ends". A loan kept off the books (no balance entered, PSLF count only) simply adds nothing.
+  // The band used to hold seven boxes: empty the two rows first so boxes that no longer exist do not linger.
+  sh.getRange(4, 1, 2, W).breakApart().setValue('').setBackground(null).setFontWeight('normal').setFontSize(10)
+    .setBorder(false, false, false, false, false, false);
   const kpis = [
-    ['Household Debt (excl. student loans)', R('=SUMIFS([@@latestBalance],[@@group],"<>Student Loans")'), FORMATS.currency],
-    ['Student Loans', R('=SUMIFS([@@latestBalance],[@@group],"Student Loans")'), FORMATS.currency],
-    ['All Debt', R('=SUM([@@latestBalance])'), FORMATS.currency],
-    ['Estimated Monthly Interest (all)', R('=SUM([@@estMonthlyInterest])'), FORMATS.currency],
-    ['Total Minimum Payments (all)', R('=SUM([@@minPayment])'), FORMATS.currency],
-    ['Current Quarter Ends', '=DATE(YEAR(TODAY()),CEILING(MONTH(TODAY())/3)*3+1,0)', FORMATS.date],
+    ['Household Debt', R('=SUM([@@latestBalance])'), FORMATS.currency],
+    ['Estimated Monthly Interest', R('=SUM([@@estMonthlyInterest])'), FORMATS.currency],
+    ['Total Minimum Payments', R('=SUM([@@minPayment])'), FORMATS.currency],
     // PSLF: the lowest estimated count among each person's student loans (the loan furthest from 120)
     ['PSLF Progress (of 120)', R('=IFERROR(TEXTJOIN(" · ",TRUE,MAP(UNIQUE(FILTER([@@owner],([@@group]="Student Loans")*([@@pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([@@pslfEstimated],[@@owner],o,[@@group],"Student Loans")&"/120"))),"No count entered")'), '@', 11],
   ];

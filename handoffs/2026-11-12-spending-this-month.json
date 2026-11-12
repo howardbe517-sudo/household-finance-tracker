@@ -1,7 +1,7 @@
 {
   "title": "Spending and Summary Tabs",
   "key": "household-finance-tracker-2026-11-12-spending-this-month",
-  "subtitle": "Spending becomes the page for this month, with averages beside it and rent counted from the 1st. Account balances move to the top of Financial Summary. The Dashboard tab is retired. One upgrade, one tick, one sync.",
+  "subtitle": "Spending becomes the page for this month, with averages beside it and rent counted from the 1st. Financial Summary shows balances, then what comes in, what goes out and what is left. The Dashboard tab is retired. One upgrade, one tick, one sync.",
   "intro": [
     "After the pull request merges, the code is already in your Sheet. The upgrade redraws the Spending and Financial Summary tabs and puts the old Dashboard tab away.",
     "**What does not change:** no rows, balances or entered values. Transactions, Income, Debts and every other data tab stay exactly as they are. The month you had selected and your checklist ticks carry over to the Spending tab.",
@@ -20,7 +20,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.14.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.15.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
           "note": "This is the check that stops an upgrade from running on the old code."
         },
         {
@@ -83,12 +83,25 @@
       "heading": "Check the Financial Summary",
       "steps": [
         {
-          "text": "Open **Financial Summary**. The top now shows checking, savings (with the faded \"Savings + bill transfers\" line under it) and the three cards with what is owed and when each is due.",
-          "done": "The balances match what the Dashboard showed. Everything that was on this tab before is still there, a little lower on the page."
+          "text": "Open **Financial Summary**. The top shows checking, savings (with the faded \"Savings + bill transfers\" line under it) and the three cards with what is owed and when each is due.",
+          "done": "The balances match what the Dashboard showed."
+        },
+        {
+          "text": "Under the balances are four boxes for a typical month: **Coming In**, **Fixed Costs**, **Flexible Spending (average)** and **Likely Left Over**. The small line under each says what is in it.",
+          "note": "Fixed costs are every bill on Recurring Payments (rent and the nanny included), the debt payments, and your average gas, electric and water bill. Flexible is the average of everything else you spend. Until December it shows this month so far and says \"provisional\", because November is the first month with transactions.",
+          "done": "Coming In looks like a normal month of paychecks for the two of you, and Likely Left Over is Coming In minus the two boxes between them. If a number looks wrong, tell me which one."
+        },
+        {
+          "text": "Scroll to **Debts**. There are three boxes (Household Debt, Estimated Monthly Interest, Total Minimum Payments) and, underneath, a list of every debt that has a balance or a payment, largest first.",
+          "done": "The car loan is in the list. There is no separate student loan box."
+        },
+        {
+          "text": "Open the **Debts** tab. The boxes at the top are now Household Debt, Estimated Monthly Interest, Total Minimum Payments and PSLF Progress.",
+          "done": "\"Current Quarter Ends\" is gone and no empty boxes are left over on that row."
         },
         {
           "text": "Open **Finance Tracker → Run QA checks**.",
-          "done": "The lines about the Spending tab cards, the Typical Month and the Financial Summary accounts block all pass."
+          "done": "The lines about the Spending tab cards, the Typical Month, the Financial Summary cards and the accounts block all pass."
         }
       ]
     },

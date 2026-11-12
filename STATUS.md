@@ -59,6 +59,13 @@ AGENTS.md section 7)
   been given that subcategory.
 - Edge to watch: a rent payment made in the last days of the month before
   counts in that month, not the month it is for.
+- Build 1.15.0: the Financial Summary's four average cards became Coming
+  In, Fixed Costs, Flexible Spending (average) and Likely Left Over; its
+  debt section and the Debts tab band show one Household Debt total (no
+  student-loan split, no Current Quarter Ends) with the debts listed
+  underneath. The owner keeps his own student loans off the books and
+  tracks PSLF only.
+- Owner's note: he likes the Spending tab as it is now.
 
 ## Income from deposits (2026-11-12, build 1.12.0)
 - The owner will not upload every pay stub. A paycheck deposit in checking
