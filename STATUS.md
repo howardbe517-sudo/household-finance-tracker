@@ -30,19 +30,19 @@ AGENTS.md section 7)
   **Sync now** (step page `handoffs/2026-11-12-wrap-up.json`).
 
 ## Utilities (2026-11-12)
-- Pull request `claude/utilities-tab`: Utilities tab + Utility Bills table.
-  After the owner's upgrade, load the DTE gas history (18 bills, July 2025
-  to the bill due 2026-12-02, from the account-history PDF the owner sent;
-  the bill due 2026-09-03 was hidden on the page and worked out from DTE's
-  2026 total) straight into Utility Bills. Also received and ready to
-  load: Consumers Energy electric history (18 bills, June 2025 to the bill
-  due 2026-12-01) and City of Grand Rapids water and sewer (4 quarterly
-  bills due January, April, July and October 2026; record each quarter's
-  own charges, late fees in the Late Fee column added by
-  `claude/fees-tracking`). The owner has not yet run the upgrade
-  that creates the Utility Bills tab. Open: whether the October water bill
-  is paid, and whether the owner pays water in full or by the city's
-  monthly option.
+- Utilities tab, Utility Bills table and the Fees block on the Financial
+  Summary are merged, deployed and upgraded in the owner's Sheet.
+- Loaded into Utility Bills from the owner's statements on 2026-11-12 (data
+  lives in the Sheet only): 18 electric bills (Consumers Energy), 18 gas
+  bills (DTE) and 4 quarterly water and sewer bills (City of Grand Rapids),
+  with the three water late fees in Late Fee and one card processing fee
+  in Card Fee. Bills due in December (gas, electric) and the October water
+  bill are marked Due.
+- Open: whether the October water bill has been paid (a past-due notice
+  was issued); whether the owner pays water in full or by the city's
+  monthly option (installments would need matching to their quarter); how
+  DTE is paid (no DTE payment appears on a connected account; gas bills
+  have no Paid On dates); other card payments that carry fees.
 
 ## Open items
 - **American Express has sent no transactions** since it was connected on
