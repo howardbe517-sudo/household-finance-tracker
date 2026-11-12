@@ -42,6 +42,11 @@ AGENTS.md section 7)
   `handoffs/2026-11-12-income-from-deposits.json`). Expected result: the
   one unlinked payroll deposit gets its Income row and the QA flag
   "Missing Source Income ID" clears.
+- Pay stub reminder (build 1.12.1): Reminders lists a regular paycheck
+  when its last real stub is older than six months (App Setup setting).
+  With the stubs entered in late October and early November 2026, the
+  first reminders are due around May 2027. The Reminders formula for this
+  is not yet confirmed in Google.
 - Open: Valerie's pay has not been seen arriving in a connected account
   (her stub mentions a savings allocation). Until it is, her paychecks
   count only from stubs.

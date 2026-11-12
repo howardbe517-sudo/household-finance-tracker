@@ -672,7 +672,10 @@ function syncNow() {
 /**
  * What is due for the owner to do by hand: a student loan's PSLF official count never entered or
  * last confirmed more than SETTING_PSLF_REMINDER_MONTHS ago (default 12), and a person's credit
- * score never entered or older than SETTING_CREDIT_REMINDER_MONTHS (default 3). Returns [{ key, text }].
+ * score never entered or older than SETTING_CREDIT_REMINDER_MONTHS (default 3), and a regular
+ * paycheck (an active Expected Income row) whose last real pay stub is older than
+ * SETTING_PAYSTUB_REMINDER_MONTHS (default 6): paychecks count from the bank deposit, so a stub now
+ * and then is what keeps the gross pay and deductions right. Returns [{ key, text }].
  */
 function dueReminders_() {
   const ss = ss_();
@@ -695,6 +698,18 @@ function dueReminders_() {
     if (latest && latest.scoreDate >= creditCutoff) return;
     out.push({ key: 'credit:' + pn, text: 'Credit score for ' + pn + ': ' + (latest ? 'last entered ' + Utilities.formatDate(latest.scoreDate, 'America/Detroit', 'MMM d, yyyy') : 'never entered') + '. Enter the latest score on the Credit Scores tab (any free score you already look at).' });
   });
+  const stubRange = ss.getRangeByName('SETTING_PAYSTUB_REMINDER_MONTHS');
+  const stubMonths = stubRange && Number(stubRange.getValue()) > 0 ? Number(stubRange.getValue()) : 6;
+  const stubCutoff = addMonths_(monthStart_(new Date()), -stubMonths);
+  const expDef = tdef_('EXPECT');
+  if (ss.getSheetByName(expDef.sheet)) {
+    const income = readTable_(tdef_('INCOME'));
+    readTable_(expDef).filter(x => x.active === true && x.person && x.employer).forEach(x => {
+      const latest = latestStubDate_(income, x.person, x.employer);
+      if (latest && latest >= stubCutoff) return;
+      out.push({ key: 'stub:' + String(x.person).toLowerCase() + '|' + String(x.employer).trim().toLowerCase(), text: 'Pay stub for ' + x.person + ' at ' + x.employer + ': ' + (latest ? 'last one dated ' + Utilities.formatDate(latest, 'America/Detroit', 'MMM d, yyyy') : 'none entered yet') + '. Give Claude a recent stub and paste the block into Finance Tracker → Import from Claude, so gross pay and deductions stay accurate.' });
+    });
+  }
   return out;
 }
 

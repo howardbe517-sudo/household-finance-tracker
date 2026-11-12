@@ -658,6 +658,25 @@ if (/Credit score for Ben/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormul
 R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(1)`);
 if (R(`dueReminders_()`).filter(r => /^pslf:/.test(r.key)).length === 3) ok('a shorter reminder setting also flags the sample loan\'s older count'); else bad('reminder months setting ignored');
 R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12)`);
+// pay stub reminders: one per regular paycheck whose last real stub is older than the setting (default 6 months)
+{
+  const stubDue = () => R(`dueReminders_()`).filter(r => /^stub:/.test(r.key));
+  const sd1 = stubDue();
+  const hasKey = (list, emp) => list.some(r => r.key.indexOf('|' + emp) > 0);
+  if (hasKey(sd1, 'sample school district') && hasKey(sd1, 'lakeshore cannery') && !hasKey(sd1, 'sample employer a') && sd1.every(r => /^Pay stub for (Ben|Valerie) at /.test(r.text) && /last one dated/.test(r.text) && /Import from Claude/.test(r.text))) ok('reminders: an employer whose last pay stub is older than six months is due; one with a recent stub is not'); else bad('stub reminders: ' + JSON.stringify(sd1));
+  R(`ss_().getRangeByName('SETTING_PAYSTUB_REMINDER_MONTHS').setValue(12)`);
+  const sd2 = stubDue();
+  if (!hasKey(sd2, 'sample school district') && hasKey(sd2, 'lakeshore cannery')) ok('pay stub reminders follow the App Setup months setting'); else bad('stub months setting: ' + JSON.stringify(sd2.map(r => r.key)));
+  R(`ss_().getRangeByName('SETTING_PAYSTUB_REMINDER_MONTHS').setValue(6)`);
+  const rows = `[{ person: 'Ben', employer: 'Harbor Bakery', payDate: new Date(2026, 0, 9), notes: 'period 1/1' }, { person: 'ben', employer: 'harbor bakery ', payDate: new Date(2026, 2, 6), notes: '' }, { person: 'Ben', employer: 'Harbor Bakery', payDate: new Date(2026, 5, 5), notes: 'From bank deposit TX-000099 (no pay stub).' }, { person: 'Valerie', employer: 'Harbor Bakery', payDate: new Date(2026, 6, 1), notes: '' }]`;
+  const ls = R(`latestStubDate_(${rows}, 'Ben', 'Harbor Bakery')`);
+  if (ls && ls.getTime() === new Date(2026, 2, 6).getTime() && R(`latestStubDate_(${rows}, 'Ben', 'Somewhere Else')`) === null) ok('the last pay stub date ignores rows made from a bank deposit and other people, and is null when there is none'); else bad('latestStubDate_: ' + ls);
+  R(`writeRows_(TABLES.EXPECT, [{ id: 'EXP-901', person: 'Valerie', employer: 'No Stub Yet Farm', frequency: 'Biweekly', typicalTakeHome: 100, active: true, notes: 'SAMPLE test' }, { id: 'EXP-902', person: 'Ben', employer: 'Old Summer Job', frequency: 'Weekly', typicalTakeHome: 100, active: false, notes: 'SAMPLE test' }])`);
+  const sd3 = stubDue();
+  if (sd3.some(r => /No Stub Yet Farm: none entered yet/.test(r.text)) && !sd3.some(r => /Old Summer Job/.test(r.text))) ok('a regular paycheck with no stub at all is due; an inactive one is never asked for'); else bad('stub reminders for new/inactive: ' + JSON.stringify(sd3.map(r => r.text)));
+  const rf = g.__ss.getRangeByName('REMINDERS_BOX').getFormula();
+  if (/SETTING_PAYSTUB_REMINDER_MONTHS/.test(rf) && /MAP\('Expected Income'!/.test(rf) && /"<>\*From bank deposit\*"/.test(rf) && /Pay stub for /.test(rf) && /pay stubs after "&s&" months/.test(rf) && g.__ss.namedRanges.has('SETTING_PAYSTUB_REMINDER_MONTHS') && Number(g.__ss.getRangeByName('SETTING_PAYSTUB_REMINDER_MONTHS').getValue()) === 6) ok('the Reminders tab formula lists pay stubs per regular paycheck, skipping deposit-made rows; the months setting is on App Setup (6)'); else bad('reminders formula lacks pay stubs: ' + rf.slice(0, 300));
+}
 R(`PropertiesService.getScriptProperties().deleteProperty('REMINDER_LAST_SENT')`); g.__mails.splice(0, g.__mails.length); // earlier syncs in this run may already have emailed
 const sent1 = R(`sendReminders_()`), sent2 = R(`sendReminders_()`);
 if (sent1 === 1 && sent2 === 0 && g.__mails.length === 1 && g.__mails[0].to === 'tester@example.com' && /reminder\(s\)/.test(g.__mails[0].subject) && !/access-|PLAID_/.test(g.__mails[0].body) && g.__props.REMINDER_LAST_SENT) ok('reminder email sent to the owner once, then throttled for 30 days'); else bad('sendReminders_: ' + JSON.stringify([sent1, sent2, g.__mails]));

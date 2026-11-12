@@ -189,6 +189,7 @@ function buildAppSetup_(withSample) {
   kv('Week starts on (flexible-spending guidance)', 'Monday');
   kv('PSLF count reminder after (months)', 12, { name: 'SETTING_PSLF_REMINDER_MONTHS' });
   kv('Credit score reminder after (months)', 3, { name: 'SETTING_CREDIT_REMINDER_MONTHS' });
+  kv('Pay stub reminder after (months, per regular paycheck)', 6, { name: 'SETTING_PAYSTUB_REMINDER_MONTHS' });
   kv('Email reminders (sent by the nightly sync, at most monthly)', true, { name: 'SETTING_REMINDER_EMAIL', checkbox: true });
   kv('Debt payoff plan: extra toward debts each month (Payoff planner)', 0, { name: 'SETTING_DEBT_EXTRA_ALL', fmt: FORMATS.currency });
   kv('Debt payoff plan: order (Avalanche = highest rate first, Snowball = smallest balance first)', 'Avalanche', { name: 'SETTING_DEBT_EXTRA_METHOD' });
@@ -348,7 +349,7 @@ function buildStartHere_(withSample) {
   line('Bank feed: every night (and on Finance Tracker → Bank feed → Sync now) the connected banks send balances and new transactions. Balances update Accounts, Savings & Reserves, Debts and the Dashboard. Transactions land on Import Staging.');
   line('Rules: an Import Rule matches a bank description ("CAPITAL ONE AUTO" → Debt Payment on the car loan). A rule marked Auto-import sends matching rows straight to Transactions; others pre-fill the row for you. Make one from any staged row with Finance Tracker → Make a rule from the selected row. Every sync re-checks the waiting rows against the rules.');
   line('Review: for a row no rule knows, pick a Category and tick Reviewed?. The next sync imports it. A category with one subcategory (Childcare → Nanny) fills itself in; a wider category uses its "Other" line unless you pick one.');
-  line('Paychecks: nothing to do. When the deposit reaches checking and is imported as Income, the next sync adds it to Income at the amount deposited. For a known employer the gross pay and deductions are estimated from the last pay stub you gave; the take-home is always the real deposit. A pay stub is optional: give Claude one now and then (Finance Tracker → Import from Claude) to keep the gross and tax figures accurate, and it replaces the estimate for that paycheck.');
+  line('Paychecks: nothing to do. When the deposit reaches checking and is imported as Income, the next sync adds it to Income at the amount deposited. For a known employer the gross pay and deductions are estimated from the last pay stub you gave; the take-home is always the real deposit. The pay stub is where the gross pay and deductions come from, so Reminders asks for a fresh one per employer every six months (the number is on App Setup): give it to Claude and paste the block into Finance Tracker → Import from Claude. It replaces the estimate for that paycheck.');
   line('By hand, rarely: PSLF counts from studentaid.gov, credit scores, the HSA balance until it connects, the amount parked in savings when a new Parked for Bills pot starts. The Reminders tab nags about the first two.');
   r++;
 

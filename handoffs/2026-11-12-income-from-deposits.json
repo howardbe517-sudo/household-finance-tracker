@@ -1,7 +1,7 @@
 {
   "title": "Paychecks Without Pay Stubs",
   "key": "household-finance-tracker-2026-11-12-income-from-deposits",
-  "subtitle": "A paycheck now counts as income the day it lands in checking. No pay stub needed. One upgrade, then two quick checks.",
+  "subtitle": "A paycheck now counts as income the day it lands in checking, and Reminders asks for a fresh pay stub every six months. One upgrade, then a few quick checks.",
   "intro": [
     "After the pull request merges, the code is already in your Sheet. From then on every sync does this on its own: each paycheck deposit on Transactions gets its own row on the Income tab, at the amount that was deposited.",
     "**What is real and what is estimated:** the take-home is always the real deposit. For an employer you have given me a stub for, the gross pay and the taxes on that row are estimated from the last stub, in the same proportions. Those rows say \"From bank deposit\" in Notes.",
@@ -20,7 +20,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.12.0`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.12.1`. If it shows an older number, the new code has not arrived yet; wait a minute and reload the Sheet.",
           "note": "This is the check that stops an upgrade from running on the old code."
         },
         {
@@ -47,11 +47,25 @@
       ]
     },
     {
+      "heading": "The pay stub reminder",
+      "steps": [
+        {
+          "text": "Open the **Reminders** tab. It should read as it did before, with no error in the box.",
+          "note": "Nothing about pay stubs is listed yet, because the stubs you gave me are from late October and early November. The first pay stub reminders will appear around May 2027, one line per job.",
+          "done": "The box shows your list (or \"Nothing due\"), not an error such as #NAME? or #ERROR!. If you see an error, tell me what it says."
+        },
+        {
+          "text": "Open **App Setup** and find **Pay stub reminder after (months, per regular paycheck)**. It is set to `6`. Change the number if you want to be asked more or less often.",
+          "done": "The setting is there and reads 6."
+        }
+      ]
+    },
+    {
       "heading": "From here on",
       "steps": [
         {
           "text": "Nothing to do for a paycheck. I added two rules so the Martha's Vineyard and Rockford Schools payroll deposits import on their own; the next sync after a payday adds the paycheck to Income.",
-          "note": "A pay stub is optional. Giving me one every few months, or after a raise or a change in withholding, keeps the gross pay and tax figures on the Financial Summary accurate. When you do, it replaces the estimate for that paycheck instead of adding a second one."
+          "note": "The pay stub is where the gross pay and tax figures come from. The Reminders tab now asks for a fresh one for each job every six months, and after a raise or a change in withholding is also a good time. When you give me one, it replaces the estimate for that paycheck instead of adding a second one."
         },
         {
           "text": "Any other money that comes in and that you mark as Income on Import Staging (a gift, a refund, side income) is counted the same way, at the amount deposited.",

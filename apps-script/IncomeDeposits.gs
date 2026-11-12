@@ -202,6 +202,17 @@ function ensureIncomeFromDeposits_() {
   return out;
 }
 
+/** Pay date of the most recent real pay stub (not a row made from a bank deposit) for a person at an employer, or null. Pure. */
+function latestStubDate_(incomeRows, person, employer) {
+  const same = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  let latest = null;
+  (incomeRows || []).forEach(i => {
+    if (isDepositIncomeRow_(i) || !(i.payDate instanceof Date) || !same(i.person, person) || !same(i.employer, employer)) return;
+    if (!latest || i.payDate > latest) latest = i.payDate;
+  });
+  return latest;
+}
+
 /** One line for the sync and upgrade reports, or '' when nothing happened. */
 function describeIncomeFromDeposits_(r) {
   if (!r) return '';
