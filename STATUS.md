@@ -44,6 +44,18 @@ AGENTS.md section 7)
   1.12.0 and 1.12.1 if that upgrade has not been run yet. The new Spending
   formulas are not yet confirmed in Google.
 - The old Dashboard tab is hidden, not deleted; the owner may delete it.
+- Build 1.13.1: the three Spending tiles carry hover lists (fixed and
+  flexible, needs and wants, recurring bills), refreshed by every sync and
+  by edits to the month, Transactions and Recurring Payments.
+- In the Sheet: REC-013 Nanny, weekly, on Recurring Payments (the owner:
+  roughly the same every week), so the monthly plan's bills include
+  childcare and the flexible figure is lower by its monthly equivalent.
+- Open, asked 2026-11-12: how rent is paid. The owner wants rent to show as
+  a fixed amount in spending every month. Rent is on Recurring Payments
+  (REC-001) and in the plan's bills, but no rent transaction has reached
+  Transactions; a staged Venmo row the owner marked Housing may be part of
+  it. Decide between a rule on the real payment and recording rent
+  automatically each month once the owner answers.
 
 ## Income from deposits (2026-11-12, build 1.12.0)
 - The owner will not upload every pay stub. A paycheck deposit in checking

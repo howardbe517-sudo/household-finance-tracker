@@ -645,6 +645,8 @@ function syncAllConnections(opts) {
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
   // paycheck deposits count as income the day they land: each Income-type deposit without a paycheck gets its Income row
   try { results.income = ensureIncomeFromDeposits_(); } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); }
+  // the hover lists on the Spending tiles (fixed and flexible, needs and wants, recurring bills) follow what just came in
+  try { refreshSpendingNotes_(); } catch (e) { Logger.log('refreshSpendingNotes_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   if (results.rules && (results.rules.updated || results.rules.imported)) lines.push('Rules: ' + results.rules.updated + ' waiting row(s) updated, ' + results.rules.imported + ' imported');

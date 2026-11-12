@@ -147,6 +147,11 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   three months a year back), counting only months that have spending. The
   window sits in three calculated cells on `SPEND.HELP_ROW`. Nothing on the
   tab projects the rest of the month (the owner declined a pace figure).
+- The three Spending tiles carry hover notes written by
+  `refreshSpendingNotes_` (text from the pure `spendingNoteTexts_`): the
+  lists behind Fixed vs flexible, Needs vs wants and Recurring bills for the
+  Selected Month. Refreshed by sync, upgrade, build, reviewed-row import
+  and `onEdit` (month, Transactions, Recurring Payments).
 - Months are stored as first-of-month dates; IDs are never renamed; raw tables
   have no merged cells; financial rows are never hard-deleted.
 - Monthly Summary, Spending and the Financial Summary are read-only for the app; the app writes

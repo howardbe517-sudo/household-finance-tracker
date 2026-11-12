@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-12 — Hover lists on the Spending tiles
+- Why (the owner's request): hovering over Fixed vs flexible, Needs vs wants
+  or Recurring bills should show what is behind the number, and the lists
+  must stay current.
+- What changed: `refreshSpendingNotes_()` writes a note on each of the three
+  tiles (label, number and small line, so hovering anywhere on the tile
+  works). Fixed vs flexible and Needs vs wants list, for the Selected
+  Month, each group's total and its subcategories largest first with who
+  was paid; anything with no Spending Type or Need/Want yet is listed under
+  its own heading. Recurring bills lists every active row of Recurring
+  Payments by group with amount, frequency, due day and whether this
+  month's payment has been seen. The text comes from the pure function
+  `spendingNoteTexts_`. Notes are refreshed by every sync (nightly and Sync
+  now), by the upgrade and a new build, after reviewed rows are imported,
+  and from `onEdit` when the Month (Spending!B3), a relevant Transactions
+  cell or any Recurring Payments cell is edited. Each note says when it was
+  written. Only notes are written; no cell value changes.
+- `BUILD_VERSION` 1.13.1. No schema change.
+- Files changed in `apps-script/`: `Spending.gs`, `Main.gs`, `Plaid.gs`,
+  `Upgrade.gs`, `Import.gs`, `Reference.gs`, `Config.gs` (deployed on
+  merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once (the
+  same run as for 1.13.0); step page
+  `handoffs/2026-11-12-spending-this-month.json`.
+- In the Sheet (not in the repository): a Recurring Payments row for the
+  nanny, weekly, so childcare is counted in the monthly plan's bills.
+- Tested: Node (note text for all three tiles, refunds, deleted rows and
+  other months left out, unmarked rows listed, inactive bills left out,
+  notes written to the tile cells, a new bill appears after a refresh; 259
+  checks). Not yet confirmed in Google: notes written from the simple
+  `onEdit` trigger.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/spending-hover-notes`
+
 ## 2026-11-12 — Two tabs instead of three: Spending is "this month", Financial Summary is "where you stand"
 - Why (the owner's request): the Dashboard's month view belongs with
   spending, and its balances belong with the summary. The owner also asked

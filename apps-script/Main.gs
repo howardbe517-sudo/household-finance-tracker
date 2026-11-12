@@ -46,6 +46,7 @@ function buildWorkbook(options) {
   buildStartHere_(opts.sample);
   // Sample data
   if (opts.sample) writeSampleData_();
+  refreshSpendingNotes_();
 
   // Tab order, cleanup
   TAB_ORDER.forEach((name, i) => { ss.setActiveSheet(ss.getSheetByName(name)); ss.moveActiveSheet(i + 1); });
@@ -120,10 +121,12 @@ function rebuildWorkbookPrompt() {
 /* ---------- onEdit: change log + timestamps ---------- */
 
 function onEdit(e) {
+  let notesDue = false; // the Spending tiles' hover lists follow the month, the transactions and the recurring bills
   try {
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
     const name = sh.getName();
+    if (name === SHEETS.SPEND) { notesDue = e.range.getA1Notation() === SPEND.MONTH_CELL; return; }
     // Utilities → Show changed: recolour the chart lines for the utilities now drawn
     if (name === SHEETS.UTILITIES) { if (e.range.getRow() === 3 && e.range.getColumn() === 2) refreshUtilityChartColors_(e.value); return; }
     const key = Object.keys(TABLES).filter(k => TABLES[k].sheet === name && TABLES[k].logChanges)[0];
@@ -131,6 +134,10 @@ function onEdit(e) {
     const def = TABLES[key];
     const r = e.range;
     if (r.getRow() < def.firstRow) return;
+    if (r.getNumRows() === 1 && r.getNumColumns() === 1 && r.getColumn() <= def.columns.length) {
+      const ck = def.columns[r.getColumn() - 1].key;
+      notesDue = key === 'RECUR' || (key === 'TX' && ['date', 'description', 'amount', 'type', 'category', 'subcategory', 'needWant', 'spendingType', 'isDeleted'].indexOf(ck) >= 0);
+    }
     const now = new Date();
     const who = userEmail_();
     autoFillRow_(def, sh, r, e, who);
@@ -148,6 +155,7 @@ function onEdit(e) {
     appendChangeLog_({ table: key, recordId: id, field: c.h, oldValue: e.oldValue === undefined ? '' : e.oldValue, newValue: newVal, action: 'Update', user: who });
     stampTx_(def, sh, r, e, now, who);
   } catch (err) { /* never block the user's edit */ }
+  finally { if (notesDue) { try { refreshSpendingNotes_(); } catch (err2) { /* notes are a convenience */ } } }
 }
 
 /**
