@@ -241,6 +241,32 @@ function qaReport_() {
     if (selRow && !near(spentCard, selRow.spending)) problems.push('Spent So Far card ' + money(spentCard) + ' ≠ Monthly Summary ' + money(selRow.spending));
     if (problems.length) fail('Dashboard cards (' + selKey + '): ' + problems.join('; ')); else pass('Dashboard cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
 
+    // the accounts block: each line is the sum of the Accounts rows whose institution contains one of its names
+    const accRows = readTable_(tdef_('ACCOUNTS'));
+    const lineSum = (line, type) => {
+      const names = (line.patterns || [line.institution]).map(x => String(x).toLowerCase());
+      const rows = accRows.filter(a => a.accountType === type && a.includeNW === 'Yes' && names.some(n => String(a.institution || '').toLowerCase().indexOf(n) >= 0));
+      return { connected: rows.some(a => a.connectionId), sum: rows.reduce((s, a) => s + Number(a.currentBalance || 0), 0) };
+    };
+    const acctProblems = [];
+    DASH_ACCOUNTS.cards.forEach((card, i) => {
+      const exp = lineSum(card, 'Credit Card');
+      const shown = dash.getRange('G' + (DASH.ACCT_FIRST + i)).getValue();
+      if (exp.connected && !near(shown, exp.sum)) acctProblems.push(card.label + ' card shows ' + money(shown) + ' but its Accounts rows add up to ' + money(exp.sum));
+    });
+    DASH_ACCOUNTS.main.filter(l => l.type === 'Checking').forEach(line => {
+      const exp = lineSum(line, line.type);
+      const shown = dash.getRange('B' + (DASH.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(line))).getValue();
+      if (exp.connected && !near(shown, exp.sum)) acctProblems.push(line.label + ' shows ' + money(shown) + ' but its Accounts rows add up to ' + money(exp.sum));
+    });
+    const savLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
+    if (savLine) {
+      const exp = lineSum(savLine, 'Savings');
+      const shown = dash.getRange('B' + DASH.ACCT_WITH_BILLS).getValue();
+      if (exp.connected && !near(shown, exp.sum)) acctProblems.push('Savings + bill transfers shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
+    }
+    if (acctProblems.length) fail('Dashboard accounts block: ' + acctProblems.join('; ')); else pass('Dashboard accounts block: each card, checking and the savings bank balance match their Accounts rows');
+
     const awaiting = dash.getRange('A' + DASH.REVIEW_LINE).getFormula();
     if (awaiting.indexOf('Needs Review') >= 0) pass('Dashboard banner counts the rows waiting for review on Import Staging'); else fail('Dashboard review banner missing (row ' + DASH.REVIEW_LINE + ')');
     const flexLabel = dash.getRange('A' + DASH.FLEX_BAR).getDisplayValue();
