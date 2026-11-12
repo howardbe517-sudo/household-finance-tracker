@@ -14,10 +14,11 @@ const UTILITIES = {
   SHOW_CELL: 'B3', ALL: 'All utilities',
   TILE_LABEL: 5, TILE_VALUE: 6, TILE_SUB: 7,
   CHART1_ROW: 9, CHART2_ROW: 27, CHART_HEIGHT_ROWS: 17,
-  HIST_BAR: 45, HIST_HEADER: 46, HIST_FIRST: 47, HIST_ROWS: 120,
-  // chart data, calculated, to the right of the tab
-  DATA_COL: 12, MONTHS: 18, DATA_HEADER: 4, DATA_FIRST: 5, YOY_HEADER: 25, YOY_FIRST: 26,
-  LAST_ROW: 168,
+  HIST_BAR: 66, HIST_HEADER: 67, HIST_FIRST: 68, HIST_ROWS: 120,
+  // the numbers behind the charts, in two tables under them (the owner, 2026-11-12): cost by month
+  // in columns A onward, this year vs last year from column G
+  DATA_BAR: 45, DATA_COL: 1, MONTHS: 18, DATA_HEADER: 46, DATA_FIRST: 47, YOY_COL: 7, YOY_HEADER: 46, YOY_FIRST: 47,
+  LAST_ROW: 190,
   // one colour per utility, in UTILITY_TYPES order; the total line last
   COLORS: { 'Gas': '#C2551F', 'Electric': '#1F6FB2', 'Water & Sewer': '#1C8C8C', 'Trash & Recycling': '#6B7C8D', 'Internet': '#7A4FB5', 'Phone': '#3D8B37', 'Other': '#9A6B3F' },
   TOTAL_COLOR: '#1F2933', LAST_YEAR_COLOR: '#9AA8B6',
@@ -38,7 +39,7 @@ function buildUtilities_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   const types = utilityTypes_();
   const dataCols = 1 + types.length + 1; // month, each utility, total
-  ensureSheetSize_(sh, UTILITIES.LAST_ROW, UTILITIES.DATA_COL + dataCols);
+  ensureSheetSize_(sh, UTILITIES.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
   [110, 130, 160, 105, 70, 95, 90, 75, 110, 30, 30].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, UTILITIES.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
@@ -87,10 +88,11 @@ function buildUtilities_() {
   });
   sh.setRowHeight(UTILITIES.TILE_VALUE, 40); sh.setRowHeight(UTILITIES.TILE_SUB, 30);
 
-  /* --- chart data (calculated) to the right: cost by month, and this year vs last year --- */
+  /* --- the numbers behind the charts, under them: cost by month (left) and this year vs last year (right) --- */
   const dc = UTILITIES.DATA_COL;
+  const yc = Math.max(UTILITIES.YOY_COL, dc + dataCols + 1);
   const L = (c) => colLetter_(c);
-  put(L(dc) + (UTILITIES.DATA_HEADER - 1), 'Chart data (calculated)').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  styleSectionBar_(sh.getRange('A' + UTILITIES.DATA_BAR + ':I' + UTILITIES.DATA_BAR), 'The numbers behind the charts — cost by month, and this year against last year');
   put(L(dc) + UTILITIES.DATA_HEADER, 'Month');
   types.forEach((u, j) => {
     // a utility the Show choice leaves out, or one with no bills yet, gets no header and no values, so the chart draws no line for it
@@ -109,16 +111,25 @@ function buildUtilities_() {
   }
   const dataLast = UTILITIES.DATA_FIRST + UTILITIES.MONTHS - 1;
   sh.getRange(UTILITIES.DATA_FIRST, dc + 1, UTILITIES.MONTHS, types.length + 1).setNumberFormat(FORMATS.currency);
-  put(L(dc) + UTILITIES.YOY_HEADER, 'Month');
-  put(L(dc + 1) + UTILITIES.YOY_HEADER, '=YEAR(TODAY())-1');
-  put(L(dc + 2) + UTILITIES.YOY_HEADER, '=YEAR(TODAY())');
+  put(L(yc) + UTILITIES.YOY_HEADER, 'Month');
+  put(L(yc + 1) + UTILITIES.YOY_HEADER, '=YEAR(TODAY())-1');
+  put(L(yc + 2) + UTILITIES.YOY_HEADER, '=YEAR(TODAY())');
   for (let m = 0; m < 12; m++) {
     const r = UTILITIES.YOY_FIRST + m;
-    put(L(dc) + r, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m]);
-    [1, 2].forEach(off => put(L(dc + off) + r, F('=LET(v,SUMIFS([UTIL.amount],[UTIL.utility],' + crit + ',[UTIL.month],DATE(' + L(dc + off) + '$' + UTILITIES.YOY_HEADER + ',' + (m + 1) + ',1)),IF(v=0,"",v))')));
+    put(L(yc) + r, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m]);
+    [1, 2].forEach(off => put(L(yc + off) + r, F('=LET(v,SUMIFS([UTIL.amount],[UTIL.utility],' + crit + ',[UTIL.month],DATE(' + L(yc + off) + '$' + UTILITIES.YOY_HEADER + ',' + (m + 1) + ',1)),IF(v=0,"",v))')));
   }
-  sh.getRange(UTILITIES.YOY_FIRST, dc + 1, 12, 2).setNumberFormat(FORMATS.currency);
-  sh.getRange(UTILITIES.DATA_HEADER - 1, dc, UTILITIES.YOY_FIRST + 12 - (UTILITIES.DATA_HEADER - 1), dataCols).setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  sh.getRange(UTILITIES.YOY_FIRST, yc + 1, 12, 2).setNumberFormat(FORMATS.currency);
+  // dress both as tables: header row, borders, months in bold
+  const dataHdr = sh.getRange(UTILITIES.DATA_HEADER, dc, 1, dataCols);
+  styleHeader_(dataHdr); dataHdr.setHorizontalAlignment('center').setWrap(true);
+  sh.getRange(UTILITIES.DATA_FIRST, dc, UTILITIES.MONTHS, 1).setFontWeight('bold').setHorizontalAlignment('left');
+  sh.getRange(UTILITIES.DATA_HEADER, dc, UTILITIES.MONTHS + 1, dataCols).setBorder(true, true, true, true, true, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  const yoyHdr = sh.getRange(UTILITIES.YOY_HEADER, yc, 1, 3);
+  styleHeader_(yoyHdr); yoyHdr.setHorizontalAlignment('center').setNumberFormat('0');
+  sh.getRange(UTILITIES.YOY_FIRST, yc, 12, 1).setFontWeight('bold');
+  sh.getRange(UTILITIES.YOY_HEADER, yc, 13, 3).setBorder(true, true, true, true, true, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.setRowHeight(UTILITIES.DATA_HEADER, 32);
 
   /* --- charts --- */
   const series = {};
@@ -134,7 +145,7 @@ function buildUtilities_() {
     .build();
   sh.insertChart(c1);
   const c2 = sh.newChart().setChartType(Charts.ChartType.LINE)
-    .addRange(sh.getRange(UTILITIES.YOY_HEADER, dc, 13, 3))
+    .addRange(sh.getRange(UTILITIES.YOY_HEADER, yc, 13, 3))
     .setNumHeaders(1)
     .setPosition(UTILITIES.CHART2_ROW, 1, 0, 0)
     .setOption('title', 'This year vs last year').setOption('legend', { position: 'bottom' })
