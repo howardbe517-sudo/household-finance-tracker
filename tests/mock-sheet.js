@@ -119,9 +119,10 @@ class Sheet {
   protect() { const p = new Protection(this); this.protections.push(p); return p; }
   getProtections() { return this.protections.slice(); }
   setTabColor() { return this; }
-  newChart() { const sheet = this; const c = { ranges: [], options: {}, type: null, pos: null }; const b = { setChartType(t) { c.type = t; return b; }, addRange(r) { c.ranges.push(r); return b; }, setNumHeaders() { return b; }, setPosition(r, col) { c.pos = [r, col]; return b; }, setOption(k, v) { c.options[k] = v; return b; }, build() { return c; } }; return b; }
+  newChart() { const sheet = this; const c = { ranges: [], options: {}, type: null, pos: null }; const b = { setChartType(t) { c.type = t; return b; }, addRange(r) { c.ranges.push(r); return b; }, setNumHeaders() { return b; }, setPosition(r, col) { c.pos = [r, col]; return b; }, setOption(k, v) { c.options[k] = v; return b; }, build() { return c; } }; c.modify = () => b; c.getContainerInfo = () => ({ getAnchorRow: () => c.pos[0], getAnchorColumn: () => c.pos[1] }); return b; }
   insertChart(c) { (this.charts = this.charts || []).push(c); return this; }
   getCharts() { return (this.charts || []).slice(); }
+  updateChart(c) { return this; }
   removeChart(c) { this.charts = (this.charts || []).filter(x => x !== c); return this; }
   activate() { this.ss.active = this; return this; }
 }

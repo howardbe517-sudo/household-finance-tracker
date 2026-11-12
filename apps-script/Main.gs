@@ -125,6 +125,8 @@ function onEdit(e) {
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
     const name = sh.getName();
+    // Utilities → Show changed: recolour the chart lines for the utilities now drawn
+    if (name === SHEETS.UTILITIES) { if (e.range.getRow() === 3 && e.range.getColumn() === 2) refreshUtilityChartColors_(e.value); return; }
     const key = Object.keys(TABLES).filter(k => TABLES[k].sheet === name && TABLES[k].logChanges)[0];
     if (!key) return;
     const def = TABLES[key];

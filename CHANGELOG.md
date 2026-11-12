@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-12 — Utilities charts: every month labelled, each line in its own colour
+- What changed: (1) the cost-by-month chart printed every third month on
+  its axis; the month column is now text ("Jul 25") and the axis is told to
+  print every label, slanted, so each bill has its month. (2) Sheets leaves
+  an empty column out of a chart and renumbers the remaining lines, so a
+  utility shown alone took the first colour in the list (Electric drew in
+  the gas colour). New `refreshUtilityChartColors_` sets the colours for
+  the lines actually drawn: on rebuild, after a sync files a bill, and from
+  `onEdit` when Show (B3) changes. The year-over-year chart's current-year
+  line takes the selected utility's colour. `BUILD_VERSION` 1.11.3.
+- Files changed in `apps-script/`: `Utilities.gs`, `Main.gs`, `Config.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once.
+- Tested: Node (text month labels and the axis option; colours for All,
+  one utility, and a utility with no bills; suite green). Not yet seen in
+  Google: the slanted labels and the recolouring when Show is changed.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/utilities-month-labels`
+
 ## 2026-11-12 — Utilities: the chart numbers move under the charts
 - What changed: the calculated chart data sat to the right of the tab
   (columns L onward), which the owner found awkward. It is now two styled
