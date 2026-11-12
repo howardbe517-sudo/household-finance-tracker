@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-11-12 — The nightly sync refreshes balances on quiet nights
+- What changed: on 2026-11-11 the nightly sync recorded "0 balance(s)" for
+  every card and bank login, so the Dashboard kept the balances from the
+  last Sync now. When a bank has no new transactions, Plaid's
+  `/transactions/sync` reply carries no balances, and the sync only took
+  balances from that reply. It now asks `/accounts/get` on its own whenever
+  the reply brought none (the cached read; Sync now still makes its live
+  pull on top). `BUILD_VERSION` 1.9.3.
+- Also done by hand in the owner's Sheet: the Elan card moved to its own
+  Elan login (it carries the purchases; the Independent Bank login only
+  showed the balance), its Accounts and Debts rows renamed to the card's
+  last four digits, and Import Rule RULE-007 so the card's side of a
+  payment from checking imports as a Transfer.
+- Files changed in `apps-script/`: `Plaid.gs`, `Config.gs` (deployed on
+  merge). Nothing to run; the next nightly sync shows it.
+- Tested: Node (a transactions reply with nothing new and no balances leads
+  to one cached balance read and updated Accounts rows, no live pull; suite
+  green). Not yet seen in Google: the next nightly run.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/nightly-balances`
+
 ## 2026-11-10 — Parked for Bills counts the current cycle only, capped at one payment
 - What changed: the owner wants anything beyond one car payment to count
   as savings. A **Parked for Bills** fund now holds only the tagged deposits

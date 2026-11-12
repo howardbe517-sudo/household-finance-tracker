@@ -265,6 +265,7 @@ g.__fetchHandler.fn = (url, payload) => {
         { transaction_id: 't5', account_id: 'pa2', amount: -200, date: dIso(2), name: 'PAYMENT THANK YOU', pending: false } ], modified: [], removed: [], next_cursor: 'c2', has_more: false, accounts } };
     }
     if (syncPhase === 2) return { body: { added: [{ transaction_id: 't6', account_id: 'pa2', amount: 61.5, date: dIso(1), name: 'SAMPLE SUPERSTORE #9', merchant_name: 'Sample Superstore', pending: false, pending_transaction_id: 't2' }], modified: [], removed: [{ transaction_id: 't1', account_id: 'pa1' }], next_cursor: 'c3', has_more: false, accounts } };
+    if (syncPhase === 4) return { body: { added: [], modified: [], removed: [], next_cursor: 'c3', has_more: false, accounts: [] } }; // what Plaid really sends when nothing is new
     return { body: { added: [], modified: [], removed: [], next_cursor: 'c3', has_more: false, accounts } };
   }
   return { code: 404, body: { error_code: 'NOT_FOUND', error_message: url } };
@@ -325,6 +326,12 @@ syncPhase = 3;
 const before3 = R(`readTable_(TABLES.STAGING).length`);
 R(`syncAllConnections()`);
 if (R(`readTable_(TABLES.STAGING).length`) === before3) ok('a sync with nothing new adds no rows'); else bad('idempotent sync failed');
+// nothing new and no balances in the reply: the nightly run asks for balances on their own
+syncPhase = 4;
+const quiet = R(`syncAllConnections()`)[0];
+const quietBal = R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.externalAccountId==='pa1'; })[0].currentBalance`);
+if (quiet.balances === 2 && near(quietBal, 1234.56) && g.__liveCalls === 0) ok('a quiet night with no balances in the transactions reply still refreshes balances (separate cached read, no live pull)'); else bad('quiet-night balances: ' + JSON.stringify([quiet.balances, quietBal, g.__liveCalls]));
+syncPhase = 3;
 // a rule typed by hand after rows arrived takes effect on the next sync (no menu visit needed)
 const openRow = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.status==='Needs Review' && !s.ruleId && s.rawDescription; })[0]`);
 R(`writeRows_(TABLES.RULES, [{ id: nextId_(TABLES.RULES, 3), pattern: ${JSON.stringify(openRow.rawDescription)}, matchType: 'Exact', type: 'Expense', category: 'Food', subcategory: 'Groceries', spendingType: 'Flexible', autoImport: true, splitRequired: false, active: true, createdAt: new Date() }])`);

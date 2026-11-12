@@ -495,8 +495,15 @@ function syncConnection_(conn, opts) {
       const counts = ingestItems_('Plaid', items, ctx);
       summary.added = counts.added; summary.updated = counts.updated; summary.autoImported = counts.autoImported; summary.skippedBeforeStart = counts.skippedBeforeStart;
       summary.removed = removeItems_(removed.map(r => r.transaction_id));
-      if (lastAccounts) summary.balances = updateBalances_(lastAccounts, accountMap);
+      if (lastAccounts && lastAccounts.length) summary.balances = updateBalances_(lastAccounts, accountMap);
       saveCursor_(conn.id, cursor); // only after every write succeeded
+      // Plaid sends no balances with a /transactions/sync reply that has nothing new (seen 2026-11-11 on
+      // every card and bank login), so the nightly run asks for them on their own; Sync now's live pull
+      // below replaces these with fresher figures anyway.
+      if (!summary.balances && accounts.length) {
+        const acc = plaidCall_('/accounts/get', { access_token: token });
+        summary.balances = updateBalances_(acc.accounts, accountMap);
+      }
     } else {
       const res = plaidCall_('/accounts/get', { access_token: token });
       summary.balances = updateBalances_(res.accounts, accountMap);
