@@ -297,15 +297,24 @@ function qaReport_() {
     const pStart = addMonths_(pEnd, -(nMonths - 1));
     const inP = (r) => r.month instanceof Date && r.month >= pStart && r.month <= pEnd;
     const counted = Math.max(1, Object.keys(inc.filter(inP).reduce((o, i) => { o[mk(i.month)] = true; return o; }, {})).length);
-    const avgGross = sumWhere(inc, inP, 'gross') / counted, avgTake = sumWhere(inc, inP, 'takeHome') / counted;
-    const avgSpend = sumWhere(summary, inP, 'spending') / counted, avgSave = sumWhere(summary, inP, 'totalSavings') / counted;
-    const cardsRow = fs.getRange('A' + FINSUM.CARD_VALUE + ':H' + FINSUM.CARD_VALUE).getValues()[0];
+    // the four cards: coming in, fixed costs, flexible (average), likely left over
+    const V = FINSUM.CARD_VALUE;
+    const shown = { take: fs.getRange('A' + V).getValue(), fixed: fs.getRange('C' + V).getValue(), flex: fs.getRange('E' + V).getValue(), left: fs.getRange('G' + V).getValue() };
+    const expTake = readTable_(tdef_('EXPECT')).reduce((s, x) => s + (typeof x.monthlyTakeHome === 'number' ? x.monthlyTakeHome : 0), 0);
+    const recurRows = readTable_(tdef_('RECUR')).filter(r => r.active === true && typeof r.monthlyEq === 'number');
+    const bills = recurRows.filter(r => r.group !== 'Loans').reduce((s, r) => s + r.monthlyEq, 0);
+    const loans = recurRows.filter(r => r.group === 'Loans').reduce((s, r) => s + r.monthlyEq, 0);
+    const debtRows = readTable_(tdef_('DEBTS'));
+    const extraAll = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL');
+    const debtPay = Math.max(debtRows.reduce((s, d) => s + Number(d.minPayment || 0), 0), loans) + debtRows.reduce((s, d) => s + Number(d.plannedExtra || 0), 0) + (extraAll ? Number(extraAll.getValue()) || 0 : 0);
+    const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? averageUtilities_(readTable_(tdef_('UTIL')), today) : 0;
+    const flexT = typicalFlexible_(tx, today);
     const fsProblems = [];
-    if (!near(cardsRow[0], avgGross)) fsProblems.push('avg gross ' + money(cardsRow[0]) + ' ≠ ' + money(avgGross));
-    if (!near(cardsRow[2], avgTake)) fsProblems.push('avg take-home ' + money(cardsRow[2]) + ' ≠ ' + money(avgTake));
-    if (!near(cardsRow[4], avgSpend)) fsProblems.push('avg spending ' + money(cardsRow[4]) + ' ≠ ' + money(avgSpend));
-    if (!near(cardsRow[6], avgSave)) fsProblems.push('avg savings ' + money(cardsRow[6]) + ' ≠ ' + money(avgSave));
-    if (fsProblems.length) fail('Financial Summary averages (' + nMonths + '-month window, ' + counted + ' with paychecks): ' + fsProblems.join('; ')); else pass('Financial Summary averages (' + nMonths + '-month window ending ' + mk(pEnd) + ', ' + counted + ' month(s) with paychecks) match Income and Monthly Summary');
+    if (!near(shown.take, expTake)) fsProblems.push('coming in ' + money(shown.take) + ' ≠ ' + money(expTake) + ' from Expected Income');
+    if (!near(shown.fixed, bills + debtPay + utilAvg, 0.02)) fsProblems.push('fixed costs ' + money(shown.fixed) + ' ≠ ' + money(bills + debtPay + utilAvg) + ' (bills ' + money(bills) + ', debt payments ' + money(debtPay) + ', utilities ' + money(utilAvg) + ')');
+    if (!near(shown.flex, flexT.average, 0.02)) fsProblems.push('flexible ' + money(shown.flex) + ' ≠ ' + money(flexT.average) + ' recomputed from Transactions (' + (flexT.months ? flexT.months + ' month(s)' : 'this month so far') + ')');
+    if (!near(shown.left, Number(shown.take || 0) - Number(shown.fixed || 0) - Number(shown.flex || 0), 0.02)) fsProblems.push('left over ' + money(shown.left) + ' is not coming in − fixed − flexible');
+    if (fsProblems.length) fail('Financial Summary cards: ' + fsProblems.join('; ')); else pass('Financial Summary cards: coming in ' + money(shown.take) + ' − fixed ' + money(shown.fixed) + ' − flexible ' + money(shown.flex) + ' = left over ' + money(shown.left) + ', each matching its tables');
     const groups = [['A', 'B', 'C', 'Ben'], ['D', 'E', 'F', 'Valerie'], ['G', 'H', 'I', null]];
     const hdrProblems = [], fedProblems = [];
     groups.forEach(g => {

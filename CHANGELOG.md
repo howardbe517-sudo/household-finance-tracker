@@ -1,5 +1,55 @@
 # CHANGELOG
 
+## 2026-11-12 — Financial Summary: coming in, going out, left over; one household debt figure
+- Why (the owner's request): the four 3-month average cards are no longer
+  needed now that the Spending tab carries the averages. The summary
+  should say at a glance what comes in each month, what is typically
+  spent, and what is likely left over. On debt: one household figure with
+  the debts listed underneath (so the car loan shows), no student-loan
+  split, keep estimated monthly interest and total minimum payments, and
+  drop "Current Quarter Ends" from the Debts tab.
+- Financial Summary, rows 10–13: four cards replace the averages.
+  - Coming In (typical month): the sum of Typical Month Take-Home on
+    Expected Income, with each person's share in the small line.
+  - Fixed Costs: active Recurring Payments outside the Loans group, plus
+    the Monthly Plan's debt-payment figure, plus the average gas, electric
+    and water bill over the last 12 months of Utility Bills (those vary,
+    so they are not on Recurring Payments).
+  - Flexible Spending (average): spending not marked Fixed, averaged over
+    the months among the last six full ones that have any spending. Until
+    one exists it shows this month so far and says so.
+  - Likely Left Over: coming in − fixed − flexible; red below zero; the
+    small line says how much of it is planned savings.
+  The months control for the sections further down (income by person,
+  payroll deductions, children) moved to row 14, its window cells to row
+  15 (`FINSUM.MONTHS_CELL` B14, `WINDOW_ROW` 15); named ranges follow.
+- Financial Summary, Debts: three cards (Household Debt = every debt on
+  the Debts tab, Estimated Monthly Interest, Total Minimum Payments), then
+  a list of each debt with a balance or a payment (balance, rate,
+  minimum, estimated interest, next due), largest first. The Student
+  Loans and All Debt cards are gone. Every row below moved down 12
+  (`FINSUM` constants).
+- Debts tab band: four boxes (Household Debt, Estimated Monthly Interest,
+  Total Minimum Payments, PSLF Progress). Household / Student Loans / All
+  Debt became one total and Current Quarter Ends is removed; the upgrade
+  empties the boxes that no longer exist. A loan kept on the tab with no
+  balance (PSLF count only) adds nothing to the total.
+- Not changed: no table, column, header or named range renamed; Monthly
+  Summary, Monthly Review and the AI snapshot still keep student loans
+  apart where they did.
+- Run QA: the averages check is replaced by one that recomputes the four
+  cards (`typicalFlexible_`, `averageUtilities_`, the tables) and compares.
+- `BUILD_VERSION` 1.15.0. No schema change.
+- Files changed in `apps-script/`: `FinancialSummary.gs`, `Tables.gs`,
+  `QA.gs`, `Reference.gs`, `Config.gs` (deployed on merge). Run **Finance
+  Tracker → Upgrade workbook (keeps data)** once; step page
+  `handoffs/2026-11-12-spending-this-month.json`.
+- Tested: Node (card formulas, debt section and list, Debts band incl.
+  an upgrade from the seven-box band, the two pure helpers; 271 checks;
+  safety check). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/summary-in-out-left`
+
 ## 2026-11-12 — Rent counts as a fixed cost from the 1st: bills that record themselves
 - Why (the owner's request): rent never changes and should show in Spending
   as a fixed amount every month. It is paid by Venmo, in one payment or

@@ -25,7 +25,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
-| Financial Summary | Where the household stands: tonight's balances (the accounts block, rows 3–8), then averages over the last N full months (B10), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Children, Fees, Net worth | — | Columns A:I; accounts block A:D / F:I; `FinancialSummary.gs`, constants in `FINSUM` |
+| Financial Summary | Where the household stands: tonight's balances (the accounts block, rows 3–8), then four cards for a typical month (coming in, fixed costs, average flexible spending, likely left over), the months control for the lower sections (B14), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Children, Fees, Net worth | — | Columns A:I; accounts block A:D / F:I; `FinancialSummary.gs`, constants in `FINSUM` |
 | Spending | How this month is going: Month (B3) and Compare with (E3) inputs, review banner, Expected Take-Home and Spent So Far, the flexible line, three tiles, Current Flexible Spending (follows today), categories beside a typical month, recurring payments, flexible subcategories, six months, average spending by category (bars), Monthly Review Checklist | — | Columns A:I; `Spending.gs`, constants in `SPEND`. The Dashboard tab was retired on 2026-11-12 (build 1.13.0); an existing one is emptied and hidden by the upgrade |
 | Income | Paycheck database, authoritative for gross, deductions, take-home | 4 | A:S (S = Linked Deposit TX, calculated) |
 | Transactions | Master ledger | 4 | A:AF, 32 columns; Validation Flag Z, Split Difference AE |
@@ -159,6 +159,12 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   only to raw tables and never to calculated columns.
 - Debt stays off the everyday Spending tab; card balances are in the accounts
   block on the Financial Summary.
+- Household Debt on the Financial Summary and the Debts band is every debt
+  on the Debts tab (2026-11-12: no student-loan split in those two places;
+  a loan with no balance entered adds nothing). The Financial Summary's
+  typical month: coming in = Expected Income; fixed = recurring bills +
+  the plan's debt payments + average utilities; flexible = average of
+  spending not marked Fixed over months that have spending.
   Student loans (Debt Group = Student Loans) are totalled separately from
   household debt everywhere except net worth, which counts all debt.
 - Sample data is removed only through Clear sample data…, never by rebuilding
