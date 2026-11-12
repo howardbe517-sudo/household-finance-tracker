@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-11-12 — Reminder: a fresh pay stub per employer every six months
+- Why: paychecks now count from the bank deposit, and the stub is what the
+  gross pay and deductions are estimated from. The owner asked for a
+  reminder about every six months to upload one so the deductions stay
+  right.
+- What changed: `dueReminders_()` (menu, monthly email) and the Reminders
+  tab formula list each regular paycheck (an active Expected Income row)
+  whose last real pay stub is older than the setting, or that has none.
+  Rows made from a bank deposit do not count as stubs. New App Setup
+  setting "Pay stub reminder after (months, per regular paycheck)",
+  default 6, named `SETTING_PAYSTUB_REMINDER_MONTHS`, kept across upgrades.
+  New pure helper `latestStubDate_`. Start Here mentions the reminder.
+  `BUILD_VERSION` 1.12.1. No table schema change; one new named range.
+- Files changed in `apps-script/`: `Plaid.gs`, `Dashboard.gs`,
+  `IncomeDeposits.gs`, `Reference.gs`, `Upgrade.gs`, `Config.gs` (deployed
+  on merge). Run **Finance Tracker → Upgrade workbook (keeps data)** once
+  (the same run as for 1.12.0 if that has not been done yet); step page
+  `handoffs/2026-11-12-income-from-deposits.json`.
+- Tested: Node (due after six months, not due with a recent stub, follows
+  the setting, deposit-made rows ignored, no stub at all is due, inactive
+  paychecks never asked for, formula and setting present). Not yet
+  confirmed in Google: the Reminders tab formula uses MAP/LAMBDA with a
+  wildcard MAXIFS, which the mock does not evaluate.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/paystub-reminder`
+
 ## 2026-11-12 — Paychecks count from the bank deposit; no pay stub needed
 - Why: the owner will not upload every pay stub. Income is counted only
   from the Income tab, so until now a paycheck that reached checking did
