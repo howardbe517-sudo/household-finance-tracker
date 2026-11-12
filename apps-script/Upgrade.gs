@@ -67,19 +67,21 @@ function upgradeWorkbookLocked_() {
   const settings = readSettings_();
   withRetry_('App Setup', () => { buildAppSetup_(settings.samplePresent); restoreSettings_(settings); });
   const goals = readGoals_(); // wherever they are now: the Goals tab, or the Dashboard panel of an older build
-  const dash = readDashboardInputs_();
+  const dash = readDashboardInputs_(); // Selected Month and checklist ticks, wherever they are now: the Spending tab, or the Dashboard tab of an older build
+  const compare = (ss.getRangeByName('SPEND_COMPARE') || { getValue: () => '' }).getValue();
   withRetry_('Debts pause labels', () => refreshDebtPauseFormats_());
   const exp = withRetry_('Expected Income rows', () => ensureExpectedIncome_());
   const fnd = withRetry_('Savings & Reserves rows', () => ensureFunds_());
   if (fnd && fnd.created) report.push('Savings & Reserves: ' + fnd.created + ' fund row(s) created from savings, investment, retirement and HSA accounts');
   if (exp && exp.created) report.push('Expected Income: ' + exp.created + ' row(s) created from the paychecks on Income');
-  withRetry_('Dashboard', () => { buildDashboard_(); restoreDashboardInputs_(dash); });
   const fsMonths = (ss.getRangeByName('FINSUM_MONTHS') || { getValue: () => '' }).getValue();
   withRetry_('Financial Summary', () => { buildFinancialSummary_(); if (Number(fsMonths) >= 1) ss.getRangeByName('FINSUM_MONTHS').setValue(Number(fsMonths)); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
   if (!ss.getSheetByName(SHEETS.SPEND)) report.push('Added tab: ' + SHEETS.SPEND);
-  withRetry_('Spending', () => buildSpending_());
+  withRetry_('Spending', () => { buildSpending_(); restoreDashboardInputs_(dash); if (SPEND.COMPARE.indexOf(compare) >= 0) ss.getRangeByName('SPEND_COMPARE').setValue(compare); });
+  // the Dashboard tab of an older build: its month view is now the top of Spending and its accounts block the top of Financial Summary
+  if (withRetry_('Dashboard tab', () => retireDashboard_())) report.push('Dashboard tab retired (emptied and hidden): this month is now the top of the Spending tab, account balances the top of the Financial Summary. The Selected Month and checklist ticks were carried over.');
   const utilShow = (ss.getRangeByName('UTIL_SHOW') || { getValue: () => '' }).getValue();
   if (!ss.getSheetByName(SHEETS.UTILITIES)) report.push('Added tab: ' + SHEETS.UTILITIES);
   withRetry_('Utilities', () => { buildUtilities_(); if (utilShow) ss.getRangeByName('UTIL_SHOW').setValue(utilShow); });
@@ -90,11 +92,11 @@ function upgradeWorkbookLocked_() {
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
-  report.push('Refreshed App Setup, Dashboard, Start Here and Sources (settings kept).');
+  report.push('Refreshed App Setup, Financial Summary, Spending, Start Here and Sources (settings and inputs kept).');
 
   // 5. tab order
   TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });
-  ss.setActiveSheet(ss.getSheetByName(SHEETS.DASH));
+  ss.setActiveSheet(ss.getSheetByName(SHEETS.SPEND));
   SpreadsheetApp.flush();
   report.unshift('Schema ' + HFT.SCHEMA_VERSION + ' · script ' + HFT.BUILD_VERSION);
   return report;
@@ -298,13 +300,14 @@ function restoreSettings_(s) {
 }
 
 function readDashboardInputs_() {
-  const sh = ss_().getSheetByName(SHEETS.DASH);
-  if (!sh) return null;
-  // named ranges when the current layout built them; otherwise the addresses of the older layout
+  // named ranges when a current layout built them (on Spending now, on the Dashboard before 2026-11-12);
+  // otherwise the addresses of the oldest Dashboard layout
   const ss = ss_();
-  const monthRange = ss.getRangeByName('DASH_SELECTED_MONTH') || sh.getRange(DASH.LEGACY_SELECTED_MONTH);
-  const checksRange = ss.getRangeByName('DASH_CHECKLIST') || sh.getRange('G' + DASH.LEGACY_FUNDS_FIRST + ':G' + (DASH.LEGACY_FUNDS_FIRST + DASH.CHECK_COUNT - 1));
-  return { month: monthRange.getValue(), checks: checksRange.getValues() };
+  const sh = ss.getSheetByName(SHEETS.DASH);
+  const monthRange = ss.getRangeByName('DASH_SELECTED_MONTH') || (sh ? sh.getRange(DASH.LEGACY_SELECTED_MONTH) : null);
+  const checksRange = ss.getRangeByName('DASH_CHECKLIST') || (sh ? sh.getRange('G' + DASH.LEGACY_FUNDS_FIRST + ':G' + (DASH.LEGACY_FUNDS_FIRST + DASH.CHECK_COUNT - 1)) : null);
+  if (!monthRange && !checksRange) return null;
+  return { month: monthRange ? monthRange.getValue() : '', checks: checksRange ? checksRange.getValues() : null };
 }
 
 /** The goal texts by their named ranges (GOAL_1…), from whichever tab holds them. */
@@ -322,7 +325,7 @@ function restoreGoals_(goals) {
 
 function restoreDashboardInputs_(d) {
   if (!d) return;
-  const sh = ss_().getSheetByName(SHEETS.DASH);
-  if (d.month instanceof Date) sh.getRange(DASH.SELECTED_MONTH).setValue(d.month);
+  const m = ss_().getRangeByName('DASH_SELECTED_MONTH');
+  if (m && d.month instanceof Date) m.setValue(d.month);
   if (d.checks) { const r = ss_().getRangeByName('DASH_CHECKLIST'); if (r && r.getNumRows() === d.checks.length) r.setValues(d.checks.map(x => [x[0] === true])); }
 }

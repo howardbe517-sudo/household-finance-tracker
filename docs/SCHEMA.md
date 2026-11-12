@@ -101,7 +101,7 @@ Named range `TBL_INCOME` covers the header row through the last formula row.
 
 ## Expected Income (`EXPECT`)
 
-One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Dashboard work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.
+One row per regular paycheck (a person at an employer). The typical amounts and pay frequency give the expected monthly income that the Monthly Plan and the Spending tab work from. Rows are created from the first paycheck imported for each employer; correct the frequency and typical amounts here when they are wrong. One-off income is entered on Income as usual and shows up in the actuals, not here.
 
 Named range `TBL_EXPECT` covers the header row through the last formula row.
 
@@ -283,7 +283,7 @@ Named range `TBL_DEBTS` covers the header row through the last formula row.
 
 ## Quarterly Debt Review (`QDR`)
 
-Debt balances are reviewed in March, June, September and December instead of on the everyday Dashboard. One row per debt per quarter. Ending Balance feeds the Debts table and Monthly Summary.
+Debt balances are reviewed in March, June, September and December instead of on the everyday Spending tab. One row per debt per quarter. Ending Balance feeds the Debts table and Monthly Summary.
 
 Named range `TBL_QDR` covers the header row through the last formula row.
 
@@ -303,7 +303,7 @@ Named range `TBL_QDR` covers the header row through the last formula row.
 
 ## Credit Scores (`CREDIT`)
 
-Manual monthly entry (Plaid does not supply consumer FICO scores). The Dashboard shows the newest row per person automatically. Score ID is generated from the date, person and row.
+Manual monthly entry (Plaid does not supply consumer FICO scores). The Financial Summary shows the newest row per person automatically. Score ID is generated from the date, person and row.
 
 Named range `TBL_CREDIT` covers the header row through the last formula row.
 
@@ -699,6 +699,6 @@ Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_E
 8. Never hard-delete a financial record: tick Is Deleted and set Deleted At.
 9. Store month values as first-of-month dates, never as text.
 10. Payroll retirement contributions belong in Income, not Transactions.
-11. Dashboard monthly cards follow the Selected Month (Dashboard!B3).
+11. The Spending tab's monthly cards follow the Selected Month (Spending!B3, named DASH_SELECTED_MONTH).
 12. Current Flexible Spending always follows today's calendar month and Monday–Sunday week.
-13. Derived sheets (Monthly Summary, Dashboard) are read-only; the app never writes to them.
+13. Derived sheets (Monthly Summary, Spending, Financial Summary) are read-only; the app never writes to them.

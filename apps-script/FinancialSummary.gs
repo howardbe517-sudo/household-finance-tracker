@@ -1,23 +1,26 @@
 /**
- * Financial Summary: the whole-household picture, right after the Dashboard. Averages over the
+ * Financial Summary: where the household stands. Tonight's account balances at the top (the
+ * accounts block, moved here when the Dashboard tab was retired), then the whole-household picture. Averages over the
  * last N full months (N typed in B3), a month-by-month history, then Savings & Reserves, Debts,
  * Income by Person, Payroll Deductions, Credit Scores and Net Worth. All formulas; rebuilt by
  * buildWorkbook / upgradeWorkbook (the N input is kept).
  */
 
 const FINSUM = {
-  MONTHS_CELL: 'B3', MONTHS_DEFAULT: 3,
-  CARD_LABEL: 5, CARD_VALUE: 6, CARD_SUB: 7,
-  HIST_BAR: 9, HIST_HEADER: 10, HIST_FIRST: 11, HIST_COUNT: 12,
-  FUNDS_BAR: 24, FUNDS_HEADER: 25, FUNDS_FIRST: 26, FUNDS_COUNT: 8,
-  DEBT_BAR: 35, DEBT_LABEL: 36, DEBT_VALUE: 37, DEBT_NOTE: 38,
-  INCOME_BAR: 40, INCOME_HEADER: 41, INCOME_BEN: 42, INCOME_VAL: 43, INCOME_HH: 44,
-  PAYROLL_BAR: 46, PAYROLL_GROUPS: 47, PAYROLL_HEADER: 48, PAYROLL_FIRST: 49, PAYROLL_TOTAL: 55,
-  CREDIT_BAR: 57, CREDIT_HEADER: 58, CREDIT_BEN: 59, CREDIT_VAL: 60, CREDIT_NOTE: 61,
-  CHILD_BAR: 63, CHILD_HEADER: 64, CHILD_CARE: 65, CHILD_OTHER: 66, CHILD_ALL: 67,
-  FEES_BAR: 69, FEES_HEADER: 70, FEES_CARD: 71, FEES_LATE: 72, FEES_BANK: 73, FEES_TOTAL: 74, FEES_INTEREST: 75,
-  NW_BAR: 77, NW_LABEL: 78, NW_VALUE: 79, NW_NOTE: 80,
-  LAST_ROW: 82,
+  // rows 3–8: the accounts block (moved here from the retired Dashboard tab, 2026-11-12); everything below sits 7 rows lower than before
+  ACCT_HEADER: 3, ACCT_FIRST: 4, ACCT_WITH_BILLS: 6, ACCT_NOTE: 8,
+  MONTHS_CELL: 'B10', MONTHS_DEFAULT: 3, WINDOW_ROW: 11,
+  CARD_LABEL: 12, CARD_VALUE: 13, CARD_SUB: 14,
+  HIST_BAR: 16, HIST_HEADER: 17, HIST_FIRST: 18, HIST_COUNT: 12,
+  FUNDS_BAR: 31, FUNDS_HEADER: 32, FUNDS_FIRST: 33, FUNDS_COUNT: 8,
+  DEBT_BAR: 42, DEBT_LABEL: 43, DEBT_VALUE: 44, DEBT_NOTE: 45,
+  INCOME_BAR: 47, INCOME_HEADER: 48, INCOME_BEN: 49, INCOME_VAL: 50, INCOME_HH: 51,
+  PAYROLL_BAR: 53, PAYROLL_GROUPS: 54, PAYROLL_HEADER: 55, PAYROLL_FIRST: 56, PAYROLL_TOTAL: 62,
+  CREDIT_BAR: 64, CREDIT_HEADER: 65, CREDIT_BEN: 66, CREDIT_VAL: 67, CREDIT_NOTE: 68,
+  CHILD_BAR: 70, CHILD_HEADER: 71, CHILD_CARE: 72, CHILD_OTHER: 73, CHILD_ALL: 74,
+  FEES_BAR: 76, FEES_HEADER: 77, FEES_CARD: 78, FEES_LATE: 79, FEES_BANK: 80, FEES_TOTAL: 81, FEES_INTEREST: 82,
+  NW_BAR: 84, NW_LABEL: 85, NW_VALUE: 86, NW_NOTE: 87,
+  LAST_ROW: 89,
 };
 
 function buildFinancialSummary_() {
@@ -35,34 +38,38 @@ function buildFinancialSummary_() {
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const header = (a1, values) => { const r = sh.getRange(a1); r.setValues([values]); styleHeader_(r); r.setHorizontalAlignment('center'); };
-  const N = '$B$3';
+  const MR = Number(FINSUM.MONTHS_CELL.slice(1)), W = FINSUM.WINDOW_ROW;
+  const N = '$B$' + MR;
   const CUR = 'DATE(YEAR(TODAY()),MONTH(TODAY()),1)';
   // The window ends with the latest month that has a paycheck (so a new workbook averages what it
   // has) and the divisor is the number of months in the window that have paychecks, never N when
   // fewer months exist. Once N full months of data exist this is simply the last N months.
-  // Helper cells on row 4 hold the window so every average stays short: B4 = last month with a
-  // paycheck, C4 = first month of the window, D4 = months in the window that have paychecks.
-  const PEND = '$B$4', PSTART = '$C$4', DIV = '$D$4';
+  // Helper cells on the window row hold the window so every average stays short: B = last month with a
+  // paycheck, C = first month of the window, D = months in the window that have paychecks.
+  const PEND = '$B$' + W, PSTART = '$C$' + W, DIV = '$D$' + W;
   const inPeriod = (tbl) => '[' + tbl + '.month],">="&' + PSTART + ',[' + tbl + '.month],"<="&' + PEND;
   const avg = (tbl, col, extra) => 'IFERROR(SUMIFS([' + tbl + '.' + col + '],' + inPeriod(tbl) + (extra || '') + ')/' + DIV + ',0)';
 
   /* --- title, period input --- */
   mergePut('A1:I1', 'Financial Summary').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'The whole picture: averages over the last months that have paychecks, the month-by-month history, savings funds, debts, income by person, payroll deductions, credit scores and net worth. Averages settle as full months accumulate; a month still in progress counts as it stands.')
+  mergePut('A2:I2', 'Where you stand: tonight\'s balances first, then averages over the last months that have paychecks, the month-by-month history, savings funds, debts, income by person, payroll deductions, credit scores and net worth. Averages settle as full months accumulate; a month still in progress counts as it stands.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
-  put('A3', 'Averages over the last').setFontWeight('bold');
-  put('B3', FINSUM.MONTHS_DEFAULT).setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
+  /* --- accounts right now (moved from the Dashboard) --- */
+  buildAccountsBlock_(sh, { header: FINSUM.ACCT_HEADER, first: FINSUM.ACCT_FIRST, withBills: FINSUM.ACCT_WITH_BILLS, note: FINSUM.ACCT_NOTE });
+
+  put('A' + MR, 'Averages over the last').setFontWeight('bold');
+  put('B' + MR, FINSUM.MONTHS_DEFAULT).setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
     .setBorder(true, true, true, true, false, false, COLORS.NAVY, SpreadsheetApp.BorderStyle.SOLID)
     .setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(1, 24).setAllowInvalid(false).setHelpText('How many full months to average (1–24).').build());
-  mergePut('C3:I3', '="months: "&TEXT(' + PSTART + ',"mmm yyyy")&" – "&TEXT(' + PEND + ',"mmm yyyy")&" · "&' + DIV + '&" with paychecks counted"').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
-  put('A4', 'Window (calculated)').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('B4', F('=IFERROR(LET(e,MAX([INCOME.month]),IF(e=0,EDATE(' + CUR + ',-1),e)),EDATE(' + CUR + ',-1))')).setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('C4', '=EDATE($B$4,-(' + N + '-1))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('D4', F('=MAX(1,IFERROR(ROWS(UNIQUE(FILTER([INCOME.month],[INCOME.month]>=$C$4,[INCOME.month]<=$B$4))),1))')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  setNamedRange_('FINSUM_WINDOW_END', sh.getRange('B4'));
-  setNamedRange_('FINSUM_WINDOW_START', sh.getRange('C4'));
-  setNamedRange_('FINSUM_MONTHS_COUNTED', sh.getRange('D4'));
+  mergePut('C' + MR + ':I' + MR, '="months: "&TEXT(' + PSTART + ',"mmm yyyy")&" – "&TEXT(' + PEND + ',"mmm yyyy")&" · "&' + DIV + '&" with paychecks counted"').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
+  put('A' + W, 'Window (calculated)').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('B' + W, F('=IFERROR(LET(e,MAX([INCOME.month]),IF(e=0,EDATE(' + CUR + ',-1),e)),EDATE(' + CUR + ',-1))')).setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('C' + W, '=EDATE(' + PEND + ',-(' + N + '-1))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('D' + W, F('=MAX(1,IFERROR(ROWS(UNIQUE(FILTER([INCOME.month],[INCOME.month]>=' + PSTART + ',[INCOME.month]<=' + PEND + '))),1))')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  setNamedRange_('FINSUM_WINDOW_END', sh.getRange('B' + W));
+  setNamedRange_('FINSUM_WINDOW_START', sh.getRange('C' + W));
+  setNamedRange_('FINSUM_MONTHS_COUNTED', sh.getRange('D' + W));
 
   /* --- four averages --- */
   const cards = [

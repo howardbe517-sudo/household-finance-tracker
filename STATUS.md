@@ -1,6 +1,7 @@
 # STATUS
 
-Last updated: 2026-11-12 (income from deposits, build 1.12.0; earlier:
+Last updated: 2026-11-12 (Dashboard retired into Spending and Financial
+Summary, build 1.13.0; income from deposits 1.12.0; earlier:
 everything merged and deployed through PR #51; the agent merges pull requests once checks pass, see
 AGENTS.md section 7)
 
@@ -13,7 +14,7 @@ AGENTS.md section 7)
   (2498 was the account number). Purchases from 2026-11-01 are flowing.
 - Live balances on Sync now; from PR #39 the nightly run also refreshes
   balances when a bank has nothing new.
-- Tabs: Start Here (the guide), Financial Summary, Dashboard, Spending,
+- Tabs: Start Here (the guide), Financial Summary, Spending, Utilities,
   Savings & Reserves, Debts, Goals, … Reminders last.
 - Rules in the Sheet (Import Rules): car payment, Acorns, Fidelity, State
   Farm, Elan payment (both sides), car-payment transfers into savings
@@ -28,6 +29,21 @@ AGENTS.md section 7)
   Netlify, Amazon Prime (price unknown), membership YMCA.
 - The owner still has to run **Upgrade workbook** once after PR #40 and
   **Sync now** (step page `handoffs/2026-11-12-wrap-up.json`).
+
+## Two tabs instead of three (2026-11-12, build 1.13.0)
+- The Dashboard tab is retired. Spending is "how this month is going" (the
+  Selected Month is typed in Spending!B3); Financial Summary is "where you
+  stand" and opens with the account balances. See CHANGELOG and PROJECT.md.
+- Spending compares each category with a typical month chosen by Compare
+  with (E3). The owner asked for no "on pace" projection; none exists.
+- With transactions only from November 2026, Typical Month shows a dash
+  until December. Offered, not decided: pulling August–October from the
+  banks so averages start sooner (would mean rows to categorize).
+- The owner has to run **Upgrade workbook** once (step page
+  `handoffs/2026-11-12-spending-this-month.json`); it also covers builds
+  1.12.0 and 1.12.1 if that upgrade has not been run yet. The new Spending
+  formulas are not yet confirmed in Google.
+- The old Dashboard tab is hidden, not deleted; the owner may delete it.
 
 ## Income from deposits (2026-11-12, build 1.12.0)
 - The owner will not upload every pay stub. A paycheck deposit in checking

@@ -4,7 +4,7 @@
  * see, for one debt or for every debt together, when the debt is gone and how much interest an
  * extra monthly payment saves. "Save" writes the choice back: a debt's Planned Extra Payment on
  * Debts, or the household extra and method on App Setup. The Monthly Plan subtracts both with the
- * debt payments, so the Dashboard's flexible figure follows the plan.
+ * debt payments, so the flexible figure on the Spending tab follows the plan.
  *
  * The arithmetic is in PayoffMath.html (shared with the dialog and the Node tests); this file only
  * reads and writes the Sheet.

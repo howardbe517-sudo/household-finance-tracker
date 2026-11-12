@@ -35,7 +35,6 @@ function buildWorkbook(options) {
   // Phase 5 — dashboard & docs
   ensureExpectedIncome_();
   ensureFunds_();
-  buildDashboard_();
   buildFinancialSummary_();
   buildPasteImport_();
   buildSpending_();
@@ -52,7 +51,7 @@ function buildWorkbook(options) {
   TAB_ORDER.forEach((name, i) => { ss.setActiveSheet(ss.getSheetByName(name)); ss.moveActiveSheet(i + 1); });
   ss.deleteSheet(ss.getSheetByName('_build')); // SAFETY-APPROVED: removes the temporary _build scratch sheet only
   if (ss.getName().indexOf('Untitled') === 0) ss.rename(HFT.TITLE);
-  ss.setActiveSheet(ss.getSheetByName(SHEETS.DASH));
+  ss.setActiveSheet(ss.getSheetByName(SHEETS.SPEND));
   SpreadsheetApp.flush();
 
   // Phase 6 — QA
@@ -112,7 +111,7 @@ function rebuildWorkbookPrompt() {
   if (!ui) return buildWorkbook({ sample: true });
   const a = ui.alert('Rebuild workbook', 'This deletes EVERY tab and rebuilds the workbook from the script. All data in this spreadsheet will be lost.\n\nContinue?', ui.ButtonSet.YES_NO);
   if (a !== ui.Button.YES) return;
-  const b = ui.alert('Sample data', 'Include tagged sample data so formulas and the Dashboard have something to show?', ui.ButtonSet.YES_NO_CANCEL);
+  const b = ui.alert('Sample data', 'Include tagged sample data so formulas and the summary tabs have something to show?', ui.ButtonSet.YES_NO_CANCEL);
   if (b === ui.Button.CANCEL) return;
   buildWorkbook({ sample: b === ui.Button.YES });
   ui.alert('Rebuild complete', 'The workbook was rebuilt. Review the QA result on App Setup.', ui.ButtonSet.OK);
