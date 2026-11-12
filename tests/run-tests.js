@@ -571,6 +571,58 @@ if (pv.status === 'preview' && pv.imported === 1 && pv.skipped === 0 && pv.previ
 const tx1 = R(`importPastedText(${JSON.stringify(textBlock)})`);
 if (tx1.status === 'imported' && tx1.imported === 1 && R(`readTable_(TABLES.INCOME).length`) === pb_incBefore + 3) ok('the paste window imports the block (Windows line endings handled)'); else bad('text import: ' + JSON.stringify(tx1));
 if (R(`previewPastedText(${JSON.stringify(textBlock)})`).status === 'nothing') ok('previewing the same text again reports it as already imported'); else bad('text re-preview');
+
+/* Income from bank deposits: a paycheck that lands in checking counts with no stub */
+{
+  const srcs = [{ person: 'Ben', employer: 'Harbor Bakery LTD' }, { person: 'Ben', employer: 'Northfield Public Schools' }, { person: 'Valerie', employer: "Marta's Orchard LLC" }];
+  const m = (tx, hist) => vm.runInContext(`matchDepositSource_(${JSON.stringify(tx)}, ${JSON.stringify(srcs)}, ${JSON.stringify(hist || {})})`, ctx);
+  const m1 = m({ description: '331447 HARBOR B 382895098 - PAYROLL', person: '' }), m2 = m({ description: 'NORTHFIELD SCHOOLS DIR DEP', person: 'Ben' }), m3 = m({ description: 'MARTAS ORCH PAYROLL 77', person: '' });
+  if (m1 && m1.employer === 'Harbor Bakery LTD' && m1.person === 'Ben' && m2 && m2.employer === 'Northfield Public Schools' && m3 && m3.person === 'Valerie') ok('a deposit is tied to its employer by the employer name in the bank description (numbers, apostrophes and a shortened second word do not matter)'); else bad('deposit source match: ' + JSON.stringify([m1, m2, m3]));
+  if (m({ description: 'MOBILE DEPOSIT 4471', person: '' }) === null && m({ description: 'HARBOR B PAYROLL', person: 'Valerie' }) === null && m({ description: 'PAYROLL SCHOOLS PUBLIC', person: '' }) === null) ok('a deposit with no employer name in it, or one a rule gave to the other person, is not tied to an employer'); else bad('deposit source false match');
+  const mh = m({ description: '9981 PAYCO SVC 55120', person: '' }, { 'PAYCO SVC': { person: 'Ben', employer: 'Northfield Public Schools' } });
+  if (mh && mh.employer === 'Northfield Public Schools' && R(`depositKey_('12 PAYROLL 99')`) === '' && R(`depositKey_('9981 PAYCO SVC 55120')`) === 'PAYCO SVC') ok('a bank description already linked to a paycheck ties the next deposit with the same text to that employer; a description with nothing identifying is never learned'); else bad('deposit history match: ' + JSON.stringify(mh));
+  const est = R(`estimatePaycheckFromDeposit_(950, { gross: 1000, fedTax: 100, stateTax: 40, ssMed: 76.5, health: 0, retirement: 0, otherDed: 0 })`);
+  if (est && near(est.gross - est.fedTax - est.stateTax - est.ssMed, 950) && est.gross > 950 && est.health === undefined && near(est.fedTax / est.gross, 0.1, 0.001) && R(`estimatePaycheckFromDeposit_(950, { gross: 0 })`) === null) ok('gross and deductions are scaled from the stub so that take-home is the deposit to the cent'); else bad('estimate: ' + JSON.stringify(est));
+
+  const incBefore = R(`readTable_(TABLES.INCOME).length`);
+  R(`writeRows_(TABLES.INCOME, [{ id: 'INC-9000', payDate: new Date(2024, 4, 25), person: 'Ben', employer: 'Lakeshore Cannery', incomeType: 'Hourly Wages', gross: 3200, fedTax: 352, stateTax: 136, ssMed: 244.8, health: 185, retirement: 192, otherDed: 20, notes: 'SAMPLE test stub' },
+    { id: 'INC-9001', payDate: new Date(2024, 6, 10), person: 'Ben', employer: 'Lakeshore Cannery', incomeType: 'Hourly Wages', gross: 3200, fedTax: 352, stateTax: 136, ssMed: 244.8, health: 185, retirement: 192, otherDed: 20, notes: 'SAMPLE test stub' }])`);
+  const expBeforeDeposits = R(`readTable_(TABLES.EXPECT).length`);
+  R(`writeRows_(TABLES.TX, [
+    { id: 'TX-910001', date: new Date(2024, 5, 8), description: 'ACH 5521 LAKESHORE CAN PAYROLL', amount: 2000, type: 'Income', category: 'Income', subcategory: 'Salary', accountId: 'ACC-001', status: 'Posted', notes: 'SAMPLE test' },
+    { id: 'TX-910002', date: new Date(2024, 5, 9), description: 'MOBILE DEPOSIT 4471', amount: 75, type: 'Income', category: 'Income', subcategory: 'Gift Received', accountId: 'ACC-001', person: 'Valerie', status: 'Posted', notes: 'SAMPLE test' },
+    { id: 'TX-910003', date: new Date(2024, 5, 10), description: 'LAKESHORE CAN PAYROLL', amount: 1500, type: 'Income', category: 'Income', subcategory: 'Salary', accountId: 'ACC-001', status: 'Pending', notes: 'SAMPLE test' },
+    { id: 'TX-910004', date: new Date(2024, 5, 20), description: 'LAKESHORE CAN PAYROLL', amount: 1500, type: 'Income', category: 'Income', subcategory: 'Salary', accountId: 'ACC-001', status: 'Posted', isDeleted: true, notes: 'SAMPLE test' },
+    { id: 'TX-910005', date: new Date(2024, 6, 11), description: 'LAKESHORE CAN PAYROLL', amount: 1900, type: 'Income', category: 'Income', subcategory: 'Salary', accountId: 'ACC-001', status: 'Posted', notes: 'SAMPLE test' },
+  ])`);
+  const d1 = R(`ensureIncomeFromDeposits_()`), d2 = R(`ensureIncomeFromDeposits_()`);
+  const incNow = R(`readTable_(TABLES.INCOME)`), txNow = R(`readTable_(TABLES.TX)`);
+  const txOf = (id) => txNow.filter(t => t.id === id)[0];
+  const estRow = incNow.filter(i => i.id === txOf('TX-910001').sourceIncomeId)[0], giftRow = incNow.filter(i => i.id === txOf('TX-910002').sourceIncomeId)[0];
+  const netOf = (i) => Number(i.gross || 0) - ['fedTax', 'stateTax', 'ssMed', 'health', 'retirement', 'otherDed'].reduce((s, k) => s + Number(i[k] || 0), 0);
+  if (d1.created === 2 && d1.estimated === 1 && d1.plain === 1 && incNow.length === incBefore + 4 && estRow && near(netOf(estRow), 2000) && estRow.gross > 2000 && estRow.person === 'Ben' && estRow.employer === 'Lakeshore Cannery' && estRow.incomeType === 'Hourly Wages' && estRow.depositAccount === 'ACC-001' && estRow.payDate.getTime() === new Date(2024, 5, 8).getTime() && /^SAMPLE — From bank deposit TX-910001/.test(estRow.notes) && /estimated from INC-9000/.test(estRow.notes)) ok('a paycheck deposit from a known employer becomes an Income row: take-home is the deposit, gross and deductions estimated from the last stub, and the deposit is linked to it'); else bad('income from deposit: ' + JSON.stringify([d1, estRow]));
+  if (giftRow && near(giftRow.gross, 75) && near(netOf(giftRow), 75) && giftRow.person === 'Valerie' && giftRow.incomeType === 'Other' && giftRow.employer === 'MOBILE DEPOSIT 4471' && /Recorded at the deposit amount/.test(giftRow.notes)) ok('any other Income deposit is recorded at the deposit amount with no deductions'); else bad('plain income row: ' + JSON.stringify(giftRow));
+  if (!txOf('TX-910003').sourceIncomeId && !txOf('TX-910004').sourceIncomeId) ok('pending and soft-deleted deposits are left alone'); else bad('pending/deleted deposit got an Income row');
+  if (d1.held.length === 1 && /TX-910005/.test(d1.held[0]) && /INC-9001/.test(d1.held[0]) && !txOf('TX-910005').sourceIncomeId) ok('a deposit next to an unlinked stub with a different take-home is held for the owner instead of being counted twice'); else bad('held deposit: ' + JSON.stringify(d1.held));
+  if (d2.created === 0 && d2.linked === 0 && d2.held.length === 1 && R(`readTable_(TABLES.INCOME).length`) === incBefore + 4) ok('running it again adds nothing'); else bad('second run: ' + JSON.stringify(d2));
+  if (/2 deposit\(s\) counted as income without a stub/.test(R(`describeIncomeFromDeposits_(${JSON.stringify(d1)})`)) && R(`describeIncomeFromDeposits_({ linked: 0, created: 0, held: [] })`) === '') ok('the sync report says how many deposits were counted, and nothing when there were none'); else bad('describeIncomeFromDeposits_');
+
+  // a real stub for that paycheck, pasted later, replaces the estimate: same Income ID, no second paycheck
+  const stubText = ['HFT-IMPORT\tv1\tINCOME', 'payDate\tperson\temployer\tincomeType\tgross\tfedTax\tstateTax\tssMed', '2024-06-07\tBen\tLakeshore Cannery\tHourly Wages\t2600\t300\t100\t200'].join('\n');
+  const pvStub = R(`previewPastedText(${JSON.stringify(stubText)})`);
+  const impStub = R(`importPastedText(${JSON.stringify(stubText)})`);
+  const after = R(`readTable_(TABLES.INCOME)`);
+  const same = after.filter(i => i.id === estRow.id)[0];
+  if (pvStub.status === 'preview' && pvStub.imported === 0 && pvStub.replaced === 1 && /will replace the estimate/.test(pvStub.message) && impStub.status === 'imported' && impStub.imported === 0 && impStub.replaced === 1 && after.length === incBefore + 4 && near(same.gross, 2600) && near(same.fedTax, 300) && same.payDate.getTime() === new Date(2024, 5, 7).getTime() && same.depositAccount === 'ACC-001' && !/From bank deposit/.test(same.notes) && /Replaced the earlier estimate/.test(same.notes) && R(`readTable_(TABLES.TX).filter(function(t){ return t.id === 'TX-910001'; })[0].sourceIncomeId`) === estRow.id) ok('a pay stub pasted later replaces the estimate made from the deposit (same Income ID, link kept, no second paycheck)'); else bad('stub replaces estimate: ' + JSON.stringify([pvStub, impStub, same]));
+  const expAfterDeposits = R(`readTable_(TABLES.EXPECT)`);
+  if (expAfterDeposits.length === expBeforeDeposits + 1 && expAfterDeposits.some(x => x.employer === 'Lakeshore Cannery') && !expAfterDeposits.some(x => /MOBILE DEPOSIT/.test(x.employer))) ok('a one-off deposit never becomes a regular paycheck on Expected Income; an employer with a real stub does'); else bad('expected income after deposits: ' + JSON.stringify(expAfterDeposits.map(x => x.employer)));
+  const payRule = [{ id: 'RULE-T1', pattern: 'LAKESHORE CAN', matchType: 'Contains', accountId: '', type: 'Income', category: 'Income', subcategory: 'Hourly Wages', person: 'Ben', autoImport: true, active: true }];
+  const cls = (amt) => vm.runInContext(`classifyRow_({ accountId: 'ACC-001', rawDescription: 'LAKESHORE CANNERY STORE 12', amount: ${amt} }, { accountsById: { 'ACC-001': { accountType: 'Checking' } }, rules: ${JSON.stringify(payRule)} })`, ctx);
+  if (cls(-500).suggestedType === 'Income' && cls(-500).autoImport === true && cls(12.5).suggestedType !== 'Income' && cls(12.5).ruleId === '') ok('a payroll rule applies to money coming in only: a purchase at a shop with the employer\'s name is not imported as pay'); else bad('income rule on a purchase: ' + JSON.stringify([cls(-500), cls(12.5)]));
+  const sh9 = g.__ss.getSheetByName(SHEETS.INCOME), def9 = vm.runInContext('TABLES.INCOME', ctx);
+  const fcol = def9.columns.findIndex(c => c.key === 'takeHome') + 1;
+  if (/^=IF\(/.test(sh9.getRange(same.__row, fcol).getFormula()) && sh9.getRange(same.__row, 1).getValue() === estRow.id) ok('replacing the estimate leaves the row\'s ID and its calculated columns in place'); else bad('formula column overwritten on replace');
+}
 if (R(`parsePastedText_('HFT-IMPORT,v1,CREDIT\\nscoreDate,person,score\\n2026-01-01,Ben,700')`).length === 3) ok('a comma-separated block is accepted when it has no tabs'); else bad('csv parse');
 const changeLogImports = R(`readTable_(TABLES.LOG).filter(function(l){ return l.action === 'Import' && l.table === 'INCOME'; }).length`);
 if (changeLogImports >= 2) ok('each imported row has a Change Log entry'); else bad('change log imports: ' + changeLogImports);

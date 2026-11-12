@@ -643,10 +643,13 @@ function syncAllConnections(opts) {
   try { results.reviewed = importReviewedRows_(); } catch (e) { Logger.log('importReviewedRows_: ' + (e && e.message || e)); }
   // utility payments that reached Transactions become paid bills on Utility Bills (the Utilities tab charts them)
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
+  // paycheck deposits count as income the day they land: each Income-type deposit without a paycheck gets its Income row
+  try { results.income = ensureIncomeFromDeposits_(); } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); }
   try { sendReminders_(); } catch (e) { Logger.log('sendReminders_: ' + (e && e.message || e)); }
   const lines = results.map(r => r.institution + ': ' + summarizeSync_(r));
   if (results.rules && (results.rules.updated || results.rules.imported)) lines.push('Rules: ' + results.rules.updated + ' waiting row(s) updated, ' + results.rules.imported + ' imported');
   if (results.reviewed && results.reviewed.reviewed) lines.push('Reviewed rows: ' + results.reviewed.imported + ' imported' + (results.reviewed.problems.length ? ', ' + results.reviewed.problems.length + ' still missing something' : ''));
+  if (results.income && describeIncomeFromDeposits_(results.income)) lines.push('Income: ' + describeIncomeFromDeposits_(results.income));
   Logger.log(lines.join('\n'));
   return results;
 }
@@ -659,6 +662,7 @@ function syncNow() {
   alert_('Bank feed sync', results.length ? results.map(r => r.institution + ' (' + r.connectionId + '): ' + summarizeSync_(r) + (r.live ? ' · balances pulled live from the bank' : (r.liveError ? ' · live balance pull failed (' + r.liveError.slice(0, 80) + '); Plaid\'s last balances kept' : ''))).join('\n')
     + '\n\nImport Rules re-checked on the waiting rows: ' + rules.updated + ' updated, ' + rules.imported + ' imported into Transactions.'
     + '\nRows you ticked Reviewed?: ' + rev.imported + ' imported into Transactions.' + (rev.problems.length ? '\n' + rev.problems.length + ' reviewed row(s) still need something:\n' + rev.problems.slice(0, 8).join('\n') : '')
+    + (describeIncomeFromDeposits_(results.income) ? '\n\nIncome: ' + describeIncomeFromDeposits_(results.income) + '.' : '')
     + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }

@@ -1,5 +1,54 @@
 # CHANGELOG
 
+## 2026-11-12 — Paychecks count from the bank deposit; no pay stub needed
+- Why: the owner will not upload every pay stub. Income is counted only
+  from the Income tab, so until now a paycheck that reached checking did
+  not count (and raised "Missing Source Income ID" in QA) until a stub was
+  entered and matched to it.
+- What changed: new `IncomeDeposits.gs`. `ensureIncomeFromDeposits_()` runs
+  on every sync, on Upgrade workbook, after "Import reviewed rows", and
+  from the existing menu item "Link income deposits to paychecks". For each
+  Income-type transaction with no Source Income ID (not pending, not
+  soft-deleted) it first links an exact stub match as before, then adds an
+  Income row and writes its ID into the transaction:
+  - known employer (the employer's name is in the bank description, or the
+    same description was linked to that employer before): take-home is the
+    deposit to the cent; gross pay and each deduction are scaled from the
+    most recent real stub for that person and employer;
+  - any other Income deposit: recorded at the deposit amount, no
+    deductions, Income Type from the subcategory.
+  Every such row says "From bank deposit TX-…" in Notes.
+- Safeguards: a deposit within three days of an unlinked stub from the
+  same employer whose take-home differs is held and reported, not counted
+  twice. Rows made from a deposit never create an Expected Income row, so
+  a one-off deposit cannot raise the expected income. A pay stub pasted
+  later for the same paycheck is written over the deposit-made row (same
+  Income ID, link kept) instead of adding a second paycheck; the preview
+  and the confirmation say so. An Import Rule of type Income now applies
+  only to money coming in, so a purchase at a shop that shares an
+  employer's name is never imported as pay. Adds rows only; no entered
+  paycheck is changed. Safe to run again.
+- Also: stub matching reads take-home through one helper
+  (`incomeTakeHome_`); Start Here and the Income tab note describe the new
+  flow. `BUILD_VERSION` 1.12.0. No schema change.
+- Files changed in `apps-script/`: `IncomeDeposits.gs` (new), `Plaid.gs`,
+  `Upgrade.gs`, `Import.gs`, `Main.gs`, `PasteImport.gs`,
+  `ExpectedIncome.gs`, `Reference.gs`, `Config.gs` (deployed on merge).
+  Run **Finance Tracker → Upgrade workbook (keeps data)** once; step page
+  `handoffs/2026-11-12-income-from-deposits.json`.
+- In the Sheet (not in the repository): two Import Rules so the two
+  payroll deposits on checking import as Income on their own.
+- Tested: Node (employer matching incl. apostrophes, shortened words, the
+  other person's rule and learned descriptions; the estimate equals the
+  deposit to the cent; estimated and plain rows; pending and deleted
+  deposits skipped; held deposit; second run adds nothing; stub replaces
+  the estimate and keeps ID, link and formula columns; no Expected Income
+  row from a one-off deposit; Income rule ignored on a purchase; 240
+  checks green). Not yet run in Google: the first real run happens on the
+  owner's next upgrade or sync.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/income-from-deposits`
+
 ## 2026-11-12 — Fix: a Dashboard card matched by one name added up every card
 - What happened: since 1.9.5 each accounts-block line tests the bank name
   with `(ISNUMBER(SEARCH(name, institution)) + …) > 0`. With two names the

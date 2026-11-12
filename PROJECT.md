@@ -67,6 +67,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/SplitPanel.html` | Side panel: split a staged or recorded transaction into balanced children |
 | `apps-script/RuleDialog.html` | Dialog: make an Import Rule from the selected staged row |
 | `apps-script/ConnectDialog.html` | Dialog: connect a bank in three steps (kind → Plaid → map accounts) |
+| `apps-script/IncomeDeposits.gs` | Paychecks counted from the bank deposit: `ensureIncomeFromDeposits_`, employer matching, the estimate from the last stub, and the stub-replaces-estimate helpers used by Paste Import |
 | `apps-script/Utilities.gs` | Utilities tab (Show dropdown, tiles, cost-by-month and year-over-year line charts, bill history) and `linkUtilityPayments_`, which files utility payments as bills |
 | `apps-script/Spending.gs` | Spending tab: tiles, categories largest first (Children combined), recurring payments with paid-this-month, flexible subcategories, six months by category |
 | `apps-script/Payoff.gs` | Payoff planner: reads debts and the saved plan, writes Planned Extra Payment / the household plan |
@@ -174,6 +175,15 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   Flexible Target (auto) = expected take-home + adjustment − bills − debt
   payments − planned savings; Monthly Flexible Target is an override and
   Target in Use feeds Amount Available and the weekly guidance.
+- Income from deposits (`IncomeDeposits.gs`): pay stubs are optional.
+  `ensureIncomeFromDeposits_` (every sync, upgrade, reviewed-rows import)
+  gives each Income-type transaction without a Source Income ID an Income
+  row: for a known employer, take-home = the deposit and gross/deductions
+  scaled from the latest real stub; otherwise the deposit amount with no
+  deductions. Rows carry "From bank deposit" in Notes, never feed
+  `ensureExpectedIncome_`, and are overwritten in place (same ID) when a
+  stub for that paycheck is pasted later. A deposit next to an unlinked
+  stub with a different take-home is held for the owner.
 - Paste Import (`PasteImport.gs`): the owner pastes a tab-separated block
   (marker line, header line, rows) produced by a Claude skill in `skills/`;
   `importPastedRows_` validates, de-duplicates and writes rows to the table

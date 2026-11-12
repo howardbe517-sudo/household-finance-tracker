@@ -10,7 +10,8 @@
 function ensureExpectedIncome_() {
   const incDef = tdef_('INCOME'), expDef = tdef_('EXPECT');
   if (!ss_().getSheetByName(expDef.sheet)) return { created: 0, rows: [] };
-  const income = readTable_(incDef).filter(r => r.payDate instanceof Date && r.person && r.employer);
+  // rows made from a bank deposit are not evidence of a regular paycheck: a one-off deposit must never raise the expected income
+  const income = readTable_(incDef).filter(r => r.payDate instanceof Date && r.person && r.employer && !isDepositIncomeRow_(r));
   if (!income.length) return { created: 0, rows: [] };
   syncLastRow_(expDef);
   const existing = readTable_(expDef);

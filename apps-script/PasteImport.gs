@@ -170,14 +170,26 @@ function importGrid_(grid, opts) {
   parsed.forEach(p => { const k = keyOf(p.row); if (seen[k]) dupes.push('Row ' + p.line + ' (already ' + (seen[k] === true ? 'present' : seen[k]) + ')'); else { seen[k] = true; fresh.push(p.row); } });
   if (!fresh.length) { return { status: 'nothing', table: key, skipped: dupes.length, message: 'Every row in the block is already in ' + def.sheet + ':\n' + dupes.join('\n') }; }
 
+  // a stub for a paycheck that was already counted from its bank deposit replaces that row (same Income ID) instead of adding a second paycheck
+  const replace = [];
+  if (key === 'INCOME') {
+    const taken = {};
+    for (let i = fresh.length - 1; i >= 0; i--) {
+      const hit = findDepositRowForStub_(fresh[i], existing, taken);
+      if (hit) { taken[hit.id] = true; replace.unshift({ row: fresh[i], target: hit }); fresh.splice(i, 1); }
+    }
+  }
+  const replaceText = replace.length ? replace.length + ' stub(s) will replace the estimate made from the bank deposit (' + replace.map(x => x.target.id).join(', ') + ')' : '';
+
   if (opts.dryRun) {
     return { status: 'preview', table: key, sheet: def.sheet, imported: fresh.length, skipped: dupes.length, dupes, warnings,
-      preview: fresh.slice(0, 12).map(row => previewLine_(key, row)),
-      message: fresh.length + ' row(s) will be added to ' + def.sheet + (dupes.length ? '; ' + dupes.length + ' already present will be skipped' : '') + '.' };
+      replaced: replace.length,
+      preview: fresh.concat(replace.map(x => x.row)).slice(0, 12).map(row => previewLine_(key, row)),
+      message: fresh.length + ' row(s) will be added to ' + def.sheet + (replaceText ? '; ' + replaceText : '') + (dupes.length ? '; ' + dupes.length + ' already present will be skipped' : '') + '.' };
   }
   if (opts.confirm) {
     const ui = ui_();
-    const summary = 'Import ' + fresh.length + ' row(s) into ' + def.sheet + '?' + (dupes.length ? '\n\nSkipping ' + dupes.length + ' already present: ' + dupes.join(', ') : '') + (warnings.length ? '\n\nPlease check afterwards:\n' + warnings.slice(0, 8).join('\n') : '') + '\n\nRows are added, never overwritten; the Change Log records each one.';
+    const summary = 'Import ' + fresh.length + ' row(s) into ' + def.sheet + '?' + (replaceText ? '\n\n' + replaceText + '.' : '') + (dupes.length ? '\n\nSkipping ' + dupes.length + ' already present: ' + dupes.join(', ') : '') + (warnings.length ? '\n\nPlease check afterwards:\n' + warnings.slice(0, 8).join('\n') : '') + '\n\nRows are added, never overwritten; the Change Log records each one.';
     if (ui && ui.alert('Import pasted rows', summary, ui.ButtonSet.YES_NO) !== ui.Button.YES) return { status: 'cancelled', table: key, message: 'Nothing was imported.' };
   }
 
@@ -188,14 +200,22 @@ function importGrid_(grid, opts) {
   fresh.forEach(row => { row.id = def.idPrefix + '-' + String(nextNum++).padStart(width, '0'); });
   writeRows_(def, fresh);
   fresh.forEach(row => appendChangeLog_({ table: key, recordId: row.id, field: '(row)', newValue: 'Imported from Paste Import', action: 'Import', user: who }));
+  replace.forEach(x => {
+    x.row.id = x.target.id;
+    if (!x.row.depositAccount) x.row.depositAccount = x.target.depositAccount || '';
+    x.row.notes = (x.row.notes + ' Replaced the earlier estimate for this deposit.').trim();
+    overwriteRowValues_(def, x.target.__row, x.row);
+    appendChangeLog_({ table: key, recordId: x.row.id, field: '(row)', oldValue: String(x.target.notes || '').slice(0, 200), newValue: 'Pay stub from Paste Import replaced the estimate made from the bank deposit', action: 'Update', user: who });
+  });
   let linked = null;
   let expected = null;
   if (key === 'INCOME') { try { linked = linkIncomeDeposits_(); } catch (e) { linked = null; } try { expected = ensureExpectedIncome_(); } catch (e) { expected = null; } }
   const when = Utilities.formatDate(new Date(), 'America/Detroit', 'yyyy-MM-dd HH:mm');
   props.setProperty('PASTE_LAST_HASH', hash); props.setProperty('PASTE_LAST_WHEN', when);
-  const status = fresh.length + ' row(s) → ' + def.sheet + ' at ' + when + (dupes.length ? ' · ' + dupes.length + ' skipped as already present' : '') + ' · IDs ' + fresh[0].id + (fresh.length > 1 ? '–' + fresh[fresh.length - 1].id : '');
+  const status = fresh.length + ' row(s) → ' + def.sheet + ' at ' + when + (replace.length ? ' · ' + replace.length + ' stub(s) replaced a bank-deposit estimate (' + replace.map(x => x.target.id).join(', ') + ')' : '') + (dupes.length ? ' · ' + dupes.length + ' skipped as already present' : '')
+    + (fresh.length ? ' · IDs ' + fresh[0].id + (fresh.length > 1 ? '–' + fresh[fresh.length - 1].id : '') : '');
   const st = ss_().getRangeByName('PASTE_STATUS'); if (st) st.setValue(status);
-  return { status: 'imported', table: key, imported: fresh.length, skipped: dupes.length, warnings, ids: fresh.map(r => r.id),
+  return { status: 'imported', table: key, imported: fresh.length, replaced: replace.length, skipped: dupes.length, warnings, ids: fresh.map(r => r.id).concat(replace.map(x => x.row.id)),
     message: status + (warnings.length ? '\n\nPlease check:\n' + warnings.slice(0, 8).join('\n') : '') + (linked ? '\n\nPaycheck deposits: ' + linked.linked + ' linked to these paychecks.' : '') + (expected && expected.created ? '\n\nExpected Income: ' + expected.created + ' new regular paycheck row(s) created (' + expected.rows.map(r => r.person + ' · ' + r.employer + ' · ' + r.frequency).join('; ') + '). Check the frequency and typical amounts there.' : '') };
 }
 

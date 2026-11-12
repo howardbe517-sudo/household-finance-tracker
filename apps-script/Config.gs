@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.12-fees-2026-11-12',
-  BUILD_VERSION: '1.11.5',
+  BUILD_VERSION: '1.12.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -356,7 +356,7 @@ TABLES.ACCOUNTS = {
 TABLES.INCOME = {
   key: 'INCOME', sheet: SHEETS.INCOME, headerRow: 4, firstRow: 5, lastRow: 504,
   title: 'Income — Paycheck Database',
-  note: 'Authoritative source for gross pay, payroll deductions and take-home. One row per paycheck. Bank deposits imported into Transactions link back here through Source Income ID.',
+  note: 'Authoritative source for gross pay, payroll deductions and take-home. One row per paycheck. Bank deposits imported into Transactions link back here through Source Income ID. A deposit with no pay stub gets its row here automatically (Notes: From bank deposit); its gross and deductions are estimates until a stub replaces them.',
   idPrefix: 'INC', idPattern: 'INC-0001', logChanges: true, freezeCols: 2,
   columns: [
     { key: 'id', h: 'Income ID', w: 95 },
