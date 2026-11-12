@@ -195,7 +195,7 @@ Named range `TBL_RECUR` covers the header row through the last formula row.
 
 ## Utility Bills (`UTIL`)
 
-Every gas, electric, water and other utility bill. Each utility payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric, Water & Sewer, Trash & Recycling, Internet or Cell Phone) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.
+Every gas, electric and water bill: the utility bills that change from month to month. Each such payment that reaches Transactions (category Housing, subcategory Natural Gas, Electric or Water & Sewer) is filed here by every sync: it completes the matching bill, or adds one. Past bills come in from statements through Finance Tracker → Import from Claude. The Utilities tab charts this table.
 
 Named range `TBL_UTIL` covers the header row through the last formula row.
 
