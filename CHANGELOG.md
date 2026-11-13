@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-11-13 — Coffee shops tracked on their own
+- Why (the owner's request): coffee at a coffee shop is a different kind
+  of spending from groceries and snacks, and the owner wants to see coffee
+  spending separately. It stays in the Food category.
+- Taxonomy: Food / Coffee & Snacks is replaced by **Food / Coffee Shops**
+  and **Food / Snacks** (both Want, Flexible). On a live workbook the
+  upgrade adds the two (if missing) and unticks Active? on Coffee & Snacks;
+  rows that still use it keep reading. Coffee Shops appears as its own line
+  in "Where the flexible money went" on the Spending tab, with its typical
+  month, and in the hover lists.
+- `BUILD_VERSION` 1.16.1. No schema change (taxonomy rows only).
+- Files changed in `apps-script/`: `Config.gs`, `SampleData.gs` (deployed
+  on merge). The next **Upgrade workbook** applies it; nothing else to do.
+- In the Sheet (not in the repository): the two Categories rows were added
+  and Coffee & Snacks unticked; the coffee-shop transactions, staged rows
+  and rules (Lyon Street Cafe, Wildroast) moved to Coffee Shops, and
+  Nantucket Baking, the vending machine and Martha's Pizza to Snacks.
+- Tested: Node (taxonomy has both, Coffee & Snacks gone, sample data and
+  rule-dialog tests use Coffee Shops; 277 checks; safety check).
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/coffee-shops-and-snacks`
+
 ## 2026-11-13 — HSA balance grows with each paycheck until HealthEquity connects
 - Why (the owner's request): HealthEquity will not connect to the bank feed.
   The owner will give the HSA balance once; each paycheck from one employer

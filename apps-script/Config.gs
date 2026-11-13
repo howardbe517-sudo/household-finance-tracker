@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.14-payroll-deposit-2026-11-13',
-  BUILD_VERSION: '1.16.0',
+  BUILD_VERSION: '1.16.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -195,7 +195,10 @@ const TAXONOMY = [
   ['Food', 'Groceries', 'Need', 'Variable', 'Flexible'],
   ['Food', 'Dining Out', 'Want', 'Variable', 'Flexible'],
   ['Food', 'Takeout & Delivery', 'Want', 'Variable', 'Flexible'],
-  ['Food', 'Coffee & Snacks', 'Want', 'Variable', 'Flexible'],
+  // 2026-11-13 (the owner's choice): Coffee & Snacks split in two so coffee-shop spending can be tracked on its own.
+  // Coffee & Snacks left the taxonomy: the upgrade unticks its Active? and transactions that used it still read.
+  ['Food', 'Coffee Shops', 'Want', 'Variable', 'Flexible'],
+  ['Food', 'Snacks', 'Want', 'Variable', 'Flexible'],
   ['Food', 'Alcohol', 'Want', 'Variable', 'Flexible'],
 
   ['Transportation', 'Fuel', 'Need', 'Variable', 'Flexible'],

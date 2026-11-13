@@ -133,7 +133,7 @@ function sampleDataset_() {
     expense(m, 19, 'Sample Pizza Delivery', 62.00, 'Food', 'Takeout & Delivery', { accountId: 'ACC-003' });
     expense(m, 4, 'Sample Fuel', 52.00, 'Transportation', 'Fuel');
     expense(m, 18, 'Sample Fuel', 49.50, 'Transportation', 'Fuel');
-    expense(m, 11, 'Sample Coffee', 12.40, 'Food', 'Coffee & Snacks', { person: 'Ben', hhPersonal: 'Personal' });
+    expense(m, 11, 'Sample Coffee', 12.40, 'Food', 'Coffee Shops', { person: 'Ben', hhPersonal: 'Personal' });
     expense(m, 20, 'Sample Pharmacy', 34.00, 'Personal', 'Personal Care', { person: 'Valerie', hhPersonal: 'Personal' });
     expense(m, 13, 'Sample Kids Gymnastics', 40.00, 'Child Expenses', 'Activities');
 

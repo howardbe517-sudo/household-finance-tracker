@@ -66,6 +66,9 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.16.1: Food / Coffee & Snacks split into Coffee Shops
+  and Snacks (owner wants coffee tracked separately); Sheet data moved.
+  All staged rows categorized with the owner on 2026-11-13.
 - 2026-11-13, build 1.16.0 (schema 3.14): HealthEquity HSA (ACC-013) cannot
   connect (passkey login; community reports say aggregators mostly fail).
   Expected Income EXP-003 (Rockford) now has Payroll Deposit To = ACC-013

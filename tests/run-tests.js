@@ -219,11 +219,11 @@ const imp2 = R(`importReviewedRows()`);
 if (imp2.imported === 0 && imp2.problems.length === 1 && /no Category/.test(imp2.problems[0])) ok('a reviewed row without a category is held back with a reason'); else bad('importReviewedRows problems: ' + JSON.stringify(imp2));
 R(`(function(){ var def=TABLES.STAGING; var r=findRowById_(def,'IMP-000004'); getOrCreateSheet_(def.sheet).getRange(r, colIndex_(def,'reviewed')).setValue(false); })()`);
 // make a rule from the coffee row → it auto-imports
-const rule = R(`saveRuleFromDialog({ pattern:'SAMPLE COFFEE', matchType:'Contains', type:'Expense', category:'Food', subcategory:'Coffee & Snacks', spendingType:'Flexible', person:'Ben', autoImport:true })`);
+const rule = R(`saveRuleFromDialog({ pattern:'SAMPLE COFFEE', matchType:'Contains', type:'Expense', category:'Food', subcategory:'Coffee Shops', spendingType:'Flexible', person:'Ben', autoImport:true })`);
 const coffee = R(`readTable_(TABLES.STAGING).filter(function(s){ return s.importId==='IMP-000003'; })[0]`);
 if (rule.ruleId === 'RULE-005' && rule.updatedRows >= 1 && coffee.status === 'Imported' && coffee.ruleId === 'RULE-005') ok('Make a rule: new auto-import rule applied to the waiting coffee row and imported it'); else bad('saveRuleFromDialog: ' + JSON.stringify([rule, coffee.status, coffee.ruleId]));
 const coffeeTx = R(`readTable_(TABLES.TX).filter(function(t){ return t.id==='${coffee.importedTxId}'; })[0]`);
-if (coffeeTx && coffeeTx.status === 'Pending' && coffeeTx.subcategory === 'Coffee & Snacks') ok('pending charge imported with Status = Pending'); else bad('coffee tx: ' + JSON.stringify(coffeeTx));
+if (coffeeTx && coffeeTx.status === 'Pending' && coffeeTx.subcategory === 'Coffee Shops') ok('pending charge imported with Status = Pending'); else bad('coffee tx: ' + JSON.stringify(coffeeTx));
 // split panel on the superstore row
 R(`(function(){ var ss=SpreadsheetApp.getActiveSpreadsheet(); var sh=ss.getSheetByName('Import Staging'); ss.setActiveSheet(sh); ss.activeRange = sh.getRange(findRowById_(TABLES.STAGING,'IMP-000002'), 3); })()`);
 const sctx = R(`getSplitContext()`);
@@ -596,6 +596,12 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const keys = def.columns.map(c => c.key);
     if (keys.slice(-3).join() === 'notes,payrollDepositAccount,payrollDepositAmount' && def.columns[keys.length - 2].v.idsOf === 'ACCOUNTS') ok('Payroll Deposit To and Payroll Deposit per Paycheck are appended to Expected Income (delivered by the upgrade)'); else bad('expect columns: ' + keys.slice(-3));
   })();
+  // coffee shops tracked on their own (1.16.1)
+  (function () {
+    const food = vm.runInContext('TAXONOMY', ctx).filter(t => t[0] === 'Food').map(t => t[1]);
+    const cs = R(`readTable_(TABLES.CATS)`).filter(c => c.category === 'Food');
+    if (food.indexOf('Coffee Shops') >= 0 && food.indexOf('Snacks') >= 0 && food.indexOf('Coffee & Snacks') < 0 && cs.some(c => c.subcategory === 'Coffee Shops' && c.active === true && c.spendingType === 'Flexible' && c.needWant === 'Want') && cs.some(c => c.subcategory === 'Snacks' && c.active === true)) ok('Food has Coffee Shops and Snacks as separate subcategories (Coffee & Snacks retired), both wants and flexible'); else bad('coffee split: ' + food.join(', '));
+  })();
   // hover lists on the three tiles (1.13.1)
   (function () {
     const tx = `[
@@ -603,7 +609,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       { date: new Date(2026, 10, 3), amount: 60, type: 'Expense', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE MARKET', spendingType: 'Flexible', needWant: 'Need' },
       { date: new Date(2026, 10, 9), amount: 45.5, type: 'Expense', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE CO-OP', spendingType: 'Flexible', needWant: 'Need' },
       { date: new Date(2026, 10, 9), amount: 5.5, type: 'Refund', category: 'Food', subcategory: 'Groceries', description: 'SAMPLE MARKET', spendingType: 'Flexible', needWant: 'Need' },
-      { date: new Date(2026, 10, 10), amount: 12, type: 'Expense', category: 'Food', subcategory: 'Coffee & Snacks', description: 'SAMPLE CAFE', spendingType: 'Flexible', needWant: 'Want' },
+      { date: new Date(2026, 10, 10), amount: 12, type: 'Expense', category: 'Food', subcategory: 'Coffee Shops', description: 'SAMPLE CAFE', spendingType: 'Flexible', needWant: 'Want' },
       { date: new Date(2026, 10, 11), amount: 1234.5, type: 'Expense', category: 'Health', subcategory: 'Doctor', description: 'SAMPLE CLINIC', spendingType: 'Unexpected', needWant: '' },
       { date: new Date(2026, 10, 11), amount: 400, type: 'Transfer', description: 'TO SAVINGS' },
       { date: new Date(2026, 10, 12), amount: 77, type: 'Expense', category: 'Food', subcategory: 'Dining Out', description: 'DELETED ROW', spendingType: 'Flexible', needWant: 'Want', isDeleted: true },
@@ -615,8 +621,8 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       { name: 'Old gym', group: 'Memberships', category: 'Health', subcategory: 'Gym & Fitness', amount: 30, frequency: 'Monthly', dueDay: 3, active: false }]`;
     const n = R(`spendingNoteTexts_(${tx}, ${rec}, new Date(2026, 10, 1), 'Nov 12, 6:00 PM')`);
     const ff = n.fixedFlex, nw = n.needsWants, rc = n.recurring;
-    if (/^November 2026/.test(ff) && /FIXED: \$900\.00\n  Mortgage or Rent  \$900\.00  \(SAMPLE LANDLORD\)/.test(ff) && /FLEXIBLE: \$112\.00\n  Groceries  \$100\.00  \(SAMPLE MARKET, SAMPLE CO-OP\)\n  Coffee & Snacks  \$12\.00/.test(ff) && /UNEXPECTED: \$1,234\.50/.test(ff) && ff.indexOf('FIXED') < ff.indexOf('FLEXIBLE') && !/DELETED ROW|LAST MONTH|TO SAVINGS/.test(ff) && /As of Nov 12, 6:00 PM/.test(ff)) ok('fixed vs flexible note: each spending type with its total, then its subcategories (largest first) with who was paid; refunds come off; deleted rows, transfers and other months are left out'); else bad('fixed/flex note:\n' + ff);
-    if (/NEED: \$1,000\.00/.test(nw) && /WANT: \$12\.00\n  Coffee & Snacks/.test(nw) && /NOT MARKED YET: \$1,234\.50\n  Doctor/.test(nw) && /change its Need\/Want/.test(nw)) ok('needs vs wants note: needs, wants and anything not marked yet, each with its subcategories'); else bad('needs/wants note:\n' + nw);
+    if (/^November 2026/.test(ff) && /FIXED: \$900\.00\n  Mortgage or Rent  \$900\.00  \(SAMPLE LANDLORD\)/.test(ff) && /FLEXIBLE: \$112\.00\n  Groceries  \$100\.00  \(SAMPLE MARKET, SAMPLE CO-OP\)\n  Coffee Shops  \$12\.00/.test(ff) && /UNEXPECTED: \$1,234\.50/.test(ff) && ff.indexOf('FIXED') < ff.indexOf('FLEXIBLE') && !/DELETED ROW|LAST MONTH|TO SAVINGS/.test(ff) && /As of Nov 12, 6:00 PM/.test(ff)) ok('fixed vs flexible note: each spending type with its total, then its subcategories (largest first) with who was paid; refunds come off; deleted rows, transfers and other months are left out'); else bad('fixed/flex note:\n' + ff);
+    if (/NEED: \$1,000\.00/.test(nw) && /WANT: \$12\.00\n  Coffee Shops/.test(nw) && /NOT MARKED YET: \$1,234\.50\n  Doctor/.test(nw) && /change its Need\/Want/.test(nw)) ok('needs vs wants note: needs, wants and anything not marked yet, each with its subcategories'); else bad('needs/wants note:\n' + nw);
     if (/^Recurring bills: \$1,160\.00 a month, 3 active/.test(rc) && /HOUSING: \$900\.00 a month\n  Rent  \$900\.00 monthly, due the 1st  · paid in November 2026/.test(rc) && /Sitter  \$60\.00 weekly \(\$260\.00 a month\)  · not seen yet in November 2026/.test(rc) && /Streaming  amount not set, due the 22nd/.test(rc) && !/Old gym/.test(rc) && rc.indexOf('HOUSING') < rc.indexOf('OTHER')) ok('recurring bills note: every active bill by group (largest first) with its amount, frequency, due day and whether this month\'s payment has been seen; inactive bills are left out'); else bad('recurring note:\n' + rc);
     const sp = ss.getSheetByName(SHEETS.SPEND);
     const did = R(`refreshSpendingNotes_()`);
