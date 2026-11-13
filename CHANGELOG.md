@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 2026-11-13 — One paycheck can feed several accounts (HSA, 457, 401(k))
+- Why: the owner's school paycheck pays into three accounts the bank feed
+  cannot reach: the HSA, a 457 and a 401(k) (the stub lists the employee
+  and employer amounts). The 3.14 setting on Expected Income allowed one
+  account per paycheck.
+- Schema 3.15: two columns appended to Accounts, **Payroll Deposit From
+  (Source ID)** and **Payroll Deposit per Paycheck** (employer
+  contributions included). `creditPayrollDeposits_` reads these and, as
+  before, the Expected Income columns from 3.14; an account and paycheck
+  set in both places counts once, with the Accounts amount. A source ID
+  not on Expected Income is reported in the sync message.
+- `readTable_` now reads a tab that has not had the upgrade yet (fewer
+  columns than the schema) and treats the missing columns as blank, and
+  `writeRows_` widens such a tab before writing. Before this, deploying a
+  new column could stop the nightly sync until the owner ran the upgrade.
+- `SCHEMA_VERSION` 3.15-payroll-per-account-2026-11-13, `BUILD_VERSION`
+  1.17.0.
+- Files changed in `apps-script/`: `Config.gs`, `Helpers.gs`,
+  `IncomeDeposits.gs`, `Reference.gs` (deployed on merge). Run **Upgrade
+  workbook** once; step page `handoffs/2026-11-13-payroll-per-account.json`.
+- In the Sheet (not in the repository): the 457 and 401(k) were added to
+  Accounts with their balances from the plan site, and the three accounts
+  were given their paycheck source and per-paycheck amounts from the stub.
+- Tested: Node (several accounts from one paycheck, no double count when
+  set in both places, unknown source reported, a narrower tab read with
+  blanks; 279 checks; safety check). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/payroll-deposits-per-account`
+
 ## 2026-11-13 — Coffee shops tracked on their own
 - Why (the owner's request): coffee at a coffee shop is a different kind
   of spending from groceries and snacks, and the owner wants to see coffee

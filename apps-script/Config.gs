@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.14-payroll-deposit-2026-11-13',
-  BUILD_VERSION: '1.16.1',
+  SCHEMA_VERSION: '3.15-payroll-per-account-2026-11-13',
+  BUILD_VERSION: '1.17.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -355,6 +355,10 @@ TABLES.ACCOUNTS = {
       note: 'Added in 3.1: ticked = the sync lands this account\'s transactions in Import Staging; unticked = balance only (Acorns, Fidelity, HSA).' },
     { key: 'lastSynced', h: 'Last Synced', w: 130, fmt: C.dt,
       note: 'Added in 3.1: when the bank feed last updated this balance.' },
+    { key: 'payrollSource', h: 'Payroll Deposit From (Source ID)', w: 150, v: { idsOf: 'EXPECT' },
+      note: 'Added in 3.15: for an account the bank feed cannot reach that a paycheck pays into through payroll (HSA, 401(k), 457): the Expected Income row of that paycheck. Each of its paychecks adds Payroll Deposit per Paycheck to Current Balance.' },
+    { key: 'payrollPerPaycheck', h: 'Payroll Deposit per Paycheck', w: 130, fmt: C.cur,
+      note: 'Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day.' },
   ],
 };
 
@@ -417,7 +421,7 @@ TABLES.EXPECT = {
     { key: 'expectedThisMonth', h: 'Expected This Month', w: 125, fmt: C.cur, f: '=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))' },
     { key: 'notes', h: 'Notes', w: 240 },
     { key: 'payrollDepositAccount', h: 'Payroll Deposit To (Account ID)', w: 150, v: { idsOf: 'ACCOUNTS' },
-      note: 'Added in 3.14: an account this paycheck also pays into through payroll (an HSA) that the bank feed cannot reach. Each paycheck adds Payroll Deposit per Paycheck to that account\'s Current Balance.' },
+      note: 'Added in 3.14 for one account per paycheck. Since 3.15 the setting lives on Accounts (Payroll Deposit From), where several accounts can draw on one paycheck; a value here still works.' },
     { key: 'payrollDepositAmount', h: 'Payroll Deposit per Paycheck', w: 130, fmt: C.cur,
       note: 'Added in 3.14: the amount each paycheck puts into Payroll Deposit To. Withdrawals are not seen: type the account\'s balance on Accounts after one and counting starts again from that day.' },
   ],

@@ -40,7 +40,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 29 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('29 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 16, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -592,6 +592,22 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     R(`onEdit({ range: ss_().getSheetByName(SHEETS.ACCOUNTS).getRange(${b.__row}, ${cb}), value: 900 })`);
     const a2 = acc('ACC-950'), b2 = acc('ACC-951');
     if (a2.lastUpdated && typeof a2.lastUpdated.getTime === 'function' && a2.lastUpdated.getFullYear() === new Date().getFullYear() && a2.lastUpdated.getDate() === new Date().getDate() && b2.lastUpdated.getFullYear() === 2020) ok('typing a balance on an account the feed does not update sets its Last Updated to today, so later paychecks count from there; a connected account is not touched'); else bad('balance typed: ' + JSON.stringify([String(a2.lastUpdated), String(b2.lastUpdated)]));
+    // since 3.15 the setting can live on Accounts, so one paycheck can feed several accounts (HSA, 457, 401(k))
+    R(`writeRows_(TABLES.ACCOUNTS, [{ id: 'ACC-952', name: 'SAMPLE 457', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 1000, lastUpdated: ${ago(20)}, payrollSource: 'EXP-950', payrollPerPaycheck: 10, notes: 'SAMPLE test' },
+      { id: 'ACC-953', name: 'SAMPLE 401k', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 2000, lastUpdated: ${ago(20)}, payrollSource: 'EXP-950', payrollPerPaycheck: 25.5, notes: 'SAMPLE test' },
+      { id: 'ACC-954', name: 'SAMPLE bad source', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 5, lastUpdated: ${ago(20)}, payrollSource: 'EXP-999', payrollPerPaycheck: 1, notes: 'SAMPLE test' }])`);
+    // the HSA keeps its Expected Income setting and also gets it on Accounts: it must count once
+    (function () { const ad = vm.runInContext('TABLES.ACCOUNTS', ctx); const row = acc('ACC-950').__row; ash.getRange(row, ad.columns.findIndex(c => c.key === 'payrollSource') + 1).setValue('EXP-950'); ash.getRange(row, ad.columns.findIndex(c => c.key === 'payrollPerPaycheck') + 1).setValue(40); ash.getRange(row, ad.columns.findIndex(c => c.key === 'lastUpdated') + 1).setValue(R(`${ago(20)}`)); ash.getRange(row, ad.columns.findIndex(c => c.key === 'currentBalance') + 1).setValue(500); })();
+    const c3 = R(`creditPayrollDeposits_()`);
+    if (near(acc('ACC-952').currentBalance, 1020) && near(acc('ACC-953').currentBalance, 2051) && near(acc('ACC-950').currentBalance, 580) && near(acc('ACC-954').currentBalance, 5) && c3.details.some(d => /SAMPLE bad source: Payroll Deposit From EXP-999 is not on Expected Income/.test(d))) ok('one paycheck feeds several accounts set on Accounts (457 +$20, 401(k) +$51 for two paychecks); an account set in both places counts once; an unknown source is reported'); else bad('per-account payroll: ' + JSON.stringify([acc('ACC-952').currentBalance, acc('ACC-953').currentBalance, acc('ACC-950').currentBalance, c3.details]));
+    // a tab not yet upgraded (narrower than the schema) is still read, the new columns as blank
+    (function () {
+      const nar = ss.insertSheet('Narrow'); const def = JSON.parse(JSON.stringify(vm.runInContext('TABLES.ACCOUNTS', ctx))); def.sheet = 'Narrow';
+      nar.maxCols = 14; nar.getRange(def.firstRow, 1, 1, 14).setValues([['ACC-1', 'x', 'y', 'Savings', '', 'Yes', '', 5, '', '', '', '', false, '']]);
+      const rows = R(`readTable_(${JSON.stringify(def)})`);
+      if (rows.length === 1 && rows[0].id === 'ACC-1' && rows[0].payrollSource === '' && rows[0].payrollPerPaycheck === '') ok('a tab that has not had the upgrade yet (fewer columns than the schema) is still read; the new columns read as blank'); else bad('narrow read: ' + JSON.stringify(rows));
+      ss.deleteSheet(nar); // SAFETY-APPROVED: test only, removes the scratch tab this test created on the mock
+    })();
     const def = vm.runInContext('TABLES.EXPECT', ctx);
     const keys = def.columns.map(c => c.key);
     if (keys.slice(-3).join() === 'notes,payrollDepositAccount,payrollDepositAmount' && def.columns[keys.length - 2].v.idsOf === 'ACCOUNTS') ok('Payroll Deposit To and Payroll Deposit per Paycheck are appended to Expected Income (delivered by the upgrade)'); else bad('expect columns: ' + keys.slice(-3));
@@ -893,7 +909,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 4); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 6); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');

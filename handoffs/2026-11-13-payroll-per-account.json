@@ -1,0 +1,57 @@
+{
+  "title": "Retirement Accounts from Paychecks",
+  "key": "household-finance-tracker-2026-11-13-payroll-per-account",
+  "subtitle": "Your HSA, 457 and 401(k) each grow with every Rockford paycheck by what goes in through payroll. One upgrade, one check, and one connection to try.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. I have already put the settings on the three accounts; the upgrade adds the column headers and the dropdowns.",
+    "**What does not change:** no transactions, paychecks or other balances. Accounts the bank feed updates are never touched by this."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before retirement accounts 2026-11-13`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.17.0`. If it shows an older number, wait a minute and reload the Sheet.",
+          "note": "This upgrade also covers everything from yesterday and today if you have not run one since."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm."
+        }
+      ]
+    },
+    {
+      "heading": "Check the three accounts",
+      "steps": [
+        {
+          "text": "Open **Accounts** and scroll right to the last two columns, **Payroll Deposit From (Source ID)** and **Payroll Deposit per Paycheck**.",
+          "done": "The HealthEquity HSA, the State of MI 457 and the State of MI 401(k) rows each show EXP-003 (the Rockford paycheck) and an amount. The 401(k) amount includes what Rockford adds."
+        },
+        {
+          "text": "From now on, each Rockford paycheck adds those amounts at the sync after it lands in checking. Nothing to do on payday.",
+          "note": "Investment gains and losses are not seen this way. Every few months, type the balance Voya shows into **Current Balance** on each plan's row; Last Updated changes to that day and counting starts again from there."
+        }
+      ]
+    },
+    {
+      "heading": "Try connecting Voya (optional)",
+      "steps": [
+        {
+          "text": "Open **Finance Tracker → Bank feed → Connect a bank**, search **voya** and pick **Voya Retirement Plans** (my.voya.com). Sign in with the same username and password you use on Voya's website.",
+          "note": "If that entry says it is not supported, try **Voya Financial – Voya Services Company**. If neither works, nothing is lost: the paycheck additions keep the balances close."
+        },
+        {
+          "text": "If it connects, on the matching screen choose the existing **State of MI 457 Plan** and **State of MI 401(k) Plan** rows instead of creating new ones.",
+          "done": "Those two rows show a Connection ID. From then on Voya keeps their balances, gains included, and the paycheck additions stop for them on their own."
+        }
+      ]
+    }
+  ]
+}

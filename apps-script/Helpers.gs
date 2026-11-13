@@ -246,7 +246,9 @@ function readTable_(def) {
   const sh = ss_().getSheetByName(def.sheet);
   if (!sh) return [];
   const last = Math.max(sh.getLastRow(), def.firstRow);
-  const n = def.columns.length;
+  // A column added to the schema exists on the tab only after Upgrade workbook. Until then read what is
+  // there and treat the new columns as blank, so the new code never stops a sync on an older tab.
+  const n = Math.min(def.columns.length, sh.getMaxColumns());
   if (last < def.firstRow) return [];
   const values = sh.getRange(def.firstRow, 1, last - def.firstRow + 1, n).getValues();
   const anchor = anchorCol_(def) - 1;
@@ -254,7 +256,7 @@ function readTable_(def) {
   values.forEach((row, i) => {
     if (row[anchor] === '' || row[anchor] === null) return;
     const o = { __row: def.firstRow + i };
-    def.columns.forEach((c, j) => { o[c.key] = row[j]; });
+    def.columns.forEach((c, j) => { o[c.key] = j < n ? row[j] : ''; });
     out.push(o);
   });
   return out;
@@ -306,6 +308,8 @@ function writeRows_(def, rows, startRow) {
   const start = startRow || nextEmptyRow_(def);
   const endRow = start + rows.length - 1;
   if (endRow > def.lastRow) extendTable_(def, endRow + 50);
+  // a tab not yet upgraded may be narrower than the schema: widen it (the upgrade writes the new headers)
+  if (sh.getMaxColumns() < def.columns.length) sh.insertColumnsAfter(sh.getMaxColumns(), def.columns.length - sh.getMaxColumns());
   const values = rows.map(r => def.columns.map(c => (c.f || c.arrayFormula) ? '' : (r[c.key] === undefined || r[c.key] === null ? '' : r[c.key])));
   sh.getRange(start, 1, rows.length, def.columns.length).setValues(values);
   // restore formulas in formula columns for the written block

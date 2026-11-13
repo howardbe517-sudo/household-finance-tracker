@@ -288,8 +288,8 @@ function payrollDepositPlan_(account, sources, income, today) {
 }
 
 /**
- * For each account named in Expected Income's "Payroll Deposit To" that the bank feed does not
- * update (no Connection ID), adds the per-paycheck amount for every paycheck dated after the
+ * For each account the bank feed does not update (no Connection ID) that a paycheck pays into (Accounts'
+ * Payroll Deposit From, or Expected Income's Payroll Deposit To), adds the per-paycheck amount for every paycheck dated after the
  * account's Last Updated, then moves Last Updated to the newest of those pay dates, so nothing is
  * added twice. A balance typed by hand on Accounts resets Last Updated to that day (onEdit), and
  * counting starts again from there. Runs with every sync, the upgrade and after pasted stubs.
@@ -299,15 +299,28 @@ function creditPayrollDeposits_() {
   const out = { accounts: 0, paychecks: 0, details: [] };
   const expDef = tdef_('EXPECT'), accDef = tdef_('ACCOUNTS');
   if (!ss_().getSheetByName(expDef.sheet) || !ss_().getSheetByName(accDef.sheet)) return out;
-  const sources = readTable_(expDef).filter(x => x.payrollDepositAccount && Number(x.payrollDepositAmount) > 0);
-  if (!sources.length) return out;
+  const expRows = readTable_(expDef);
   const accounts = readTable_(accDef);
+  // Where the setting lives: on Accounts (Payroll Deposit From + per Paycheck, since 3.15; several accounts can
+  // draw on one paycheck), or on Expected Income (Payroll Deposit To, 3.14; one account per paycheck). The same
+  // account and paycheck set in both places counts once, with the Accounts amount.
+  const byAccount = {}, seen = {};
+  const add = (accId, src, amount) => {
+    const k = accId + '|' + src.id;
+    if (seen[k]) return;
+    seen[k] = true;
+    (byAccount[accId] = byAccount[accId] || []).push({ person: src.person, employer: src.employer, payrollDepositAmount: amount });
+  };
+  accounts.filter(a => a.payrollSource && Number(a.payrollPerPaycheck) > 0).forEach(a => {
+    const src = expRows.filter(x => x.id === a.payrollSource)[0];
+    if (src) add(a.id, src, Number(a.payrollPerPaycheck)); else out.details.push(a.name + ': Payroll Deposit From ' + a.payrollSource + ' is not on Expected Income');
+  });
+  expRows.filter(x => x.payrollDepositAccount && Number(x.payrollDepositAmount) > 0).forEach(x => add(x.payrollDepositAccount, x, Number(x.payrollDepositAmount)));
+  if (!Object.keys(byAccount).length) return out;
   const income = readTable_(tdef_('INCOME'));
   const sh = getOrCreateSheet_(accDef.sheet);
   const today = todayMidnight_();
   const log = changeLogEnabled_();
-  const byAccount = {};
-  sources.forEach(s => { (byAccount[s.payrollDepositAccount] = byAccount[s.payrollDepositAccount] || []).push(s); });
   Object.keys(byAccount).forEach(accId => {
     const acc = accounts.filter(a => a.id === accId)[0];
     if (!acc) { out.details.push(accId + ': no such account on Accounts'); return; }
