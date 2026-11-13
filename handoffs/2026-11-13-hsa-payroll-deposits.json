@@ -19,8 +19,8 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.16.0`. If it shows an older number, wait a minute and reload the Sheet.",
-          "note": "This is the check that stops an upgrade from running on the old code. This upgrade also includes yesterday's month-count fix if you have not run it yet."
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.16.1`. If it shows an older number, wait a minute and reload the Sheet.",
+          "note": "This is the check that stops an upgrade from running on the old code. This upgrade also includes yesterday's month-count fix and the new Coffee Shops and Snacks subcategories."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",

@@ -609,7 +609,8 @@ Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_E
 | Food | Groceries | Need | Variable | Flexible |
 | Food | Dining Out | Want | Variable | Flexible |
 | Food | Takeout & Delivery | Want | Variable | Flexible |
-| Food | Coffee & Snacks | Want | Variable | Flexible |
+| Food | Coffee Shops | Want | Variable | Flexible |
+| Food | Snacks | Want | Variable | Flexible |
 | Food | Alcohol | Want | Variable | Flexible |
 | Transportation | Fuel | Need | Variable | Flexible |
 | Transportation | Routine Maintenance | Need | Variable | Flexible |
