@@ -1,0 +1,50 @@
+{
+  "title": "Month Count Fix",
+  "key": "household-finance-tracker-2026-11-13-month-count-fix",
+  "subtitle": "One hover note per tile on Spending, and a fix that makes the Financial Summary's flexible spending and left-over figures right. One upgrade.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade redraws the Spending and Financial Summary tabs with the fix.",
+    "**What was wrong:** a cell that counts how many past months have spending read 1 when there are none yet. So the Financial Summary showed $0 for Flexible Spending and too much for Likely Left Over, and the Spending tab showed $0 where it should show a dash.",
+    "**What does not change:** no rows, balances or entered values. Your month, Compare with choice and checklist ticks are kept."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before month count fix 2026-11-13`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.15.1`. If it shows an older number, wait a minute and reload the Sheet.",
+          "note": "This is the check that stops an upgrade from running on the old code."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm."
+        }
+      ]
+    },
+    {
+      "heading": "Check the result",
+      "steps": [
+        {
+          "text": "Open **Spending**. Each of the three tiles (Fixed vs flexible, Needs vs wants, Recurring bills) has one small triangle, at the corner of the big number. Rest the mouse on the number to see the list.",
+          "done": "One triangle per tile. The small lines say \"typical —\" instead of \"typical $0 / $0\"."
+        },
+        {
+          "text": "Open **Financial Summary**. **Flexible Spending (average)** now shows what you have spent outside fixed costs so far this month, with \"this month so far\" in the small line.",
+          "note": "It becomes a true average on December 1, after November is complete.",
+          "done": "Flexible Spending is no longer $0, and Likely Left Over is lower by the same amount."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "The Typical Month line and the Financial Summary cards line both pass."
+        }
+      ]
+    }
+  ]
+}
