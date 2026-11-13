@@ -66,6 +66,12 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.17.0 (schema 3.15): the school paycheck pays into the
+  HSA (ACC-013), the state 457 (ACC-019) and 401(k) (ACC-020), all at
+  Voya or HealthEquity and not connected. Each account's source and
+  per-paycheck amount (stub: employee + employer lines) now sit on
+  Accounts. Owner to try Plaid's "Voya Retirement Plans (my.voya.com)";
+  if it connects, the per-paycheck additions stop for those accounts.
 - 2026-11-13, build 1.16.1: Food / Coffee & Snacks split into Coffee Shops
   and Snacks (owner wants coffee tracked separately); Sheet data moved.
   All staged rows categorized with the owner on 2026-11-13.

@@ -206,6 +206,10 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   `ensureExpectedIncome_`, and are overwritten in place (same ID) when a
   stub for that paycheck is pasted later. A deposit next to an unlinked
   stub with a different take-home is held for the owner.
+- Payroll deposits (3.15): the setting is on Accounts (Payroll Deposit From +
+  per Paycheck), so one paycheck can feed several accounts; the 3.14
+  Expected Income columns still work. `readTable_` tolerates a tab narrower
+  than the schema (before the upgrade).
 - Payroll deposits into an account the feed cannot reach (the HSA):
   Expected Income's Payroll Deposit To / per Paycheck. `creditPayrollDeposits_`
   adds the amount for each paycheck dated after the account's Last Updated
