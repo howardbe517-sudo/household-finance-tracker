@@ -684,7 +684,7 @@ function syncNow() {
  * paycheck (an active Expected Income row) whose last real pay stub is older than
  * SETTING_PAYSTUB_REMINDER_MONTHS (default 6): paychecks count from the bank deposit, so a stub now
  * and then is what keeps the gross pay and deductions right; and a retirement, HSA or investment account the
- * bank feed does not update whose balance is older than SETTING_BALANCE_REMINDER_MONTHS (default 3): payroll
+ * bank feed does not update whose balance is older than SETTING_BALANCE_REMINDER_MONTHS (default 6): payroll
  * deposits are added on their own, investment growth is not. Returns [{ key, text }].
  */
 function dueReminders_() {
@@ -721,7 +721,7 @@ function dueReminders_() {
     });
   }
   const balRange = ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS');
-  const balMonths = balRange && Number(balRange.getValue()) > 0 ? Number(balRange.getValue()) : 3;
+  const balMonths = balRange && Number(balRange.getValue()) > 0 ? Number(balRange.getValue()) : 6;
   const balCutoff = addMonths_(todayMidnight_(), -balMonths);
   readTable_(tdef_('ACCOUNTS')).filter(a => !a.connectionId && a.includeNW === 'Yes' && BALANCE_REMINDER_TYPES.indexOf(a.accountType) >= 0).forEach(a => {
     const d = a.lastUpdated instanceof Date ? a.lastUpdated : null;

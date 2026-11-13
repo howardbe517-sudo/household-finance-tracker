@@ -856,14 +856,16 @@ R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12)`);
     { id: 'ACC-973', name: 'SAMPLE Never HSA', institution: 'Sample HSA Co', accountType: 'HSA', includeNW: 'Yes', notes: 'SAMPLE test' },
     { id: 'ACC-974', name: 'SAMPLE Old Card', institution: 'Sample Bank', accountType: 'Credit Card', includeNW: 'Yes', currentBalance: 10, lastUpdated: ${mo(9)}, notes: 'SAMPLE test' },
     { id: 'ACC-975', name: 'SAMPLE Excluded', institution: 'Sample Plan Co', accountType: 'Investment', includeNW: 'No', lastUpdated: ${mo(9)}, notes: 'SAMPLE test' }])`);
+  if (Number(g.__ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').getValue()) === 6) ok('balance reminders default to every six months (App Setup)'); else bad('balance reminder default: ' + g.__ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').getValue());
+  R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(3)`); // the default is 6; the checks below use 3
   const bd = () => R(`dueReminders_()`).filter(r => /^balance:ACC-97/.test(r.key)).map(r => r.key + ' ' + r.text);
   const b1 = bd();
-  if (b1.length === 2 && b1.some(x => /^balance:ACC-970 Balance for SAMPLE Old 457: last updated/.test(x)) && b1.some(x => /^balance:ACC-973 Balance for SAMPLE Never HSA: never entered/.test(x))) ok('balance reminders: a retirement, HSA or investment account typed by hand is due after three months or when never entered; a fresh one, a connected one, a card and an account left out of net worth are not'); else bad('balance reminders: ' + JSON.stringify(b1));
-  R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(6)`);
+  if (b1.length === 2 && b1.some(x => /^balance:ACC-970 Balance for SAMPLE Old 457: last updated/.test(x)) && b1.some(x => /^balance:ACC-973 Balance for SAMPLE Never HSA: never entered/.test(x))) ok('balance reminders: a retirement, HSA or investment account typed by hand is due after the set months (default six) or when never entered; a fresh one, a connected one, a card and an account left out of net worth are not'); else bad('balance reminders: ' + JSON.stringify(b1));
+  R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(12)`);
   const b2 = bd();
   R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(3)`);
   const rf = g.__ss.getRangeByName('REMINDERS_BOX').getFormula();
-  if (b2.length === 1 && /ACC-973/.test(b2[0]) && /SETTING_BALANCE_REMINDER_MONTHS/.test(rf) && /MAP\('Accounts'!/.test(rf) && /"Balance for "&xn/.test(rf) && /\(xt="Retirement"\)\+\(xt="HSA"\)\+\(xt="Investment"\)/.test(rf) && Number(g.__ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').getValue()) === 3) ok('balance reminders follow the App Setup months setting and appear in the Reminders tab formula'); else bad('balance reminder setting/formula: ' + JSON.stringify(b2));
+  if (b2.length === 1 && /ACC-973/.test(b2[0]) && /SETTING_BALANCE_REMINDER_MONTHS/.test(rf) && /MAP\('Accounts'!/.test(rf) && /"Balance for "&xn/.test(rf) && /\(xt="Retirement"\)\+\(xt="HSA"\)\+\(xt="Investment"\)/.test(rf) && /,6\),/.test(rf.slice(rf.indexOf('SETTING_BALANCE_REMINDER_MONTHS'), rf.indexOf('SETTING_BALANCE_REMINDER_MONTHS') + 120))) ok('balance reminders follow the App Setup months setting and appear in the Reminders tab formula'); else bad('balance reminder setting/formula: ' + JSON.stringify(b2));
 }
 // pay stub reminders: one per regular paycheck whose last real stub is older than the setting (default 6 months)
 {

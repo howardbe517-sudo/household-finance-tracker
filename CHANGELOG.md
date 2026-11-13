@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-13 — Balance reminder every six months
+- The owner wants to update the hand-typed balances (457, 401(k), HSA)
+  about every six months. The default of
+  `SETTING_BALANCE_REMINDER_MONTHS` is now 6 everywhere (App Setup, the
+  reminder list, the Reminders tab formula, the upgrade). A value already
+  set on App Setup is kept. `BUILD_VERSION` 1.18.1.
+- Files changed in `apps-script/`: `Reference.gs`, `Upgrade.gs`,
+  `Plaid.gs`, `Dashboard.gs`, `Config.gs` (deployed on merge). Applied by
+  the pending Upgrade workbook.
+- Tested: Node (default 6; the setting still overrides; suite green;
+  safety check).
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/balance-reminder-six-months`
+
 ## 2026-11-13 — Reminder: update hand-typed balances every three months
 - Why (the owner's choice): the 457, the 401(k) and the HSA are not
   connected to the bank feed. Payroll deposits are added per paycheck, but
