@@ -200,30 +200,38 @@ function buildFinancialSummary_() {
   sh.getRange('E' + FINSUM.INCOME_BEN + ':E' + hh).setNumberFormat(FORMATS.percent);
   sh.getRange('A' + FINSUM.INCOME_HEADER + ':F' + hh).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
-  /* --- Payroll Deductions: average per month --- */
-  styleSectionBar_(sh.getRange('A' + FINSUM.PAYROLL_BAR + ':I' + FINSUM.PAYROLL_BAR), 'Payroll Deductions — average per month over the period');
-  const groups = [
-    { c1: 'A', c2: 'B', c3: 'C', name: 'Ben', color: COLORS.BEN, person: 'Ben', grossCell: '$B$' + FINSUM.INCOME_BEN },
-    { c1: 'D', c2: 'E', c3: 'F', name: 'Valerie', color: COLORS.VALERIE, person: 'Valerie', grossCell: '$B$' + FINSUM.INCOME_VAL },
-    { c1: 'G', c2: 'H', c3: 'I', name: 'Household', color: COLORS.HOUSEHOLD, person: null, grossCell: '$B$' + FINSUM.INCOME_HH },
-  ];
+  /* --- Payroll Deductions: per paycheck, one group per job, from that job's latest real pay stub --- */
+  // The owner's view (2026-11-13): what comes out of a paycheck is a share of that paycheck, so each job is shown on
+  // its own, as amounts per paycheck and % of that paycheck's gross. How many paychecks a month has does not matter.
+  // Jobs are the active Expected Income rows, by person and then largest typical gross; rows made from a bank deposit
+  // are estimates and are left out (their deductions are scaled copies of a stub anyway).
+  styleSectionBar_(sh.getRange('A' + FINSUM.PAYROLL_BAR + ':I' + FINSUM.PAYROLL_BAR), 'Payroll Deductions — per paycheck, from each job\'s latest pay stub');
+  const NOT_DEP = ',[INCOME.notes],"<>*' + INCOME_FROM_DEPOSIT_MARK + '*"';
+  // p = person, e = employer, d = pay date of the latest real stub (0 when none) for the k-th job
+  const job = (k) => 'LET(js,SORT(FILTER({[EXPECT.id],[EXPECT.person],[EXPECT.typicalGross]},[EXPECT.active]=TRUE,[EXPECT.id]<>""),2,TRUE,3,FALSE),' +
+    'id,INDEX(js,' + k + ',1),p,INDEX([EXPECT.person],MATCH(id,[EXPECT.id],0)),e,INDEX([EXPECT.employer],MATCH(id,[EXPECT.id],0)),' +
+    'd,MAXIFS([INCOME.payDate],[INCOME.person],p,[INCOME.employer],e' + NOT_DEP + '),';
+  const onStub = (col) => 'SUMIFS([INCOME.' + col + '],[INCOME.person],p,[INCOME.employer],e,[INCOME.payDate],d' + NOT_DEP + ')';
+  const groups = [{ c1: 'A', c2: 'B', c3: 'C', k: 1 }, { c1: 'D', c2: 'E', c3: 'F', k: 2 }, { c1: 'G', c2: 'H', c3: 'I', k: 3 }];
   const deductions = [
     ['Federal Tax', 'fedTax'], ['State / Local Tax', 'stateTax'], ['Social Security & Medicare', 'ssMed'],
     ['Health / Insurance', 'health'], ['Retirement', 'retirement'], ['Other Deductions', 'otherDed'], ['Total Deductions', 'totalDed'],
   ];
   groups.forEach(g => {
-    mergePut(g.c1 + FINSUM.PAYROLL_GROUPS + ':' + g.c3 + FINSUM.PAYROLL_GROUPS, g.name).setBackground(g.color).setFontWeight('bold').setHorizontalAlignment('center');
-    header(g.c1 + FINSUM.PAYROLL_HEADER + ':' + g.c3 + FINSUM.PAYROLL_HEADER, ['Deduction', 'Amount', '% of Gross']);
+    mergePut(g.c1 + FINSUM.PAYROLL_GROUPS + ':' + g.c3 + FINSUM.PAYROLL_GROUPS,
+      F('=IFERROR(' + job(g.k) + 'p&" · "&e&IF(d=0," · no pay stub yet"," · stub of "&TEXT(d,"mmm d, yyyy"))),"")'))
+      .setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center').setWrap(true);
+    header(g.c1 + FINSUM.PAYROLL_HEADER + ':' + g.c3 + FINSUM.PAYROLL_HEADER, ['Deduction', 'Per Paycheck', '% of Gross']);
     deductions.forEach((d, i) => {
       const r = FINSUM.PAYROLL_FIRST + i;
       put(g.c1 + r, d[0]);
-      put(g.c2 + r, F('=' + avg('INCOME', d[1], g.person ? ',[INCOME.person],"' + g.person + '"' : ''))).setNumberFormat(FORMATS.currency);
-      put(g.c3 + r, '=IF(' + g.grossCell + '>0,' + g.c2 + r + '/' + g.grossCell + ',"")').setNumberFormat(FORMATS.percent);
+      put(g.c2 + r, F('=IFERROR(' + job(g.k) + 'IF(d=0,"",' + onStub(d[1]) + ')),"")')).setNumberFormat(FORMATS.currency);
+      put(g.c3 + r, F('=IFERROR(' + job(g.k) + 'g,' + onStub('gross') + ',IF(OR(d=0,g=0),"",' + onStub(d[1]) + '/g)),"")')).setNumberFormat(FORMATS.percent);
     });
-    sh.getRange(g.c1 + FINSUM.PAYROLL_FIRST + ':' + g.c3 + FINSUM.PAYROLL_TOTAL).setBackground(g.color);
     sh.getRange(g.c1 + FINSUM.PAYROLL_TOTAL + ':' + g.c3 + FINSUM.PAYROLL_TOTAL).setFontWeight('bold');
     sh.getRange(g.c1 + FINSUM.PAYROLL_HEADER + ':' + g.c3 + FINSUM.PAYROLL_TOTAL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
+  sh.setRowHeight(FINSUM.PAYROLL_GROUPS, 30);
 
   /* --- Credit Scores — Latest --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.CREDIT_BAR + ':E' + FINSUM.CREDIT_BAR), 'Credit Scores — Latest');
