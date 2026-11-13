@@ -209,7 +209,7 @@ function importGrid_(grid, opts) {
   });
   let linked = null;
   let expected = null;
-  if (key === 'INCOME') { try { linked = linkIncomeDeposits_(); } catch (e) { linked = null; } try { expected = ensureExpectedIncome_(); } catch (e) { expected = null; } }
+  if (key === 'INCOME') { try { linked = linkIncomeDeposits_(); } catch (e) { linked = null; } try { expected = ensureExpectedIncome_(); } catch (e) { expected = null; } try { creditPayrollDeposits_(); } catch (e) { /* the next sync does the same */ } }
   const when = Utilities.formatDate(new Date(), 'America/Detroit', 'yyyy-MM-dd HH:mm');
   props.setProperty('PASTE_LAST_HASH', hash); props.setProperty('PASTE_LAST_WHEN', when);
   const status = fresh.length + ' row(s) → ' + def.sheet + ' at ' + when + (replace.length ? ' · ' + replace.length + ' stub(s) replaced a bank-deposit estimate (' + replace.map(x => x.target.id).join(', ') + ')' : '') + (dupes.length ? ' · ' + dupes.length + ' skipped as already present' : '')

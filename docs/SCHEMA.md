@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.13-auto-record-2026-11-12**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.14-payroll-deposit-2026-11-13**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -11,7 +11,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 14 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
-| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 16 | yes |
+| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 18 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 20 | yes |
 | UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
@@ -123,6 +123,8 @@ Named range `TBL_EXPECT` covers the header row through the last formula row.
 | N | Paydays This Month | `paydaysThisMonth` | text | calculated | `=IF([@id]="","",LET(ms,DATE(YEAR(TODAY()),MONTH(TODAY()),1),me,EOMONTH(ms,0),IFERROR(IF([@frequency]="Biweekly",IF(N([@lastPayDate])=0,26/12,INT((me-N([@last…` — Biweekly and weekly pay are counted from the last pay date and the pay cycle, so a three-paycheck month shows 3; until a paycheck exists the yearly average is used (26/12 or 52/12). Semimonthly is 2, monthly 1. |
 | O | Expected This Month | `expectedThisMonth` | currency | calculated | `=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))` |
 | P | Notes | `notes` | text | input |  |
+| Q | Payroll Deposit To (Account ID) | `payrollDepositAccount` | text | dropdown: Accounts IDs | Added in 3.14: an account this paycheck also pays into through payroll (an HSA) that the bank feed cannot reach. Each paycheck adds Payroll Deposit per Paycheck to that account's Current Balance. |
+| R | Payroll Deposit per Paycheck | `payrollDepositAmount` | currency | input | Added in 3.14: the amount each paycheck puts into Payroll Deposit To. Withdrawals are not seen: type the account's balance on Accounts after one and counting starts again from that day. |
 
 ## Transactions (`TX`)
 

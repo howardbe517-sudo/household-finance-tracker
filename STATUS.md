@@ -66,6 +66,12 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.16.0 (schema 3.14): HealthEquity HSA (ACC-013) cannot
+  connect (passkey login; community reports say aggregators mostly fail).
+  Expected Income EXP-003 (Rockford) now has Payroll Deposit To = ACC-013
+  and the per-paycheck HSA amount; each Rockford paycheck adds it to the
+  HSA balance. Waiting on the owner for the starting balance. MOHELA - DOE
+  shows "Connectivity down" in Plaid for days; no fix date known.
 - 2026-11-13, build 1.15.1: fixed a month count that read an empty window
   as one month (Financial Summary flexible average showed $0, so Likely
   Left Over was overstated; Spending showed $0 typical figures instead of

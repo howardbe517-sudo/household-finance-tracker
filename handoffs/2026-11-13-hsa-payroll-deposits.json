@@ -1,0 +1,50 @@
+{
+  "title": "HSA Balance from Paychecks",
+  "key": "household-finance-tracker-2026-11-13-hsa-payroll-deposits",
+  "subtitle": "Until HealthEquity connects, the HSA balance grows by the payroll deposit with every Rockford paycheck. One upgrade, then type the balance once.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade adds two columns to Expected Income; I have already filled them in on the Rockford row.",
+    "**What does not change:** no rows, balances or entered values. Every other account keeps updating from the bank feed as before."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before HSA payroll deposits 2026-11-13`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.16.0`. If it shows an older number, wait a minute and reload the Sheet.",
+          "note": "This is the check that stops an upgrade from running on the old code. This upgrade also includes yesterday's month-count fix if you have not run it yet."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report mentions Expected Income: added column(s) Payroll Deposit To (Account ID), Payroll Deposit per Paycheck."
+        },
+        {
+          "text": "Open **Expected Income** and scroll right on the **Rockford Public Schools** row.",
+          "done": "Payroll Deposit To shows ACC-013 and Payroll Deposit per Paycheck shows the HSA amount from your pay stub."
+        }
+      ]
+    },
+    {
+      "heading": "Give it the starting balance",
+      "steps": [
+        {
+          "text": "Open **Accounts**, find **HealthEquity HSA**, and type the balance HealthEquity shows today in **Current Balance**. Or send it to me and I will enter it.",
+          "note": "Last Updated fills in with today's date on its own. That date is the starting line: Rockford paychecks after it are added, earlier ones are not.",
+          "done": "Last Updated on that row shows today."
+        },
+        {
+          "text": "From now on there is nothing to do on payday. When the next Rockford paycheck shows up (it reaches Income at the sync after it lands in checking), the HSA balance goes up by the payroll amount.",
+          "note": "If you take money out of the HSA, or the balance HealthEquity shows drifts from the tracker, type the real balance again on Accounts. Counting starts over from that day."
+        }
+      ]
+    }
+  ]
+}

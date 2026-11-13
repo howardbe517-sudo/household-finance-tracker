@@ -40,7 +40,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 29 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('29 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 16, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 14, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -557,6 +557,44 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     if (tf.months === 2 && near(tf.average, 210) && tf.provisional === false && tfNow.months === 0 && near(tfNow.average, 44) && tfNow.provisional === true && tf0.months === 0) ok('flexible average: non-fixed spending over the months that have any (two of the last six here), refunds off, fixed bills, deleted rows, transfers and older months left out; with no full month it is this month so far'); else bad('typicalFlexible_: ' + JSON.stringify([tf, tfNow, tf0]));
     const ut = `[{ dueDate: new Date(2026, 4, 10), amount: 60 }, { dueDate: new Date(2026, 7, 10), amount: 90 }, { dueDate: new Date(2026, 9, 10), amount: 30 }, { dueDate: new Date(2026, 10, 10), amount: 500 }, { dueDate: new Date(2025, 9, 10), amount: 700 }]`;
     if (near(R(`averageUtilities_(${ut}, new Date(2026, 10, 12))`), 30) && R(`averageUtilities_([], new Date(2026, 10, 12))`) === 0) ok('utilities average: the bills of the last 12 months spread over the months since the first of them (this month and older bills left out)'); else bad('averageUtilities_: ' + R(`averageUtilities_(${ut}, new Date(2026, 10, 12))`));
+  })();
+  // payroll deposits into an account the bank feed cannot reach (1.16.0)
+  (function () {
+    const inc = `[{ id: 'I1', person: 'Ben', employer: 'Lakeview Schools', payDate: new Date(2026, 9, 30) },
+      { id: 'I2', person: 'Ben', employer: 'Lakeview Schools', payDate: new Date(2026, 10, 13) },
+      { id: 'I3', person: 'ben', employer: 'lakeview schools ', payDate: new Date(2026, 10, 27) },
+      { id: 'I4', person: 'Ben', employer: 'Lakeview Schools', payDate: new Date(2026, 11, 11) },
+      { id: 'I5', person: 'Valerie', employer: 'Lakeview Schools', payDate: new Date(2026, 10, 20) },
+      { id: 'I6', person: 'Ben', employer: 'Corner Cafe', payDate: new Date(2026, 10, 14) }]`;
+    const src = `[{ person: 'Ben', employer: 'Lakeview Schools', payrollDepositAmount: 75 }]`;
+    const p1 = R(`payrollDepositPlan_({ id: 'A', currentBalance: 1000, lastUpdated: new Date(2026, 9, 30) }, ${src}, ${inc}, new Date(2026, 10, 30))`);
+    const p2 = R(`payrollDepositPlan_({ id: 'A', currentBalance: 1000, lastUpdated: new Date(2026, 10, 27) }, ${src}, ${inc}, new Date(2026, 10, 30))`);
+    const p3 = R(`payrollDepositPlan_({ id: 'A', currentBalance: '', lastUpdated: '' }, ${src}, ${inc}, new Date(2026, 10, 30))`);
+    if (p1.count === 2 && near(p1.add, 150) && p1.through.getDate() === 27 && p1.ids.join() === 'I2,I3' && p2.count === 0 && p3.count === 0) ok('payroll deposit plan: each paycheck of that person and employer after the balance date and up to today adds the amount (a paycheck on the balance date, a future one, another person or employer do not); no balance set means nothing is added'); else bad('payrollDepositPlan_: ' + JSON.stringify([p1, p2, p3]));
+
+    const y = new Date().getFullYear(), m = new Date().getMonth(), dd = new Date().getDate();
+    const ago = (n) => `new Date(${y}, ${m}, ${dd - n})`;
+    R(`writeRows_(TABLES.ACCOUNTS, [{ id: 'ACC-950', name: 'SAMPLE HSA', institution: 'Sample HSA Co', accountType: 'HSA', includeNW: 'Yes', currentBalance: 500, lastUpdated: ${ago(20)}, notes: 'SAMPLE test' }, { id: 'ACC-951', name: 'SAMPLE linked HSA', institution: 'Sample HSA Co', accountType: 'HSA', includeNW: 'Yes', currentBalance: 900, lastUpdated: ${ago(20)}, connectionId: 'CONN-001', notes: 'SAMPLE test' }])`);
+    R(`writeRows_(TABLES.EXPECT, [{ id: 'EXP-950', person: 'Ben', employer: 'SAMPLE Hsa Employer', frequency: 'Biweekly', typicalTakeHome: 100, active: true, payrollDepositAccount: 'ACC-950', payrollDepositAmount: 40, notes: 'SAMPLE test' }, { id: 'EXP-951', person: 'Valerie', employer: 'SAMPLE Linked Employer', frequency: 'Biweekly', typicalTakeHome: 100, active: true, payrollDepositAccount: 'ACC-951', payrollDepositAmount: 40, notes: 'SAMPLE test' }])`);
+    // zero pay, so these test paychecks change no income total elsewhere in the suite
+    R(`writeRows_(TABLES.INCOME, [{ id: 'INC-9950', payDate: ${ago(14)}, person: 'Ben', employer: 'SAMPLE Hsa Employer', gross: 0, notes: 'SAMPLE test' }, { id: 'INC-9951', payDate: ${ago(0)}, person: 'Ben', employer: 'SAMPLE Hsa Employer', gross: 0, notes: 'SAMPLE test' }, { id: 'INC-9952', payDate: ${ago(30)}, person: 'Ben', employer: 'SAMPLE Hsa Employer', gross: 0, notes: 'SAMPLE test' }, { id: 'INC-9953', payDate: ${ago(5)}, person: 'Valerie', employer: 'SAMPLE Linked Employer', gross: 0, notes: 'SAMPLE test' }])`);
+    const c1 = R(`creditPayrollDeposits_()`), c2 = R(`creditPayrollDeposits_()`);
+    const acc = (id) => R(`readTable_(TABLES.ACCOUNTS).filter(function(a){ return a.id === '${id}'; })[0]`);
+    const a = acc('ACC-950'), b = acc('ACC-951');
+    if (c1.accounts === 1 && c1.paychecks === 2 && near(a.currentBalance, 580) && a.lastUpdated.getDate() === new Date().getDate() && c2.paychecks === 0 && near(acc('ACC-950').currentBalance, 580) && near(b.currentBalance, 900) && /SAMPLE HSA: \+\$80\.00 from 2 paycheck\(s\), now \$580\.00/.test(c1.details.join())) ok('each paycheck since the balance was set adds its payroll deposit to the account once (a second run adds nothing); an account the bank feed updates is left alone'); else bad('creditPayrollDeposits_: ' + JSON.stringify([c1, c2, a && [a.currentBalance, String(a.lastUpdated)], b && b.currentBalance]));
+    // typing a balance by hand on an unconnected account resets Last Updated to today (via onEdit)
+    const accDef = vm.runInContext('TABLES.ACCOUNTS', ctx);
+    const ash = ss.getSheetByName(SHEETS.ACCOUNTS);
+    const cb = accDef.columns.findIndex(c => c.key === 'currentBalance') + 1, lu = accDef.columns.findIndex(c => c.key === 'lastUpdated') + 1;
+    ash.getRange(a.__row, lu).setValue(new Date(2020, 0, 1)); ash.getRange(a.__row, cb).setValue(610);
+    R(`onEdit({ range: ss_().getSheetByName(SHEETS.ACCOUNTS).getRange(${a.__row}, ${cb}), value: 610 })`);
+    ash.getRange(b.__row, lu).setValue(new Date(2020, 0, 1));
+    R(`onEdit({ range: ss_().getSheetByName(SHEETS.ACCOUNTS).getRange(${b.__row}, ${cb}), value: 900 })`);
+    const a2 = acc('ACC-950'), b2 = acc('ACC-951');
+    if (a2.lastUpdated && typeof a2.lastUpdated.getTime === 'function' && a2.lastUpdated.getFullYear() === new Date().getFullYear() && a2.lastUpdated.getDate() === new Date().getDate() && b2.lastUpdated.getFullYear() === 2020) ok('typing a balance on an account the feed does not update sets its Last Updated to today, so later paychecks count from there; a connected account is not touched'); else bad('balance typed: ' + JSON.stringify([String(a2.lastUpdated), String(b2.lastUpdated)]));
+    const def = vm.runInContext('TABLES.EXPECT', ctx);
+    const keys = def.columns.map(c => c.key);
+    if (keys.slice(-3).join() === 'notes,payrollDepositAccount,payrollDepositAmount' && def.columns[keys.length - 2].v.idsOf === 'ACCOUNTS') ok('Payroll Deposit To and Payroll Deposit per Paycheck are appended to Expected Income (delivered by the upgrade)'); else bad('expect columns: ' + keys.slice(-3));
   })();
   // hover lists on the three tiles (1.13.1)
   (function () {

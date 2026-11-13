@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.13-auto-record-2026-11-12',
-  BUILD_VERSION: '1.15.1',
+  SCHEMA_VERSION: '3.14-payroll-deposit-2026-11-13',
+  BUILD_VERSION: '1.16.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -413,6 +413,10 @@ TABLES.EXPECT = {
       note: 'Biweekly and weekly pay are counted from the last pay date and the pay cycle, so a three-paycheck month shows 3; until a paycheck exists the yearly average is used (26/12 or 52/12). Semimonthly is 2, monthly 1.' },
     { key: 'expectedThisMonth', h: 'Expected This Month', w: 125, fmt: C.cur, f: '=IF([@id]="","",IF([@active]=TRUE,N([@typicalTakeHome])*N([@paydaysThisMonth]),0))' },
     { key: 'notes', h: 'Notes', w: 240 },
+    { key: 'payrollDepositAccount', h: 'Payroll Deposit To (Account ID)', w: 150, v: { idsOf: 'ACCOUNTS' },
+      note: 'Added in 3.14: an account this paycheck also pays into through payroll (an HSA) that the bank feed cannot reach. Each paycheck adds Payroll Deposit per Paycheck to that account\'s Current Balance.' },
+    { key: 'payrollDepositAmount', h: 'Payroll Deposit per Paycheck', w: 130, fmt: C.cur,
+      note: 'Added in 3.14: the amount each paycheck puts into Payroll Deposit To. Withdrawals are not seen: type the account\'s balance on Accounts after one and counting starts again from that day.' },
   ],
 };
 
