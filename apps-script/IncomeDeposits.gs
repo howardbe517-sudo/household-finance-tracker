@@ -305,17 +305,19 @@ function creditPayrollDeposits_() {
   // draw on one paycheck), or on Expected Income (Payroll Deposit To, 3.14; one account per paycheck). The same
   // account and paycheck set in both places counts once, with the Accounts amount.
   const byAccount = {}, seen = {};
+  // only a real number counts: a cell left in a date format reads back as a date, and Number(date) would add millions
+  const amt = (v) => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0;
   const add = (accId, src, amount) => {
     const k = accId + '|' + src.id;
     if (seen[k]) return;
     seen[k] = true;
     (byAccount[accId] = byAccount[accId] || []).push({ person: src.person, employer: src.employer, payrollDepositAmount: amount });
   };
-  accounts.filter(a => a.payrollSource && Number(a.payrollPerPaycheck) > 0).forEach(a => {
+  accounts.filter(a => a.payrollSource && amt(a.payrollPerPaycheck) > 0).forEach(a => {
     const src = expRows.filter(x => x.id === a.payrollSource)[0];
-    if (src) add(a.id, src, Number(a.payrollPerPaycheck)); else out.details.push(a.name + ': Payroll Deposit From ' + a.payrollSource + ' is not on Expected Income');
+    if (src) add(a.id, src, amt(a.payrollPerPaycheck)); else out.details.push(a.name + ': Payroll Deposit From ' + a.payrollSource + ' is not on Expected Income');
   });
-  expRows.filter(x => x.payrollDepositAccount && Number(x.payrollDepositAmount) > 0).forEach(x => add(x.payrollDepositAccount, x, Number(x.payrollDepositAmount)));
+  expRows.filter(x => x.payrollDepositAccount && amt(x.payrollDepositAmount) > 0).forEach(x => add(x.payrollDepositAccount, x, amt(x.payrollDepositAmount)));
   if (!Object.keys(byAccount).length) return out;
   const income = readTable_(tdef_('INCOME'));
   const sh = getOrCreateSheet_(accDef.sheet);

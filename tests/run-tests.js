@@ -600,6 +600,10 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     (function () { const ad = vm.runInContext('TABLES.ACCOUNTS', ctx); const row = acc('ACC-950').__row; ash.getRange(row, ad.columns.findIndex(c => c.key === 'payrollSource') + 1).setValue('EXP-950'); ash.getRange(row, ad.columns.findIndex(c => c.key === 'payrollPerPaycheck') + 1).setValue(40); ash.getRange(row, ad.columns.findIndex(c => c.key === 'lastUpdated') + 1).setValue(R(`${ago(20)}`)); ash.getRange(row, ad.columns.findIndex(c => c.key === 'currentBalance') + 1).setValue(500); })();
     const c3 = R(`creditPayrollDeposits_()`);
     if (near(acc('ACC-952').currentBalance, 1020) && near(acc('ACC-953').currentBalance, 2051) && near(acc('ACC-950').currentBalance, 580) && near(acc('ACC-954').currentBalance, 5) && c3.details.some(d => /SAMPLE bad source: Payroll Deposit From EXP-999 is not on Expected Income/.test(d))) ok('one paycheck feeds several accounts set on Accounts (457 +$20, 401(k) +$51 for two paychecks); an account set in both places counts once; an unknown source is reported'); else bad('per-account payroll: ' + JSON.stringify([acc('ACC-952').currentBalance, acc('ACC-953').currentBalance, acc('ACC-950').currentBalance, c3.details]));
+    // an amount cell that reads back as a date (wrong cell format) is ignored, never added as a huge number
+    R(`writeRows_(TABLES.ACCOUNTS, [{ id: 'ACC-955', name: 'SAMPLE date amount', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 70, lastUpdated: ${ago(20)}, payrollSource: 'EXP-950', payrollPerPaycheck: new Date(1900, 6, 18), notes: 'SAMPLE test' }])`);
+    R(`creditPayrollDeposits_()`);
+    if (near(acc('ACC-955').currentBalance, 70)) ok('a per-paycheck amount that reads back as a date is ignored, not added as a huge number'); else bad('date amount added: ' + acc('ACC-955').currentBalance);
     // a tab not yet upgraded (narrower than the schema) is still read, the new columns as blank
     (function () {
       const nar = ss.insertSheet('Narrow'); const def = JSON.parse(JSON.stringify(vm.runInContext('TABLES.ACCOUNTS', ctx))); def.sheet = 'Narrow';

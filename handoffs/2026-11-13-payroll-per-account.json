@@ -19,7 +19,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.17.0`. If it shows an older number, wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.17.1`. If it shows an older number, wait a minute and reload the Sheet.",
           "note": "This upgrade also covers everything from yesterday and today if you have not run one since."
         },
         {

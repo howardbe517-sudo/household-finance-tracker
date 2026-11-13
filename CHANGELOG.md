@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-13 — Guard: a per-paycheck amount must be a real number
+- What happened: the two Accounts columns were added to the owner's Sheet
+  ahead of the upgrade and copied the date format of the column beside
+  them, so the amounts read back as dates. `Number(date)` is a timestamp in
+  the millions, which the next sync would have added to the balances. The
+  cell format was corrected in the Sheet before any sync ran.
+- Fix: `creditPayrollDeposits_` accepts only real numbers as per-paycheck
+  amounts (both places the setting can live); anything else counts as
+  blank. `BUILD_VERSION` 1.17.1.
+- Files changed in `apps-script/`: `IncomeDeposits.gs`, `Config.gs`
+  (deployed on merge). Nothing to run beyond the pending upgrade.
+- Tested: Node (a date in the amount cell adds nothing; suite green;
+  safety check).
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/payroll-amount-guard`
+
 ## 2026-11-13 — One paycheck can feed several accounts (HSA, 457, 401(k))
 - Why: the owner's school paycheck pays into three accounts the bank feed
   cannot reach: the HSA, a 457 and a 401(k) (the stub lists the employee
