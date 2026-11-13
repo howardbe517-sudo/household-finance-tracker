@@ -166,7 +166,9 @@ function onEdit(e) {
 /**
  * A row typed by hand gets what the script would have given it: the next ID (so the totals count
  * it), Active ticked on a new Recurring Payments row, and a Next Payment Date worked out from the
- * Due Day when none was typed. Only fills blanks; never overwrites what the owner wrote.
+ * Due Day when none was typed. Only fills blanks; never overwrites what the owner wrote. One
+ * exception: typing a Current Balance on an account the bank feed does not update sets its Last
+ * Updated to today, because that is what the balance now means (payroll deposits count from there).
  */
 function autoFillRow_(def, sh, r, e, who) {
   if (!def.idPrefix || def.columns[0].f || r.getNumRows() > 1 || r.getNumColumns() > 1) return;
@@ -188,6 +190,9 @@ function autoFillRow_(def, sh, r, e, who) {
     const paused = sh.getRange(row, colIndex_(def, 'interestPaused')).getValue() === true;
     const until = sh.getRange(row, colIndex_(def, 'pausedUntil')).getValue();
     setAprFormat_(sh, def, row, debtPauseActive_(paused, until));
+  }
+  if (def.key === 'ACCOUNTS' && def.columns[col - 1].key === 'currentBalance' && String(sh.getRange(row, colIndex_(def, 'connectionId')).getValue() || '') === '') {
+    sh.getRange(row, colIndex_(def, 'lastUpdated')).setValue(todayMidnight_());
   }
   if (def.key === 'RECUR') {
     const due = Number(sh.getRange(row, colIndex_(def, 'dueDay')).getValue());

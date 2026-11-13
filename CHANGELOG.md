@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## 2026-11-13 — HSA balance grows with each paycheck until HealthEquity connects
+- Why (the owner's request): HealthEquity will not connect to the bank feed.
+  The owner will give the HSA balance once; each paycheck from one employer
+  puts a set amount into the HSA through payroll, and the balance should
+  follow that. Withdrawals the owner adjusts by hand.
+- Schema 3.14: two columns appended to Expected Income, **Payroll Deposit
+  To (Account ID)** and **Payroll Deposit per Paycheck**. Delivered by the
+  upgrade; nothing renamed or reordered.
+- `creditPayrollDeposits_()` (in `IncomeDeposits.gs`): for every account
+  named in Payroll Deposit To that the bank feed does not update (no
+  Connection ID), each paycheck on Income for that person and employer
+  dated after the account's Last Updated (and not after today) adds the
+  per-paycheck amount to Current Balance; Last Updated then moves to the
+  newest of those pay dates, so nothing is added twice. Runs with every
+  sync, the upgrade and after pasted stubs. Changes go to the Change Log.
+  Pure helper `payrollDepositPlan_`.
+- Typing a Current Balance by hand on an account with no Connection ID now
+  sets its Last Updated to today (onEdit), so counting starts from the
+  typed balance. Accounts the feed updates are not touched.
+- `SCHEMA_VERSION` 3.14-payroll-deposit-2026-11-13, `BUILD_VERSION` 1.16.0.
+- Files changed in `apps-script/`: `IncomeDeposits.gs`, `Config.gs`,
+  `Main.gs`, `Plaid.gs`, `Upgrade.gs`, `PasteImport.gs`, `Reference.gs`
+  (deployed on merge). Run **Finance Tracker → Upgrade workbook (keeps
+  data)** once; step page `handoffs/2026-11-13-hsa-payroll-deposits.json`.
+- In the Sheet (not in the repository): the employer's Expected Income row
+  points at the HSA account with the per-paycheck amount from the stub; the
+  HSA row on Accounts says how it works. The HSA balance itself is still
+  to be entered.
+- Tested: Node (plan rules, an account credited once per paycheck, a
+  second run adds nothing, connected accounts untouched, typed balance
+  resets Last Updated, columns appended; 276 checks; safety check). Not
+  yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/payroll-deposit-to-account`
+
 ## 2026-11-13 — Fix: an empty month window counted as one month; one hover note per tile
 - What happened: the two cells that count the months with spending (the
   Compare with window on Spending, row 112, and the flexible window on the

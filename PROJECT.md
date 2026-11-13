@@ -206,6 +206,11 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   `ensureExpectedIncome_`, and are overwritten in place (same ID) when a
   stub for that paycheck is pasted later. A deposit next to an unlinked
   stub with a different take-home is held for the owner.
+- Payroll deposits into an account the feed cannot reach (the HSA):
+  Expected Income's Payroll Deposit To / per Paycheck. `creditPayrollDeposits_`
+  adds the amount for each paycheck dated after the account's Last Updated
+  and moves Last Updated forward; a hand-typed balance resets Last Updated
+  to today (onEdit). Skipped for accounts with a Connection ID.
 - Bills that record themselves (`RecurringAuto.gs`): a Monthly Recurring
   Payments row ticked Record Automatically? is written to Transactions on
   its due day by `recordRecurringBills_`. The entry holds the bill minus

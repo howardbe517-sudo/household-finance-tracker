@@ -253,3 +253,74 @@ function overwriteRowValues_(def, rowNum, obj) {
   });
   flush();
 }
+
+/* ---------- payroll deposits into an account the bank feed cannot reach (the HSA) ---------- */
+
+/**
+ * What one account should gain from payroll deposits since its balance was last set. Pure.
+ *   account  Accounts row ({ id, currentBalance, lastUpdated })
+ *   sources  Expected Income rows that deposit into it ({ person, employer, payrollDepositAmount })
+ *   income   Income rows ({ id, person, employer, payDate })
+ *   today    today's date
+ * A paycheck counts when its pay date is after the account's Last Updated date and not after today.
+ * Returns { count, add, through, ids }: paychecks found, the amount to add, the newest pay date (the
+ * new Last Updated) and the Income IDs counted.
+ */
+function payrollDepositPlan_(account, sources, income, today) {
+  const same = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  const day = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const base = account.lastUpdated instanceof Date ? day(account.lastUpdated) : null;
+  const out = { count: 0, add: 0, through: null, ids: [] };
+  if (base === null) return out; // no balance set yet: nothing to add to
+  (sources || []).forEach(src => {
+    const amt = Number(src.payrollDepositAmount || 0);
+    if (!(amt > 0)) return;
+    (income || []).forEach(i => {
+      if (!(i.payDate instanceof Date) || !same(i.person, src.person) || !same(i.employer, src.employer)) return;
+      const d = day(i.payDate);
+      if (d <= base || d > day(today)) return;
+      out.count++; out.add += amt; out.ids.push(i.id);
+      if (out.through === null || d > out.through.getTime()) out.through = new Date(d);
+    });
+  });
+  out.add = Math.round(out.add * 100) / 100;
+  return out;
+}
+
+/**
+ * For each account named in Expected Income's "Payroll Deposit To" that the bank feed does not
+ * update (no Connection ID), adds the per-paycheck amount for every paycheck dated after the
+ * account's Last Updated, then moves Last Updated to the newest of those pay dates, so nothing is
+ * added twice. A balance typed by hand on Accounts resets Last Updated to that day (onEdit), and
+ * counting starts again from there. Runs with every sync, the upgrade and after pasted stubs.
+ * Returns { accounts, paychecks, details: [text] }.
+ */
+function creditPayrollDeposits_() {
+  const out = { accounts: 0, paychecks: 0, details: [] };
+  const expDef = tdef_('EXPECT'), accDef = tdef_('ACCOUNTS');
+  if (!ss_().getSheetByName(expDef.sheet) || !ss_().getSheetByName(accDef.sheet)) return out;
+  const sources = readTable_(expDef).filter(x => x.payrollDepositAccount && Number(x.payrollDepositAmount) > 0);
+  if (!sources.length) return out;
+  const accounts = readTable_(accDef);
+  const income = readTable_(tdef_('INCOME'));
+  const sh = getOrCreateSheet_(accDef.sheet);
+  const today = todayMidnight_();
+  const log = changeLogEnabled_();
+  const byAccount = {};
+  sources.forEach(s => { (byAccount[s.payrollDepositAccount] = byAccount[s.payrollDepositAccount] || []).push(s); });
+  Object.keys(byAccount).forEach(accId => {
+    const acc = accounts.filter(a => a.id === accId)[0];
+    if (!acc) { out.details.push(accId + ': no such account on Accounts'); return; }
+    if (acc.connectionId) return; // the bank feed keeps this balance; adding paychecks would count them twice
+    const plan = payrollDepositPlan_(acc, byAccount[accId], income, today);
+    if (!plan.count) return;
+    const before = Number(acc.currentBalance || 0);
+    const after = Math.round((before + plan.add) * 100) / 100;
+    sh.getRange(acc.__row, colIndex_(accDef, 'currentBalance')).setValue(after);
+    sh.getRange(acc.__row, colIndex_(accDef, 'lastUpdated')).setValue(plan.through);
+    out.accounts++; out.paychecks += plan.count;
+    out.details.push(acc.name + ': +' + moneyNote_(plan.add) + ' from ' + plan.count + ' paycheck(s), now ' + moneyNote_(after));
+    if (log) appendChangeLog_({ table: 'ACCOUNTS', recordId: acc.id, field: 'Current Balance', oldValue: before, newValue: after, action: 'Update', user: 'payroll-deposits', notes: 'payroll deposits from ' + plan.ids.join(', ') });
+  });
+  return out;
+}
