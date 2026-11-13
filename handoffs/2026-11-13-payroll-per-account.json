@@ -1,7 +1,7 @@
 {
   "title": "Retirement Accounts from Paychecks",
   "key": "household-finance-tracker-2026-11-13-payroll-per-account",
-  "subtitle": "Your HSA, 457 and 401(k) each grow with every Rockford paycheck by what goes in through payroll. One upgrade, one check, and one connection to try.",
+  "subtitle": "Your HSA, 457 and 401(k) each grow with every Rockford paycheck by what goes in through payroll, and Reminders asks you every three months to type the real balances. One upgrade, then two quick checks.",
   "intro": [
     "After the pull request merges, the code is already in your Sheet. I have already put the settings on the three accounts; the upgrade adds the column headers and the dropdowns.",
     "**What does not change:** no transactions, paychecks or other balances. Accounts the bank feed updates are never touched by this."
@@ -19,7 +19,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.17.1`. If it shows an older number, wait a minute and reload the Sheet.",
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.18.0`. If it shows an older number, wait a minute and reload the Sheet.",
           "note": "This upgrade also covers everything from yesterday and today if you have not run one since."
         },
         {
@@ -41,15 +41,12 @@
       ]
     },
     {
-      "heading": "Try connecting Voya (optional)",
+      "heading": "Keeping the balances current",
       "steps": [
         {
-          "text": "Open **Finance Tracker → Bank feed → Connect a bank**, search **voya** and pick **Voya Retirement Plans** (my.voya.com). Sign in with the same username and password you use on Voya's website.",
-          "note": "If that entry says it is not supported, try **Voya Financial – Voya Services Company**. If neither works, nothing is lost: the paycheck additions keep the balances close."
-        },
-        {
-          "text": "If it connects, on the matching screen choose the existing **State of MI 457 Plan** and **State of MI 401(k) Plan** rows instead of creating new ones.",
-          "done": "Those two rows show a Connection ID. From then on Voya keeps their balances, gains included, and the paycheck additions stop for them on their own."
+          "text": "Plaid does not support your Voya plans, so the 457 and 401(k) stay typed by hand. Every three months the **Reminders** tab (and the monthly reminder email) lists each of them, and the HSA, with the date it was last updated.",
+          "note": "When it does, log in to Voya and HealthEquity and type each balance in **Current Balance** on the Accounts tab. The reminder clears itself, and the paycheck additions count from that day. The number of months is on App Setup (Balance reminder after).",
+          "done": "Open **Reminders** after the upgrade. The Acorns account may already be listed, because it has no balance yet; type its balance the same way, or tell me to leave it out."
         }
       ]
     }

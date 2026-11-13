@@ -66,6 +66,12 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.18.0: Plaid does not support the owner's Voya plans
+  ("Voya Retirement Plans" returns Institution Not Supported). The owner
+  chose hand updates plus a reminder: Reminders lists unconnected
+  retirement, HSA and investment accounts every three months (setting on
+  App Setup). The Acorns account has no balance yet, so it will be listed
+  at once.
 - 2026-11-13, build 1.17.0 (schema 3.15): the school paycheck pays into the
   HSA (ACC-013), the state 457 (ACC-019) and 401(k) (ACC-020), all at
   Voya or HealthEquity and not connected. Each account's source and

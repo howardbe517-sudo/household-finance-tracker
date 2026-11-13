@@ -190,6 +190,7 @@ function buildAppSetup_(withSample) {
   kv('PSLF count reminder after (months)', 12, { name: 'SETTING_PSLF_REMINDER_MONTHS' });
   kv('Credit score reminder after (months)', 3, { name: 'SETTING_CREDIT_REMINDER_MONTHS' });
   kv('Pay stub reminder after (months, per regular paycheck)', 6, { name: 'SETTING_PAYSTUB_REMINDER_MONTHS' });
+  kv('Balance reminder after (months, accounts typed by hand: retirement, HSA, investment)', 3, { name: 'SETTING_BALANCE_REMINDER_MONTHS' });
   kv('Email reminders (sent by the nightly sync, at most monthly)', true, { name: 'SETTING_REMINDER_EMAIL', checkbox: true });
   kv('Debt payoff plan: extra toward debts each month (Payoff planner)', 0, { name: 'SETTING_DEBT_EXTRA_ALL', fmt: FORMATS.currency });
   kv('Debt payoff plan: order (Avalanche = highest rate first, Snowball = smallest balance first)', 'Avalanche', { name: 'SETTING_DEBT_EXTRA_METHOD' });
