@@ -683,7 +683,9 @@ function syncNow() {
  * score never entered or older than SETTING_CREDIT_REMINDER_MONTHS (default 3), and a regular
  * paycheck (an active Expected Income row) whose last real pay stub is older than
  * SETTING_PAYSTUB_REMINDER_MONTHS (default 6): paychecks count from the bank deposit, so a stub now
- * and then is what keeps the gross pay and deductions right. Returns [{ key, text }].
+ * and then is what keeps the gross pay and deductions right; and a retirement, HSA or investment account the
+ * bank feed does not update whose balance is older than SETTING_BALANCE_REMINDER_MONTHS (default 3): payroll
+ * deposits are added on their own, investment growth is not. Returns [{ key, text }].
  */
 function dueReminders_() {
   const ss = ss_();
@@ -718,6 +720,14 @@ function dueReminders_() {
       out.push({ key: 'stub:' + String(x.person).toLowerCase() + '|' + String(x.employer).trim().toLowerCase(), text: 'Pay stub for ' + x.person + ' at ' + x.employer + ': ' + (latest ? 'last one dated ' + Utilities.formatDate(latest, 'America/Detroit', 'MMM d, yyyy') : 'none entered yet') + '. Give Claude a recent stub and paste the block into Finance Tracker → Import from Claude, so gross pay and deductions stay accurate.' });
     });
   }
+  const balRange = ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS');
+  const balMonths = balRange && Number(balRange.getValue()) > 0 ? Number(balRange.getValue()) : 3;
+  const balCutoff = addMonths_(todayMidnight_(), -balMonths);
+  readTable_(tdef_('ACCOUNTS')).filter(a => !a.connectionId && a.includeNW === 'Yes' && BALANCE_REMINDER_TYPES.indexOf(a.accountType) >= 0).forEach(a => {
+    const d = a.lastUpdated instanceof Date ? a.lastUpdated : null;
+    if (d && d >= balCutoff) return;
+    out.push({ key: 'balance:' + a.id, text: 'Balance for ' + a.name + ': ' + (d ? 'last updated ' + Utilities.formatDate(d, 'America/Detroit', 'MMM d, yyyy') : 'never entered') + '. Type the balance from the provider\'s website on Accounts (Current Balance); investment growth is only seen this way.' });
+  });
   return out;
 }
 

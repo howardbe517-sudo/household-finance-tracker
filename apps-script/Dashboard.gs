@@ -156,6 +156,8 @@ function retireDashboard_() {
 
 /* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook. */
 const REMINDERS = { WIDTH: 8, BOX_FIRST: 4, BOX_ROWS: 14 };
+// account types whose balance, when the bank feed cannot reach them, the owner types by hand: retirement plans, HSA, investments
+const BALANCE_REMINDER_TYPES = ['Retirement', 'HSA', 'Investment'];
 
 function buildReminders_() {
   const sh = getOrCreateSheet_(SHEETS.REMINDERS);
@@ -177,14 +179,17 @@ function buildReminders_() {
   const creditLines = personsList.map(pn => 'IF(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '")<EDATE(TODAY(),-c),"Credit score for ' + pn + ': "&IF(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '")=0,"never entered","last entered "&TEXT(MAXIFS([CREDIT.scoreDate],[CREDIT.person],"' + pn + '"),"mmm d, yyyy"))&". Enter it on the Credit Scores tab.","")').join(',');
   // one line per regular paycheck (active Expected Income row) whose last real stub is older than the setting; rows made from a bank deposit do not count as stubs
   const stubLines = 'MAP([EXPECT.id],[EXPECT.person],[EXPECT.employer],[EXPECT.active],LAMBDA(xi,xp,xe,xa,IF(AND(xi<>"",xa=TRUE),LET(xd,MAXIFS([INCOME.payDate],[INCOME.person],xp,[INCOME.employer],xe,[INCOME.notes],"<>*' + INCOME_FROM_DEPOSIT_MARK + '*"),IF(xd<EDATE(TODAY(),-s),"Pay stub for "&xp&" at "&xe&": "&IF(xd=0,"none entered yet","last one dated "&TEXT(xd,"mmm d, yyyy"))&". Give Claude a recent stub (Import from Claude) so gross pay and deductions stay accurate.","")),"")))';
+  // one line per retirement, HSA or investment account the bank feed does not update whose balance is older than the setting
+  const balTypes = BALANCE_REMINDER_TYPES.map(t => '(xt="' + t + '")').join('+');
+  const balanceLines = 'MAP([ACCOUNTS.id],[ACCOUNTS.name],[ACCOUNTS.accountType],[ACCOUNTS.connectionId],[ACCOUNTS.includeNW],[ACCOUNTS.lastUpdated],LAMBDA(xi,xn,xt,xc,xw,xd,IF(AND(xi<>"",xc="",xw="Yes",(' + balTypes + ')>0,N(xd)<EDATE(TODAY(),-b)),"Balance for "&xn&": "&IF(N(xd)=0,"never entered","last updated "&TEXT(xd,"mmm d, yyyy"))&". Type the balance from the provider\'s website on Accounts (Current Balance).","")))';
   const remBox = sh.getRange(REMINDERS.BOX_FIRST, 1, REMINDERS.BOX_ROWS, REMINDERS.WIDTH).merge();
-  remBox.setFormula(F('=LET(m,IFERROR(N(SETTING_PSLF_REMINDER_MONTHS),12),c,IFERROR(N(SETTING_CREDIT_REMINDER_MONTHS),3),s,IF(IFERROR(N(SETTING_PAYSTUB_REMINDER_MONTHS),0)>0,N(SETTING_PAYSTUB_REMINDER_MONTHS),6),due,TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([DEBTS.id]<>"")*([DEBTS.group]="Student Loans")*(([DEBTS.pslfAsOf]="")+([DEBTS.pslfAsOf]<EDATE(TODAY(),-m))),"PSLF count for "&[DEBTS.name]&": "&IF([DEBTS.pslfAsOf]="","never entered","last confirmed "&TEXT([DEBTS.pslfAsOf],"mmm d, yyyy"))&". Read it on studentaid.gov and update Debts.","")),' + creditLines + ',' + stubLines + '),IF(due="","Nothing due. PSLF counts are flagged after "&m&" months, credit scores after "&c&" months and pay stubs after "&s&" months (App Setup).","• "&SUBSTITUTE(due,CHAR(10),CHAR(10)&"• ")))'));
+  remBox.setFormula(F('=LET(m,IFERROR(N(SETTING_PSLF_REMINDER_MONTHS),12),c,IFERROR(N(SETTING_CREDIT_REMINDER_MONTHS),3),s,IF(IFERROR(N(SETTING_PAYSTUB_REMINDER_MONTHS),0)>0,N(SETTING_PAYSTUB_REMINDER_MONTHS),6),b,IF(IFERROR(N(SETTING_BALANCE_REMINDER_MONTHS),0)>0,N(SETTING_BALANCE_REMINDER_MONTHS),3),due,TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([DEBTS.id]<>"")*([DEBTS.group]="Student Loans")*(([DEBTS.pslfAsOf]="")+([DEBTS.pslfAsOf]<EDATE(TODAY(),-m))),"PSLF count for "&[DEBTS.name]&": "&IF([DEBTS.pslfAsOf]="","never entered","last confirmed "&TEXT([DEBTS.pslfAsOf],"mmm d, yyyy"))&". Read it on studentaid.gov and update Debts.","")),' + creditLines + ',' + stubLines + ',' + balanceLines + '),IF(due="","Nothing due. PSLF counts are flagged after "&m&" months, credit scores after "&c&" months, pay stubs after "&s&" months and balances typed by hand after "&b&" months (App Setup).","• "&SUBSTITUTE(due,CHAR(10),CHAR(10)&"• ")))'));
   remBox.setWrap(true).setVerticalAlignment('top').setFontSize(12).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
     .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   for (let r = REMINDERS.BOX_FIRST; r < REMINDERS.BOX_FIRST + REMINDERS.BOX_ROWS; r++) sh.setRowHeight(r, 26);
   setNamedRange_('REMINDERS_BOX', remBox);
   const note = REMINDERS.BOX_FIRST + REMINDERS.BOX_ROWS + 1;
-  sh.getRange(note, 1, 1, REMINDERS.WIDTH).merge().setValue('Where to update each item: PSLF counts on Debts (PSLF Official Count and PSLF Count As Of), credit scores on the Credit Scores tab, pay stubs through Finance Tracker → Import from Claude, the pension note on Accounts, the tax debt balance on Quarterly Debt Review.')
+  sh.getRange(note, 1, 1, REMINDERS.WIDTH).merge().setValue('Where to update each item: PSLF counts on Debts (PSLF Official Count and PSLF Count As Of), credit scores on the Credit Scores tab, pay stubs through Finance Tracker → Import from Claude, balances typed by hand on Accounts (Current Balance), the pension note on Accounts, the tax debt balance on Quarterly Debt Review.')
     .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setWrap(true);
   sh.setRowHeight(note, 36);
   const prot = sh.protect().setDescription('Reminders are calculated. Update the values on their own tabs.');

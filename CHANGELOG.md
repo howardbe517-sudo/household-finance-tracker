@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-11-13 — Reminder: update hand-typed balances every three months
+- Why (the owner's choice): the 457, the 401(k) and the HSA are not
+  connected to the bank feed. Payroll deposits are added per paycheck, but
+  investment growth is only seen when the owner types the real balance.
+- What changed: `dueReminders_()` (menu, monthly email) and the Reminders
+  tab formula list each account of type Retirement, HSA or Investment that
+  has no Connection ID, counts in net worth, and whose Last Updated is
+  older than the setting, or that has no balance date at all. New App
+  Setup setting "Balance reminder after (months, accounts typed by hand:
+  retirement, HSA, investment)", default 3, named
+  `SETTING_BALANCE_REMINDER_MONTHS`, kept across upgrades. The types are
+  `BALANCE_REMINDER_TYPES` in `Dashboard.gs`.
+- `BUILD_VERSION` 1.18.0. No table schema change; one new named range.
+- Files changed in `apps-script/`: `Plaid.gs`, `Dashboard.gs`,
+  `Reference.gs`, `Upgrade.gs`, `Config.gs` (deployed on merge). Run
+  **Upgrade workbook** once; step page
+  `handoffs/2026-11-13-payroll-per-account.json`.
+- Tested: Node (due after three months or never entered; fresh,
+  connected, card and excluded accounts are not; follows the setting;
+  formula present; 282 checks; safety check). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/balance-update-reminder`
+
 ## 2026-11-13 — Guard: a per-paycheck amount must be a real number
 - What happened: the two Accounts columns were added to the owner's Sheet
   ahead of the upgrade and copied the date format of the column beside

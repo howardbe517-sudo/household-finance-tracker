@@ -279,6 +279,7 @@ function readSettings_() {
     pslfMonths: get('SETTING_PSLF_REMINDER_MONTHS', 12),
     creditMonths: get('SETTING_CREDIT_REMINDER_MONTHS', 3),
     stubMonths: get('SETTING_PAYSTUB_REMINDER_MONTHS', 6),
+    balanceMonths: get('SETTING_BALANCE_REMINDER_MONTHS', 3),
     reminderEmail: get('SETTING_REMINDER_EMAIL', true),
     debtExtraAll: get('SETTING_DEBT_EXTRA_ALL', 0),
     debtExtraMethod: get('SETTING_DEBT_EXTRA_METHOD', 'Avalanche'),
@@ -296,6 +297,7 @@ function restoreSettings_(s) {
   set('SETTING_PSLF_REMINDER_MONTHS', s.pslfMonths);
   set('SETTING_CREDIT_REMINDER_MONTHS', s.creditMonths);
   set('SETTING_PAYSTUB_REMINDER_MONTHS', s.stubMonths);
+  set('SETTING_BALANCE_REMINDER_MONTHS', s.balanceMonths);
   set('SETTING_REMINDER_EMAIL', s.reminderEmail);
   set('SETTING_DEBT_EXTRA_ALL', s.debtExtraAll);
   set('SETTING_DEBT_EXTRA_METHOD', s.debtExtraMethod);

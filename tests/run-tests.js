@@ -846,6 +846,25 @@ if (/Credit score for Ben/.test(g.__ss.getRangeByName('REMINDERS_BOX').getFormul
 R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(1)`);
 if (R(`dueReminders_()`).filter(r => /^pslf:/.test(r.key)).length === 3) ok('a shorter reminder setting also flags the sample loan\'s older count'); else bad('reminder months setting ignored');
 R(`ss_().getRangeByName('SETTING_PSLF_REMINDER_MONTHS').setValue(12)`);
+// balance reminders: retirement, HSA and investment accounts the bank feed does not update, older than the setting (default 3 months)
+{
+  const t = new Date(), mo = (n) => `new Date(${t.getFullYear()}, ${t.getMonth() - n}, ${t.getDate()})`;
+  R(`writeRows_(TABLES.ACCOUNTS, [
+    { id: 'ACC-970', name: 'SAMPLE Old 457', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 10, lastUpdated: ${mo(4)}, notes: 'SAMPLE test' },
+    { id: 'ACC-971', name: 'SAMPLE Fresh 401k', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 10, lastUpdated: ${mo(1)}, notes: 'SAMPLE test' },
+    { id: 'ACC-972', name: 'SAMPLE Linked IRA', institution: 'Sample Plan Co', accountType: 'Retirement', includeNW: 'Yes', currentBalance: 10, lastUpdated: ${mo(9)}, connectionId: 'CONN-001', notes: 'SAMPLE test' },
+    { id: 'ACC-973', name: 'SAMPLE Never HSA', institution: 'Sample HSA Co', accountType: 'HSA', includeNW: 'Yes', notes: 'SAMPLE test' },
+    { id: 'ACC-974', name: 'SAMPLE Old Card', institution: 'Sample Bank', accountType: 'Credit Card', includeNW: 'Yes', currentBalance: 10, lastUpdated: ${mo(9)}, notes: 'SAMPLE test' },
+    { id: 'ACC-975', name: 'SAMPLE Excluded', institution: 'Sample Plan Co', accountType: 'Investment', includeNW: 'No', lastUpdated: ${mo(9)}, notes: 'SAMPLE test' }])`);
+  const bd = () => R(`dueReminders_()`).filter(r => /^balance:ACC-97/.test(r.key)).map(r => r.key + ' ' + r.text);
+  const b1 = bd();
+  if (b1.length === 2 && b1.some(x => /^balance:ACC-970 Balance for SAMPLE Old 457: last updated/.test(x)) && b1.some(x => /^balance:ACC-973 Balance for SAMPLE Never HSA: never entered/.test(x))) ok('balance reminders: a retirement, HSA or investment account typed by hand is due after three months or when never entered; a fresh one, a connected one, a card and an account left out of net worth are not'); else bad('balance reminders: ' + JSON.stringify(b1));
+  R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(6)`);
+  const b2 = bd();
+  R(`ss_().getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').setValue(3)`);
+  const rf = g.__ss.getRangeByName('REMINDERS_BOX').getFormula();
+  if (b2.length === 1 && /ACC-973/.test(b2[0]) && /SETTING_BALANCE_REMINDER_MONTHS/.test(rf) && /MAP\('Accounts'!/.test(rf) && /"Balance for "&xn/.test(rf) && /\(xt="Retirement"\)\+\(xt="HSA"\)\+\(xt="Investment"\)/.test(rf) && Number(g.__ss.getRangeByName('SETTING_BALANCE_REMINDER_MONTHS').getValue()) === 3) ok('balance reminders follow the App Setup months setting and appear in the Reminders tab formula'); else bad('balance reminder setting/formula: ' + JSON.stringify(b2));
+}
 // pay stub reminders: one per regular paycheck whose last real stub is older than the setting (default 6 months)
 {
   const stubDue = () => R(`dueReminders_()`).filter(r => /^stub:/.test(r.key));
