@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-11-13 — Fix: an empty month window counted as one month; one hover note per tile
+- What happened: the two cells that count the months with spending (the
+  Compare with window on Spending, row 112, and the flexible window on the
+  Financial Summary, row 15) used COUNTUNIQUE over a FILTER. When the
+  window holds no transactions, FILTER returns its "nothing found" error,
+  and COUNTUNIQUE counts that error as one value. With transactions only
+  from November, both cells read 1 instead of 0. Effects in the owner's
+  Sheet: Typical Month and the tiles' typical figures showed $0 instead of
+  a dash; Flexible Spending (average) on the Financial Summary showed $0
+  instead of this month so far, so Likely Left Over was too high by the
+  month's flexible spending.
+- Fix: both cells use `IFERROR(ROWS(UNIQUE(FILTER(…))),0)`, which returns 0
+  for an empty window. The test suite now fails if COUNTUNIQUE appears in
+  any formula. Run QA already compares the Spending count with
+  Transactions and would have reported it after a QA run.
+- Hover notes: each Spending tile now carries one note, on its big number.
+  The same note on the label, number and small line showed as three
+  triangles and looked like three different notes.
+- `BUILD_VERSION` 1.15.1. No schema change.
+- Files changed in `apps-script/`: `Spending.gs`, `FinancialSummary.gs`,
+  `Config.gs` (deployed on merge). Run **Finance Tracker → Upgrade
+  workbook (keeps data)** once; step page
+  `handoffs/2026-11-13-month-count-fix.json`.
+- Tested: Node (no COUNTUNIQUE in any formula, the count cells use the new
+  form, one note per tile; 272 checks; safety check). The faulty count was
+  seen in the owner's Sheet (read through the Sheets connection); the fix
+  is not yet confirmed there.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/fix-month-count-and-notes`
+
 ## 2026-11-12 — Financial Summary: coming in, going out, left over; one household debt figure
 - Why (the owner's request): the four 3-month average cards are no longer
   needed now that the Spending tab carries the averages. The summary

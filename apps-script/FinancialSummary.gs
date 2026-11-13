@@ -78,7 +78,8 @@ function buildFinancialSummary_() {
   const TXE = ',[TX.type],"Expense",[TX.isDeleted],"<>TRUE")', TXR = ',[TX.type],"Refund",[TX.isDeleted],"<>TRUE")';
   const FWS = 'EDATE(' + CUR + ',-' + FINSUM.FLEX_MONTHS + ')', FWE = 'EDATE(' + CUR + ',-1)';
   put('E' + W, 'Spending months (of ' + FINSUM.FLEX_MONTHS + ')').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('F' + W, F('=IFERROR(COUNTUNIQUE(FILTER([TX.month],[TX.month]>=' + FWS + ',[TX.month]<=' + FWE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0)),0)')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  // ROWS(UNIQUE(FILTER())) and not COUNTUNIQUE: COUNTUNIQUE counts FILTER's "nothing found" error as one month (fixed 2026-11-13)
+  put('F' + W, F('=IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.month]>=' + FWS + ',[TX.month]<=' + FWE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0))),0)')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
 
   /* --- coming in, going out, left over: the typical month at a glance --- */
   // spending that is not marked Fixed (flexible, planned irregular, unexpected, not marked yet), over a range of months or in one month

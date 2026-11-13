@@ -66,6 +66,11 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.15.1: fixed a month count that read an empty window
+  as one month (Financial Summary flexible average showed $0, so Likely
+  Left Over was overstated; Spending showed $0 typical figures instead of
+  a dash). Hover notes reduced to one per tile. The owner has to run
+  Upgrade workbook once more.
 
 ## Income from deposits (2026-11-12, build 1.12.0)
 - The owner will not upload every pay stub. A paycheck deposit in checking

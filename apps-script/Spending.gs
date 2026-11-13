@@ -289,7 +289,8 @@ function buildSpending_() {
   put('A' + help, 'Compare with window (calculated)');
   put('B' + help, '=IF(' + CMP + '="' + SPEND.COMPARE[3] + '",EDATE(' + M + ',-13),EDATE(' + M + ',-SWITCH(' + CMP + ',"' + SPEND.COMPARE[1] + '",6,"' + SPEND.COMPARE[2] + '",12,3)))').setNumberFormat('mmm yyyy');
   put('C' + help, '=IF(' + CMP + '="' + SPEND.COMPARE[3] + '",EDATE(' + M + ',-11),EDATE(' + M + ',-1))').setNumberFormat('mmm yyyy');
-  put('D' + help, F('=IFERROR(COUNTUNIQUE(FILTER([TX.month],[TX.month]>=' + WS + ',[TX.month]<=' + WE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0)),0)')).setNumberFormat('0');
+  // ROWS(UNIQUE(FILTER())) and not COUNTUNIQUE: COUNTUNIQUE counts FILTER's "nothing found" error as one month (fixed 2026-11-13)
+  put('D' + help, F('=IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.month]>=' + WS + ',[TX.month]<=' + WE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0))),0)')).setNumberFormat('0');
   sh.getRange('A' + help + ':D' + help).setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
 
   const av = 'A' + SPEND.FLEX_VALUE;
@@ -400,8 +401,8 @@ function spendingNoteTexts_(txRows, recurRows, month, stamp) {
 }
 
 /**
- * Writes the three hover notes on the Spending tiles (label, number and small line of each tile, so
- * hovering anywhere on a tile shows its list). Runs after a build or upgrade, with every sync, after
+ * Writes the three hover notes on the Spending tiles, one per tile on its big number (the label and the
+ * small line under it carry none). Runs after a build or upgrade, with every sync, after
  * reviewed rows are imported, and from onEdit when the Month, a transaction or a recurring bill is
  * edited. Changes notes only. Returns true when it wrote them.
  */
@@ -414,7 +415,8 @@ function refreshSpendingNotes_() {
   const stamp = Utilities.formatDate(new Date(), 'America/Detroit', 'MMM d, h:mm a');
   const t = spendingNoteTexts_(readTable_(tdef_('TX')), readTable_(tdef_('RECUR')), month, stamp);
   [['A', t.fixedFlex], ['C', t.needsWants], ['F', t.recurring]].forEach(p => {
-    sh.getRange(p[0] + SPEND.TILE_LABEL + ':' + p[0] + SPEND.TILE_SUB).setNotes([[p[1]], [p[1]], [p[1]]]);
+    // one note per tile, on the big number; the label and small line carry none (three triangles looked like three different notes)
+    sh.getRange(p[0] + SPEND.TILE_LABEL + ':' + p[0] + SPEND.TILE_SUB).setNotes([[''], [p[1]], ['']]);
   });
   return true;
 }
