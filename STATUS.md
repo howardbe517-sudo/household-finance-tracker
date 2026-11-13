@@ -66,6 +66,9 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-13, build 1.19.0: Payroll Deductions on the Financial Summary
+  show each job's latest stub per paycheck (owner: the percentage of a
+  paycheck should not depend on how many paychecks a month has).
 - 2026-11-13, build 1.18.0: Plaid does not support the owner's Voya plans
   ("Voya Retirement Plans" returns Institution Not Supported). The owner
   chose hand updates plus a reminder: Reminders lists unconnected

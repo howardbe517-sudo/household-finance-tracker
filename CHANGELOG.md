@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-11-13 — Payroll Deductions per paycheck, one group per job
+- Why (the owner's request): a deduction is a share of a paycheck, so the
+  Financial Summary should show what comes out of each job's paycheck. The
+  old section averaged each person's deductions per month over the window
+  and across all of that person's jobs, so one paycheck in a half-finished
+  month read as half its size and the percentage mixed jobs together.
+- What changed: the three groups are now the active Expected Income rows
+  (by person, then largest typical gross; at most three). Each shows its
+  latest real pay stub (rows made from a bank deposit are left out): every
+  deduction per paycheck and as % of that stub's gross, with the job and
+  stub date in the group heading. "Amount" is now "Per Paycheck". Income
+  by Person still shows monthly averages.
+- Run QA: the payroll check now compares federal tax and total with each
+  job's latest stub.
+- `BUILD_VERSION` 1.19.0. No schema change.
+- Files changed in `apps-script/`: `FinancialSummary.gs`, `QA.gs`,
+  `Reference.gs`, `Config.gs` (deployed on merge). Run **Upgrade
+  workbook** once; step page `handoffs/2026-11-13-deductions-per-paycheck.json`.
+- Tested: Node (formulas per job, headers; 283 checks; safety check).
+  Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/deductions-per-paycheck`
+
 ## 2026-11-13 — Balance reminder every six months
 - The owner wants to update the hand-typed balances (457, 401(k), HSA)
   about every six months. The default of

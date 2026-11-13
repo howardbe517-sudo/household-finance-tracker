@@ -1,0 +1,42 @@
+{
+  "title": "Deductions per Paycheck",
+  "key": "household-finance-tracker-2026-11-13-deductions-per-paycheck",
+  "subtitle": "The Financial Summary shows what comes out of each job's paycheck, from its latest pay stub, instead of monthly averages. One upgrade, one look.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. The upgrade redraws the Financial Summary.",
+    "**What does not change:** no paychecks, transactions or balances. Income by Person still shows monthly averages."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before deductions per paycheck 2026-11-13`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.19.0`. If it shows an older number, wait a minute and reload the Sheet."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm."
+        }
+      ]
+    },
+    {
+      "heading": "Look at Payroll Deductions",
+      "steps": [
+        {
+          "text": "Open **Financial Summary** and scroll to **Payroll Deductions**. There is one group per job, each headed with the person, the employer and the date of the pay stub it uses.",
+          "done": "For each job, the amounts and percentages match that job's pay stub, and they stay the same however many paychecks a month has."
+        },
+        {
+          "text": "When you give me a newer pay stub for a job, its group switches to that stub. Paychecks counted from the bank deposit alone are not used here, because their deductions are estimates."
+        }
+      ]
+    }
+  ]
+}

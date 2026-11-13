@@ -315,20 +315,21 @@ function qaReport_() {
     if (!near(shown.flex, flexT.average, 0.02)) fsProblems.push('flexible ' + money(shown.flex) + ' ≠ ' + money(flexT.average) + ' recomputed from Transactions (' + (flexT.months ? flexT.months + ' month(s)' : 'this month so far') + ')');
     if (!near(shown.left, Number(shown.take || 0) - Number(shown.fixed || 0) - Number(shown.flex || 0), 0.02)) fsProblems.push('left over ' + money(shown.left) + ' is not coming in − fixed − flexible');
     if (fsProblems.length) fail('Financial Summary cards: ' + fsProblems.join('; ')); else pass('Financial Summary cards: coming in ' + money(shown.take) + ' − fixed ' + money(shown.fixed) + ' − flexible ' + money(shown.flex) + ' = left over ' + money(shown.left) + ', each matching its tables');
-    const groups = [['A', 'B', 'C', 'Ben'], ['D', 'E', 'F', 'Valerie'], ['G', 'H', 'I', null]];
-    const hdrProblems = [], fedProblems = [];
-    groups.forEach(g => {
-      const h = fs.getRange(g[0] + FINSUM.PAYROLL_HEADER + ':' + g[2] + FINSUM.PAYROLL_HEADER).getValues()[0];
-      if (h[0] !== 'Deduction' || h[1] !== 'Amount' || h[2] !== '% of Gross') hdrProblems.push(g[3] || 'Household');
-      const fed = fs.getRange(g[1] + FINSUM.PAYROLL_FIRST).getValue();
-      const expFed = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'fedTax') / counted;
-      if (!near(fed, expFed)) fedProblems.push((g[3] || 'Household') + ' ' + money(fed) + ' ≠ ' + money(expFed));
-      const tot = fs.getRange(g[1] + FINSUM.PAYROLL_TOTAL).getValue();
-      const expTot = sumWhere(inc, i => inP(i) && (!g[3] || i.person === g[3]), 'totalDed') / counted;
-      if (!near(tot, expTot)) fedProblems.push((g[3] || 'Household') + ' total ' + money(tot) + ' ≠ ' + money(expTot));
+    // payroll deductions: each job's latest real pay stub, per paycheck
+    const jobs = readTable_(tdef_('EXPECT')).filter(x => x.active === true && x.id)
+      .sort((a, b) => String(a.person).localeCompare(String(b.person)) || Number(b.typicalGross || 0) - Number(a.typicalGross || 0)).slice(0, 3);
+    const payProblems = [];
+    jobs.forEach((x, k) => {
+      const c = ['B', 'E', 'H'][k];
+      const stubs = inc.filter(i => i.person === x.person && i.employer === x.employer && i.payDate instanceof Date && !isDepositIncomeRow_(i)).sort((a, b) => b.payDate - a.payDate);
+      const latest = stubs.length ? stubs.filter(i => i.payDate.getTime() === stubs[0].payDate.getTime()) : [];
+      const fed = fs.getRange(c + FINSUM.PAYROLL_FIRST).getValue(), tot = fs.getRange(c + FINSUM.PAYROLL_TOTAL).getValue();
+      if (!latest.length) { if (fed !== '' || tot !== '') payProblems.push(x.employer + ' shows deductions but has no pay stub'); return; }
+      const expFed = latest.reduce((s, i) => s + Number(i.fedTax || 0), 0), expTot = latest.reduce((s, i) => s + Number(i.totalDed || 0), 0);
+      if (!near(fed, expFed)) payProblems.push(x.employer + ' federal tax ' + money(fed) + ' ≠ stub ' + money(expFed));
+      if (!near(tot, expTot)) payProblems.push(x.employer + ' total ' + money(tot) + ' ≠ stub ' + money(expTot));
     });
-    if (hdrProblems.length) fail('Payroll headers missing for ' + hdrProblems.join(', ')); else pass('Payroll Deductions: all three groups have Deduction | Amount | % of Gross headers');
-    if (fedProblems.length) fail('Payroll Federal Tax / totals (averages): ' + fedProblems.join('; ')); else pass('Payroll Deductions: Federal Tax and Total rows match the Income averages for Ben, Valerie and Household');
+    if (payProblems.length) fail('Payroll Deductions (per paycheck): ' + payProblems.join('; ')); else pass('Payroll Deductions: each job shows its latest pay stub per paycheck (' + jobs.map(x => x.employer).join(', ') + ')');
     const credit = readTable_(tdef_('CREDIT')).filter(c => c.scoreDate instanceof Date && c.score !== '');
     [['Ben', FINSUM.CREDIT_BEN], ['Valerie', FINSUM.CREDIT_VAL]].forEach(p => {
       const rows = credit.filter(c => c.person === p[0]).sort((a, b) => b.scoreDate - a.scoreDate);
