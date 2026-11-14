@@ -66,6 +66,8 @@ AGENTS.md section 7)
   underneath. The owner keeps his own student loans off the books and
   tracks PSLF only.
 - Owner's note: he likes the Spending tab as it is now.
+- 2026-11-14, build 1.20.0 (schema 3.16): About your accounts under the
+  Savings & Reserves table; descriptions in Accounts' About This Account.
 - 2026-11-13, build 1.19.0: Payroll Deductions on the Financial Summary
   show each job's latest stub per paycheck (owner: the percentage of a
   paycheck should not depend on how many paychecks a month has).

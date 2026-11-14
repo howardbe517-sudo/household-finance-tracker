@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-11-14 — "About your accounts" on Savings & Reserves
+- Why (the owner's request): a section under the funds table to read what
+  each savings, retirement and HSA account is.
+- Schema 3.16: one column appended to Accounts, **About This Account**
+  (plain-language description). Delivered by the upgrade.
+- New section a few rows under the Savings & Reserves table
+  (`buildFundsGuide_`, `FUNDS_GUIDE` in `Tables.gs`): one row per account
+  of type Savings, Investment, Retirement or HSA that counts in net worth,
+  plus the pension. Account, type, balance, last updated, how it stays
+  current (bank feed, or typed by hand plus the per-paycheck payroll
+  deposit and its employer), and "What it is" from About This Account. All
+  formulas; the descriptions live on Accounts, so the section never goes
+  stale. Drawn by the build and every upgrade.
+- The funds table finds its end from its first calculated column (F); the
+  section keeps F free of formulas (merged cells hold their formula in the
+  first cell only). When the table is extended, `extendTable_` empties the
+  section and draws it again under the new end (`eraseFundsGuide_`).
+- `SCHEMA_VERSION` 3.16-account-about-2026-11-14, `BUILD_VERSION` 1.20.0.
+- Files changed in `apps-script/`: `Tables.gs`, `Helpers.gs`, `Upgrade.gs`,
+  `Config.gs`, `Reference.gs` (deployed on merge). Run **Upgrade
+  workbook** once; step page `handoffs/2026-11-14-about-your-accounts.json`.
+- In the Sheet (not in the repository): the descriptions were written in
+  About This Account for each savings, investment, retirement and HSA
+  account and the pension.
+- Tested: Node (section layout and formulas, column F free, table end
+  unchanged, section moves below an extended table with nothing left
+  inside it; 285 checks; safety check). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+- Branch: `claude/savings-account-guide`
+
 ## 2026-11-13 — Payroll Deductions per paycheck, one group per job
 - Why (the owner's request): a deduction is a share of a paycheck, so the
   Financial Summary should show what comes out of each job's paycheck. The

@@ -160,6 +160,7 @@ function upgradeTable_(key, report) {
     if (key === 'DEBTS') buildDebtsTop_(sh, def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);
     if (key === 'NW') buildNetWorthHelper_(sh, def);
+    if (key === 'FUNDS') buildFundsGuide_(sh, def);
   }
 }
 

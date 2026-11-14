@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.15-payroll-per-account-2026-11-13',
-  BUILD_VERSION: '1.19.0',
+  SCHEMA_VERSION: '3.16-account-about-2026-11-14',
+  BUILD_VERSION: '1.20.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -359,6 +359,8 @@ TABLES.ACCOUNTS = {
       note: 'Added in 3.15: for an account the bank feed cannot reach that a paycheck pays into through payroll (HSA, 401(k), 457): the Expected Income row of that paycheck. Each of its paychecks adds Payroll Deposit per Paycheck to Current Balance.' },
     { key: 'payrollPerPaycheck', h: 'Payroll Deposit per Paycheck', w: 130, fmt: C.cur,
       note: 'Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day.' },
+    { key: 'about', h: 'About This Account', w: 320,
+      note: 'Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves.' },
   ],
 };
 

@@ -206,6 +206,10 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   `ensureExpectedIncome_`, and are overwritten in place (same ID) when a
   stub for that paycheck is pasted later. A deposit next to an unlinked
   stub with a different take-home is held for the owner.
+- About your accounts (3.16): a calculated reading section under the
+  Savings & Reserves table (`buildFundsGuide_`), fed by Accounts' About
+  This Account. Keeps column F free of formulas so `syncLastRow_` still
+  finds the table's end; `extendTable_` moves it below a grown table.
 - Payroll deposits (3.15): the setting is on Accounts (Payroll Deposit From +
   per Paycheck), so one paycheck can feed several accounts; the 3.14
   Expected Income columns still work. `readTable_` tolerates a tab narrower

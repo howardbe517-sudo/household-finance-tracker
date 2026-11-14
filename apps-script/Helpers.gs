@@ -331,10 +331,13 @@ function extendTable_(def, newLastRow) {
   if (newLastRow <= def.lastRow) return;
   const sh = getOrCreateSheet_(def.sheet);
   if (sh.getMaxRows() < newLastRow + 5) sh.insertRowsAfter(sh.getMaxRows(), newLastRow + 5 - sh.getMaxRows());
+  // Savings & Reserves keeps a reading section a few rows under the table: lift it out of the way before the table grows
+  if (def.key === 'FUNDS' && typeof eraseFundsGuide_ === 'function') eraseFundsGuide_(sh, def);
   applyColumnRules_(def, def.lastRow + 1, newLastRow);
   def.lastRow = newLastRow;
   setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, def.columns.length));
   if (typeof CF_BUILDERS !== 'undefined' && CF_BUILDERS[def.key]) CF_BUILDERS[def.key](sh, def);
+  if (def.key === 'FUNDS' && typeof buildFundsGuide_ === 'function') buildFundsGuide_(sh, def);
 }
 
 /* ---------- change log ---------- */

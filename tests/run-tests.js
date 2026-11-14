@@ -40,7 +40,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 29 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('29 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 16, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 17, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -622,6 +622,22 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const cs = R(`readTable_(TABLES.CATS)`).filter(c => c.category === 'Food');
     if (food.indexOf('Coffee Shops') >= 0 && food.indexOf('Snacks') >= 0 && food.indexOf('Coffee & Snacks') < 0 && cs.some(c => c.subcategory === 'Coffee Shops' && c.active === true && c.spendingType === 'Flexible' && c.needWant === 'Want') && cs.some(c => c.subcategory === 'Snacks' && c.active === true)) ok('Food has Coffee Shops and Snacks as separate subcategories (Coffee & Snacks retired), both wants and flexible'); else bad('coffee split: ' + food.join(', '));
   })();
+  // About your accounts, under the Savings & Reserves table (1.20.0)
+  (function () {
+    const fdef = vm.runInContext('TABLES.FUNDS', ctx), fsh = ss.getSheetByName(SHEETS.FUNDS);
+    const tableEnd = R(`syncLastRow_(tdef_('FUNDS'))`); // the suite extends every table earlier on, as the menu item does
+    const top = tableEnd + 3, hdr = top + 2, r1 = hdr + 1;
+    const heads = ['B', 'C', 'D', 'E', 'G', 'J'].map(c => fsh.getRange(c + hdr).getValue());
+    const nameF = fsh.getRange('B' + r1).getFormula(), howF = fsh.getRange('G' + r1).getFormula(), aboutF = fsh.getRange('J' + r1).getFormula();
+    const fEmpty = Array.from({ length: 12 }, (_, i) => fsh.getRange('F' + (hdr + 1 + i)).getFormula()).every(f => f === '');
+    const last = R(`syncLastRow_(tdef_('FUNDS'))`);
+    if (/About your accounts/.test(fsh.getRange('A' + top).getValue()) && heads.join('|') === 'Account|Type|Balance|Last Updated|How it stays current|What it is'
+      && /\("Savings"\)/.test(nameF.replace(/'Accounts'!\$D\$5:\$D=/g, '(')) && /="Pension"\)/.test(nameF) && /"Yes"/.test(nameF)
+      && /'Accounts'!\$Q\$5:\$Q/.test(aboutF) && /No description yet/.test(aboutF) && /Bank feed, every night/.test(howF) && /each paycheck from "&/.test(howF) && /'Expected Income'!\$C\$5:\$C/.test(howF)
+      && fEmpty && last === tableEnd && fsh.merges.indexOf('J' + r1 + ':P' + r1) >= 0 && !fsh.merges.some(m => { const row = Number(String(m).replace(/^[A-Z]+/, '').split(':')[0]); return row > 4 && row <= tableEnd; })) ok('Savings & Reserves ends with About your accounts: each savings, investment, retirement and HSA account and the pension, with balance, last update, how it stays current (bank feed or by hand plus paycheck deposits) and the About This Account text; column F stays free, so the table still ends where it did, and when the table is extended the section moves below it with nothing left inside the table'); else bad('funds guide: ' + JSON.stringify([fsh.getRange('A' + top).getValue(), heads, last, fEmpty, aboutF.slice(-120)]));
+    const adef = vm.runInContext('TABLES.ACCOUNTS', ctx);
+    if (adef.columns[adef.columns.length - 1].key === 'about' && adef.columns[adef.columns.length - 1].h === 'About This Account') ok('About This Account is appended as the last column of Accounts (delivered by the upgrade)'); else bad('about column');
+  })();
   // hover lists on the three tiles (1.13.1)
   (function () {
     const tx = `[
@@ -934,7 +950,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 6); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 7); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
