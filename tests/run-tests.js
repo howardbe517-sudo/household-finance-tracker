@@ -626,7 +626,14 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   (function () {
     const fdef = vm.runInContext('TABLES.FUNDS', ctx), fsh = ss.getSheetByName(SHEETS.FUNDS);
     const tableEnd = R(`syncLastRow_(tdef_('FUNDS'))`); // the suite extends every table earlier on, as the menu item does
-    const top = tableEnd + 3, hdr = top + 2, r1 = hdr + 1;
+    const top = tableEnd + 3, hdr = top + 3, r1 = hdr + 1;
+    const noteF = fsh.getRange('A' + (top + 1)).getFormula();
+    const noteCell = ss.getRangeByName('SETTING_ACCOUNTS_NOTE');
+    if (/SETTING_ACCOUNTS_NOTE/.test(noteF) && /^=IFERROR\(/.test(noteF) && noteCell && noteCell.getSheet().getName() === SHEETS.SETUP && noteCell.getValue() === ''
+      && /Savings, investment, retirement and HSA accounts/.test(fsh.getRange('A' + (top + 2)).getValue())
+      && /accountsNote: get\('SETTING_ACCOUNTS_NOTE'/.test(vm.runInContext('readSettings_.toString()', ctx)) && /SETTING_ACCOUNTS_NOTE/.test(vm.runInContext('restoreSettings_.toString()', ctx)))
+      ok('About your accounts opens with the note from App Setup (blank by default, kept across upgrades), then the explanation line');
+    else bad('accounts note: ' + JSON.stringify([noteF, noteCell && noteCell.getValue(), fsh.getRange('A' + (top + 2)).getValue()]));
     const heads = ['B', 'C', 'D', 'E', 'G', 'J'].map(c => fsh.getRange(c + hdr).getValue());
     const nameF = fsh.getRange('B' + r1).getFormula(), howF = fsh.getRange('G' + r1).getFormula(), aboutF = fsh.getRange('J' + r1).getFormula();
     const fEmpty = Array.from({ length: 12 }, (_, i) => fsh.getRange('F' + (hdr + 1 + i)).getFormula()).every(f => f === '');

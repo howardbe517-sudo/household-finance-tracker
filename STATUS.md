@@ -1,5 +1,11 @@
 # STATUS
 
+2026-11-14 (build 1.21.0): About your accounts opens with a note from App
+Setup. The owner could not reach miAccount, Voya or HealthEquity yet, so
+the note says the plan details still need checking; the Information
+Checklist lists what to confirm. Upgrade workbook still to run (delivers
+1.20.0 and 1.21.0 together).
+
 Last updated: 2026-11-12 (Dashboard retired into Spending and Financial
 Summary, build 1.13.0; income from deposits 1.12.0; earlier:
 everything merged and deployed through PR #51; the agent merges pull requests once checks pass, see

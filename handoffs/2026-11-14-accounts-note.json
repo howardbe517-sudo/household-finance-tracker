@@ -1,0 +1,44 @@
+{
+  "title": "Accounts Note",
+  "key": "household-finance-tracker-2026-11-14-accounts-note",
+  "subtitle": "About your accounts, at the bottom of Savings & Reserves, now opens with a note saying which plan details still need checking. One upgrade, then read.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. I have written the note and the account descriptions in the Sheet. This one upgrade also adds the About your accounts section itself, if you haven't run the upgrade since it was added.",
+    "**What does not change:** no balances, funds or transactions."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before accounts note 2026-11-14`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.21.0`. If it shows an older number, wait a minute and reload the Sheet."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The upgrade finishes and shows its report."
+        }
+      ]
+    },
+    {
+      "heading": "Read it",
+      "steps": [
+        {
+          "text": "Open **Savings & Reserves** and scroll below the funds table to **About your accounts**.",
+          "done": "Under the section title, a bold line starts with \"Note:\" and says which plan details still need checking. Each account below has a description."
+        },
+        {
+          "text": "Later, once you have checked the details: open **App Setup**, find **Note at the top of About your accounts**, and change the text or delete it.",
+          "note": "If you delete the note, the line stays empty. To change an account's description, edit **About This Account** (the last column) on the **Accounts** tab."
+        }
+      ]
+    }
+  ]
+}

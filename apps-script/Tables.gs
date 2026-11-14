@@ -349,13 +349,16 @@ function buildDerivedTables_() {
 /* ---------- Savings & Reserves: "About your accounts", a reading section under the funds table ---------- */
 
 // Account types described in the section, in this order. A pension is listed even though it is not counted in net worth.
-const FUNDS_GUIDE = { TYPES: ['Savings', 'Investment', 'Retirement', 'HSA', 'Pension'], ROWS: 12, GAP: 3 };
+// HEAD: rows above the column headers (section bar, the owner's note from App Setup, the explanation line).
+const FUNDS_GUIDE = { TYPES: ['Savings', 'Investment', 'Retirement', 'HSA', 'Pension'], ROWS: 12, GAP: 3, HEAD: 3 };
 
 /**
  * Draws the "About your accounts" section a few rows under the Savings & Reserves table: one row per savings,
  * investment, retirement and HSA account (and the pension), with its balance, last update, how it stays current
  * (bank feed, or typed by hand plus payroll deposits) and what it is. "What it is" is the account's About This Account
- * text on Accounts, written by the owner; everything else is calculated, so the section never goes stale. Holds no
+ * text on Accounts, written by the owner; everything else is calculated, so the section never goes stale. The line under
+ * the section bar shows the owner's note from App Setup (SETTING_ACCOUNTS_NOTE, for example what still needs checking),
+ * and stays empty when that setting is blank. Holds no
  * entered data: redrawn by buildWorkbook and by every upgrade. If the table is ever extended past this section, the
  * upgrade draws it again under the new end of the table.
  */
@@ -363,15 +366,20 @@ function buildFundsGuide_(sh, def) {
   const F = (t) => resolveFormula_(t, null, null);
   const W = def.columns.length;
   const top = def.lastRow + FUNDS_GUIDE.GAP;
-  const last = top + 2 + FUNDS_GUIDE.ROWS;
+  const last = top + FUNDS_GUIDE.HEAD + FUNDS_GUIDE.ROWS;
   if (sh.getMaxRows() < last + 1) sh.insertRowsAfter(sh.getMaxRows(), last + 1 - sh.getMaxRows());
   if (sh.getMaxColumns() < W) sh.insertColumnsAfter(sh.getMaxColumns(), W - sh.getMaxColumns());
-  sh.getRange(top, 1, last - top + 1, W).breakApart().setBackground(null).setFontWeight('normal').setFontStyle('normal').setFontSize(10).setFontColor(COLORS.TEXT).setWrap(false).setVerticalAlignment('top');
+  sh.getRange(top, 1, last - top + 1, W).breakApart().setBackground(null).setFontWeight('normal').setFontStyle('normal').setFontSize(10).setFontColor(COLORS.TEXT).setWrap(false).setVerticalAlignment('top')
+    .setBorder(false, false, false, false, false, false);
   styleSectionBar_(sh.getRange(top, 1, 1, W), 'About your accounts — what each one is and how it stays current');
-  sh.getRange(top + 1, 1, 1, W).merge().setValue('Savings, investment, retirement and HSA accounts from the Accounts tab, and the pension. "What it is" comes from the About This Account column on Accounts: change the wording there. The other columns fill in on their own.')
+  // the owner's note (App Setup → Note at the top of About your accounts); blank setting, empty line
+  sh.getRange(top + 1, 1, 1, W).merge().setWrap(true).setFontWeight('bold').setFontColor(COLORS.WARN_FONT);
+  sh.getRange(top + 1, 1).setFormula('=IFERROR(IF(TRIM(SETTING_ACCOUNTS_NOTE&"")="","","Note: "&SETTING_ACCOUNTS_NOTE),"")');
+  sh.setRowHeight(top + 1, 48);
+  sh.getRange(top + 2, 1, 1, W).merge().setValue('Savings, investment, retirement and HSA accounts from the Accounts tab, and the pension. "What it is" comes from the About This Account column on Accounts: change the wording there. The other columns fill in on their own.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9).setWrap(true);
-  sh.setRowHeight(top + 1, 30);
-  const hdr = top + 2;
+  sh.setRowHeight(top + 2, 30);
+  const hdr = top + FUNDS_GUIDE.HEAD;
   // Column F is the table's first calculated column, which tells the tracker where the table ends (syncLastRow_):
   // it must never hold a formula here, so Last Updated spans E:F and its formula sits in E.
   const heads = [['B', 'B', 'Account'], ['C', 'C', 'Type'], ['D', 'D', 'Balance'], ['E', 'F', 'Last Updated'], ['G', 'I', 'How it stays current'], ['J', colLetter_(W), 'What it is']];
@@ -407,7 +415,7 @@ function buildFundsGuide_(sh, def) {
  */
 function eraseFundsGuide_(sh, def) {
   const top = def.lastRow + FUNDS_GUIDE.GAP;
-  const n = FUNDS_GUIDE.ROWS + 3, W = def.columns.length;
+  const n = FUNDS_GUIDE.ROWS + FUNDS_GUIDE.HEAD + 1, W = def.columns.length;
   if (sh.getMaxRows() < top + n - 1) return;
   const rng = sh.getRange(top, 1, n, W);
   rng.breakApart();

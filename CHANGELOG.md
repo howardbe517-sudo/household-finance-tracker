@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-11-14 — A note at the top of "About your accounts"
+- Why (the owner's request): the account descriptions are written from pay
+  stubs, plan documents and published plan rules, not yet checked against
+  the accounts themselves; the section should say so at the top.
+- New App Setup setting **Note at the top of About your accounts**
+  (`SETTING_ACCOUNTS_NOTE`, blank by default). The line under the section
+  bar shows it in bold, prefixed "Note:", and stays empty when the setting
+  is blank. Kept across upgrades (`readSettings_` / `restoreSettings_`).
+- The section has one more row above its column headers
+  (`FUNDS_GUIDE.HEAD` = 3); `eraseFundsGuide_` empties the extra row too,
+  and the build resets the old borders before drawing.
+- `BUILD_VERSION` 1.21.0 (schema unchanged).
+- Files changed in `apps-script/`: `Tables.gs`, `Reference.gs`,
+  `Upgrade.gs`, `Config.gs` (deployed on merge). Run **Upgrade workbook**
+  once (it also delivers 1.20.0 if that upgrade has not run yet); step page
+  `handoffs/2026-11-14-accounts-note.json`.
+- In the Sheet (not in the repository): the note text and the updated
+  pension description.
+- Tested: Node (note formula, setting on App Setup blank by default and
+  kept across upgrades, section layout; safety check). Not yet confirmed in
+  Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-14 — "About your accounts" on Savings & Reserves
 - Why (the owner's request): a section under the funds table to read what
   each savings, retirement and HSA account is.
