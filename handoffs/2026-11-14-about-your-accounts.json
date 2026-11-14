@@ -1,0 +1,44 @@
+{
+  "title": "About Your Accounts",
+  "key": "household-finance-tracker-2026-11-14-about-your-accounts",
+  "subtitle": "A section at the bottom of Savings & Reserves explains each savings, retirement and HSA account and the pension, and how each one stays current. One upgrade, then read.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet, and I have written a description for each account. The upgrade adds the section.",
+    "**What does not change:** no balances, funds or transactions. The funds table itself looks the same."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before about your accounts 2026-11-14`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.20.0`. If it shows an older number, wait a minute and reload the Sheet."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report mentions Accounts: added column(s) About This Account."
+        }
+      ]
+    },
+    {
+      "heading": "Read it",
+      "steps": [
+        {
+          "text": "Open **Savings & Reserves** and scroll below the funds table to **About your accounts**. Each account has its balance, when it was last updated, how it stays current, and what it is.",
+          "done": "Every account shows a description. A row that says \"No description yet\" has an empty About This Account cell on the Accounts tab."
+        },
+        {
+          "text": "To change any wording, open **Accounts**, scroll to the last column, **About This Account**, and edit the text on that account's row.",
+          "note": "The section updates on its own. Balances, last-updated dates and how each account stays current always come from the Accounts tab, so they never go stale."
+        }
+      ]
+    }
+  ]
+}

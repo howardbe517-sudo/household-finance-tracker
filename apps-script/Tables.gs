@@ -324,6 +324,7 @@ function buildCoreTables_() {
     const sh = buildTableSheet_(def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);
     if (key === 'DEBTS') buildDebtsTop_(sh, def);
+    if (key === 'FUNDS') buildFundsGuide_(sh, def);
     CF_BUILDERS[key](sh, def);
   });
 }
@@ -343,4 +344,75 @@ function buildDerivedTables_() {
     if (key === 'NW') buildNetWorthHelper_(sh, def);
     CF_BUILDERS[key](sh, def);
   });
+}
+
+/* ---------- Savings & Reserves: "About your accounts", a reading section under the funds table ---------- */
+
+// Account types described in the section, in this order. A pension is listed even though it is not counted in net worth.
+const FUNDS_GUIDE = { TYPES: ['Savings', 'Investment', 'Retirement', 'HSA', 'Pension'], ROWS: 12, GAP: 3 };
+
+/**
+ * Draws the "About your accounts" section a few rows under the Savings & Reserves table: one row per savings,
+ * investment, retirement and HSA account (and the pension), with its balance, last update, how it stays current
+ * (bank feed, or typed by hand plus payroll deposits) and what it is. "What it is" is the account's About This Account
+ * text on Accounts, written by the owner; everything else is calculated, so the section never goes stale. Holds no
+ * entered data: redrawn by buildWorkbook and by every upgrade. If the table is ever extended past this section, the
+ * upgrade draws it again under the new end of the table.
+ */
+function buildFundsGuide_(sh, def) {
+  const F = (t) => resolveFormula_(t, null, null);
+  const W = def.columns.length;
+  const top = def.lastRow + FUNDS_GUIDE.GAP;
+  const last = top + 2 + FUNDS_GUIDE.ROWS;
+  if (sh.getMaxRows() < last + 1) sh.insertRowsAfter(sh.getMaxRows(), last + 1 - sh.getMaxRows());
+  if (sh.getMaxColumns() < W) sh.insertColumnsAfter(sh.getMaxColumns(), W - sh.getMaxColumns());
+  sh.getRange(top, 1, last - top + 1, W).breakApart().setBackground(null).setFontWeight('normal').setFontStyle('normal').setFontSize(10).setFontColor(COLORS.TEXT).setWrap(false).setVerticalAlignment('top');
+  styleSectionBar_(sh.getRange(top, 1, 1, W), 'About your accounts — what each one is and how it stays current');
+  sh.getRange(top + 1, 1, 1, W).merge().setValue('Savings, investment, retirement and HSA accounts from the Accounts tab, and the pension. "What it is" comes from the About This Account column on Accounts: change the wording there. The other columns fill in on their own.')
+    .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9).setWrap(true);
+  sh.setRowHeight(top + 1, 30);
+  const hdr = top + 2;
+  // Column F is the table's first calculated column, which tells the tracker where the table ends (syncLastRow_):
+  // it must never hold a formula here, so Last Updated spans E:F and its formula sits in E.
+  const heads = [['B', 'B', 'Account'], ['C', 'C', 'Type'], ['D', 'D', 'Balance'], ['E', 'F', 'Last Updated'], ['G', 'I', 'How it stays current'], ['J', colLetter_(W), 'What it is']];
+  heads.forEach(h => { const r = sh.getRange(h[0] + hdr + ':' + h[1] + hdr); if (h[0] !== h[1]) r.merge(); r.setValue(h[2]); styleHeader_(r); });
+  const typeTest = FUNDS_GUIDE.TYPES.map(t => '([ACCOUNTS.accountType]="' + t + '")').join('+');
+  const list = 'FILTER([ACCOUNTS.id],[ACCOUNTS.id]<>"",(' + typeTest + ')>0,(([ACCOUNTS.includeNW]="Yes")+([ACCOUNTS.accountType]="Pension"))>0)';
+  const at = (col) => 'INDEX([ACCOUNTS.' + col + '],MATCH(id,[ACCOUNTS.id],0))';
+  for (let k = 1; k <= FUNDS_GUIDE.ROWS; k++) {
+    const r = hdr + k;
+    const cell = (expr) => F('=IFERROR(LET(id,INDEX(' + list + ',' + k + '),' + expr + '),"")');
+    sh.getRange('B' + r).setFormula(cell(at('name'))).setFontWeight('bold').setWrap(true);
+    sh.getRange('C' + r).setFormula(cell(at('accountType')));
+    sh.getRange('D' + r).setFormula(cell('IF(' + at('accountType') + '="Pension","—",' + at('currentBalance') + ')')).setNumberFormat(FORMATS.currency).setHorizontalAlignment('right');
+    // merge first, then put the formula in the first cell only, so the merged-over cells (F above all) stay empty
+    sh.getRange('E' + r + ':F' + r).merge().setNumberFormat(FORMATS.date).setHorizontalAlignment('center');
+    sh.getRange('E' + r).setFormula(cell('IF(' + at('lastUpdated') + '="","",' + at('lastUpdated') + ')'));
+    sh.getRange('G' + r + ':I' + r).merge().setWrap(true).setFontSize(9);
+    sh.getRange('G' + r).setFormula(cell(
+      'IF(' + at('connectionId') + '<>"","Bank feed, every night",' +
+      'IF(' + at('accountType') + '="Pension","Not a balance: a monthly income in retirement. Update the projected benefit on Accounts once a year.",' +
+      '"Typed by hand from the provider website"&IF(AND(' + at('payrollSource') + '<>"",ISNUMBER(' + at('payrollPerPaycheck') + ')),"; each paycheck from "&IFERROR(INDEX([EXPECT.employer],MATCH(' + at('payrollSource') + ',[EXPECT.id],0)),' + at('payrollSource') + ')&" adds "&TEXT(' + at('payrollPerPaycheck') + ',"$#,##0.00"),"")&". A reminder asks for the real balance now and then."))'));
+    sh.getRange('J' + r + ':' + colLetter_(W) + r).merge().setWrap(true);
+    sh.getRange('J' + r).setFormula(cell('IF(' + at('about') + '="","(No description yet: write one in About This Account on the Accounts tab.)",' + at('about') + ')'));
+    sh.setRowHeight(r, 78);
+  }
+  sh.getRange(hdr, 2, FUNDS_GUIDE.ROWS + 1, W - 1).setBorder(true, true, true, true, false, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+}
+
+/**
+ * Empties the About your accounts section at its current place (under def.lastRow) so the table can grow through
+ * those rows; extendTable_ draws it again under the new end. The section holds only calculated text, no entered data,
+ * so it is overwritten with blanks rather than cleared.
+ */
+function eraseFundsGuide_(sh, def) {
+  const top = def.lastRow + FUNDS_GUIDE.GAP;
+  const n = FUNDS_GUIDE.ROWS + 3, W = def.columns.length;
+  if (sh.getMaxRows() < top + n - 1) return;
+  const rng = sh.getRange(top, 1, n, W);
+  rng.breakApart();
+  rng.setValues(Array.from({ length: n }, () => Array(W).fill('')));
+  rng.setBackground(null).setFontWeight('normal').setFontStyle('normal').setFontSize(10).setFontColor(COLORS.TEXT).setWrap(false)
+    .setBorder(false, false, false, false, false, false);
+  for (let r = top; r < top + n; r++) sh.setRowHeight(r, 21);
 }

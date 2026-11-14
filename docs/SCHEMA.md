@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.15-payroll-per-account-2026-11-13**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.16-account-about-2026-11-14**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -9,7 +9,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
-| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 16 | yes |
+| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 17 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 18 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
@@ -72,6 +72,7 @@ Named range `TBL_ACCOUNTS` covers the header row through the last formula row.
 | N | Last Synced | `lastSynced` | datetime | input | Added in 3.1: when the bank feed last updated this balance. |
 | O | Payroll Deposit From (Source ID) | `payrollSource` | text | dropdown: Expected Income IDs | Added in 3.15: for an account the bank feed cannot reach that a paycheck pays into through payroll (HSA, 401(k), 457): the Expected Income row of that paycheck. Each of its paychecks adds Payroll Deposit per Paycheck to Current Balance. |
 | P | Payroll Deposit per Paycheck | `payrollPerPaycheck` | currency | input | Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day. |
+| Q | About This Account | `about` | text | input | Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves. |
 
 ## Income (`INCOME`)
 
