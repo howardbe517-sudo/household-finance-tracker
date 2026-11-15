@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 2026-11-15 — About your accounts becomes a reading section
+- Why (the owner's request): the section is for understanding what each
+  account is and how it works, not a working table; balances and what goes in
+  each paycheck change and are in the table above.
+- `buildFundsGuide_`: columns Account, Type and What it is only (Balance,
+  Last Updated and How it stays current removed from the section). Retirement
+  accounts and the HSA, then the pension last (`FUNDS_GUIDE.TYPES` order);
+  savings and investment accounts are no longer listed.
+- `BUILD_VERSION` 1.22.1.
+- Files changed in `apps-script/`: `Tables.gs`, `Config.gs`. Run **Upgrade
+  workbook** once.
+- In the Sheet (not in the repository): the About This Account texts no
+  longer state amounts or contribution percentages; the Acorns account is out
+  of the account and savings tables and its weekly charge counts as a
+  subscription (owner, 2026-11-15) until the account is closed.
+- Tested: Node (section columns, order, column F free; safety check). Not yet
+  confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries tab and Costco receipts
 - Why (the owner's request): a grocery tab with item detail, a Costco section
   (Costco is about half of grocery spending), Costco charges split by receipt

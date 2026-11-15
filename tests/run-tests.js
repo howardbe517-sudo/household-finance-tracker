@@ -630,18 +630,19 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const noteF = fsh.getRange('A' + (top + 1)).getFormula();
     const noteCell = ss.getRangeByName('SETTING_ACCOUNTS_NOTE');
     if (/SETTING_ACCOUNTS_NOTE/.test(noteF) && /^=IFERROR\(/.test(noteF) && noteCell && noteCell.getSheet().getName() === SHEETS.SETUP && noteCell.getValue() === ''
-      && /Savings, investment, retirement and HSA accounts/.test(fsh.getRange('A' + (top + 2)).getValue())
+      && /A reading section/.test(fsh.getRange('A' + (top + 2)).getValue())
       && /accountsNote: get\('SETTING_ACCOUNTS_NOTE'/.test(vm.runInContext('readSettings_.toString()', ctx)) && /SETTING_ACCOUNTS_NOTE/.test(vm.runInContext('restoreSettings_.toString()', ctx)))
       ok('About your accounts opens with the note from App Setup (blank by default, kept across upgrades), then the explanation line');
     else bad('accounts note: ' + JSON.stringify([noteF, noteCell && noteCell.getValue(), fsh.getRange('A' + (top + 2)).getValue()]));
-    const heads = ['B', 'C', 'D', 'E', 'G', 'J'].map(c => fsh.getRange(c + hdr).getValue());
-    const nameF = fsh.getRange('B' + r1).getFormula(), howF = fsh.getRange('G' + r1).getFormula(), aboutF = fsh.getRange('J' + r1).getFormula();
+    const heads = ['B', 'C', 'D'].map(c => fsh.getRange(c + hdr).getValue());
+    const nameF = fsh.getRange('B' + r1).getFormula(), aboutF = fsh.getRange('D' + r1).getFormula();
     const fEmpty = Array.from({ length: 12 }, (_, i) => fsh.getRange('F' + (hdr + 1 + i)).getFormula()).every(f => f === '');
     const last = R(`syncLastRow_(tdef_('FUNDS'))`);
-    if (/About your accounts/.test(fsh.getRange('A' + top).getValue()) && heads.join('|') === 'Account|Type|Balance|Last Updated|How it stays current|What it is'
-      && /\("Savings"\)/.test(nameF.replace(/'Accounts'!\$D\$5:\$D=/g, '(')) && /="Pension"\)/.test(nameF) && /"Yes"/.test(nameF)
-      && /'Accounts'!\$Q\$5:\$Q/.test(aboutF) && /No description yet/.test(aboutF) && /Bank feed, every night/.test(howF) && /each paycheck from "&/.test(howF) && /'Expected Income'!\$C\$5:\$C/.test(howF)
-      && fEmpty && last === tableEnd && fsh.merges.indexOf('J' + r1 + ':P' + r1) >= 0 && !fsh.merges.some(m => { const row = Number(String(m).replace(/^[A-Z]+/, '').split(':')[0]); return row > 4 && row <= tableEnd; })) ok('Savings & Reserves ends with About your accounts: each savings, investment, retirement and HSA account and the pension, with balance, last update, how it stays current (bank feed or by hand plus paycheck deposits) and the About This Account text; column F stays free, so the table still ends where it did, and when the table is extended the section moves below it with nothing left inside the table'); else bad('funds guide: ' + JSON.stringify([fsh.getRange('A' + top).getValue(), heads, last, fEmpty, aboutF.slice(-120)]));
+    if (/About your accounts/.test(fsh.getRange('A' + top).getValue()) && heads.join('|') === 'Account|Type|What it is'
+      && /="Retirement"\)\+/.test(nameF) && /="HSA"\)/.test(nameF) && /="Pension"\)/.test(nameF) && !/="Savings"\)/.test(nameF) && !/="Investment"\)/.test(nameF) && /"Yes"/.test(nameF)
+      && /\{"Retirement","HSA","Pension"\}/.test(nameF) && /SORT\(/.test(nameF)
+      && /'Accounts'!\$Q\$5:\$Q/.test(aboutF) && /No description yet/.test(aboutF) && !/Bank feed, every night/.test(aboutF + nameF)
+      && fEmpty && last === tableEnd && fsh.merges.indexOf('D' + r1 + ':P' + r1) >= 0 && !fsh.merges.some(m => { const row = Number(String(m).replace(/^[A-Z]+/, '').split(':')[0]); return row > 4 && row <= tableEnd; })) ok('Savings & Reserves ends with About your accounts, a reading section: each retirement account and the HSA, then the pension last (no savings or investment accounts), with its name, type and the About This Account text, and no balances or amounts; column F stays free, so the table still ends where it did, and when the table is extended the section moves below it with nothing left inside the table'); else bad('funds guide: ' + JSON.stringify([fsh.getRange('A' + top).getValue(), heads, last, fEmpty, nameF.slice(0, 200), aboutF.slice(-120)]));
     const adef = vm.runInContext('TABLES.ACCOUNTS', ctx);
     if (adef.columns[adef.columns.length - 1].key === 'about' && adef.columns[adef.columns.length - 1].h === 'About This Account') ok('About This Account is appended as the last column of Accounts (delivered by the upgrade)'); else bad('about column');
   })();
