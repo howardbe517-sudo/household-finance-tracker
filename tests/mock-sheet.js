@@ -241,7 +241,7 @@ function makeGlobals() {
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) },
     ContentService: { createTextOutput: (t) => ({ _t: t, setMimeType() { return this; }, getContent() { return this._t; } }), MimeType: { JSON: 'JSON' } },
     UrlFetchApp,
-    Charts: { ChartType: { LINE: 'LINE', COLUMN: 'COLUMN', BAR: 'BAR' } },
+    Charts: { ChartType: { LINE: 'LINE', COLUMN: 'COLUMN', BAR: 'BAR', COMBO: 'COMBO' } },
     HtmlService: { createHtmlOutputFromFile: (name) => htmlOut('<file:' + name + '>'), createHtmlOutput: (html) => htmlOut(html), createTemplateFromFile: (name) => ({ evaluate: () => htmlOut('<template:' + name + '>') }) },
     ScriptApp: {
       getProjectTriggers: () => triggers.slice(),

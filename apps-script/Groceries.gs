@@ -33,6 +33,13 @@ const GROC = {
   TOP_BAR: 120, TOP_NOTE: 121, TOP_HEADER: 122, TOP_FIRST: 123, TOP_ROWS: 30,
   TRIP_BAR: 155, TRIP_NOTE: 156, TRIP_HEADER: 157, TRIP_FIRST: 158, TRIP_ROWS: 150,
   LAST_ROW: 310, WIDTH: 9,
+  // the two graphs to the right of the tables (the owner, 2026-11-15): a bar for each month and a line for the
+  // 3-month average. Costco food (Food → Groceries lines on Costco receipts) for 24 months beside the store table;
+  // groceries at every store (Transactions) for 12 months beside "What you bought". The numbers behind them sit
+  // under the graphs, in columns K to M.
+  GRAPH_COL: 11, GRAPH1_ROW: 9, GRAPH2_ROW: 27, COSTCO_MONTHS: 24, GROC_MONTHS: 12,
+  GDATA1_BAR: 60, GDATA1_HEADER: 61, GDATA2_BAR: 88, GDATA2_HEADER: 89, GRAPH_WIDTH: 3,
+  BAR_COLOR: '#1F6F78', LINE_COLOR: '#C2551F',
   CHARGE_DAYS: 5,      // a card charge posts on the trip day or up to this many days later
   MAX_TAX: 0.07,       // the charge is the subtotal plus at most this share in sales tax (Michigan: 6%)
   EXPORT: 'Costco export', PHOTO: 'Receipt photo',
@@ -284,13 +291,14 @@ function buildGroceries_() {
   const sh = getOrCreateSheet_(SHEETS.GROCERY);
   const F = (t) => resolveFormula_(t, null, null);
   const W = GROC.WIDTH;
+  sh.getCharts().forEach(c => sh.removeChart(c));
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
   sh.clear(); // SAFETY-APPROVED: the Groceries tab is calculated (formulas only; its one input, Month, is put back by the upgrade); rebuilt by buildWorkbook / upgradeWorkbook
   sh.clearConditionalFormatRules();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
-  ensureSheetSize_(sh, GROC.LAST_ROW, W);
+  ensureSheetSize_(sh, GROC.LAST_ROW, GROC.GRAPH_COL + GROC.GRAPH_WIDTH - 1);
   sh.setHiddenGridlines(true);
-  [190, 130, 110, 110, 110, 110, 105, 105, 110].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  [190, 130, 110, 110, 110, 110, 105, 105, 110, 24, 90, 110, 120].forEach((w, i) => sh.setColumnWidth(i + 1, w)); // J is a narrow gap before the graphs
   sh.getRange(1, 1, GROC.LAST_ROW, W).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
   const L = (c) => colLetter_(c);
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
@@ -437,4 +445,41 @@ function buildGroceries_() {
   sh.getRange(GROC.TRIP_FIRST, 1, GROC.TRIP_ROWS, 1).setNumberFormat(FORMATS.date);
   sh.getRange(GROC.TRIP_FIRST, 3, GROC.TRIP_ROWS, 1).setNumberFormat('0').setHorizontalAlignment('center');
   sh.getRange(GROC.TRIP_FIRST, 4, GROC.TRIP_ROWS, 4).setNumberFormat(FORMATS.currency);
+
+  /* --- the two graphs, to the right: a bar per month and the 3-month average as a line --- */
+  const gc = GROC.GRAPH_COL, gl = (k) => L(gc + k);
+  const costcoFood = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*([GROC.subcategory]="Groceries")*([GROC.month]>=' + m + ')*([GROC.month]<EDATE(' + m + ',1)),' + net + ')';
+  const costcoFood3 = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*([GROC.subcategory]="Groceries")*([GROC.month]>=EDATE(' + m + ',-2))*([GROC.month]<EDATE(' + m + ',1)),' + net + ')/3';
+  const dataBlock = (bar, hdr, months, title, heads, rowF) => {
+    styleSectionBar_(sh.getRange(gl(0) + bar + ':' + gl(2) + bar), title);
+    heads.forEach((h, j) => styleHeader_(put(gl(j) + hdr, h)));
+    for (let k = 0; k < months; k++) {
+      const r = hdr + 1 + k;
+      const mExpr = 'EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),' + (k - (months - 1)) + ')'; // oldest first, this month last
+      put(gl(0) + r, '=TEXT(' + mExpr + ',"mmm yy")'); // text, so the graph prints every month as a label
+      const f = rowF(mExpr);
+      put(gl(1) + r, f[0]); put(gl(2) + r, f[1]);
+    }
+    sh.getRange(hdr + 1, gc + 1, months, 2).setNumberFormat(FORMATS.currency);
+  };
+  dataBlock(GROC.GDATA1_BAR, GROC.GDATA1_HEADER, GROC.COSTCO_MONTHS, 'Numbers behind the Costco graph', ['Month', 'Costco food', '3-month average'],
+    (m) => [F('=ARRAYFORMULA(' + costcoFood(m) + ')'), F('=ARRAYFORMULA(' + costcoFood3(m) + ')')]);
+  // groceries at every store come from Transactions, which start when the bank feed did: earlier months stay blank
+  const first = 'IFERROR(EOMONTH(MINIFS([TX.date],[TX.category],"Food",[TX.subcategory],"Groceries"),-1)+1,0)';
+  dataBlock(GROC.GDATA2_BAR, GROC.GDATA2_HEADER, GROC.GROC_MONTHS, 'Numbers behind the groceries graph', ['Month', 'Groceries', '3-month average'],
+    (m) => [F('=ARRAYFORMULA(LET(fm,' + first + ',IF(OR(fm=0,' + m + '<fm),"",' + grocIn(m) + ')))'),
+      F('=ARRAYFORMULA(LET(fm,' + first + ',IF(OR(fm=0,' + m + '<fm),"",LET(ms,MAP({0;1;2},LAMBDA(j,EDATE(' + m + ',-j))),ok,ms>=fm,SUM(IF(ok,MAP(ms,LAMBDA(x,' + grocIn('x') + ')),0))/SUM(--ok)))))')]);
+  const graph = (row, hdr, months, title) => sh.newChart().setChartType(Charts.ChartType.COMBO)
+    .addRange(sh.getRange(hdr, gc, months + 1, 3))
+    .setNumHeaders(1)
+    .setPosition(row, gc, 0, 0)
+    .setOption('title', title).setOption('legend', { position: 'bottom' })
+    .setOption('seriesType', 'bars')
+    .setOption('series', { 0: { type: 'bars', color: GROC.BAR_COLOR }, 1: { type: 'line', color: GROC.LINE_COLOR, lineWidth: 3, pointSize: 0 } })
+    .setOption('hAxis', { showTextEvery: months > 12 ? 2 : 1, slantedText: true, slantedTextAngle: 45, textStyle: { fontSize: 10 } })
+    .setOption('vAxis', { format: '$#,##0', minValue: 0 }).setOption('interpolateNulls', false)
+    .setOption('width', 620).setOption('height', 330)
+    .build();
+  sh.insertChart(graph(GROC.GRAPH1_ROW, GROC.GDATA1_HEADER, GROC.COSTCO_MONTHS, 'Costco food by month (last 24 months) — bars: each month · line: 3-month average'));
+  sh.insertChart(graph(GROC.GRAPH2_ROW, GROC.GDATA2_HEADER, GROC.GROC_MONTHS, 'Groceries at every store by month — bars: each month · line: 3-month average'));
 }
