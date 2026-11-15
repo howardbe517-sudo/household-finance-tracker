@@ -24,7 +24,8 @@
       "heading": "Check it",
       "steps": [
         { "text": "Open **Financial Summary**. At the top, **Savings** shows your savings bank balance.", "done": "There is no faded \"Savings + bill transfers\" line under it any more." },
-        { "text": "Open **Savings & Reserves**.", "done": "There is no \"Car payment money (parked in savings)\" row. Its row is empty." },
+        { "text": "Open **Savings & Reserves**.", "done": "There is no \"Car payment money (parked in savings)\" row, and the savings fund's Current Amount equals your savings balance." },
+        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "The Financial Summary accounts check and the funds check pass." },
         { "text": "In your bank, make sure the Capital One car payment is set to come out of **checking**, and stop the weekly CAR PAYMENT transfer from checking to savings if it is still scheduled.", "note": "The tracker follows whatever the bank does; it cannot change the bank's settings." }
       ]
     }

@@ -1,5 +1,8 @@
 # STATUS
 
+2026-11-15 (build 1.24.1): bills are paid from checking; the parked-in-savings
+display and the parked car-payment pot are removed (see CHANGELOG).
+
 ## Raise first at the start of the next conversation (the owner asked, 2026-11-15)
 - **Missing Costco months.** The Costco export has no receipts for Mar, Jun,
   Jul, Sep, Oct 2024, Sep 2025, Jan and Feb 2026, and only one trip in most
@@ -55,7 +58,8 @@ AGENTS.md section 7)
   Savings & Reserves, Debts, Goals, … Reminders last.
 - Rules in the Sheet (Import Rules): car payment, Acorns, Fidelity, State
   Farm, Elan payment (both sides), car-payment transfers into savings
-  (parked pot FUND-005, Starting Amount 71.64, Target one payment), and the
+  (turned off 2026-11-15: bills are paid from checking and the parked pot
+  FUND-005 is removed), and the
   card's merchants (Netflix, Audible, Marathon, Consumers Energy, YMCA,
   Ring, Lyon Street Cafe, Martha's Vineyard, Nantucket Baking, Apple,
   Anthropic, Netlify, Amazon Prime auto-import; Meijer and Target pre-fill

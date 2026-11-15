@@ -12,9 +12,12 @@
 - `Reference.gs`: Start Here wording no longer mentions parked money.
 - Left in place, dormant: the "Parked for Bills" fund type and its formulas in
   `TABLES.FUNDS` (they act only on a fund of that type; none remains).
+- `Config.gs`, Savings & Reserves Current Amount: a fund backed by an account
+  subtracts only parked pots that still have a Fund ID, so a half-emptied
+  row can never lower it (data review). Delivered by the upgrade.
 - `BUILD_VERSION` 1.24.1. Files changed in `apps-script/`: `Dashboard.gs`,
-  `QA.gs`, `Reference.gs`, `Config.gs`. Run **Upgrade workbook** once; step
-  page `handoffs/2026-11-15-no-parked-bills.json`.
+  `QA.gs`, `Reference.gs`, `Config.gs`. Run **Upgrade workbook** once, then
+  **Run QA checks**; step page `handoffs/2026-11-15-no-parked-bills.json`.
 - In the Sheet (not in the repository): the parked car-payment fund row on
   Savings & Reserves emptied; its tag removed from the one transfer that
   carried it; the car-payment bill and rule point to checking with no fund;
