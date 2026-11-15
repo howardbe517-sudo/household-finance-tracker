@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries: two graphs, a bar per month and a 3-month line
+- Why (the owner's request): see trends in Costco and grocery spending.
+  The owner chose bars plus a 3-month average line, Costco food only, 24
+  months.
+- `Groceries.gs`: to the right of the tables (column K), a combo chart of
+  Costco food by month for 24 months (Food → Groceries lines on Costco
+  receipts, so beer, gas and household items are left out) and one of
+  groceries at every store by month for 12 months (Transactions, Food →
+  Groceries; months before the first grocery transaction stay blank, and the
+  3-month average uses only months with data). The numbers behind them are
+  under the graphs in K:M. Charts are removed and redrawn with the tab.
+- Alcohol counts as groceries (the owner: "I only drink when I eat"): the
+  tab's grocery totals, store table, tiles and both graphs count Food →
+  Groceries and Food → Alcohol; a new Alcohol column in the store table shows
+  how much of each month's Total it was. In Transactions alcohol keeps its
+  own subcategory, so it can always be separated.
+- Receipt splits: the sales tax now goes to alcohol as well as non-food (both
+  are taxed in Michigan); groceries are untaxed.
+- `BUILD_VERSION` 1.23.0. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (two combo charts, ranges, formulas; safety check). The
+  Costco month, Costco 3-month average and groceries 3-month formulas were
+  checked in the owner's Sheet in spare cells. The drawn charts are not yet
+  seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries: the Receipts tile names its stores
 - Why: the owner read "5" under the old "Costco trips" label as five Costco
   trips in November; it was one Costco trip and four Meijer and Target

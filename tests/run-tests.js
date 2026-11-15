@@ -668,9 +668,10 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       const t = { rows: [{ net: 80, category: 'Food', subcategory: 'Groceries' }, { net: 20, category: 'Food', subcategory: 'Groceries' }, { net: 15, category: 'Housing', subcategory: 'Household Supplies' }, { net: 5, category: 'Child Expenses', subcategory: 'Supplies' }] };
       const a = groceryChargeSplit_(t, 121.2).map(p => p.subcategory + ' ' + p.amount.toFixed(2)).join(', ');
       const b = groceryChargeSplit_({ rows: [{ net: 10, category: 'Food', subcategory: 'Groceries' }] }, 10.3).map(p => p.subcategory + ' ' + p.amount.toFixed(2)).join(', ');
-      return a + ' | ' + b;
+      const c = groceryChargeSplit_({ rows: [{ net: 30, category: 'Food', subcategory: 'Groceries' }, { net: 10, category: 'Food', subcategory: 'Alcohol' }] }, 40.6).map(p => p.subcategory + ' ' + p.amount.toFixed(2)).join(', ');
+      return a + ' | ' + b + ' | ' + c;
     })()`);
-    if (sp === 'Groceries 100.00, Household Supplies 15.90, Supplies 5.30 | Groceries 10.30') ok('a Costco charge splits by its receipt: food at its receipt price, the sales tax spread over the non-food parts, the parts adding up to the charge'); else bad('grocery split: ' + sp);
+    if (sp === 'Groceries 100.00, Household Supplies 15.90, Supplies 5.30 | Groceries 10.30 | Groceries 30.00, Alcohol 10.60') ok('a Costco charge splits by its receipt: groceries at their receipt price, the sales tax spread over the taxed parts (non-food and alcohol), the parts adding up to the charge'); else bad('grocery split: ' + sp);
     // pure: the charge is a Costco expense on the trip day or a few days later, for the subtotal plus at most the tax
     const fc = R(`(function () {
       const trip = { subtotal: 100, date: ${d(2030, 0, 5)}, store: 'Costco' };
@@ -717,6 +718,15 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     else bad('grocery replace: ' + JSON.stringify([r2, photo.map(l => l.isDeleted), exp.map(l => l.txId), kids2.length]));
     // the tab
     const grSh = ss.getSheetByName(SHEETS.GROCERY);
+    {
+      const charts = grSh.getCharts();
+      const c1 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH1_ROW')), c2 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH2_ROW'));
+      const f1 = grSh.getRange('L' + (R('GROC.GDATA1_HEADER') + 1)).getFormula(), f2 = grSh.getRange('L' + (R('GROC.GDATA2_HEADER') + 1)).getFormula();
+      if (charts.length === 2 && c1 && c2 && c1.type === 'COMBO' && c1.options.seriesType === 'bars' && c1.options.series[1].type === 'line' && c1.pos[1] === 11
+        && c1.ranges[0].getNumRows() === 25 && c2.ranges[0].getNumRows() === 13 && /="Costco"\)/.test(f1) && /="Groceries"\)/.test(f1) && /="Alcohol"\)/.test(f1) && /="Alcohol"\)/.test(f2) && /MINIFS\(/.test(f2) && /'Transactions'!/.test(f2))
+        ok('Groceries tab has two graphs to the right of the tables: Costco food by month (24 months) and groceries at every store (12 months), each a bar per month with the 3-month average as a line');
+      else bad('grocery graphs: ' + JSON.stringify([charts.length, c1 && c1.type, c1 && c1.pos, f1.slice(0, 80)]));
+    }
     const mCell = ss.getRangeByName('GROC_MONTH');
     const itemF = grSh.getRange('A' + R('GROC.ITEM_FIRST')).getFormula(), storeF = grSh.getRange('B' + R('GROC.STORE_HEADER')).getFormula(), tripF = grSh.getRange('A' + R('GROC.TRIP_FIRST')).getFormula(), topF = grSh.getRange('A' + R('GROC.TOP_FIRST')).getFormula();
     if (grSh.getRange('A1').getValue() === 'Groceries' && mCell && mCell.getSheet().getName() === SHEETS.GROCERY && Object.prototype.toString.call(mCell.getValue()) === '[object Date]'
