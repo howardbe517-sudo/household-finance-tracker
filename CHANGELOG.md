@@ -8,10 +8,11 @@
   only). `AGENTS.md` section 3 asks for its review before a pull request
   whenever a displayed number, table or chart changes.
 - Files changed in `apps-script/`: none. Nothing to run in the Sheet.
-- Tested: safety check passes. Node tests: one bank-connection check
-  (`startHostedLink`, days requested 32 instead of 31) fails, and fails the
-  same way on `main` without this change. The agent has not yet reviewed a
-  real change.
+- Tested: Node tests and safety check pass on GitHub. In the Claude Code
+  workspace one bank-connection check (`startHostedLink`, days requested 32
+  instead of 31) failed, the same way on `main` without this change; it
+  looks tied to the workspace clock and is worth a look in a bank-feed
+  conversation. The agent has not yet reviewed a real change.
 
 ## 2026-11-15 — Grocery Charts tab; store shares; clearer heading
 - Why (the owner's requests): the graphs beside the Groceries tables sat in
