@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.16-account-about-2026-11-14**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.17-groceries-2026-11-15**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -15,6 +15,8 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 20 | yes |
 | UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
+| GROCNAMES | Grocery Item Names | 4 | 5 | 1004 | GN-0001 | 8 | no |
+| GROC | Grocery Items | 4 | 5 | 3004 | GI-000001 | 22 | no |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
@@ -223,6 +225,54 @@ Named range `TBL_UTIL` covers the header row through the last formula row.
 | N | Notes | `notes` | text | input |  |
 | O | Card Fee | `cardFee` | currency | input | Added in 3.12: what the payment ran over the bill when it was paid by card (a processing fee). Filled in by the sync when it matches the payment to the bill; the Financial Summary totals it under Fees. |
 | P | Late Fee | `lateFee` | currency | input | Added in 3.12: a late fee the utility added to this bill. Typed in or loaded from statements; the Financial Summary totals it under Fees. The Amount stays the bill's own charges. |
+
+## Grocery Item Names (`GROCNAMES`)
+
+One row per store item number: the short name on the receipt, a readable name, and the Category and Subcategory the item counts under when a receipt splits its card charge. Two item numbers can share one name (for example two sizes of blueberries), so they add up together on the Groceries tab. An item number missing here counts as Food → Groceries under its receipt name.
+
+Named range `TBL_GROCNAMES` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Name ID | `id` | text | input |  |
+| B | Store | `store` | text | input |  |
+| C | Item # | `itemNo` | text | input |  |
+| D | Receipt Name | `receiptName` | text | input |  |
+| E | Item | `item` | text | input |  |
+| F | Category | `category` | text | dropdown: LIST_ALL_CATEGORIES |  |
+| G | Subcategory | `subcategory` | text | dropdown: LIST_ALL_SUBCATEGORIES |  |
+| H | Notes | `notes` | text | input |  |
+
+## Grocery Items (`GROC`)
+
+Every item on a Costco receipt, from Costco's purchase export or a receipt photo. Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.
+
+Named range `TBL_GROC` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Line ID | `id` | text | input |  |
+| B | Trip ID | `tripId` | text | input |  |
+| C | Date | `date` | datetime | input |  |
+| D | Store | `store` | text | input |  |
+| E | Location | `location` | text | input |  |
+| F | Item # | `itemNo` | text | input |  |
+| G | Receipt Name | `receiptName` | text | input |  |
+| H | Qty | `qty` | text | input |  |
+| I | Unit Price | `unitPrice` | currency | input |  |
+| J | Amount | `amount` | currency | input |  |
+| K | Discount | `discount` | currency | input |  |
+| L | Net | `net` | currency | input |  |
+| M | Source | `source` | text | dropdown: LIST_GROCERY_SOURCES |  |
+| N | Receipt / Order # | `receiptNo` | text | input |  |
+| O | Bank Charge | `txId` | text | input |  |
+| P | Is Deleted | `isDeleted` | text | checkbox |  |
+| Q | Deleted At | `deletedAt` | datetime | input |  |
+| R | Notes | `notes` | text | input |  |
+| S | Item | `item` | text | calculated | `=IF([@id]="","",IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName]))` |
+| T | Category | `category` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.category],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Food",c)),"Food"))` |
+| U | Subcategory | `subcategory` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.subcategory],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Groceries",c)),"Groceries"))` |
+| V | Month | `month` | month (1st-of-month date) | calculated | `=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))` |
 
 ## Savings & Reserves (`FUNDS`)
 
@@ -581,6 +631,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | MATCH_TYPES | Rule Match Types | Contains, Starts With, Exact |
 | STAGING_STATUSES | Import Statuses | Needs Review, Needs Split, Ready, Imported, Ignored, Superseded, Removed |
 | CONNECTION_STATUSES | Connection Statuses | Active, Needs Attention, Disconnected, Pending |
+| GROCERY_SOURCES | Grocery Sources | Costco export, Receipt photo |
 
 Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_EXPENSE_CATEGORIES`, `LIST_ALL_SUBCATEGORIES`.
 

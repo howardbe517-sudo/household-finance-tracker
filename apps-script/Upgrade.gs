@@ -85,6 +85,11 @@ function upgradeWorkbookLocked_() {
   const utilShow = (ss.getRangeByName('UTIL_SHOW') || { getValue: () => '' }).getValue();
   if (!ss.getSheetByName(SHEETS.UTILITIES)) report.push('Added tab: ' + SHEETS.UTILITIES);
   withRetry_('Utilities', () => { buildUtilities_(); if (utilShow) ss.getRangeByName('UTIL_SHOW').setValue(utilShow); });
+  const grocMonth = (ss.getRangeByName('GROC_MONTH') || { getValue: () => '' }).getValue();
+  if (!ss.getSheetByName(SHEETS.GROCERY)) report.push('Added tab: ' + SHEETS.GROCERY);
+  withRetry_('Groceries', () => { buildGroceries_(); if (grocMonth instanceof Date) ss.getRangeByName('GROC_MONTH').setValue(grocMonth); });
+  const groc = withRetry_('Grocery receipts', () => refreshGroceries_());
+  if (groc && describeGroceries_(groc)) report.push('Groceries: ' + describeGroceries_(groc));
   const ub = withRetry_('Utility Bills', () => linkUtilityPayments_());
   if (ub && (ub.linked || ub.created)) report.push('Utility Bills: ' + ub.created + ' bill(s) filed from utility payments, ' + ub.linked + ' matched to a bill already there');
   const dep = withRetry_('Income from deposits', () => ensureIncomeFromDeposits_());
@@ -96,7 +101,7 @@ function upgradeWorkbookLocked_() {
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
-  report.push('Refreshed App Setup, Financial Summary, Spending, Start Here and Sources (settings and inputs kept).');
+  report.push('Refreshed App Setup, Financial Summary, Spending, Utilities, Groceries, Start Here and Sources (settings and inputs kept).');
 
   // 5. tab order
   TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });

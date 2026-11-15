@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries tab and Costco receipts
+- Why (the owner's request): a grocery tab with item detail, a Costco section
+  (Costco is about half of grocery spending), Costco charges split by receipt
+  (groceries, household supplies, kids' supplies, gas), new trips from either
+  Costco's export or a receipt photo without double counting.
+- Schema 3.17: two new tables. **Grocery Items** (one row per receipt line:
+  trip, date, location, item number, receipt name, quantity, prices, coupon,
+  net, source, receipt number, bank charge, soft-delete columns; Item,
+  Category, Subcategory and Month calculated) and **Grocery Item Names** (item
+  number → readable name, category, subcategory). New list Grocery Sources.
+  Delivered by the upgrade (new tabs; nothing renamed or removed).
+- New **Groceries** tab (`Groceries.gs`, after Utilities): Month input (B3,
+  named `GROC_MONTH`); tiles; grocery spending by store for 12 months from
+  Transactions (Food → Groceries, Costco first, Other, Costco share); every
+  Costco item bought in the month; the top 30 items over 12 months with
+  earlier and latest price; every Costco trip with its bank charge.
+- Every sync and upgrade run `refreshGroceries_`: `reconcileGroceryTrips_`
+  soft-deletes the second copy of a trip (same location, day and item
+  subtotal; the export copy is kept), then `splitGroceryCharges_` matches each
+  trip to its card charge (a Costco expense on the trip day or up to five days
+  later, between the subtotal and the subtotal plus 7%) and splits it by the
+  receipt into Split Parent + children; the sales tax goes to the non-food
+  parts. A one-subcategory trip (gas) sets the charge's category instead.
+- `BUILD_VERSION` 1.22.0.
+- Files changed in `apps-script/`: `Groceries.gs` (new), `Config.gs`,
+  `Tables.gs`, `Main.gs`, `Upgrade.gs`, `Plaid.gs`, `Reference.gs` (deployed
+  on merge). Run **Upgrade workbook** once; step page
+  `handoffs/2026-11-15-groceries.json`.
+- In the Sheet (not in the repository): Import Rule RULE-027 (COSTCO →
+  groceries, auto-import, then split by receipt); after the upgrade, the
+  receipt lines and item names from the owner's Costco export and receipt
+  photo are written by Claude.
+- Tested: Node (duplicate trips, charge matching, split amounts and tax,
+  split on the mock Sheet, export replacing a photo trip without a second
+  split, tab layout and formulas; safety check). Not yet confirmed in Google:
+  the tab's formulas (LET/MAP/SORT spills) and a real Costco charge split.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-14 — A note at the top of "About your accounts"
 - Why (the owner's request): the account descriptions are written from pay
   stubs, plan documents and published plan rules, not yet checked against

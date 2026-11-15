@@ -37,7 +37,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 29 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('29 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 32 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('32 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 17, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
@@ -78,7 +78,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK', 'REGEXMATCH', 'TRANSPOSE']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -396,14 +396,14 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[6] === SHEETS.GOALS) ok('Goals tab (seventh tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[7] === SHEETS.GOALS) ok('Goals tab (eighth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
 const dSh = g.__ss.getSheetByName(SHEETS.FINSUM); // the accounts block opens the Financial Summary
 const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
 if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Financial Summary opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
 (function () { const sp = g.__ss.getSheetByName(SHEETS.SPEND), nr = g.__ss.getRangeByName('DASH_SELECTED_MONTH'), cmp = g.__ss.getRangeByName('SPEND_COMPARE'), ck = g.__ss.getRangeByName('DASH_CHECKLIST');
   if (!g.__ss.getSheetByName('Dashboard') && sp.getRange('A3').getValue() === 'Month' && typeof sp.getRange('B3').getValue().getTime === 'function' && nr && nr.getSheet().getName() === SHEETS.SPEND && /^B3(:B3)?$/.test(nr.getA1Notation()) && sp.getRange('D3').getValue() === 'Compare with' && cmp && cmp.getSheet().getName() === SHEETS.SPEND && cmp.getValue() === SPEND.COMPARE[0] && SPEND.COMPARE.length === 4 && sp.getRange('A' + SPEND.CHECK_BAR).getValue() === 'Monthly Review Checklist' && ck && ck.getSheet().getName() === SHEETS.SPEND && ck.getNumRows() === 8 && fsSh.getRange('A' + FINSUM.MONTHS_CELL.slice(1)).getValue() === 'Averages below cover the last') ok('a new workbook has no Dashboard tab: the Selected Month (B3), Compare with (E3) and the checklist are inputs on the Spending tab under their named ranges; the Financial Summary\'s own controls sit under the accounts block'); else bad('spending inputs: ' + JSON.stringify([!!g.__ss.getSheetByName('Dashboard'), sp.getRange('A3').getValue(), nr && nr.getA1Notation(), cmp && cmp.getValue(), ck && ck.getNumRows()]));
 })();
-if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.SPEND && TAB_ORDER[3] === SHEETS.UTILITIES && TAB_ORDER[4] === SHEETS.FUNDS && TAB_ORDER[5] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.DASH) < 0 && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Spending, Utilities, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.SPEND && TAB_ORDER[3] === SHEETS.UTILITIES && TAB_ORDER[4] === SHEETS.GROCERY && TAB_ORDER[5] === SHEETS.FUNDS && TAB_ORDER[6] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.DASH) < 0 && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Spending, Utilities, Groceries, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
 /* 10d. Expected Income from the paychecks on Income; the automatic flexible target */
 const colL = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
 const expRows = R(`readTable_(TABLES.EXPECT)`);
@@ -644,6 +644,81 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       && fEmpty && last === tableEnd && fsh.merges.indexOf('J' + r1 + ':P' + r1) >= 0 && !fsh.merges.some(m => { const row = Number(String(m).replace(/^[A-Z]+/, '').split(':')[0]); return row > 4 && row <= tableEnd; })) ok('Savings & Reserves ends with About your accounts: each savings, investment, retirement and HSA account and the pension, with balance, last update, how it stays current (bank feed or by hand plus paycheck deposits) and the About This Account text; column F stays free, so the table still ends where it did, and when the table is extended the section moves below it with nothing left inside the table'); else bad('funds guide: ' + JSON.stringify([fsh.getRange('A' + top).getValue(), heads, last, fEmpty, aboutF.slice(-120)]));
     const adef = vm.runInContext('TABLES.ACCOUNTS', ctx);
     if (adef.columns[adef.columns.length - 1].key === 'about' && adef.columns[adef.columns.length - 1].h === 'About This Account') ok('About This Account is appended as the last column of Accounts (delivered by the upgrade)'); else bad('about column');
+  })();
+  // Groceries: Costco receipts, duplicate trips, splitting the card charge (1.22.0)
+  (function () {
+    const d = (y, m, dd, h) => `new Date(${y}, ${m}, ${dd}, ${h || 12}, 0)`;
+    // pure: duplicates keep the export copy; a second photo of the same trip is set aside; a different total is a different trip
+    const dup = R(`(function () {
+      const L = (id, trip, src, net, day) => ({ id, tripId: trip, date: ${d(2030, 0, 5)}, store: 'Costco', location: 'SAMPLE TOWN', net, discount: 0, source: src, __row: 0 });
+      const lines = [L('a1', 'P1', 'Receipt photo', 60), L('a2', 'P1', 'Receipt photo', 40.5), L('b1', 'E1', 'Costco export', 100.5),
+        L('c1', 'P2', 'Receipt photo', 100.5), L('x1', 'P3', 'Receipt photo', 99)];
+      const trips = groceryTrips_(lines);
+      return groceryDuplicateTrips_(trips).map(x => x.trip.tripId + '>' + x.keep.tripId).sort().join(',') + '|' + trips.length;
+    })()`);
+    if (dup === 'P1>E1,P2>E1|4') ok('a Costco trip sent twice counts once: photo copies of a trip that is also in the export are set aside (same location, day and item subtotal); a different total is a different trip'); else bad('grocery duplicates: ' + dup);
+    // pure: tax goes to the non-food parts; an all-food receipt puts its tax on groceries; parts add up to the charge
+    const sp = R(`(function () {
+      const t = { rows: [{ net: 80, category: 'Food', subcategory: 'Groceries' }, { net: 20, category: 'Food', subcategory: 'Groceries' }, { net: 15, category: 'Housing', subcategory: 'Household Supplies' }, { net: 5, category: 'Child Expenses', subcategory: 'Supplies' }] };
+      const a = groceryChargeSplit_(t, 121.2).map(p => p.subcategory + ' ' + p.amount.toFixed(2)).join(', ');
+      const b = groceryChargeSplit_({ rows: [{ net: 10, category: 'Food', subcategory: 'Groceries' }] }, 10.3).map(p => p.subcategory + ' ' + p.amount.toFixed(2)).join(', ');
+      return a + ' | ' + b;
+    })()`);
+    if (sp === 'Groceries 100.00, Household Supplies 15.90, Supplies 5.30 | Groceries 10.30') ok('a Costco charge splits by its receipt: food at its receipt price, the sales tax spread over the non-food parts, the parts adding up to the charge'); else bad('grocery split: ' + sp);
+    // pure: the charge is a Costco expense on the trip day or a few days later, for the subtotal plus at most the tax
+    const fc = R(`(function () {
+      const trip = { subtotal: 100, date: ${d(2030, 0, 5)}, store: 'Costco' };
+      const T = (id, desc, amt, day, extra) => Object.assign({ id, description: desc, amount: amt, type: 'Expense', date: new Date(2030, 0, day) }, extra || {});
+      const rows = [T('t1', 'COSTCO WHSE #0001', 101.2, 4), T('t2', 'COSTCO WHSE #0001', 140, 6), T('t3', 'MEIJER', 101.2, 6), T('t4', 'COSTCO WHSE #0001', 101.2, 6, { type: 'Split Parent', splitRole: 'Parent' }),
+        T('t5', 'COSTCO WHSE #0001', 101.2, 12), T('t6', 'COSTCO WHSE #0001', 103, 7), T('t7', 'Costco', 100, 6)];
+      const a = findGroceryCharge_(trip, rows, {});
+      const b = findGroceryCharge_(trip, rows, { t7: true });
+      return (a && a.id) + ',' + (b && b.id);
+    })()`);
+    if (fc === 't7,t6') ok('the card charge for a trip: a Costco expense from the trip day to five days later, for the subtotal plus at most the sales tax, not already split or matched; closest day first'); else bad('grocery charge match: ' + fc);
+    // on the Sheet: a photo trip finds its charge and splits it; the export copy arriving later replaces the photo copy and is not split again
+    const gdef = vm.runInContext('TABLES.GROC', ctx);
+    const gsh = ss.getSheetByName(SHEETS.GROC);
+    R(`writeRows_(TABLES.TX, [{ id: 'TX-950001', date: new Date(2030, 0, 6), description: 'COSTCO WHSE #0001', amount: 121.2, type: 'Expense', category: 'Food', subcategory: 'Groceries', accountId: 'ACC-001', notes: 'SAMPLE test' }])`);
+    const line = (id, trip, src, no, name, net, cat, sub) => `{ id: '${id}', tripId: '${trip}', date: new Date(2030, 0, 5, 17, 43), store: 'Costco', location: 'SAMPLE TOWN', itemNo: ${no}, receiptName: '${name}', qty: 1, unitPrice: ${net}, amount: ${net}, discount: 0, net: ${net}, source: '${src}', notes: 'SAMPLE test' }`;
+    R(`writeRows_(TABLES.GROC, [${line('GI-900001', 'CO-PHOTO-1', 'Receipt photo', 11, 'SAMPLE BERRY', 100)}, ${line('GI-900002', 'CO-PHOTO-1', 'Receipt photo', 22, 'SAMPLE TOWEL', 15)}, ${line('GI-900003', 'CO-PHOTO-1', 'Receipt photo', 33, 'SAMPLE WIPES', 5)}])`);
+    // the mock does not evaluate formulas: put in what Grocery Item Names would give
+    const setCats = () => R(`readTable_(TABLES.GROC)`).forEach(l => {
+      const map = { 11: ['Food', 'Groceries'], 22: ['Housing', 'Household Supplies'], 33: ['Child Expenses', 'Supplies'] }[l.itemNo];
+      if (!map) return;
+      gsh.getRange(l.__row, gdef.columns.findIndex(c => c.key === 'category') + 1).setValue(map[0]);
+      gsh.getRange(l.__row, gdef.columns.findIndex(c => c.key === 'subcategory') + 1).setValue(map[1]);
+    });
+    setCats();
+    const r1 = R(`refreshGroceries_()`);
+    const tx1 = R(`readTable_(TABLES.TX)`);
+    const parent = tx1.find(t => t.id === 'TX-950001');
+    const kids = tx1.filter(t => t.parentTxId === 'TX-950001');
+    const kidSum = Math.round(kids.reduce((s, k) => s + Number(k.amount), 0) * 100) / 100;
+    const linked = R(`readTable_(TABLES.GROC)`).filter(l => l.tripId === 'CO-PHOTO-1').every(l => l.txId === 'TX-950001');
+    if (r1.split === 1 && parent.type === 'Split Parent' && parent.splitRole === 'Parent' && parent.receiptRef === 'CO-PHOTO-1' && kids.length === 3 && kidSum === 121.2
+      && kids.some(k => k.subcategory === 'Groceries' && Number(k.amount) === 100) && kids.every(k => k.splitRole === 'Child' && k.type === 'Expense' && /Costco receipt CO-PHOTO-1/.test(k.notes)) && linked)
+      ok('every sync matches a Costco trip to its card charge and splits it by the receipt (Groceries, Household Supplies, kids\' supplies), the children adding up to the charge; the receipt lines record the charge');
+    else bad('grocery split on the Sheet: ' + JSON.stringify([r1, parent && parent.type, kids.map(k => k.subcategory + ' ' + k.amount), kidSum, linked]));
+    R(`writeRows_(TABLES.GROC, [${line('GI-900004', 'CO-21234', 'Costco export', 11, 'SAMPLE BERRY', 100)}, ${line('GI-900005', 'CO-21234', 'Costco export', 22, 'SAMPLE TOWEL', 15)}, ${line('GI-900006', 'CO-21234', 'Costco export', 33, 'SAMPLE WIPES', 5)}])`);
+    setCats();
+    const r2 = R(`refreshGroceries_()`);
+    const g2 = R(`readTable_(TABLES.GROC)`);
+    const photo = g2.filter(l => l.tripId === 'CO-PHOTO-1'), exp = g2.filter(l => l.tripId === 'CO-21234');
+    const kids2 = R(`readTable_(TABLES.TX)`).filter(t => t.parentTxId === 'TX-950001');
+    if (r2.removed === 1 && r2.split === 0 && photo.every(l => l.isDeleted === true && Object.prototype.toString.call(l.deletedAt) === '[object Date]' && /Duplicate of trip CO-21234/.test(l.notes)) && exp.every(l => l.isDeleted !== true && l.txId === 'TX-950001') && kids2.length === 3)
+      ok('the export copy of a trip already in from a photo replaces it: the photo lines are marked deleted (never removed), the export lines take over the bank charge, and the charge is not split twice');
+    else bad('grocery replace: ' + JSON.stringify([r2, photo.map(l => l.isDeleted), exp.map(l => l.txId), kids2.length]));
+    // the tab
+    const grSh = ss.getSheetByName(SHEETS.GROCERY);
+    const mCell = ss.getRangeByName('GROC_MONTH');
+    const itemF = grSh.getRange('A' + R('GROC.ITEM_FIRST')).getFormula(), storeF = grSh.getRange('B' + R('GROC.STORE_HEADER')).getFormula(), tripF = grSh.getRange('A' + R('GROC.TRIP_FIRST')).getFormula(), topF = grSh.getRange('A' + R('GROC.TOP_FIRST')).getFormula();
+    if (grSh.getRange('A1').getValue() === 'Groceries' && mCell && mCell.getSheet().getName() === SHEETS.GROCERY && Object.prototype.toString.call(mCell.getValue()) === '[object Date]'
+      && /'Grocery Items'!/.test(itemF) && /\[GROC|'Grocery Items'!\$S\$5:\$S/.test(itemF) && /SORT\(/.test(itemF) && /\(\?i\)costco/.test(storeF) && /'Transactions'!/.test(storeF)
+      && /'Grocery Items'!\$B\$5:\$B/.test(tripF) && /waiting/.test(tripF) && /Earlier|first/.test(topF) && grSh.getRange('A' + R('GROC.TRIP_HEADER')).getValue() === 'Date'
+      && !/COUNTUNIQUE/.test(itemF + storeF + tripF + topF))
+      ok('Groceries tab: a Month to look at, tiles, grocery spending by store from Transactions (Costco first), every item bought that month, the top items with price then and now, and every Costco trip with its bank charge');
+    else bad('groceries tab: ' + JSON.stringify([grSh.getRange('A1').getValue(), itemF.slice(0, 160), storeF.slice(0, 120)]));
   })();
   // hover lists on the three tiles (1.13.1)
   (function () {

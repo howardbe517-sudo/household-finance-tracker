@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.16-account-about-2026-11-14',
-  BUILD_VERSION: '1.21.0',
+  SCHEMA_VERSION: '3.17-groceries-2026-11-15',
+  BUILD_VERSION: '1.22.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -52,6 +52,9 @@ const SHEETS = {
   SPEND: 'Spending',
   UTILITIES: 'Utilities',
   UTIL: 'Utility Bills',
+  GROCERY: 'Groceries',
+  GROC: 'Grocery Items',
+  GROCNAMES: 'Grocery Item Names',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -63,8 +66,9 @@ const TAB_ORDER = [
   // 2026-11-10: Start Here (the guide) first, then Financial Summary, Dashboard, Spending.
   // 2026-11-12: the Dashboard tab is retired; its month view is the top of Spending and its
   // accounts block the top of Financial Summary. SHEETS.DASH stays so an old tab can be found and hidden.
-  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  // 2026-11-15: Groceries after Utilities; its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
+  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
@@ -147,6 +151,8 @@ const LISTS = [
   { key: 'MATCH_TYPES', header: 'Rule Match Types', values: ['Contains', 'Starts With', 'Exact'] },
   { key: 'STAGING_STATUSES', header: 'Import Statuses', values: ['Needs Review', 'Needs Split', 'Ready', 'Imported', 'Ignored', 'Superseded', 'Removed'] },
   { key: 'CONNECTION_STATUSES', header: 'Connection Statuses', values: ['Active', 'Needs Attention', 'Disconnected', 'Pending'] },
+  // 3.17: where a grocery receipt line came from
+  { key: 'GROCERY_SOURCES', header: 'Grocery Sources', values: ['Costco export', 'Receipt photo'] },
 ];
 
 /** Lists derived by formula from the taxonomy table on the Categories tab. */
@@ -693,6 +699,64 @@ const UTILITY_FROM_SUBCATEGORY = { 'Natural Gas': 'Gas', 'Electric': 'Electric',
  */
 const UTILITY_TRACKED = ['Gas', 'Electric', 'Water & Sewer'];
 
+/**
+ * Grocery receipts, one row per item line (the owner, 2026-11-15). Costco is the only store whose
+ * receipts carry items; the other stores' charges stay single grocery transactions. Lines come from
+ * Costco's purchase export or from a receipt photo, read by Claude and written here. A trip that
+ * arrives both ways is counted once: the export copy is kept and the photo copy soft-deleted
+ * (reconcileGroceryTrips_, matched on location, day and item subtotal). Each trip's card charge is
+ * split by these lines into Groceries, Household Supplies, Fuel and so on (splitGroceryCharges_).
+ * The Groceries tab reads this table.
+ */
+TABLES.GROC = {
+  key: 'GROC', sheet: SHEETS.GROC, headerRow: 4, firstRow: 5, lastRow: 3004,
+  title: 'Grocery Items — One Row per Receipt Line',
+  note: 'Every item on a Costco receipt, from Costco\'s purchase export or a receipt photo. Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.',
+  idPrefix: 'GI', idPattern: 'GI-000001', logChanges: false,
+  columns: [
+    { key: 'id', h: 'Line ID', w: 95 },
+    { key: 'tripId', h: 'Trip ID', w: 210 },
+    { key: 'date', h: 'Date', w: 130, fmt: C.dt },
+    { key: 'store', h: 'Store', w: 80 },
+    { key: 'location', h: 'Location', w: 120 },
+    { key: 'itemNo', h: 'Item #', w: 85 },
+    { key: 'receiptName', h: 'Receipt Name', w: 150 },
+    { key: 'qty', h: 'Qty', w: 60 }, // gas comes in gallons (11.762), so no whole-number format
+    { key: 'unitPrice', h: 'Unit Price', w: 85, fmt: C.cur },
+    { key: 'amount', h: 'Amount', w: 85, fmt: C.cur },
+    { key: 'discount', h: 'Discount', w: 85, fmt: C.cur },
+    { key: 'net', h: 'Net', w: 85, fmt: C.cur },
+    { key: 'source', h: 'Source', w: 120, v: { list: 'GROCERY_SOURCES' } },
+    { key: 'receiptNo', h: 'Receipt / Order #', w: 200 },
+    { key: 'txId', h: 'Bank Charge', w: 105 },
+    { key: 'isDeleted', h: 'Is Deleted', w: 80, v: { checkbox: true } },
+    { key: 'deletedAt', h: 'Deleted At', w: 130, fmt: C.dt },
+    { key: 'notes', h: 'Notes', w: 220 },
+    { key: 'item', h: 'Item', w: 170, f: '=IF([@id]="","",IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName]))' },
+    { key: 'category', h: 'Category', w: 120, f: '=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.category],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Food",c)),"Food"))' },
+    { key: 'subcategory', h: 'Subcategory', w: 150, f: '=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.subcategory],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Groceries",c)),"Groceries"))' },
+    { key: 'month', h: 'Month', w: 95, fmt: C.month, f: '=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))' },
+  ],
+};
+
+/** What each receipt line is: a readable name and the spending category, one row per store item number. */
+TABLES.GROCNAMES = {
+  key: 'GROCNAMES', sheet: SHEETS.GROCNAMES, headerRow: 4, firstRow: 5, lastRow: 1004,
+  title: 'Grocery Item Names — What Each Receipt Line Is',
+  note: 'One row per store item number: the short name on the receipt, a readable name, and the Category and Subcategory the item counts under when a receipt splits its card charge. Two item numbers can share one name (for example two sizes of blueberries), so they add up together on the Groceries tab. An item number missing here counts as Food → Groceries under its receipt name.',
+  idPrefix: 'GN', idPattern: 'GN-0001', logChanges: false,
+  columns: [
+    { key: 'id', h: 'Name ID', w: 85 },
+    { key: 'store', h: 'Store', w: 80 },
+    { key: 'itemNo', h: 'Item #', w: 85 },
+    { key: 'receiptName', h: 'Receipt Name', w: 150 },
+    { key: 'item', h: 'Item', w: 180 },
+    { key: 'category', h: 'Category', w: 130, v: { derived: 'ALL_CATEGORIES' } },
+    { key: 'subcategory', h: 'Subcategory', w: 170, v: { derived: 'ALL_SUBCATEGORIES' } },
+    { key: 'notes', h: 'Notes', w: 220 },
+  ],
+};
+
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Import Staging — Raw Bank Imports',
@@ -946,7 +1010,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'GROCNAMES', 'GROC', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

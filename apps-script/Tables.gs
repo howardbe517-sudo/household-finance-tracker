@@ -158,6 +158,19 @@ CF_BUILDERS.UTIL = (sh, def) => {
   ]);
 };
 
+// Grocery receipt lines: a line set aside (a duplicate trip) is greyed out
+CF_BUILDERS.GROC = (sh, def) => {
+  sh.setConditionalFormatRules([
+    cfRule_(rowRange_(sh, def), '=' + cellRef_(def, 'isDeleted') + '=TRUE', null, COLORS.DELETED_TEXT, { italic: true }),
+  ]);
+};
+
+CF_BUILDERS.GROCNAMES = (sh, def) => {
+  sh.setConditionalFormatRules([
+    cfRule_(colRange_(sh, def, 'item'), '=AND(' + cellRef_(def, 'itemNo') + '<>"",' + cellRef_(def, 'item') + '="")', COLORS.WARN_FILL, COLORS.WARN_FONT),
+  ]);
+};
+
 CF_BUILDERS.REVIEW = (sh, def) => {
   const s = cellRef_(def, 'status');
   sh.setConditionalFormatRules([
@@ -319,7 +332,7 @@ function buildNetWorthHelper_(sh, def) {
 /* ---------- orchestration for phases 2–4 ---------- */
 
 function buildCoreTables_() {
-  ['INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
+  ['INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'GROCNAMES', 'GROC', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);
