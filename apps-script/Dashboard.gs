@@ -88,29 +88,24 @@ function buildAccountsBlock_(sh, R) {
   sh.getRange('I' + R.header).setValue('').setBackground(COLORS.PALE_BLUE);
   sh.getRange('B' + R.header).setHorizontalAlignment('right');
   sh.getRange('G' + R.header).setHorizontalAlignment('right');
-  // Savings shows what is yours to keep: the bank balance minus the Parked for Bills pots on that account
-  // (money passing through for a bill). The row under it shows the bank balance itself, faded.
-  const savingsLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
-  const anySav = savingsLine ? namesHit(savingsLine) : 'FALSE';
-  const savId = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Savings",' + anySav + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
-  // each Parked for Bills pot on the account: starting + contributions − withdrawals, capped at its Target Amount when set
-  const potAmt = '(N(+[FUNDS.starting])+N(+[FUNDS.contributions])-N(+[FUNDS.withdrawals]))';
-  const parkedExpr = 'IFERROR(LET(id,' + savId + ',IF(id="",0,SUMPRODUCT(([FUNDS.fundType]="Parked for Bills")*([FUNDS.backingAccount]=id)*IF((N(+[FUNDS.target])>0)*(' + potAmt + '>N(+[FUNDS.target])),N(+[FUNDS.target]),' + potAmt + ')))),0)';
+  // Each line is the bank balance. (Until 2026-11-15 the savings line subtracted money parked in savings for bills
+  // and a faded line under it showed the full balance; the owner now pays every bill from checking, so that row,
+  // R.withBills, is left empty.)
   DASH_ACCOUNTS.main.forEach((line, i) => {
     const r = R.first + i;
-    const isSav = line === savingsLine;
     put('A' + r, line.label + (line.sub ? ' (' + line.sub + ')' : '')).setFontWeight('bold').setBackground(COLORS.CARD_GROSS);
     const bal = balanceOf(line, line.type);
-    put('B' + r, F('=' + (isSav ? 'LET(b,' + bal + ',IF(ISNUMBER(b),b-' + parkedExpr + ',b))' : bal))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
+    put('B' + r, F('=' + bal)).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
     mergePut('C' + r + ':D' + r, F('=IF(' + countOf(line, line.type) + '=0,"not connected yet",IFERROR(LET(d,' + maxOf(line, line.type, 'lastSynced') + ',IF(d=0,"",TEXT(d,"mmm d, h:mm am/pm"))),""))')).setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
     sh.setRowHeight(r, 28);
   });
-  if (savingsLine) {
-    const bal = balanceOf(savingsLine, 'Savings');
-    put('A' + R.withBills, 'Savings + bill transfers').setFontWeight('bold').setFontColor(COLORS.FADED_TEXT).setBackground(COLORS.CARD_GROSS);
-    put('B' + R.withBills, F('=' + bal)).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setFontColor(COLORS.FADED_TEXT).setHorizontalAlignment('right').setBackground(COLORS.CARD_GROSS);
-    mergePut('C' + R.withBills + ':D' + R.withBills, F('=LET(p,' + parkedExpr + ',"bank balance · "&TEXT(p,"$#,##0")&" parked for bills")')).setFontSize(9).setFontColor(COLORS.FADED_TEXT).setBackground(COLORS.CARD_GROSS);
-    sh.setRowHeight(R.withBills, 26);
+  if (R.withBills) {
+    // the old "Savings + bill transfers" row: written empty, so an older build's line does not linger
+    const old = sh.getRange('A' + R.withBills + ':D' + R.withBills);
+    old.breakApart();
+    old.setValues([['', '', '', '']]);
+    old.setBackground(null).setFontColor(COLORS.TEXT).setFontWeight('normal').setFontSize(10).setBorder(false, false, false, false, false, false);
+    sh.setRowHeight(R.withBills, 21);
   }
   DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = R.first + i;
@@ -126,9 +121,9 @@ function buildAccountsBlock_(sh, R) {
   put('F' + cardTotalRow, 'Total owed on cards').setFontWeight('bold').setBackground(COLORS.PALE_BLUE);
   put('G' + cardTotalRow, '=SUMPRODUCT(N(+G' + R.first + ':G' + (cardTotalRow - 1) + '))').setNumberFormat(FORMATS.currency).setFontWeight('bold').setHorizontalAlignment('right').setBackground(COLORS.PALE_BLUE);
   sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
-  sh.getRange('A' + R.header + ':D' + (savingsLine ? R.withBills : R.first + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A' + R.header + ':D' + (R.first + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('F' + R.header + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + R.note + ':I' + R.note, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. Savings is what is yours to keep; the faded line under it is the bank balance, which also holds money moved in for bills (Parked for Bills pots on Savings & Reserves) that has not gone out yet.')
+  mergePut('A' + R.note + ':I' + R.note, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender.')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 }
 

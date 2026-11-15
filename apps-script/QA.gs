@@ -280,10 +280,10 @@ function qaReport_() {
     const savLine = DASH_ACCOUNTS.main.filter(l => l.type === 'Savings')[0];
     if (savLine) {
       const exp = lineSum(savLine, 'Savings');
-      const shown = fsAcct.getRange('B' + FINSUM.ACCT_WITH_BILLS).getValue();
-      if (exp.connected && !near(shown, exp.sum)) acctProblems.push('Savings + bill transfers shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
+      const shown = fsAcct.getRange('B' + (FINSUM.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(savLine))).getValue();
+      if (exp.connected && !near(shown, exp.sum)) acctProblems.push(savLine.label + ' shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
     }
-    if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card, checking and the savings bank balance match their Accounts rows');
+    if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card, checking and savings match their Accounts rows');
   }
 
   /* 12. financial summary */

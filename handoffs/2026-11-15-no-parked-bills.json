@@ -1,0 +1,32 @@
+{
+  "title": "Bills From Checking",
+  "key": "household-finance-tracker-2026-11-15-no-parked-bills",
+  "subtitle": "Every bill is paid from checking now, so the tracker no longer sets money aside in savings for bills. Savings on the Financial Summary is simply the bank balance.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. I have already updated the rows in your Sheet: the car-payment pot is gone from Savings & Reserves, the car payment bill points to checking, and the rule that tagged the weekly CAR PAYMENT transfers is turned off.",
+    "**What does not change:** no transactions are removed. The money that was in the car-payment pot stays in savings and now counts as ordinary savings."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before bills from checking 2026-11-15`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.24.1`. If it shows an older number, wait a minute and reload the Sheet." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The upgrade finishes and shows its report." }
+      ]
+    },
+    {
+      "heading": "Check it",
+      "steps": [
+        { "text": "Open **Financial Summary**. At the top, **Savings** shows your savings bank balance.", "done": "There is no faded \"Savings + bill transfers\" line under it any more." },
+        { "text": "Open **Savings & Reserves**.", "done": "There is no \"Car payment money (parked in savings)\" row. Its row is empty." },
+        { "text": "In your bank, make sure the Capital One car payment is set to come out of **checking**, and stop the weekly CAR PAYMENT transfer from checking to savings if it is still scheduled.", "note": "The tracker follows whatever the bank does; it cannot change the bank's settings." }
+      ]
+    }
+  ]
+}
