@@ -20,15 +20,15 @@ tab; Fixed Costs uses their 12-month average (offered, not decided: a
 same-month-last-year figure for month-by-month planning).
 
 ## Raise first at the start of the next conversation (the owner asked, 2026-11-15)
-- **Missing Costco months.** The Costco export has no receipts for Mar, Jun,
-  Jul, Sep, Oct 2024, Sep 2025, Jan and Feb 2026, and only one trip in most
-  other months; the owner remembers going every month. To check: (1) do card
-  statements show Costco charges in an empty month (Jan or Feb 2026)? (2) does
-  Valerie have her own costco.com login whose In-Warehouse receipts hold her
-  trips (export them too; trips already loaded are not added twice)? (3) a
-  fresh full-range export. Offered, not decided: show months without
-  receipts as a gap ("no receipts on file") on Grocery Charts instead of $0,
-  and leave them out of the 3-month average.
+- **Missing Costco months: answered 2026-11-15.** The owner pulled the full
+  receipt history from Costco's own records (51 receipts, 2024-01-05 to
+  2026-11-14). Every trip was already in the tracker except Costco's copy of
+  the 2026-11-14 trip (entered from the photo; same items and totals), which
+  is now marked as confirmed. The empty months are real: Costco has no
+  receipts for them. Still offered, not decided: show months without
+  receipts as a gap instead of $0 on Grocery Charts. Also asked: whether the
+  $5.06 Costco charge on 2026-11-14 (no matching receipt; likely the food
+  court) should be Dining Out.
 - Also open: label paychecks by employer on the Spending tab's Expected
   Take-Home line ("Ben 4 paychecks … Ben 2" is confusing); confirm Valerie's
   and Rockford's pay schedules (both still guessed as every two weeks);
