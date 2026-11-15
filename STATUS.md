@@ -1,5 +1,29 @@
 # STATUS
 
+## Raise first at the start of the next conversation (the owner asked, 2026-11-15)
+- **Missing Costco months.** The Costco export has no receipts for Mar, Jun,
+  Jul, Sep, Oct 2024, Sep 2025, Jan and Feb 2026, and only one trip in most
+  other months; the owner remembers going every month. To check: (1) do card
+  statements show Costco charges in an empty month (Jan or Feb 2026)? (2) does
+  Valerie have her own costco.com login whose In-Warehouse receipts hold her
+  trips (export them too; trips already loaded are not added twice)? (3) a
+  fresh full-range export. Offered, not decided: show months without
+  receipts as a gap ("no receipts on file") on Grocery Charts instead of $0,
+  and leave them out of the 3-month average.
+- Also open: label paychecks by employer on the Spending tab's Expected
+  Take-Home line ("Ben 4 paychecks … Ben 2" is confusing); confirm Valerie's
+  and Rockford's pay schedules (both still guessed as every two weeks);
+  price-per-size comparison deferred ("not now"); the Meijer 2026-11-08
+  receipt has one combined line for four items whose prices were unreadable.
+
+2026-11-15 (builds 1.22.x–1.24.0): Groceries tab with item detail from
+receipts (Costco export, receipt photos from Costco, Meijer, Target), each
+store's share of groceries, alcohol counted as groceries with its own
+column; Grocery Charts tab (Costco food and all-store groceries, each month
+and 3-month average, $100 scale); Acorns counted only as a subscription
+until it is closed; About your accounts is a reading section. The owner has
+run the upgrade through 1.24.0's predecessor; 1.24.0 still to run.
+
 2026-11-15 (build 1.22.0, schema 3.17): Groceries tab, Grocery Items and
 Grocery Item Names. Costco history (export through 2026-10-25) and the
 2026-11-15 receipt photo are loaded by Claude after the owner runs Upgrade
