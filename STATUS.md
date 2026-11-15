@@ -7,6 +7,18 @@ after a Must fix. AI snapshot export rewritten to match the workbook (build 1.26
 2026-11-15 (build 1.24.1): bills are paid from checking; the parked-in-savings
 display and the parked car-payment pot are removed (see CHANGELOG).
 
+2026-11-15 — credit cards (the owner's decision): the Elan and Capital One
+Quicksilver cards are everyday cards paid in full every week or two. Their
+purchases are spending; paying them is a Transfer; they have no Debts row (the
+feed's pairing then records the payment as a Transfer on its own). What is
+owed still shows on the Financial Summary and counts in net worth through
+Accounts. The American Express card is debt being paid down: it keeps its
+Debts row and its payments stay Debt Payments. Done in the Sheet: the two
+Debts rows (and the old duplicate row) emptied, the Elan payment rule and the
+one past Elan payment changed to Transfer. Utilities stay on the Utilities
+tab; Fixed Costs uses their 12-month average (offered, not decided: a
+same-month-last-year figure for month-by-month planning).
+
 ## Raise first at the start of the next conversation (the owner asked, 2026-11-15)
 - **Missing Costco months.** The Costco export has no receipts for Mar, Jun,
   Jul, Sep, Oct 2024, Sep 2025, Jan and Feb 2026, and only one trip in most
