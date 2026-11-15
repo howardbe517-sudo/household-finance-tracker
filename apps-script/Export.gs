@@ -122,6 +122,7 @@ function buildSnapshotText_(d) {
   L.push('- Income is take-home pay from the Income tab. A paycheck marked "from deposit" came from a bank deposit with no pay stub: its take-home is the real deposit; its gross pay and deductions are estimates.');
   L.push('- Bills ticked Record Automatically on Recurring Payments (such as rent paid by Venmo) are entered on their due day before the payment shows, and reduced as the real payments arrive, so each counts once.');
   L.push('- Groceries are Food → Groceries plus Food → Alcohol (the household counts alcohol as groceries).');
+  L.push('- Savings & reserves funds are labels on money that already sits in the account balances (a fund backed by an account is that whole account), not extra money: never add the funds to the accounts.');
   L.push('- Household Debt is every debt on the Debts tab, as on the Financial Summary; student loans are also shown on their own. A debt\'s balance is the linked account\'s live balance when there is one, else the latest Quarterly Debt Review, else the original balance.');
   L.push('');
 
@@ -134,6 +135,13 @@ function buildSnapshotText_(d) {
   const extraAll = num(d.extraAll);
   const debtPay = Math.max(sum(debts, x => x.minPayment), loansRec) + sum(debts, x => x.plannedExtra) + extraAll;
   const utilAvg = averageUtilities_(util, today);
+  // how many full months that average covers: from the first bill in the last 12 full months to last month (as averageUtilities_ counts)
+  const utilN = (() => {
+    const key = (dt) => dt.getFullYear() * 12 + dt.getMonth(), cur = key(today);
+    const ks = util.filter(u => isDate(u.dueDate)).map(u => key(u.dueDate)).filter(k => k >= cur - 12 && k <= cur - 1);
+    return ks.length ? Math.max(1, cur - Math.min.apply(null, ks)) : 0;
+  })();
+  const utilLabel = utilN ? 'over the ' + utilN + ' full month(s) since the first bill (up to 12)' : 'no bills in the last 12 full months';
   const flex = typicalFlexible_(tx, today);
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
@@ -142,8 +150,8 @@ function buildSnapshotText_(d) {
   const expPersons = exp.map(x => x.person).filter((p, i, a) => p && a.indexOf(p) === i);
   L.push('## Typical month (as on the Financial Summary)');
   L.push('- Coming in: ' + money(comingIn) + ' take-home' + (expPersons.length ? ' (' + expPersons.map(p => p + ' ' + money(sum(exp.filter(x => x.person === p), x => num(x.typicalTakeHome) * perMonth_(x.frequency)))).join(' · ') + ')' : '') + ', from Expected Income (typical paycheck × paychecks per month on average)' + (exp.length ? '.' : '. No active Expected Income row yet, so this is $0 and Likely left over is understated.'));
-  L.push('- Fixed costs: ' + money(fixed) + ' = bills ' + money(bills) + ' (active Recurring Payments, Loans group left out) + debt payments ' + money(debtPay) + ' (planned: the larger of the minimum payments and the Loans bills, plus planned extra) + utilities ' + money(utilAvg) + ' (average gas, electric and water bill over the last 12 months).');
-  L.push('- Flexible spending (average): ' + money(flex.average) + ' — everything not marked Fixed, ' + (flex.provisional ? 'this month so far (no full month of spending yet, so provisional)' : 'averaged over ' + flex.months + ' month(s) with spending among the last 6 full months') + '.');
+  L.push('- Fixed costs: ' + money(fixed) + ' = bills ' + money(bills) + ' (active Recurring Payments, Loans group left out) + debt payments ' + money(debtPay) + ' (planned: the larger of the minimum payments and the Loans bills, plus planned extra) + utilities ' + money(utilAvg) + ' (average gas, electric and water bill ' + utilLabel + ').');
+  L.push('- Flexible spending (average): ' + money(flex.average) + ' — everything not marked Fixed, ' + (flex.provisional ? 'this month so far (no full month of spending yet, so provisional)' : 'averaged over ' + flex.months + ' month(s) with spending among the last ' + FINSUM.FLEX_MONTHS + ' full months') + '.');
   L.push('- Likely left over: ' + money(comingIn - fixed - flex.average) + ' = coming in − fixed − flexible' + (plannedSavings > 0 ? '; ' + money(plannedSavings) + ' of it is planned savings (Planned Monthly on Savings & Reserves)' : '') + (flex.provisional ? ' (provisional)' : '') + '.');
   L.push('');
 
@@ -198,10 +206,10 @@ function buildSnapshotText_(d) {
     const spend = net(txm);
     const sav = sum(txm.filter(t => t.type === 'Savings'), t => t.amount);
     const debt = sum(txm.filter(t => t.type === 'Debt Payment'), t => t.amount);
-    const ret = sum(inMonth(income, m), r => r.retirement);
+    const ret = sum(stub(inMonth(income, m)), r => r.retirement); // pay stubs only, as in the Income table
     cfRows.push([label, money(inc), money(spend), money(sav), money(debt), money(inc - spend - sav - debt), pct(inc ? sav / inc : ''), money(sav + ret)]);
   });
-  table([['Month', 'l'], ['Take-home', 'r'], ['Spending', 'r'], ['Cash savings', 'r'], ['Debt payments', 'r'], ['Cash remaining', 'r'], ['Cash savings rate', 'r'], ['Total savings incl. payroll retirement', 'r']], cfRows);
+  table([['Month', 'l'], ['Take-home', 'r'], ['Spending', 'r'], ['Cash savings', 'r'], ['Debt payments', 'r'], ['Cash remaining', 'r'], ['Cash savings rate', 'r'], ['Total savings incl. payroll retirement (pay stubs)', 'r']], cfRows);
   L.push('');
 
   /* Spending by category */
@@ -317,7 +325,7 @@ function buildSnapshotText_(d) {
     table([['Month', 'l']].concat(kinds.map(k => [k, 'r'])).concat([['Total', 'r']]),
       um.map(m => { const rows = utilRows.filter(u => mk(u.dueDate) === m); return [monthName(m)].concat(kinds.map(k => { const r = rows.filter(u => String(u.utility || 'Other') === k); return r.length ? money(sum(r, u => u.amount)) : '—'; })).concat([money(sum(rows, u => u.amount))]); }));
     const fees = sum(utilRows, u => u.cardFee) + sum(utilRows, u => u.lateFee);
-    L.push('Average per month over the last 12 full months (the utilities in Fixed Costs): ' + money(utilAvg) + '.' + (fees > 0 ? ' Card and late fees on these bills: ' + money(fees) + '.' : ''));
+    L.push('Average per month ' + utilLabel + ' (the utilities in Fixed Costs): ' + money(utilAvg) + '.' + (fees > 0 ? ' Card and late fees on these bills: ' + money(fees) + '.' : ''));
   } else L.push('No utility bills on record for the last 12 months.');
   L.push('');
 
@@ -332,17 +340,17 @@ function buildSnapshotText_(d) {
   /* Savings & reserves */
   const accountsById = {}; accounts.forEach(a => { accountsById[a.id] = a; });
   L.push('## Savings & reserves (funds)');
-  let fundTotal = 0;
   const fundRows = funds.map(f => {
     const fc = fundCurrent_(f, live, accountsById);
-    fundTotal += fc.current;
     const acc = f.backingAccount ? accountsById[f.backingAccount] : null;
+    // a fund backed by an account whose balance is not entered has no amount yet (as on Accounts), not $0
+    const none = fc.backed && (!acc || acc.currentBalance === '' || acc.currentBalance === null || acc.currentBalance === undefined);
     return [clean(f.name), f.fundType || '', fc.backed ? 'balance of ' + (acc ? clean(acc.name) : 'its account') : 'starting + savings − withdrawals',
-      num(f.target) ? money(f.target) : '—', money(fc.current), num(f.target) ? pct(Math.min(fc.current / num(f.target), 1)) : '—', dateStr(f.targetDate),
-      num(f.plannedMonthly) ? money(f.plannedMonthly) : '—', fundStatus_(f, fc.current, today)];
+      num(f.target) ? money(f.target) : '—', none ? 'not entered' : money(fc.current), (num(f.target) && !none) ? pct(Math.min(fc.current / num(f.target), 1)) : '—', dateStr(f.targetDate),
+      num(f.plannedMonthly) ? money(f.plannedMonthly) : '—', none ? '' : fundStatus_(f, fc.current, today)];
   });
   table([['Fund', 'l'], ['Type', 'l'], ['Counted as', 'l'], ['Target', 'r'], ['Current', 'r'], ['% funded', 'r'], ['Target date', 'l'], ['Planned monthly', 'r'], ['Status', 'l']], fundRows);
-  L.push('Total held in funds: ' + money(fundTotal) + '. Planned savings: ' + money(plannedSavings) + ' per month.');
+  L.push('Funds are earmarks of money already in the account balances under Accounts, not additional money, so they are not added up here. Planned savings: ' + money(plannedSavings) + ' per month.');
   L.push('');
 
   /* Debts */
@@ -365,7 +373,7 @@ function buildSnapshotText_(d) {
   L.push('Household Debt (every debt on the Debts tab, as on the Financial Summary): ' + money(debtTotal) + '. Student loans: ' + money(sum(sl, x => x.latest.bal)) + ' · other debt: ' + money(sum(hh, x => x.latest.bal)) + '.');
   L.push('');
   table([['Debt', 'l'], ['Type', 'l'], ['Lender', 'l'], ['Owner', 'l'], ['Group', 'l'], ['Balance', 'r'], ['As of', 'l'], ['APR', 'r'], ['Minimum payment', 'r'], ['Est. monthly interest', 'r'], ['Next due', 'l'], ['Status / plan', 'l'], ['PSLF est. (of 120)', 'l'], ['Target payoff', 'l']],
-    debtRows.map(x => [clean(x.name), x.debtType, x.lender || '', x.owner || '', groupOf(x), money(x.latest.bal), x.latest.asOf ? dateStr(x.latest.asOf) : 'original',
+    debtRows.map(x => [clean(x.name), x.debtType, x.lender || '', x.owner || '', groupOf(x), money(x.latest.bal), x.latest.source === 'original' ? 'original' : (x.latest.asOf ? dateStr(x.latest.asOf) : x.latest.source),
       pct(x.apr) + (paused(x) ? ' (interest paused' + (isDate(x.pausedUntil) ? ' until ' + dateStr(x.pausedUntil) : '') + ')' : ''), x.minPayment ? money(x.minPayment) : '—', money(monthlyInterest(x)), dateStr(x.nextDue), x.loanStatus || '—',
       (x.pslfEstimated !== '' && x.pslfEstimated !== null && x.pslfEstimated !== undefined ? x.pslfEstimated + ' (official ' + x.pslfOfficial + ' as of ' + dateStr(x.pslfAsOf) + ', +' + (x.pslfSince || 0) + ' since)' : (groupOf(x) === 'Student Loans' ? 'no count entered' : '—')), dateStr(x.targetPayoff)]));
   L.push('');
@@ -471,5 +479,6 @@ function paydaysInMonth_(frequency, lastPayDate, ms) {
   const day = 86400000;
   const start = new Date(ms.getFullYear(), ms.getMonth(), 1), end = new Date(ms.getFullYear(), ms.getMonth() + 1, 0);
   const a = new Date(lastPayDate.getFullYear(), lastPayDate.getMonth(), lastPayDate.getDate());
-  return Math.floor((end - a) / day / cycle) + Math.floor((a - start) / day / cycle) + 1;
+  // whole days first: across a clock change a 28-day gap is 27.96 days of milliseconds
+  return Math.floor(Math.round((end - a) / day) / cycle) + Math.floor(Math.round((a - start) / day) / cycle) + 1;
 }

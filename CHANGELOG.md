@@ -41,6 +41,13 @@
 - `BUILD_VERSION` 1.26.0. Files changed in `apps-script/`: `Export.gs`,
   `Helpers.gs`, `QA.gs`, `Config.gs`. Nothing to run in the Sheet; try
   Finance Tracker → Copy financial snapshot for AI….
+- After the data review: funds are no longer totalled (they are earmarks of
+  money already in the account balances, and "How to read this" says so); a
+  fund whose account has no balance reads "not entered" with no status;
+  paydays this month count whole days, so the March clock change cannot
+  drop a payday; the utilities average says how many months it covers; a
+  debt balance from a linked account without a date says "linked account";
+  cash-flow total savings counts payroll retirement from pay stubs only.
 - Tested: Node (suite incl. new snapshot checks; safety check). Not yet seen
   in Google.
 
