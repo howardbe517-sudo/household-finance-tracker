@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries: Typical grocery month showed #ERROR!
+- Cause: the formula named a value `m0`, which Google Sheets reads as a cell
+  reference and rejects (formula parse error). Seen in the owner's Sheet.
+- Fix: renamed to `mstart` in `Groceries.gs`. New test: no LET or LAMBDA name
+  in any formula may look like a cell reference.
+- `BUILD_VERSION` 1.22.3. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (the new test fails on the old formula and passes on the
+  fix); the parse error itself was confirmed in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries tab: receipts from any store
 - Why: the owner sent Meijer and Target receipts as well as Costco's.
 - `Groceries.gs`: the tab's labels say receipts rather than Costco; the trip
