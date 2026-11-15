@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.18-no-parked-2026-11-15',
-  BUILD_VERSION: '1.25.0',
+  BUILD_VERSION: '1.26.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -543,6 +543,8 @@ TABLES.FUNDS = {
   title: 'Savings & Reserves — Funds',
   note: 'One row per fund (emergency fund, sinking funds, goals). Contributions come from Transactions with Type = Savings; withdrawals come from Expense rows that name the Fund ID. A purchase paid from a fund is still spending in the month it happens.',
   idPrefix: 'FUND', idPattern: 'FUND-001', logChanges: true,
+  // only FUND-… rows are funds: the "About your accounts" reading section below the table has text in column A
+  idRegex: '^FUND-',
   columns: [
     { key: 'id', h: 'Fund ID', w: 90 },
     { key: 'name', h: 'Fund Name', w: 200 },

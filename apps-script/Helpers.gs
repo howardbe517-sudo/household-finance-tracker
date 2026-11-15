@@ -241,7 +241,11 @@ function anchorCol_(def) {
   return 1;
 }
 
-/** Read a table as an array of objects keyed by column key, with __row. Skips empty rows. Reading never creates a tab. */
+/**
+ * Read a table as an array of objects keyed by column key, with __row. Skips empty rows. Reading never creates a tab.
+ * A table whose tab carries something below it (Savings & Reserves has the "About your accounts" reading section,
+ * whose text sits in column A) sets idRegex in Config.gs: only rows whose first column matches it are records.
+ */
 function readTable_(def) {
   const sh = ss_().getSheetByName(def.sheet);
   if (!sh) return [];
@@ -252,14 +256,57 @@ function readTable_(def) {
   if (last < def.firstRow) return [];
   const values = sh.getRange(def.firstRow, 1, last - def.firstRow + 1, n).getValues();
   const anchor = anchorCol_(def) - 1;
+  const idOk = def.idRegex ? new RegExp(def.idRegex) : null;
   const out = [];
   values.forEach((row, i) => {
     if (row[anchor] === '' || row[anchor] === null) return;
+    if (idOk && !idOk.test(String(row[0]))) return;
     const o = { __row: def.firstRow + i };
     def.columns.forEach((c, j) => { o[c.key] = j < n ? row[j] : ''; });
     out.push(o);
   });
   return out;
+}
+
+/**
+ * A fund's current amount, worked out as Savings & Reserves' Current Amount does it (TABLES.FUNDS.current). Pure;
+ * used by runQA and the AI snapshot. A fund with a Backing Account is that account's balance; any other fund is
+ * Starting Amount + contributions (Savings and Transfer rows that name the fund) − withdrawals (Expense and Debt
+ * Payment rows that name it, less Refunds). Soft-deleted rows are left out.
+ * accountsById: { 'ACC-001': account row }. Returns { current, contributions, withdrawals, backed }.
+ */
+function fundCurrent_(fund, txRows, accountsById) {
+  const n = (v) => { const x = Number(v); return (v === '' || v === null || v === undefined || isNaN(x)) ? 0 : x; };
+  let contributions = 0, withdrawals = 0;
+  (txRows || []).forEach(t => {
+    if (t.isDeleted === true || !fund.id || t.fundId !== fund.id) return;
+    if (t.type === 'Savings' || t.type === 'Transfer') contributions += n(t.amount);
+    else if (t.type === 'Expense' || t.type === 'Debt Payment') withdrawals += n(t.amount);
+    else if (t.type === 'Refund') withdrawals -= n(t.amount);
+  });
+  const backed = !!fund.backingAccount;
+  const acc = backed ? (accountsById || {})[fund.backingAccount] : null;
+  const current = backed ? n(acc ? acc.currentBalance : 0) : n(fund.starting) + contributions - withdrawals;
+  return { current, contributions, withdrawals, backed };
+}
+
+/**
+ * A fund's Status as the Savings & Reserves formula gives it, for a current amount worked out by fundCurrent_. Pure.
+ * Funded (target reached), Past Target Date, Behind (Planned Monthly below what the target date needs), else On Track.
+ */
+function fundStatus_(fund, current, today) {
+  const n = (v) => { const x = Number(v); return (v === '' || v === null || v === undefined || isNaN(x)) ? 0 : x; };
+  const target = n(fund.target);
+  if (target > 0 && current >= target) return 'Funded';
+  const td = (fund.targetDate instanceof Date && !isNaN(fund.targetDate)) ? fund.targetDate : null;
+  const day = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (td && td < day) return 'Past Target Date';
+  if (td && fund.plannedMonthly !== '' && fund.plannedMonthly !== null && fund.plannedMonthly !== undefined) {
+    const needed = Math.max(target - current, 0);
+    const months = Math.max((td.getFullYear() - today.getFullYear()) * 12 + td.getMonth() - today.getMonth(), 1);
+    if (n(fund.plannedMonthly) < (needed <= 0 ? 0 : needed / months)) return 'Behind';
+  }
+  return 'On Track';
 }
 
 function findRowById_(def, id) {
