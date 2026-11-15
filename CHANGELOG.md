@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries: tables read from the left
+- Why (the owner's request): numbers sat on the right while column titles
+  sit on the left, so they did not line up.
+- `Groceries.gs`: every table on the tab (store table, what you bought, what
+  you buy most, receipts, and the numbers behind the graphs) is left-aligned.
+  The tiles stay centered.
+- `BUILD_VERSION` 1.23.1. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (suite and safety check). Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries: two graphs, a bar per month and a 3-month line
 - Why (the owner's request): see trends in Costco and grocery spending.
   The owner chose bars plus a 3-month average line, Costco food only, 24

@@ -411,7 +411,7 @@ function buildGroceries_() {
     'sv,MAP(u,LAMBDA(x,LET(v,-SUMPRODUCT(g*([GROC.item]=x),d),IF(v=0,"",v)))),' +
     'ARRAY_CONSTRAIN(SORT({u,kind,cnt,qt,sp,avg,sv},5,FALSE),' + GROC.ITEM_ROWS + ',7)),""))'));
   sh.getRange(GROC.ITEM_FIRST, 5, GROC.ITEM_ROWS, 3).setNumberFormat(FORMATS.currency);
-  sh.getRange(GROC.ITEM_FIRST, 3, GROC.ITEM_ROWS, 2).setNumberFormat('0').setHorizontalAlignment('center');
+  sh.getRange(GROC.ITEM_FIRST, 3, GROC.ITEM_ROWS, 2).setNumberFormat('0');
 
   /* --- top items, last 12 months --- */
   styleSectionBar_(sh.getRange('A' + GROC.TOP_BAR + ':' + L(W) + GROC.TOP_BAR), 'What you buy most — the last 12 months, and how the price has moved');
@@ -429,7 +429,7 @@ function buildGroceries_() {
     'lastd,MAP(u,LAMBDA(x,MAX(FILTER([GROC.date],g<>0,[GROC.item]=x)))),' +
     'chg,IFERROR(IF(last=first,"",last-first),""),' +
     'ARRAY_CONSTRAIN(SORT({u,kind,cnt,sp,pm,IFERROR(first,""),IFERROR(last,""),chg,lastd},4,FALSE),' + GROC.TOP_ROWS + ',9)),""))'));
-  sh.getRange(GROC.TOP_FIRST, 3, GROC.TOP_ROWS, 1).setNumberFormat('0').setHorizontalAlignment('center');
+  sh.getRange(GROC.TOP_FIRST, 3, GROC.TOP_ROWS, 1).setNumberFormat('0');
   sh.getRange(GROC.TOP_FIRST, 4, GROC.TOP_ROWS, 4).setNumberFormat(FORMATS.currency);
   sh.getRange(GROC.TOP_FIRST, 8, GROC.TOP_ROWS, 1).setNumberFormat('+$#,##0.00;-$#,##0.00;""');
   sh.getRange(GROC.TOP_FIRST, 9, GROC.TOP_ROWS, 1).setNumberFormat(FORMATS.date);
@@ -450,8 +450,12 @@ function buildGroceries_() {
     'tx,MAP(u,LAMBDA(x,LET(t,INDEX(FILTER([GROC.txId],g<>0,[GROC.tripId]=x),1),IF(t="","waiting",t)))),' +
     'ARRAY_CONSTRAIN(SORT({dt,loc,cnt,sp,sv,fd,sp-fd,src,tx},1,FALSE),' + GROC.TRIP_ROWS + ',9)),""))'));
   sh.getRange(GROC.TRIP_FIRST, 1, GROC.TRIP_ROWS, 1).setNumberFormat(FORMATS.date);
-  sh.getRange(GROC.TRIP_FIRST, 3, GROC.TRIP_ROWS, 1).setNumberFormat('0').setHorizontalAlignment('center');
+  sh.getRange(GROC.TRIP_FIRST, 3, GROC.TRIP_ROWS, 1).setNumberFormat('0');
   sh.getRange(GROC.TRIP_FIRST, 4, GROC.TRIP_ROWS, 4).setNumberFormat(FORMATS.currency);
+
+  // every table on the tab reads from the left, under its column title (the owner, 2026-11-15)
+  [[GROC.STORE_FIRST, GROC.STORE_MONTHS, W], [GROC.ITEM_FIRST, GROC.ITEM_ROWS, 7], [GROC.TOP_FIRST, GROC.TOP_ROWS, 9], [GROC.TRIP_FIRST, GROC.TRIP_ROWS, 9]]
+    .forEach(t => sh.getRange(t[0], 1, t[1], t[2]).setHorizontalAlignment('left'));
 
   /* --- the two graphs, to the right: a bar per month and the 3-month average as a line --- */
   const gc = GROC.GRAPH_COL, gl = (k) => L(gc + k);
@@ -468,6 +472,7 @@ function buildGroceries_() {
       put(gl(1) + r, f[0]); put(gl(2) + r, f[1]);
     }
     sh.getRange(hdr + 1, gc + 1, months, 2).setNumberFormat(FORMATS.currency);
+    sh.getRange(hdr + 1, gc, months, 3).setHorizontalAlignment('left');
   };
   dataBlock(GROC.GDATA1_BAR, GROC.GDATA1_HEADER, GROC.COSTCO_MONTHS, 'Numbers behind the Costco graph', ['Month', 'Costco food', '3-month average'],
     (m) => [F('=ARRAYFORMULA(' + costcoFood(m) + ')'), F('=ARRAYFORMULA(' + costcoFood3(m) + ')')]);
