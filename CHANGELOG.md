@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries: the Receipts tile names its stores
+- Why: the owner read "5" under the old "Costco trips" label as five Costco
+  trips in November; it was one Costco trip and four Meijer and Target
+  receipts.
+- `Groceries.gs`: under the Receipts count, the tile lists receipts per store
+  ("1 Costco · 1 Target · 3 Meijer") before the total.
+- `BUILD_VERSION` 1.22.4. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (suite and safety check); the formula was checked in the
+  owner's Sheet in a spare cell and gave the expected text.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries: Typical grocery month showed #ERROR!
 - Cause: the formula named a value `m0`, which Google Sheets reads as a cell
   reference and rejects (formula parse error). Seen in the owner's Sheet.
