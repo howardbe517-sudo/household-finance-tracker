@@ -140,25 +140,11 @@ function qaReport_() {
   const fundRows = readTable_(tdef_('FUNDS')).filter(f => f.id);
   const accBal = {};
   readTable_(tdef_('ACCOUNTS')).forEach(a => { accBal[a.id] = Number(a.currentBalance || 0); });
-  const ownAmount = (f) => {
-    if (f.fundType === 'Parked for Bills') {
-      // the current cycle: tagged deposits since the last tagged bill payment; the seed is spent after the first payment; capped at the target
-      const pays = live.filter(t => t.fundId === f.id && (t.type === 'Debt Payment' || t.type === 'Expense') && t.date instanceof Date).map(t => t.date.getTime());
-      const lp = pays.length ? Math.max.apply(null, pays) : 0;
-      const contrib = sumWhere(live, t => t.fundId === f.id && t.type === 'Transfer' && t.date instanceof Date && t.date.getTime() > lp, 'amount');
-      const wd = lp > 0 ? Number(f.starting || 0) : 0;
-      const raw = Number(f.starting || 0) + contrib - wd;
-      return { contrib, wd, amount: Number(f.target || 0) > 0 ? Math.min(raw, Number(f.target)) : raw };
-    }
+  fundRows.forEach(f => {
     const contrib = sumWhere(live, t => t.fundId === f.id && (t.type === 'Savings' || t.type === 'Transfer'), 'amount');
     const wd = sumWhere(live, t => t.fundId === f.id && (t.type === 'Expense' || t.type === 'Debt Payment'), 'amount') - sumWhere(live, t => t.fundId === f.id && t.type === 'Refund', 'amount');
-    return { contrib, wd, amount: Number(f.starting || 0) + contrib - wd };
-  };
-  fundRows.forEach(f => {
-    const own = ownAmount(f);
-    const contrib = own.contrib, wd = own.wd;
-    const parkedHere = f.backingAccount && f.fundType !== 'Parked for Bills' ? fundRows.filter(p => p.fundType === 'Parked for Bills' && p.backingAccount === f.backingAccount).reduce((s, p) => s + ownAmount(p).amount, 0) : 0;
-    const exp = f.backingAccount && f.fundType !== 'Parked for Bills' ? (accBal[f.backingAccount] || 0) - parkedHere : own.amount;
+    // a fund backed by an account is that account's balance; any other fund is starting + contributions − withdrawals
+    const exp = f.backingAccount ? (accBal[f.backingAccount] || 0) : Number(f.starting || 0) + contrib - wd;
     if (!near(f.current, exp)) fail('Fund ' + f.id + ' ' + f.name + ': Current ' + money(f.current) + ' ≠ ' + money(exp));
     else pass('Fund ' + f.id + ' ' + f.name + ': current ' + money(exp) + ' (+' + money(contrib) + ' / −' + money(wd) + ')');
   });

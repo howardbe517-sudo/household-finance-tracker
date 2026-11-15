@@ -8,7 +8,7 @@
 
 const FINSUM = {
   // rows 3–8: the accounts block (moved here from the retired Dashboard tab, 2026-11-12); everything below sits 7 rows lower than before
-  ACCT_HEADER: 3, ACCT_FIRST: 4, ACCT_WITH_BILLS: 6, ACCT_NOTE: 8,
+  ACCT_HEADER: 3, ACCT_FIRST: 4, ACCT_NOTE: 8,
   // rows 10–13: coming in, fixed costs, flexible (average), likely left over (2026-11-12; the four 3-month averages they replaced are gone)
   CARD_LABEL: 10, CARD_VALUE: 11, CARD_SUB: 12, FLOW_LINE: 13,
   // rows 14–15: how many months the averages further down cover, and the calculated windows
@@ -59,7 +59,7 @@ function buildFinancialSummary_() {
   mergePut('A2:I2', 'Where you stand: tonight\'s balances, then what comes in, what goes out and what is likely left over in a typical month, the month-by-month history, savings funds, debts, income by person, payroll deductions, credit scores and net worth. Averages settle as full months accumulate; a month still in progress counts as it stands.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
   /* --- accounts right now (moved from the Dashboard) --- */
-  buildAccountsBlock_(sh, { header: FINSUM.ACCT_HEADER, first: FINSUM.ACCT_FIRST, withBills: FINSUM.ACCT_WITH_BILLS, note: FINSUM.ACCT_NOTE });
+  buildAccountsBlock_(sh, { header: FINSUM.ACCT_HEADER, first: FINSUM.ACCT_FIRST, note: FINSUM.ACCT_NOTE });
 
   put('A' + MR, 'Averages below cover the last').setFontWeight('bold');
   put('B' + MR, FINSUM.MONTHS_DEFAULT).setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
@@ -140,7 +140,9 @@ function buildFinancialSummary_() {
   const fundCols = [['name', 'A'], ['target', 'B'], ['current', 'C'], ['amountNeeded', 'D'], ['pctFunded', 'E'], ['plannedMonthly', 'F'], ['status', 'G']];
   for (let k = 1; k <= FINSUM.FUNDS_COUNT; k++) {
     const r = FINSUM.FUNDS_FIRST + k - 1;
-    fundCols.forEach(fc => put(fc[1] + r, F('=IF(INDEX([FUNDS.id],' + k + ')="","",INDEX([FUNDS.' + fc[0] + '],' + k + '))')));
+    // the k-th fund that has an ID, so an emptied row on Savings & Reserves leaves no blank line here
+    // (only real fund rows: the reading section further down the tab also has text in column A)
+    fundCols.forEach(fc => put(fc[1] + r, F('=IFERROR(INDEX(FILTER([FUNDS.' + fc[0] + '],LEFT([FUNDS.id],5)="FUND-"),' + k + '),"")')));
     sh.getRange('B' + r + ':D' + r).setNumberFormat(FORMATS.currency);
     sh.getRange('E' + r).setNumberFormat(FORMATS.percent);
     sh.getRange('F' + r).setNumberFormat(FORMATS.currency);

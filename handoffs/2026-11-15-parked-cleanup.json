@@ -1,0 +1,31 @@
+{
+  "title": "Parked Cleanup",
+  "key": "household-finance-tracker-2026-11-15-parked-cleanup",
+  "subtitle": "Everything left over from the parked-in-savings feature is gone: the Fund Type option, the special fund formulas, and the blank lines it left behind.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. I have already emptied the old CAR PAYMENT rule in your Sheet.",
+    "**What does not change:** no transactions, balances or other funds."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before parked cleanup 2026-11-15`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.25.0`. If it shows an older number, wait a minute and reload the Sheet." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report includes \"List Fund Types: removed Parked for Bills\"." }
+      ]
+    },
+    {
+      "heading": "Check it",
+      "steps": [
+        { "text": "Open **Financial Summary** and scroll to **Savings & Reserves**.", "done": "The funds are listed with no blank lines between them." },
+        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "The fund checks pass." }
+      ]
+    }
+  ]
+}

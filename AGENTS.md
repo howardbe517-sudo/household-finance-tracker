@@ -67,7 +67,9 @@ jargon, and ask clarifying questions when something is unclear.
   sparkline, or chart, have the `data-reviewer` agent
   (`.claude/agents/data-reviewer.md`) review it before opening the pull
   request. Tell it what changed and where. Fix everything it lists under
-  "Must fix" and "Should fix", then have it review again. Give the owner its
+  "Must fix" and "Should fix". Have it review again only when the first
+  review found a "Must fix" item (the owner, 2026-11-15: a second pass over
+  small "Should fix" adjustments is not worth the usage). Give the owner its
   "Expert recommendations" and "Could not check here" lists in the pull
   request and in the final message, in plain words, for the owner to decide;
   do not act on recommendations without asking. Changes that touch only
