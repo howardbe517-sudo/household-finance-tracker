@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2026-11-15 — Bills from checking: the parked-in-savings display is removed
+- Why (the owner's decision): every bill is now paid from checking, so no
+  money is parked in savings for bills.
+- `Dashboard.gs` (`buildAccountsBlock_`, drawn on the Financial Summary):
+  every line is the plain bank balance; the savings line no longer subtracts
+  "Parked for Bills" pots, and the faded "Savings + bill transfers" row is
+  written empty. Footnote updated.
+- `QA.gs`: the accounts-block check compares the savings line itself with the
+  savings Accounts rows.
+- `Reference.gs`: Start Here wording no longer mentions parked money.
+- Left in place, dormant: the "Parked for Bills" fund type and its formulas in
+  `TABLES.FUNDS` (they act only on a fund of that type; none remains).
+- `Config.gs`, Savings & Reserves Current Amount: a fund backed by an account
+  subtracts only parked pots that still have a Fund ID, so a half-emptied
+  row can never lower it (data review). Delivered by the upgrade.
+- `BUILD_VERSION` 1.24.1. Files changed in `apps-script/`: `Dashboard.gs`,
+  `QA.gs`, `Reference.gs`, `Config.gs`. Run **Upgrade workbook** once, then
+  **Run QA checks**; step page `handoffs/2026-11-15-no-parked-bills.json`.
+- In the Sheet (not in the repository): the parked car-payment fund row on
+  Savings & Reserves emptied; its tag removed from the one transfer that
+  carried it; the car-payment bill and rule point to checking with no fund;
+  the rule that tagged CAR PAYMENT transfers into savings turned off; the
+  savings account's description updated.
+- Tested: Node (suite and safety check). Data review: see the pull request.
+  Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Data reviewer agent (no change to the Sheet)
 - Why (the owner's request): an expert in data to check that numbers,
   tables and graphs are calculated correctly and are the best way to show
