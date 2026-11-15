@@ -718,6 +718,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     else bad('grocery replace: ' + JSON.stringify([r2, photo.map(l => l.isDeleted), exp.map(l => l.txId), kids2.length]));
     // the tab
     const grSh = ss.getSheetByName(SHEETS.GROCERY);
+    if (/\[GROC\.STORE_FIRST, GROC\.STORE_MONTHS, W\][\s\S]*setHorizontalAlignment\('left'\)/.test(R('buildGroceries_.toString()')) && !/setHorizontalAlignment\('center'\)\s*;\s*\n\s*sh\.getRange\(GROC\.(ITEM|TOP|TRIP)/.test(R('buildGroceries_.toString()'))) ok('Groceries tables read from the left, under their column titles'); else bad('grocery tables alignment');
     {
       const charts = grSh.getCharts();
       const c1 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH1_ROW')), c2 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH2_ROW'));
