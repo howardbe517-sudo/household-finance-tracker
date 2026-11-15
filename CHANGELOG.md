@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-11-15 — Grocery Charts tab; store shares; clearer heading
+- Why (the owner's requests): the graphs beside the Groceries tables sat in
+  odd places and the bars-plus-line view was hard to read; graphs on their
+  own tab, one view each, $100 steps; each store's share of groceries; the
+  heading "What you bought — the Month above" was unclear.
+- New **Grocery Charts** tab (after Groceries; `buildGroceryCharts_`,
+  `drawGroceryCharts_`, constants `GCHART` in `Groceries.gs`): Costco food
+  each month (bars) and its 3-month average (line) for 24 months, then
+  groceries at every store each month and its 3-month average for 12 months.
+  Each graph's scale runs from $0 in $100 steps to the tallest value rounded
+  up (`groceryChartScale_`); every sync redraws them so the scale keeps
+  fitting. The numbers behind the graphs are at the bottom of the tab.
+- Groceries tab: the graphs and their numbers are gone from it. The tile
+  "Share of groceries by store" shows the biggest store and its percentage,
+  with the other stores and theirs underneath. The item section's heading
+  names the month chosen in B3.
+- Shared formula pieces in `groceryFormulaParts_`.
+- `BUILD_VERSION` 1.24.0. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`, `Main.gs`, `Upgrade.gs`, `Plaid.gs`, `Reference.gs`. Run
+  **Upgrade workbook** once.
+- Tested: Node (four graphs and their types, ranges and $100 scale; share
+  tile and heading; tab order; safety check). The share tile's formulas were
+  checked in the owner's Sheet in spare cells. The drawn graphs are not yet
+  seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Groceries: tables read from the left
 - Why (the owner's request): numbers sat on the right while column titles
   sit on the left, so they did not line up.

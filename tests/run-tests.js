@@ -37,7 +37,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 32 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('32 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 33 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('33 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 17, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
@@ -78,7 +78,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK', 'REGEXMATCH', 'TRANSPOSE', 'PROPER']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK', 'REGEXMATCH', 'TRANSPOSE', 'PROPER', 'HSTACK', 'SEQUENCE']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -401,14 +401,14 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[7] === SHEETS.GOALS) ok('Goals tab (eighth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[8] === SHEETS.GOALS) ok('Goals tab (ninth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
 const dSh = g.__ss.getSheetByName(SHEETS.FINSUM); // the accounts block opens the Financial Summary
 const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
 if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Financial Summary opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
 (function () { const sp = g.__ss.getSheetByName(SHEETS.SPEND), nr = g.__ss.getRangeByName('DASH_SELECTED_MONTH'), cmp = g.__ss.getRangeByName('SPEND_COMPARE'), ck = g.__ss.getRangeByName('DASH_CHECKLIST');
   if (!g.__ss.getSheetByName('Dashboard') && sp.getRange('A3').getValue() === 'Month' && typeof sp.getRange('B3').getValue().getTime === 'function' && nr && nr.getSheet().getName() === SHEETS.SPEND && /^B3(:B3)?$/.test(nr.getA1Notation()) && sp.getRange('D3').getValue() === 'Compare with' && cmp && cmp.getSheet().getName() === SHEETS.SPEND && cmp.getValue() === SPEND.COMPARE[0] && SPEND.COMPARE.length === 4 && sp.getRange('A' + SPEND.CHECK_BAR).getValue() === 'Monthly Review Checklist' && ck && ck.getSheet().getName() === SHEETS.SPEND && ck.getNumRows() === 8 && fsSh.getRange('A' + FINSUM.MONTHS_CELL.slice(1)).getValue() === 'Averages below cover the last') ok('a new workbook has no Dashboard tab: the Selected Month (B3), Compare with (E3) and the checklist are inputs on the Spending tab under their named ranges; the Financial Summary\'s own controls sit under the accounts block'); else bad('spending inputs: ' + JSON.stringify([!!g.__ss.getSheetByName('Dashboard'), sp.getRange('A3').getValue(), nr && nr.getA1Notation(), cmp && cmp.getValue(), ck && ck.getNumRows()]));
 })();
-if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.SPEND && TAB_ORDER[3] === SHEETS.UTILITIES && TAB_ORDER[4] === SHEETS.GROCERY && TAB_ORDER[5] === SHEETS.FUNDS && TAB_ORDER[6] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.DASH) < 0 && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Spending, Utilities, Groceries, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
+if (TAB_ORDER[0] === SHEETS.START && TAB_ORDER[1] === SHEETS.FINSUM && TAB_ORDER[2] === SHEETS.SPEND && TAB_ORDER[3] === SHEETS.UTILITIES && TAB_ORDER[4] === SHEETS.GROCERY && TAB_ORDER[5] === SHEETS.GROCHARTS && TAB_ORDER[6] === SHEETS.FUNDS && TAB_ORDER[7] === SHEETS.DEBTS && TAB_ORDER.indexOf(SHEETS.DASH) < 0 && TAB_ORDER.indexOf(SHEETS.ACCOUNTS) > TAB_ORDER.indexOf(SHEETS.CONN)) ok('tab order: Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts, Savings & Reserves, Debts first; Accounts next to Connections'); else bad('tab order: ' + TAB_ORDER.join(' | '));
 /* 10d. Expected Income from the paychecks on Income; the automatic flexible target */
 const colL = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
 const expRows = R(`readTable_(TABLES.EXPECT)`);
@@ -720,13 +720,23 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const grSh = ss.getSheetByName(SHEETS.GROCERY);
     if (/\[GROC\.STORE_FIRST, GROC\.STORE_MONTHS, W\][\s\S]*setHorizontalAlignment\('left'\)/.test(R('buildGroceries_.toString()')) && !/setHorizontalAlignment\('center'\)\s*;\s*\n\s*sh\.getRange\(GROC\.(ITEM|TOP|TRIP)/.test(R('buildGroceries_.toString()'))) ok('Groceries tables read from the left, under their column titles'); else bad('grocery tables alignment');
     {
-      const charts = grSh.getCharts();
-      const c1 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH1_ROW')), c2 = charts.find(c => c.pos && c.pos[0] === R('GROC.GRAPH2_ROW'));
-      const f1 = grSh.getRange('L' + (R('GROC.GDATA1_HEADER') + 1)).getFormula(), f2 = grSh.getRange('L' + (R('GROC.GDATA2_HEADER') + 1)).getFormula();
-      if (charts.length === 2 && c1 && c2 && c1.type === 'COMBO' && c1.options.seriesType === 'bars' && c1.options.series[1].type === 'line' && c1.pos[1] === 11
-        && c1.ranges[0].getNumRows() === 25 && c2.ranges[0].getNumRows() === 13 && /="Costco"\)/.test(f1) && /="Groceries"\)/.test(f1) && /="Alcohol"\)/.test(f1) && /="Alcohol"\)/.test(f2) && /MINIFS\(/.test(f2) && /'Transactions'!/.test(f2))
-        ok('Groceries tab has two graphs to the right of the tables: Costco food by month (24 months) and groceries at every store (12 months), each a bar per month with the 3-month average as a line');
-      else bad('grocery graphs: ' + JSON.stringify([charts.length, c1 && c1.type, c1 && c1.pos, f1.slice(0, 80)]));
+      const gc = ss.getSheetByName(SHEETS.GROCHARTS);
+      const charts = gc.getCharts();
+      const at = (row) => charts.find(c => c.pos && c.pos[0] === R('GCHART.' + row));
+      const c1 = at('CHART1_ROW'), c2 = at('CHART2_ROW'), c3 = at('CHART3_ROW'), c4 = at('CHART4_ROW');
+      const f1 = gc.getRange('B' + (R('GCHART.DATA_HEADER') + 1)).getFormula(), f2 = gc.getRange('F' + (R('GCHART.DATA_HEADER') + 1)).getFormula();
+      const sc = R('JSON.stringify([groceryChartScale_([265.12, 725.38, "", 0]), groceryChartScale_([]), groceryChartScale_([100])])');
+      if (grSh.getCharts().length === 0 && charts.length === 4 && c1 && c2 && c3 && c4 && c1.type === 'COLUMN' && c2.type === 'LINE' && c3.type === 'COLUMN' && c4.type === 'LINE'
+        && c1.ranges[1].getNumRows() === 25 && c3.ranges[1].getNumRows() === 13 && c1.options.vAxis.gridlines.count >= 2 && c1.options.vAxis.viewWindow.min === 0
+        && /="Costco"\)/.test(f1) && /="Alcohol"\)/.test(f1) && /MINIFS\(/.test(f2) && /'Transactions'!/.test(f2)
+        && sc === '[{"top":800,"count":9},{"top":100,"count":2},{"top":100,"count":2}]')
+        ok('Grocery Charts tab: four graphs, one view each (Costco food each month and 3-month average for 24 months; groceries at every store each month and 3-month average for 12 months) on a $100 scale fitted to the tallest bar; none left on the Groceries tab');
+      else bad('grocery charts: ' + JSON.stringify([grSh.getCharts().length, charts.length, c1 && c1.type, c2 && c2.type, sc, f1.slice(0, 60)]));
+      const shareF = grSh.getRange('C' + R('GROC.TILE_VALUE')).getFormula(), itemBar = grSh.getRange('A' + R('GROC.ITEM_BAR')).getFormula();
+      if (grSh.getRange('C' + R('GROC.TILE_LABEL')).getValue() === 'Share of groceries by store' && /SORT\(HSTACK/.test(shareF) && /TEXT\(a\/t,"0%"\)/.test(shareF)
+        && /What you bought in "&TEXT\(\$B\$3,"mmmm yyyy"\)/.test(itemBar))
+        ok('Groceries: the share tile gives every store its percentage (biggest first), and the item list heading names the month');
+      else bad('share tile / heading: ' + JSON.stringify([grSh.getRange('C' + R('GROC.TILE_LABEL')).getValue(), itemBar]));
     }
     const mCell = ss.getRangeByName('GROC_MONTH');
     const itemF = grSh.getRange('A' + R('GROC.ITEM_FIRST')).getFormula(), storeF = grSh.getRange('B' + R('GROC.STORE_HEADER')).getFormula(), tripF = grSh.getRange('A' + R('GROC.TRIP_FIRST')).getFormula(), topF = grSh.getRange('A' + R('GROC.TOP_FIRST')).getFormula();

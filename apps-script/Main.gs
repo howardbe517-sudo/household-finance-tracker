@@ -40,6 +40,7 @@ function buildWorkbook(options) {
   buildSpending_();
   buildUtilities_();
   buildGroceries_();
+  buildGroceryCharts_();
   buildGoals_();
   buildReminders_();
   buildAppSetup_(opts.sample);

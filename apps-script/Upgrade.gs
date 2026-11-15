@@ -88,6 +88,8 @@ function upgradeWorkbookLocked_() {
   const grocMonth = (ss.getRangeByName('GROC_MONTH') || { getValue: () => '' }).getValue();
   if (!ss.getSheetByName(SHEETS.GROCERY)) report.push('Added tab: ' + SHEETS.GROCERY);
   withRetry_('Groceries', () => { buildGroceries_(); if (grocMonth instanceof Date) ss.getRangeByName('GROC_MONTH').setValue(grocMonth); });
+  if (!ss.getSheetByName(SHEETS.GROCHARTS)) report.push('Added tab: ' + SHEETS.GROCHARTS);
+  withRetry_('Grocery Charts', () => buildGroceryCharts_());
   const groc = withRetry_('Grocery receipts', () => refreshGroceries_());
   if (groc && describeGroceries_(groc)) report.push('Groceries: ' + describeGroceries_(groc));
   const ub = withRetry_('Utility Bills', () => linkUtilityPayments_());
@@ -101,7 +103,7 @@ function upgradeWorkbookLocked_() {
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
-  report.push('Refreshed App Setup, Financial Summary, Spending, Utilities, Groceries, Start Here and Sources (settings and inputs kept).');
+  report.push('Refreshed App Setup, Financial Summary, Spending, Utilities, Groceries, Grocery Charts, Start Here and Sources (settings and inputs kept).');
 
   // 5. tab order
   TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });

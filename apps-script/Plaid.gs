@@ -645,6 +645,8 @@ function syncAllConnections(opts) {
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
   // Costco receipts (Grocery Items): a trip sent twice counts once, and each trip's card charge is split by its receipt
   try { results.groceries = refreshGroceries_(); } catch (e) { Logger.log('refreshGroceries_: ' + (e && e.message || e)); }
+  // the grocery graphs keep their $100 scale fitted to the tallest bar
+  try { drawGroceryCharts_(); } catch (e) { Logger.log('drawGroceryCharts_: ' + (e && e.message || e)); }
   // paycheck deposits count as income the day they land: each Income-type deposit without a paycheck gets its Income row
   try { results.income = ensureIncomeFromDeposits_(); } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); }
   // payroll deposits into accounts the feed cannot reach (the HSA): each new paycheck adds its amount to the balance

@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.17-groceries-2026-11-15',
-  BUILD_VERSION: '1.23.1',
+  BUILD_VERSION: '1.24.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -53,6 +53,7 @@ const SHEETS = {
   UTILITIES: 'Utilities',
   UTIL: 'Utility Bills',
   GROCERY: 'Groceries',
+  GROCHARTS: 'Grocery Charts',
   GROC: 'Grocery Items',
   GROCNAMES: 'Grocery Item Names',
   LOG: 'Change Log',
@@ -66,8 +67,8 @@ const TAB_ORDER = [
   // 2026-11-10: Start Here (the guide) first, then Financial Summary, Dashboard, Spending.
   // 2026-11-12: the Dashboard tab is retired; its month view is the top of Spending and its
   // accounts block the top of Financial Summary. SHEETS.DASH stays so an old tab can be found and hidden.
-  // 2026-11-15: Groceries after Utilities; its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
-  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  // 2026-11-15: Groceries after Utilities, then Grocery Charts (the owner: the graphs on their own tab); its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
+  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
