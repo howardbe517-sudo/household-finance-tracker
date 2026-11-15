@@ -141,7 +141,8 @@ function buildFinancialSummary_() {
   for (let k = 1; k <= FINSUM.FUNDS_COUNT; k++) {
     const r = FINSUM.FUNDS_FIRST + k - 1;
     // the k-th fund that has an ID, so an emptied row on Savings & Reserves leaves no blank line here
-    fundCols.forEach(fc => put(fc[1] + r, F('=IFERROR(INDEX(FILTER([FUNDS.' + fc[0] + '],[FUNDS.id]<>""),' + k + '),"")')));
+    // (only real fund rows: the reading section further down the tab also has text in column A)
+    fundCols.forEach(fc => put(fc[1] + r, F('=IFERROR(INDEX(FILTER([FUNDS.' + fc[0] + '],LEFT([FUNDS.id],5)="FUND-"),' + k + '),"")')));
     sh.getRange('B' + r + ':D' + r).setNumberFormat(FORMATS.currency);
     sh.getRange('E' + r).setNumberFormat(FORMATS.percent);
     sh.getRange('F' + r).setNumberFormat(FORMATS.currency);

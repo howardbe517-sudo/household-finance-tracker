@@ -1,5 +1,9 @@
 # STATUS
 
+2026-11-15 (build 1.25.0, schema 3.18): Parked for Bills removed completely
+(formulas, Fund Type list, blank lines); the data reviewer re-checks only
+after a Must fix. AI snapshot export audit in progress.
+
 2026-11-15 (build 1.24.1): bills are paid from checking; the parked-in-savings
 display and the parked car-payment pot are removed (see CHANGELOG).
 

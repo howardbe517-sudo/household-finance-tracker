@@ -483,7 +483,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const fsAcc = ss.getSheetByName(SHEETS.FINSUM);
   const savF = fsAcc.getRange('B5').getFormula(), row6 = fsAcc.getRange('A6').getValue() + fsAcc.getRange('B6').getFormula();
   const fundF = fsAcc.getRange('A' + vm.runInContext('FINSUM.FUNDS_FIRST', ctx)).getFormula();
-  if (!/Parked/.test(savF) && /SUMPRODUCT/.test(savF) && row6 === '' && !/parked/i.test(fsAcc.getRange('A' + vm.runInContext('FINSUM.ACCT_NOTE', ctx)).getValue()) && /FILTER\('Savings & Reserves'!\$B\$5:\$B,'Savings & Reserves'!\$A\$5:\$A<>""\)/.test(fundF))
+  if (!/Parked/.test(savF) && /SUMPRODUCT/.test(savF) && row6 === '' && !/parked/i.test(fsAcc.getRange('A' + vm.runInContext('FINSUM.ACCT_NOTE', ctx)).getValue()) && /FILTER\('Savings & Reserves'!\$B\$5:\$B,LEFT\('Savings & Reserves'!\$A\$5:\$A,5\)="FUND-"\)/.test(fundF))
     ok('Financial Summary: savings is the bank balance (no parked split), and the fund list skips emptied rows on Savings & Reserves');
   else bad('summary savings / funds: ' + JSON.stringify([savF.slice(0, 80), row6, fundF.slice(0, 120)]));
   {
