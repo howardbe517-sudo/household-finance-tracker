@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-15 — Groceries tab: receipts from any store
+- Why: the owner sent Meijer and Target receipts as well as Costco's.
+- `Groceries.gs`: the tab's labels say receipts rather than Costco; the trip
+  list shows Store (store and location) instead of Location. The receipt
+  jobs were already store-agnostic (a charge is matched when its description
+  contains the receipt's store name).
+- Item numbers from stores other than Costco are kept as `STORE-number` on
+  Grocery Item Names (Sheet data), so they never clash with Costco's.
+- `BUILD_VERSION` 1.22.2. Files changed in `apps-script/`: `Groceries.gs`,
+  `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (suite and safety check). Not yet confirmed in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — About your accounts becomes a reading section
 - Why (the owner's request): the section is for understanding what each
   account is and how it works, not a working table; balances and what goes in

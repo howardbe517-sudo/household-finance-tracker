@@ -19,7 +19,10 @@
  *
  * The tab: a Month to look at (B3); tiles for that month; grocery spending by store for the last
  * 12 months (from Transactions, Food → Groceries); what was bought that month, item by item; the top
- * items over the last 12 months with their price then and now; and every Costco trip.
+ * items over the last 12 months with their price then and now; and every receipt. Receipts from
+ * other stores (Meijer, Target) work the same way when a photo is sent: their item numbers are
+ * kept as STORE-number on Grocery Item Names, so they never clash with Costco's, and one readable
+ * name (Blueberries) adds up across stores.
  */
 
 const GROC = {
@@ -329,7 +332,7 @@ function buildGroceries_() {
     { cols: ['C', 'D'], label: 'Costco share of groceries', fmt: '0%',
       f: F('=ARRAYFORMULA(LET(t,' + grocIn(M) + ',c,' + costcoIn(M) + ',IF(t=0,"—",c/t)))'),
       sub: 'the food part of Costco charges, out of all grocery spending' },
-    { cols: ['E', 'F'], label: 'Costco trips', fmt: '0',
+    { cols: ['E', 'F'], label: 'Receipts', fmt: '0',
       f: F('=ARRAYFORMULA(IFERROR(ROWS(UNIQUE(FILTER([GROC.tripId],' + live + '*([GROC.month]=' + M + ')))),0))'),
       sub: F('=ARRAYFORMULA(LET(s,SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),' + net + '),v,-SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),IF(ISNUMBER([GROC.discount]),[GROC.discount],0)),IF(s=0,"no receipts this month",TEXT(s,"$#,##0.00")&" on the receipts"&IF(v>0," · "&TEXT(v,"$#,##0.00")&" saved with coupons",""))))') },
     { cols: ['G', 'I'], label: 'Typical grocery month', fmt: '$#,##0.00',
@@ -375,8 +378,8 @@ function buildGroceries_() {
   sh.getRange(hdr, 1, GROC.STORE_MONTHS + 1, shareCol).setBorder(true, true, true, true, false, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
   /* --- what you bought in the month --- */
-  styleSectionBar_(sh.getRange('A' + GROC.ITEM_BAR + ':' + L(W) + GROC.ITEM_BAR), 'What you bought at Costco — the Month above, item by item');
-  put('A' + GROC.ITEM_NOTE, F('=ARRAYFORMULA(LET(s,SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),' + net + '),IF(s=0,"No Costco receipts for "&TEXT(' + SEL + ',"mmmm yyyy")&" yet.","Every item on the "&TEXT(' + SEL + ',"mmmm yyyy")&" receipts, most spent first: "&TEXT(s,"$#,##0.00")&" in all, before sales tax. Spent is after coupons; Average Price is what one cost before coupons. Rename an item or change its category on Grocery Item Names.")))'));
+  styleSectionBar_(sh.getRange('A' + GROC.ITEM_BAR + ':' + L(W) + GROC.ITEM_BAR), 'What you bought — the Month above, item by item, from receipts');
+  put('A' + GROC.ITEM_NOTE, F('=ARRAYFORMULA(LET(s,SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),' + net + '),IF(s=0,"No receipts for "&TEXT(' + SEL + ',"mmmm yyyy")&" yet.","Every item on the "&TEXT(' + SEL + ',"mmmm yyyy")&" receipts (Costco, and any other store whose receipt was sent), most spent first: "&TEXT(s,"$#,##0.00")&" in all, before sales tax. Spent is after coupons; Average Price is what one cost before coupons. Rename an item or change its category on Grocery Item Names.")))'));
   sh.getRange('A' + GROC.ITEM_NOTE + ':' + L(W) + GROC.ITEM_NOTE).merge().setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9).setWrap(true);
   sh.setRowHeight(GROC.ITEM_NOTE, 30);
   header(GROC.ITEM_HEADER, ['Item', 'Kind', 'Times Bought', 'Quantity', 'Spent', 'Average Price', 'Saved']);
@@ -393,7 +396,7 @@ function buildGroceries_() {
   sh.getRange(GROC.ITEM_FIRST, 3, GROC.ITEM_ROWS, 2).setNumberFormat('0').setHorizontalAlignment('center');
 
   /* --- top items, last 12 months --- */
-  styleSectionBar_(sh.getRange('A' + GROC.TOP_BAR + ':' + L(W) + GROC.TOP_BAR), 'What you buy most at Costco — the last 12 months, and how the price has moved');
+  styleSectionBar_(sh.getRange('A' + GROC.TOP_BAR + ':' + L(W) + GROC.TOP_BAR), 'What you buy most — the last 12 months, and how the price has moved');
   note(GROC.TOP_NOTE, 'The ' + GROC.TOP_ROWS + ' items you spent most on in the last 12 months (this month included). Earlier Price is what one cost on the first purchase in those 12 months, Latest Price on the most recent; both are before coupons.');
   header(GROC.TOP_HEADER, ['Item', 'Kind', 'Times Bought', 'Spent', 'Per Month', 'Earlier Price', 'Latest Price', 'Change', 'Last Bought']);
   const s12 = 'EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),-11)';
@@ -414,13 +417,13 @@ function buildGroceries_() {
   sh.getRange(GROC.TOP_FIRST, 9, GROC.TOP_ROWS, 1).setNumberFormat(FORMATS.date);
 
   /* --- every Costco trip --- */
-  styleSectionBar_(sh.getRange('A' + GROC.TRIP_BAR + ':' + L(W) + GROC.TRIP_BAR), 'Costco trips — newest first');
-  note(GROC.TRIP_NOTE, 'One row per trip from the receipts. Spent is the items after coupons, before sales tax. Bank Charge is the card charge the trip was matched to and split by; "waiting" means that charge has not come in yet (or the trip is older than the bank feed). A trip sent twice (a photo, then the export) shows once.');
-  header(GROC.TRIP_HEADER, ['Date', 'Location', 'Items', 'Spent', 'Saved', 'Food', 'Not Food', 'Source', 'Bank Charge']);
+  styleSectionBar_(sh.getRange('A' + GROC.TRIP_BAR + ':' + L(W) + GROC.TRIP_BAR), 'Receipts — every trip, newest first');
+  note(GROC.TRIP_NOTE, 'One row per receipt (Costco trips, and other stores when a receipt photo is sent). Spent is the items after coupons, before sales tax. Bank Charge is the card charge the trip was matched to and split by; "waiting" means that charge has not come in yet (or the trip is older than the bank feed). A trip sent twice (a photo, then the export) shows once.');
+  header(GROC.TRIP_HEADER, ['Date', 'Store', 'Items', 'Spent', 'Saved', 'Food', 'Not Food', 'Source', 'Bank Charge']);
   put('A' + GROC.TRIP_FIRST, F('=ARRAYFORMULA(IFERROR(LET(g,' + live + ',n,' + net + ',' +
     'u,UNIQUE(FILTER([GROC.tripId],g<>0,[GROC.tripId]<>"")),' +
     'dt,MAP(u,LAMBDA(x,MIN(FILTER([GROC.date],g<>0,[GROC.tripId]=x)))),' +
-    'loc,MAP(u,LAMBDA(x,INDEX(FILTER([GROC.location],g<>0,[GROC.tripId]=x),1))),' +
+    'loc,MAP(u,LAMBDA(x,INDEX(FILTER(TRIM([GROC.store]&" "&PROPER([GROC.location])),g<>0,[GROC.tripId]=x),1))),' +
     'cnt,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.tripId]=x)))),' +
     'sp,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.tripId]=x),n))),' +
     'sv,MAP(u,LAMBDA(x,LET(v,-SUMPRODUCT(g*([GROC.tripId]=x),IF(ISNUMBER([GROC.discount]),[GROC.discount],0)),IF(v=0,"",v)))),' +
