@@ -63,6 +63,16 @@ jargon, and ask clarifying questions when something is unclear.
   Payment, Transfer, and Split Parent rows are never spending; split children
   are; the Spending tab's cards follow the Selected Month while Current Flexible
   Spending follows today's week; months are first-of-month dates.
+- After any change to a calculation, total, average, summary table, tile,
+  sparkline, or chart, have the `data-reviewer` agent
+  (`.claude/agents/data-reviewer.md`) review it before opening the pull
+  request. Tell it what changed and where. Fix everything it lists under
+  "Must fix" and "Should fix", then have it review again. Give the owner its
+  "Expert recommendations" and "Could not check here" lists in the pull
+  request and in the final message, in plain words, for the owner to decide;
+  do not act on recommendations without asking. Changes that touch only
+  wording, the bank connection, or imports with no effect on a displayed
+  number do not need this review.
 - Read the existing code and trace what calls a function before changing it.
   Prefer a targeted fix over a rewrite. Do not remove code that looks unused
   without finding out why it exists.
