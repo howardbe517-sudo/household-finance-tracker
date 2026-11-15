@@ -1190,6 +1190,57 @@ if (R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben','Valerie']
 const pensionSnap = R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben'], samplePresent:false, income:[], tx:[], accounts:[{ id:'ACC-1', name:'Sample Pension', institution:'Sample Retirement System', accountType:'Pension', owner:'Ben', includeNW:'Yes', currentBalance:'', lastUpdated:new Date(), notes:'Projected $1,000/month at 60 · 12 years of service' }, { id:'ACC-2', name:'Cash', accountType:'Checking', includeNW:'Yes', currentBalance:500 }], debts:[], qdr:[], funds:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[] })`);
 if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement System\) · Ben: Projected \$1,000\/month/.test(pensionSnap) && /tracked net worth \$500\.00/.test(pensionSnap) && !/\| Sample Pension \|/.test(pensionSnap)) ok('snapshot lists a pension as future income from its Notes and keeps it out of net worth'); else bad('pension snapshot: ' + pensionSnap.split('\n').filter(l => /Pension|net worth/.test(l)).join(' | '));
 
+/* 12b. snapshot: funds, tables, estimated paychecks, groceries, typical-month divisor (fictional rows) */
+(function () {
+  // rows under the Savings & Reserves table (the "About your accounts" section) are not funds
+  const fsh = g.__ss.getSheetByName(SHEETS.FUNDS);
+  const guideTitle = String(fsh.getRange(TABLES.FUNDS.lastRow + 3, 1).getValue());
+  const fundIds = R(`readTable_(TABLES.FUNDS).map(function(f){ return f.id; })`);
+  if (/About your accounts/.test(guideTitle) && fundIds.length > 0 && fundIds.every(id => /^FUND-/.test(id)) && snap.indexOf('About your accounts') < 0 && snap.indexOf('NaN') < 0) ok('readTable_ reads only FUND- rows from Savings & Reserves (the reading section below the table is not a fund), and the snapshot shows no stray rows');
+  else bad('fund rows: ' + JSON.stringify([guideTitle.slice(0, 40), fundIds]));
+  // every markdown table in the snapshot has as many cells in each row as in its header and delimiter row
+  const tableBlocks = []; let cur = null;
+  snap.split('\n').forEach(l => { if (l.charAt(0) === '|') { if (!cur) tableBlocks.push(cur = []); cur.push(l.split('|').length); } else cur = null; });
+  const badBlocks = tableBlocks.filter(b => b.some(n => n !== b[0]));
+  if (tableBlocks.length >= 8 && !badBlocks.length && /\| Debt \| Type \|[^\n]*\n\|(---[:]?\|){14}\n/.test(snap)) ok('every snapshot table lines up (header, delimiter and rows have the same number of columns; Debts has 14)');
+  else bad('snapshot tables misaligned: ' + JSON.stringify(badBlocks));
+  const base = `asOf:new Date(), tz:'UTC', persons:['Ben','Valerie'], samplePresent:false, debts:[], qdr:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[]`;
+  const day = (mOff, dd) => `new Date(new Date().getFullYear(), new Date().getMonth() + (${mOff}), ${dd})`;
+  // a fund backed by an account shows that account's balance; any other fund counts savings and transfers in, expenses and debt payments out
+  const fs = R(`buildSnapshotText_({ ${base}, income:[], expected:[],
+    accounts:[{ id:'ACC-5', name:'Sample Roth ····4321', accountType:'Retirement', includeNW:'Yes', currentBalance:2500 }],
+    funds:[{ id:'FUND-001', name:'Sample Roth fund', fundType:'Retirement', backingAccount:'ACC-5', starting:'' }, { id:'FUND-002', name:'Sample Trip', fundType:'Sinking Fund', starting:100, target:1000 }],
+    tx:[{ id:'TX-1', date:${day(-1, 3)}, type:'Savings', amount:50, fundId:'FUND-002' }, { id:'TX-2', date:${day(-1, 4)}, type:'Transfer', amount:25, fundId:'FUND-002' },
+        { id:'TX-3', date:${day(-1, 5)}, type:'Debt Payment', amount:10, fundId:'FUND-002' }, { id:'TX-4', date:${day(-1, 6)}, type:'Expense', amount:20, fundId:'FUND-002', category:'Travel', subcategory:'Lodging', spendingType:'Planned Irregular' },
+        { id:'TX-5', date:${day(-1, 7)}, type:'Refund', amount:5, fundId:'FUND-002', category:'Travel', subcategory:'Lodging', spendingType:'Planned Irregular' }, { id:'TX-6', date:${day(-1, 8)}, type:'Savings', amount:999, fundId:'FUND-002', isDeleted:true }] })`);
+  const fc = R(`fundCurrent_({ id:'FUND-002', starting:100 }, [{ fundId:'FUND-002', type:'Savings', amount:50 }, { fundId:'FUND-002', type:'Transfer', amount:25 }, { fundId:'FUND-002', type:'Debt Payment', amount:10 }, { fundId:'FUND-002', type:'Expense', amount:20 }, { fundId:'FUND-002', type:'Refund', amount:5 }, { fundId:'FUND-002', type:'Savings', amount:999, isDeleted:true }], {}).current`);
+  if (/\| Sample Roth fund \| Retirement \| balance of Sample Roth \|[^\n]*\$2,500\.00/.test(fs) && /\| Sample Trip \|[^\n]*\| \$150\.00 \| 15\.0%/.test(fs) && fc === 150 && fs.indexOf('4321') < 0) ok('snapshot funds: a backed fund shows its account balance ($2,500), another fund is 100 + 50 + 25 − (10 + 20 − 5) = $150 (shared fundCurrent_), and the account\'s last four digits are left out');
+  else bad('snapshot funds: ' + fs.split('\n').filter(l => /Sample R|Sample Trip/.test(l)).join(' | ') + ' fc=' + fc);
+  // paychecks from a bank deposit are flagged and kept out of the pay-stub columns
+  const es = R(`buildSnapshotText_({ ${base}, tx:[], accounts:[], funds:[], expected:[],
+    income:[{ id:'INC-1', payDate:${day(-1, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:2000, fedTax:200, stateTax:80, ssMed:150, health:50, retirement:100, otherDed:0, notes:'SAMPLE' },
+            { id:'INC-2', payDate:${day(-1, 19)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:1500, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE From bank deposit TX-9 (no pay stub). Recorded at the deposit amount; no deductions are known.' }] })`);
+  if (/\| 2 \(1 from deposit\) \| \$2,920\.00 \|[^\n]*\| \$2,000\.00 \| \$100\.00 \| \$50\.00 \|/.test(es) && /1 paycheck\(s\) above came from a bank deposit/.test(es) && /take-home is 71\.0% of gross/.test(es) && /Sample Employer · Salary \(2 paychecks, 1 from deposit\)/.test(es)) ok('snapshot flags paychecks counted from a bank deposit and keeps their estimated gross and deductions out of the pay-stub figures');
+  else bad('estimated paychecks: ' + es.split('\n').filter(l => /deposit|Paychecks|of gross|\| [A-Z][a-z]+ 20/.test(l)).join(' | '));
+  // groceries: monthly totals by store and the top items, without receipt numbers, trip IDs, locations or bank descriptions
+  const gs = R(`buildSnapshotText_({ ${base}, income:[], accounts:[], funds:[], expected:[],
+    tx:[{ id:'TX-1', date:${day(0, 1)}, description:'COSTCO WHSE #0123 SAMPLETOWN', type:'Expense', amount:12.49, category:'Food', subcategory:'Groceries', spendingType:'Flexible' },
+        { id:'TX-2', date:${day(0, 1)}, description:'SAMPLE MARKET 55 ELM ST', type:'Expense', amount:8, category:'Food', subcategory:'Alcohol', spendingType:'Flexible' }],
+    groc:[{ id:'GI-1', tripId:'SAMPLE-TRIP-1', date:${day(0, 1)}, store:'Costco', location:'Sampletown', itemNo:'111', receiptName:'SMPL BERRY', qty:1, unitPrice:6.99, amount:6.99, discount:0, net:6.99, receiptNo:'SAMPLE-RCPT-778899' },
+          { id:'GI-2', tripId:'SAMPLE-TRIP-1', date:${day(0, 1)}, store:'Costco', location:'Sampletown', itemNo:'222', receiptName:'SMPL BREAD', qty:1, unitPrice:5.5, amount:5.5, discount:0, net:5.5, receiptNo:'SAMPLE-RCPT-778899' },
+          { id:'GI-3', tripId:'SAMPLE-TRIP-0', date:${day(0, 1)}, store:'Costco', location:'Sampletown', itemNo:'111', receiptName:'SMPL BERRY', qty:1, unitPrice:6.99, amount:6.99, discount:0, net:6.99, receiptNo:'SAMPLE-RCPT-000001', isDeleted:true }],
+    grocNames:[{ id:'GN-1', store:'Costco', itemNo:'111', receiptName:'SMPL BERRY', item:'Sample Blueberries', category:'Food', subcategory:'Groceries' }] })`);
+  if (/## Groceries/.test(gs) && /\| [A-Z][a-z]+ \d{4} \(to date\) \| \$20\.49 \| \$12\.49 \| \$8\.00 \| \$8\.00 \|/.test(gs) && /\| Sample Blueberries \| Groceries \| 1 \| \$6\.99 \|/.test(gs) && /\| SMPL BREAD \|/.test(gs) && /Costco food from receipts[^\n]*\$12\.49/.test(gs)
+      && !/RCPT|TRIP|Sampletown|SAMPLETOWN|#0123|ELM ST|SAMPLE MARKET/.test(gs)) ok('snapshot groceries: monthly totals (alcohol counted with groceries, Costco apart), Costco food from receipts and the top items by readable name; deleted copies, receipt numbers, trip IDs, locations and bank descriptions left out');
+  else bad('groceries section: ' + gs.slice(gs.indexOf('## Groceries'), gs.indexOf('## Utilities')));
+  // the typical month divides by the months that have spending, and a month with paychecks but no transactions says so
+  const ds = R(`buildSnapshotText_({ ${base}, accounts:[], funds:[], expected:[],
+    income:[{ id:'INC-1', payDate:${day(-2, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:1000, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE' }],
+    tx:[{ id:'TX-1', date:${day(-1, 10)}, type:'Expense', amount:300, category:'Housing', subcategory:'Mortgage or Rent', spendingType:'Fixed' }] })`);
+  if (/the average of the 1 month\(s\) among the last 3 full months/.test(ds) && /\| Housing \| \$0\.00 \| \$300\.00 \| \$300\.00 \| 100\.0% \|/.test(ds) && /\| \$1,000\.00 \| no transactions recorded \|/.test(ds) && /Fixed \$300\.00/.test(ds)) ok('snapshot typical month divides by the months that have spending ($300, not $100) and marks a month with paychecks but no transactions');
+  else bad('typical-month divisor: ' + ds.split('\n').filter(l => /Housing|average of|no transactions|Fixed \$/.test(l)).join(' | '));
+})();
+
 vm.runInContext('clearSampleData()', ctx);
 const left = vm.runInContext("readTable_(TABLES.TX).filter(r => r.createdBy === 'sample-data').length", ctx);
 const realLeft = vm.runInContext("readTable_(TABLES.ACCOUNTS).filter(a => /^ACC-0(0[6-9]|1[0-3])$/.test(a.id)).length", ctx);

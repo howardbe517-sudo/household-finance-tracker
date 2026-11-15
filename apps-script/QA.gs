@@ -138,13 +138,12 @@ function qaReport_() {
 
   /* 6. funds */
   const fundRows = readTable_(tdef_('FUNDS')).filter(f => f.id);
-  const accBal = {};
-  readTable_(tdef_('ACCOUNTS')).forEach(a => { accBal[a.id] = Number(a.currentBalance || 0); });
+  const accById6 = {};
+  readTable_(tdef_('ACCOUNTS')).forEach(a => { accById6[a.id] = a; });
   fundRows.forEach(f => {
-    const contrib = sumWhere(live, t => t.fundId === f.id && (t.type === 'Savings' || t.type === 'Transfer'), 'amount');
-    const wd = sumWhere(live, t => t.fundId === f.id && (t.type === 'Expense' || t.type === 'Debt Payment'), 'amount') - sumWhere(live, t => t.fundId === f.id && t.type === 'Refund', 'amount');
-    // a fund backed by an account is that account's balance; any other fund is starting + contributions − withdrawals
-    const exp = f.backingAccount ? (accBal[f.backingAccount] || 0) : Number(f.starting || 0) + contrib - wd;
+    // a fund backed by an account is that account's balance; any other fund is starting + contributions − withdrawals (fundCurrent_, shared with the AI snapshot)
+    const fc = fundCurrent_(f, live, accById6);
+    const exp = fc.current, contrib = fc.contributions, wd = fc.withdrawals;
     if (!near(f.current, exp)) fail('Fund ' + f.id + ' ' + f.name + ': Current ' + money(f.current) + ' ≠ ' + money(exp));
     else pass('Fund ' + f.id + ' ' + f.name + ': current ' + money(exp) + ' (+' + money(contrib) + ' / −' + money(wd) + ')');
   });

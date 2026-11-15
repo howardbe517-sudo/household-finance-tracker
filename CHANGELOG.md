@@ -1,5 +1,49 @@
 # CHANGELOG
 
+## 2026-11-15 — AI snapshot matches the workbook again
+- Why (the owner): the "Copy financial snapshot for AI" text had fallen behind
+  the tabs; it should hold whatever an AI needs to answer any question.
+- `Export.gs` (Finance Tracker → Copy financial snapshot for AI…):
+  - Funds: a fund backed by an account shows that account's balance; other
+    funds count Savings and Transfers in, Expenses and Debt Payments out
+    (less Refunds), as Savings & Reserves does. Status is worked out from the
+    same figure. No stray rows from "About your accounts".
+  - New "How to read this" notes and a "Typical month" section with the
+    Financial Summary's four cards (coming in, fixed costs, flexible average,
+    likely left over).
+  - Spending by category: this month to date, the last full month and a
+    typical month that averages only months with spending; the first
+    transaction date is stated. A month with paychecks but no transactions
+    says so instead of showing the whole take-home as left over.
+  - Income: paychecks counted from a bank deposit are marked "from deposit";
+    gross, retirement, health and % of gross come from pay stubs only. Each
+    job's latest stub deductions per paycheck are listed.
+  - New Groceries section (monthly totals by Costco / other stores, alcohol
+    counted with groceries; Costco food from receipts for 24 months; top 15
+    items) and Utilities section (bills by month, 12-month average). No
+    receipt numbers, trip IDs, locations or bank descriptions.
+  - Recurring: due day and Record Automatically shown; bills total leaves
+    out the Loans group (as Fixed Costs does); subscriptions & memberships
+    together; rows with no amount listed as "amount unknown".
+  - Debts: Household Debt is every debt (as on the Financial Summary), with
+    student loans also shown apart; the table's columns line up.
+  - Accounts: only accounts counted in net worth are listed (others named
+    once); how each balance is kept current (bank feed, typed by hand, plus
+    payroll additions); About This Account texts; cards are not listed as
+    assets; the last four digits are taken off account names.
+  - Dates use the Sheet's time zone (the "As of" date no longer jumps a day
+    in the evening).
+- `Helpers.gs`: `readTable_` honours a table's `idRegex`; new pure
+  `fundCurrent_` and `fundStatus_`. `Config.gs`: Savings & Reserves has
+  `idRegex: '^FUND-'` (no column change), so the reading section under the
+  table is never read as funds (QA, imports and the split panel too).
+  `QA.gs` uses `fundCurrent_`.
+- `BUILD_VERSION` 1.26.0. Files changed in `apps-script/`: `Export.gs`,
+  `Helpers.gs`, `QA.gs`, `Config.gs`. Nothing to run in the Sheet; try
+  Finance Tracker → Copy financial snapshot for AI….
+- Tested: Node (suite incl. new snapshot checks; safety check). Not yet seen
+  in Google.
+
 ## 2026-11-15 — Parked for Bills removed completely
 - Why (the owner): bills are paid from checking; nothing left over from the
   parked-money feature should stay in the tracker.
