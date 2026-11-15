@@ -99,6 +99,11 @@ if (unbalanced) bad(`${unbalanced} formulas with unbalanced parentheses/braces o
 if (stray) bad(`${stray} formulas with unresolved template tokens`); else ok('no unresolved template tokens');
 if (badSheetRef) bad(`${badSheetRef} references to non-existent sheets`); else ok('every cross-sheet reference names an existing tab');
 if (ss.allFormulas.some(x => /COUNTUNIQUE\(/.test(x.f))) bad('COUNTUNIQUE is used: it counts a FILTER with no match as one value; use IFERROR(ROWS(UNIQUE(FILTER(…))),0)'); else ok('no formula counts with COUNTUNIQUE (it would count an empty FILTER as one)');
+{
+  // a LET or LAMBDA name that looks like a cell (m0, ab12) is a formula parse error in Google Sheets
+  const cellLike = ss.allFormulas.filter(x => /(?:LET\(|LAMBDA\(|,)\s*[A-Za-z]{1,3}[0-9]+\s*,/.test(String(x.f).replace(/"[^"]*"/g, '""').replace(/\$?[A-Z]{1,3}\$?[0-9]+/g, 'REF')));
+  if (cellLike.length) bad('LET/LAMBDA names that look like cell references (a parse error in Sheets): ' + cellLike.slice(0, 3).map(x => x.sheet + '!' + x.a1).join(', ')); else ok('no LET or LAMBDA name looks like a cell reference');
+}
 if (unknown.size) bad('unknown function names: ' + [...unknown.entries()].map(e => e.join('×')).join(', ')); else ok('every function name is a known Google Sheets function');
 
 /* 5. column letters in cross-table references resolve to the intended header */

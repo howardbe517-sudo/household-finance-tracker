@@ -336,7 +336,7 @@ function buildGroceries_() {
       f: F('=ARRAYFORMULA(IFERROR(ROWS(UNIQUE(FILTER([GROC.tripId],' + live + '*([GROC.month]=' + M + ')))),0))'),
       sub: F('=ARRAYFORMULA(LET(s,SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),' + net + '),v,-SUMPRODUCT(' + live + '*([GROC.month]=' + M + '),IF(ISNUMBER([GROC.discount]),[GROC.discount],0)),IF(s=0,"no receipts this month",TEXT(s,"$#,##0.00")&" on the receipts"&IF(v>0," · "&TEXT(v,"$#,##0.00")&" saved with coupons",""))))') },
     { cols: ['G', 'I'], label: 'Typical grocery month', fmt: '$#,##0.00',
-      f: F('=ARRAYFORMULA(LET(m0,DATE(YEAR(TODAY()),MONTH(TODAY()),1),v,MAP({1;2;3},LAMBDA(k,' + grocIn('EDATE(m0,-k)') + ')),n,SUM(--(v>0)),IF(n=0,"—",SUM(v)/n)))'),
+      f: F('=ARRAYFORMULA(LET(mstart,DATE(YEAR(TODAY()),MONTH(TODAY()),1),v,MAP({1;2;3},LAMBDA(k,' + grocIn('EDATE(mstart,-k)') + ')),n,SUM(--(v>0)),IF(n=0,"—",SUM(v)/n)))'),
       sub: 'the last 3 full months with grocery spending, averaged' },
   ];
   tiles.forEach(t => {
