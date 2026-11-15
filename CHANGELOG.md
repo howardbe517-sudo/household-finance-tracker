@@ -11,6 +11,13 @@
   Groceries; months before the first grocery transaction stay blank, and the
   3-month average uses only months with data). The numbers behind them are
   under the graphs in K:M. Charts are removed and redrawn with the tab.
+- Alcohol counts as groceries (the owner: "I only drink when I eat"): the
+  tab's grocery totals, store table, tiles and both graphs count Food →
+  Groceries and Food → Alcohol; a new Alcohol column in the store table shows
+  how much of each month's Total it was. In Transactions alcohol keeps its
+  own subcategory, so it can always be separated.
+- Receipt splits: the sales tax now goes to alcohol as well as non-food (both
+  are taxed in Michigan); groceries are untaxed.
 - `BUILD_VERSION` 1.23.0. Files changed in `apps-script/`: `Groceries.gs`,
   `Config.gs`. Run **Upgrade workbook** once.
 - Tested: Node (two combo charts, ranges, formulas; safety check). The

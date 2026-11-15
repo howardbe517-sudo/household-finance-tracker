@@ -14,7 +14,7 @@
  *  - splitGroceryCharges_: each trip's card charge (a Transactions row whose description mentions
  *    Costco, dated the trip day or up to five days later, for the subtotal plus at most the sales
  *    tax) is split by the receipt into Groceries, Household Supplies, Child Supplies, Fuel and so on.
- *    The sales tax goes to the non-food parts, which are the taxed ones. A trip whose lines are all
+ *    The sales tax goes to the taxed parts: alcohol and non-food. A trip whose lines are all
  *    one subcategory just sets that charge's category instead of splitting it.
  *
  * The tab: a Month to look at (B3); tiles for that month; grocery spending by store for the last
@@ -34,7 +34,7 @@ const GROC = {
   TRIP_BAR: 155, TRIP_NOTE: 156, TRIP_HEADER: 157, TRIP_FIRST: 158, TRIP_ROWS: 150,
   LAST_ROW: 310, WIDTH: 9,
   // the two graphs to the right of the tables (the owner, 2026-11-15): a bar for each month and a line for the
-  // 3-month average. Costco food (Food → Groceries lines on Costco receipts) for 24 months beside the store table;
+  // 3-month average. Costco food (Food → Groceries and Alcohol lines on Costco receipts) for 24 months beside the store table;
   // groceries at every store (Transactions) for 12 months beside "What you bought". The numbers behind them sit
   // under the graphs, in columns K to M.
   GRAPH_COL: 11, GRAPH1_ROW: 9, GRAPH2_ROW: 27, COSTCO_MONTHS: 24, GROC_MONTHS: 12,
@@ -140,8 +140,9 @@ function findGroceryCharge_(trip, txRows, taken) {
  *   trip    from groceryTrips_, its lines carrying category and subcategory
  *   charge  the card charge amount
  * Returns [{ category, subcategory, amount }], largest first, summing exactly to the charge. What
- * the charge holds over the item subtotal is sales tax: it goes to the parts that are not Food (the
- * taxed ones) in proportion to their size, or to the largest part when every part is food.
+ * the charge holds over the item subtotal is sales tax: it goes to the taxed parts (everything but
+ * Food → Groceries, so alcohol and non-food) in proportion to their size, or to the largest part
+ * when every part is groceries.
  */
 function groceryChargeSplit_(trip, charge) {
   const parts = {};
@@ -156,7 +157,7 @@ function groceryChargeSplit_(trip, charge) {
   list.sort((a, b) => b.amount - a.amount);
   if (!list.length) return [];
   const tax = grocRound_(Number(charge) - list.reduce((s, p) => s + p.amount, 0));
-  const taxed = list.filter(p => p.category !== 'Food' && p.amount > 0);
+  const taxed = list.filter(p => !(p.category === 'Food' && p.subcategory === 'Groceries') && p.amount > 0); // alcohol and non-food are taxed; groceries are not
   if (tax !== 0) {
     if (taxed.length) {
       const base = taxed.reduce((s, p) => s + p.amount, 0);
@@ -308,7 +309,9 @@ function buildGroceries_() {
   const SEL = '$B$3';
 
   // Transactions: grocery spending (Food → Groceries, expenses minus refunds, deleted rows and split parents left out) and the store of each row
-  const gTx = '([TX.category]="Food")*([TX.subcategory]="Groceries")*([TX.isDeleted]<>TRUE)*(([TX.type]="Expense")-([TX.type]="Refund"))';
+  // groceries are Food → Groceries and Food → Alcohol (the owner, 2026-11-15: "I only drink when I eat"); alcohol is shown on its own too
+  const gTx = '([TX.category]="Food")*(([TX.subcategory]="Groceries")+([TX.subcategory]="Alcohol"))*([TX.isDeleted]<>TRUE)*(([TX.type]="Expense")-([TX.type]="Refund"))';
+  const aTx = '([TX.category]="Food")*([TX.subcategory]="Alcohol")*([TX.isDeleted]<>TRUE)*(([TX.type]="Expense")-([TX.type]="Refund"))';
   const storeOf = 'IF(REGEXMATCH([TX.description]&"","(?i)costco"),"Costco",TRIM(REGEXREPLACE([TX.description]&""," — .*$","")))';
   const txMonth = (m) => '([TX.date]>=' + m + ')*([TX.date]<EDATE(' + m + ',1))';
   // Grocery Items: live lines, numbers made safe
@@ -319,7 +322,7 @@ function buildGroceries_() {
   /* --- title, Month --- */
   mergePut('A1:' + L(W) + '1', 'Groceries').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:' + L(W) + '2', 'What groceries cost, store by store, and what you buy at Costco item by item. Store totals come from Transactions (Food → Groceries). The item detail comes from Costco receipts (the Grocery Items tab), which Claude adds from Costco\'s purchase export or a photo of a receipt; each Costco charge is split by its receipt, so only the food counts as groceries.')
+  mergePut('A2:' + L(W) + '2', 'What groceries cost, store by store, and what you buy at Costco item by item. Store totals come from Transactions (Food → Groceries and Alcohol: alcohol counts as groceries, and has its own column). The item detail comes from Costco receipts (the Grocery Items tab), which Claude adds from Costco\'s purchase export or a photo of a receipt; each Costco charge is split by its receipt, so only the food counts as groceries.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9).setWrap(true);
   sh.setRowHeight(2, 42);
   put('A3', 'Month').setFontWeight('bold');
@@ -336,7 +339,7 @@ function buildGroceries_() {
   const tiles = [
     { cols: ['A', 'B'], label: 'Groceries, all stores', fmt: '$#,##0.00',
       f: F('=ARRAYFORMULA(' + grocIn(M) + ')'),
-      sub: F('=ARRAYFORMULA(LET(t,' + grocIn(M) + ',c,' + costcoIn(M) + ',IF(t=0,"no grocery spending recorded","Costco "&TEXT(c,"$#,##0")&" · other stores "&TEXT(t-c,"$#,##0"))))') },
+      sub: F('=ARRAYFORMULA(LET(t,' + grocIn(M) + ',c,' + costcoIn(M) + ',a,SUMPRODUCT(' + aTx + '*' + txMonth(M) + ',IF(ISNUMBER([TX.amount]),[TX.amount],0)),IF(t=0,"no grocery spending recorded","Costco "&TEXT(c,"$#,##0")&" · other stores "&TEXT(t-c,"$#,##0")&IF(a<>0," · alcohol "&TEXT(a,"$#,##0")&" of it",""))))') },
     { cols: ['C', 'D'], label: 'Costco share of groceries', fmt: '0%',
       f: F('=ARRAYFORMULA(LET(t,' + grocIn(M) + ',c,' + costcoIn(M) + ',IF(t=0,"—",c/t)))'),
       sub: 'the food part of Costco charges, out of all grocery spending' },
@@ -360,7 +363,7 @@ function buildGroceries_() {
 
   /* --- grocery spending by store, last 12 months --- */
   styleSectionBar_(sh.getRange('A' + GROC.STORE_BAR + ':' + L(W) + GROC.STORE_BAR), 'Grocery spending by store — the last 12 months');
-  note(GROC.STORE_NOTE, 'From Transactions, Food → Groceries. Costco counts only the food part of each trip once its charge is split by the receipt. The four stores you spent most at in the last 12 months get a column (Costco first); the rest are under Other. Months before the bank feed started are blank.');
+  note(GROC.STORE_NOTE, 'From Transactions, Food → Groceries and Food → Alcohol (alcohol counts as groceries; the Alcohol column shows how much of the Total it was). Costco counts only the food part of each trip once its charge is split by the receipt. The four stores you spent most at in the last 12 months get a column (Costco first); the rest are under Other. Months before the bank feed started are blank.');
   const hdr = GROC.STORE_HEADER;
   styleHeader_(put('A' + hdr, 'Month'));
   const start12 = 'EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),-' + (GROC.STORE_MONTHS - 1) + ')';
@@ -371,6 +374,8 @@ function buildGroceries_() {
   styleHeader_(put(L(otherCol) + hdr, 'Other'));
   styleHeader_(put(L(totCol) + hdr, 'Total'));
   styleHeader_(put(L(shareCol) + hdr, 'Costco share'));
+  const alcCol = shareCol + 1;
+  styleHeader_(put(L(alcCol) + hdr, 'Alcohol (in Total)'));
   for (let k = 0; k < GROC.STORE_MONTHS; k++) {
     const r = GROC.STORE_FIRST + k;
     const mCell = '$A' + r;
@@ -382,11 +387,13 @@ function buildGroceries_() {
     put(L(totCol) + r, F('=ARRAYFORMULA(LET(v,' + grocIn(mCell) + ',IF(v=0,"",v)))'));
     put(L(otherCol) + r, '=IF(' + L(totCol) + r + '="","",LET(v,' + L(totCol) + r + '-SUM(B' + r + ':' + L(1 + GROC.STORE_COLS) + r + '),IF(ABS(v)<0.005,"",v)))');
     put(L(shareCol) + r, F('=ARRAYFORMULA(IF(' + L(totCol) + r + '="","",' + costcoIn(mCell) + '/' + L(totCol) + r + '))'));
+    put(L(alcCol) + r, F('=ARRAYFORMULA(LET(v,SUMPRODUCT(' + aTx + '*' + txMonth(mCell) + ',IF(ISNUMBER([TX.amount]),[TX.amount],0)),IF(v=0,"",v)))'));
   }
   sh.getRange(GROC.STORE_FIRST, 2, GROC.STORE_MONTHS, totCol - 1).setNumberFormat(FORMATS.currency);
   sh.getRange(GROC.STORE_FIRST, shareCol, GROC.STORE_MONTHS, 1).setNumberFormat('0%');
+  sh.getRange(GROC.STORE_FIRST, alcCol, GROC.STORE_MONTHS, 1).setNumberFormat(FORMATS.currency).setFontColor(COLORS.MUTED_TEXT);
   sh.getRange(GROC.STORE_FIRST, totCol, GROC.STORE_MONTHS, 1).setFontWeight('bold');
-  sh.getRange(hdr, 1, GROC.STORE_MONTHS + 1, shareCol).setBorder(true, true, true, true, false, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange(hdr, 1, GROC.STORE_MONTHS + 1, alcCol).setBorder(true, true, true, true, false, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
   /* --- what you bought in the month --- */
   styleSectionBar_(sh.getRange('A' + GROC.ITEM_BAR + ':' + L(W) + GROC.ITEM_BAR), 'What you bought — the Month above, item by item, from receipts');
@@ -448,8 +455,8 @@ function buildGroceries_() {
 
   /* --- the two graphs, to the right: a bar per month and the 3-month average as a line --- */
   const gc = GROC.GRAPH_COL, gl = (k) => L(gc + k);
-  const costcoFood = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*([GROC.subcategory]="Groceries")*([GROC.month]>=' + m + ')*([GROC.month]<EDATE(' + m + ',1)),' + net + ')';
-  const costcoFood3 = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*([GROC.subcategory]="Groceries")*([GROC.month]>=EDATE(' + m + ',-2))*([GROC.month]<EDATE(' + m + ',1)),' + net + ')/3';
+  const costcoFood = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*(([GROC.subcategory]="Groceries")+([GROC.subcategory]="Alcohol"))*([GROC.month]>=' + m + ')*([GROC.month]<EDATE(' + m + ',1)),' + net + ')';
+  const costcoFood3 = (m) => 'SUMPRODUCT(' + live + '*([GROC.store]="Costco")*([GROC.category]="Food")*(([GROC.subcategory]="Groceries")+([GROC.subcategory]="Alcohol"))*([GROC.month]>=EDATE(' + m + ',-2))*([GROC.month]<EDATE(' + m + ',1)),' + net + ')/3';
   const dataBlock = (bar, hdr, months, title, heads, rowF) => {
     styleSectionBar_(sh.getRange(gl(0) + bar + ':' + gl(2) + bar), title);
     heads.forEach((h, j) => styleHeader_(put(gl(j) + hdr, h)));
