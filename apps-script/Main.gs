@@ -39,6 +39,7 @@ function buildWorkbook(options) {
   buildPasteImport_();
   buildSpending_();
   buildUtilities_();
+  buildGroceries_();
   buildGoals_();
   buildReminders_();
   buildAppSetup_(opts.sample);

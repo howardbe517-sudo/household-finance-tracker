@@ -643,6 +643,8 @@ function syncAllConnections(opts) {
   try { results.reviewed = importReviewedRows_(); } catch (e) { Logger.log('importReviewedRows_: ' + (e && e.message || e)); }
   // utility payments that reached Transactions become paid bills on Utility Bills (the Utilities tab charts them)
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
+  // Costco receipts (Grocery Items): a trip sent twice counts once, and each trip's card charge is split by its receipt
+  try { results.groceries = refreshGroceries_(); } catch (e) { Logger.log('refreshGroceries_: ' + (e && e.message || e)); }
   // paycheck deposits count as income the day they land: each Income-type deposit without a paycheck gets its Income row
   try { results.income = ensureIncomeFromDeposits_(); } catch (e) { Logger.log('ensureIncomeFromDeposits_: ' + (e && e.message || e)); }
   // payroll deposits into accounts the feed cannot reach (the HSA): each new paycheck adds its amount to the balance
@@ -671,6 +673,7 @@ function syncNow() {
     + (describeIncomeFromDeposits_(results.income) ? '\n\nIncome: ' + describeIncomeFromDeposits_(results.income) + '.' : '')
     + (describeRecurringAuto_(results.recurring) ? '\n\nRecurring bills: ' + describeRecurringAuto_(results.recurring) : '')
     + (results.payroll && results.payroll.details.length ? '\n\nPayroll deposits: ' + results.payroll.details.join('; ') : '')
+    + (describeGroceries_(results.groceries) ? '\n\nCostco receipts: ' + describeGroceries_(results.groceries) + '.' : '')
     + '\n\nNew transactions usually appear a few hours after they post at the bank; balances above are as the bank shows them now.' : 'No active connections yet. Use Bank feed → Connect a bank.');
   return results;
 }

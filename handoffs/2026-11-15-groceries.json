@@ -1,0 +1,61 @@
+{
+  "title": "Groceries Tab",
+  "key": "household-finance-tracker-2026-11-15-groceries",
+  "subtitle": "A new Groceries tab: spending by store, every Costco item by month, your top items and their prices, and every Costco trip. Costco charges are split by their receipts.",
+  "intro": [
+    "After the pull request merges, the code is already in your Sheet. One upgrade adds three tabs; then tell me in the chat and I load your Costco history and today's receipt.",
+    "**What does not change:** no balances, transactions or categories you have set. Costco charges already in Transactions stay as they are; new ones are split by their receipts."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before groceries 2026-11-15`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Open the **App Setup** tab and check that **Build Script Version** reads `1.22.0`. If it shows an older number, wait a minute and reload the Sheet."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm. It takes a minute or two.",
+          "done": "The report lists Added tab: Grocery Items, Grocery Item Names and Groceries."
+        },
+        {
+          "text": "Come back to the chat with Claude and say **upgrade done**. Claude then loads your Costco history (January 2024 to October 2026) and today's receipt.",
+          "note": "Until then the Groceries tab is empty."
+        }
+      ]
+    },
+    {
+      "heading": "Look at it",
+      "steps": [
+        {
+          "text": "Open **Groceries**. Type a date in **Month** (B3), for example `10/1/2026`, to see every Costco item bought in October with what it cost.",
+          "done": "\"What you bought at Costco\" lists items such as Blueberries with Times Bought, Spent and Average Price."
+        },
+        {
+          "text": "Scroll down for **What you buy most** (12 months, with the earlier and latest price) and **Costco trips**.",
+          "note": "Store totals at the top start in November 2026, when the bank feed started. Older Costco trips show in the item lists and the trip list."
+        },
+        {
+          "text": "To rename an item or change what it counts as, open **Grocery Item Names** and edit the Item, Category or Subcategory on its row.",
+          "note": "Every receipt line with that item number follows. Snacks and drinks from Costco count as groceries; beer counts as Alcohol; paper towels, soap and bags as Household Supplies; diapers and wipes as kids' Supplies; dog chews as Pets."
+        }
+      ]
+    },
+    {
+      "heading": "Adding new Costco trips",
+      "steps": [
+        {
+          "text": "Send Claude a photo of a receipt, or a new export from costco.com (Orders & Purchases → In-Warehouse; trips usually show up within a day). Either works.",
+          "note": "A trip sent both ways counts once: the export copy is kept and the photo copy is set aside. When the card charge for a trip comes in, the next sync splits it by the receipt."
+        }
+      ]
+    }
+  ]
+}

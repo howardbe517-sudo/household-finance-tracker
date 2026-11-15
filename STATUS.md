@@ -1,5 +1,12 @@
 # STATUS
 
+2026-11-15 (build 1.22.0, schema 3.17): Groceries tab, Grocery Items and
+Grocery Item Names. Costco history (export through 2026-10-25) and the
+2026-11-15 receipt photo are loaded by Claude after the owner runs Upgrade
+workbook. The 2026-11-15 photo trip's date is assumed (the photo cut off the
+date line). Groceries counted as Food → Groceries at Costco include snacks
+and drinks; beer is Food → Alcohol.
+
 2026-11-14 (build 1.21.0): About your accounts opens with a note from App
 Setup. The owner could not reach miAccount, Voya or HealthEquity yet, so
 the note says the plan details still need checking; the Information
