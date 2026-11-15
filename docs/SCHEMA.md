@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.17-groceries-2026-11-15**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.18-no-parked-2026-11-15**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -287,9 +287,9 @@ Named range `TBL_FUNDS` covers the header row through the last formula row.
 | C | Fund Type | `fundType` | text | dropdown: LIST_FUND_TYPES |  |
 | D | Target Amount | `target` | currency | input |  |
 | E | Starting Amount | `starting` | currency | input |  |
-| F | Contributions | `contributions` | currency | calculated | `=IF([@id]="","",IF([@fundType]="Parked for Bills",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[TX.isDeleted],"<>TRUE",[TX.date],">"&MAX(MAXIFS(…` — Changed in 3.9: a Transfer that carries this Fund ID counts too. For a Parked for Bills fund only the tagged deposits since the last tagged bill payment count (the current cycle), so money left over from earlier cycles is savings again. |
-| G | Withdrawals | `withdrawals` | currency | calculated | `=IF([@id]="","",IF([@fundType]="Parked for Bills",IF(MAX(MAXIFS([TX.date],[TX.fundId],[@id],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"),MAXIFS([TX.date…` — Changed in 3.9: a Debt Payment that carries this Fund ID counts too. For a Parked for Bills fund this is the Starting Amount once the first tagged bill payment has gone out (the seed is spent); the cycle itself is in Contributions. |
-| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",IF(AND([@backingAccount]<>"",[@fundType]<>"Parked for Bills"),IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id]…` — Changed in 3.9: a fund with a Backing Account shows that account's live balance minus whatever "Parked for Bills" funds hold on the same account, so it reads as the money that is permanently there. A Parked for Bills fund holds the tagged deposits of the current cycle (since the last tagged bill payment), capped at its Target Amount when one is set (one payment's worth); anything beyond the cap counts as savings. |
+| F | Contributions | `contributions` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[…` — Changed in 3.9: a Transfer that carries this Fund ID counts too. 3.18: the Parked for Bills rule is gone (bills are paid from checking). |
+| G | Withdrawals | `withdrawals` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Debt Paymen…` — Changed in 3.9: a Debt Payment that carries this Fund ID counts too. 3.18: the Parked for Bills rule is gone. |
+| H | Current Amount | `current` | currency | calculated | `=IF([@id]="","",IF([@backingAccount]<>"",IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0),N([@starting])+[@contributio…` — A fund with a Backing Account shows that account's live balance; any other fund is Starting Amount + Contributions − Withdrawals. 3.18: nothing is subtracted for money parked for bills any more (bills are paid from checking). |
 | I | Target Date | `targetDate` | date | input (date) |  |
 | J | Planned Monthly | `plannedMonthly` | currency | input |  |
 | K | Amount Needed | `amountNeeded` | currency | calculated | `=IF([@id]="","",MAX(N([@target])-[@current],0))` |
@@ -611,7 +611,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | OWNERS | Owners | Ben, Valerie, Household |
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
-| FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other, Parked for Bills |
+| FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |
 | DEBT_TYPES | Debt Types | Credit Card, Student Loan, Auto Loan, Mortgage, Personal Loan, Medical, Tax Debt, Other |
 | FREQUENCIES | Frequencies | Weekly, Biweekly, Monthly, Quarterly, Semiannual, Annual |
 | PAY_FREQUENCIES | Pay Frequencies | Weekly, Biweekly, Semimonthly, Monthly |

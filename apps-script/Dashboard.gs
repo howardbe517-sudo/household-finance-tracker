@@ -58,7 +58,7 @@ function buildGoals_() {
 /**
  * The accounts block: checking and savings on the left (columns A:D), the credit cards with what is
  * owed and when it is due on the right (F:I). Lines come from DASH_ACCOUNTS in Config.gs. Drawn on the
- * Financial Summary; R = { header, first, withBills, note } are the rows to use. The sheet needs the
+ * Financial Summary; R = { header, first, note } are the rows to use. The sheet needs the
  * column widths [190, 100, 70, 110, 120, 130, 120, 120, 120].
  */
 function buildAccountsBlock_(sh, R) {
@@ -88,9 +88,8 @@ function buildAccountsBlock_(sh, R) {
   sh.getRange('I' + R.header).setValue('').setBackground(COLORS.PALE_BLUE);
   sh.getRange('B' + R.header).setHorizontalAlignment('right');
   sh.getRange('G' + R.header).setHorizontalAlignment('right');
-  // Each line is the bank balance. (Until 2026-11-15 the savings line subtracted money parked in savings for bills
-  // and a faded line under it showed the full balance; the owner now pays every bill from checking, so that row,
-  // R.withBills, is left empty.)
+  // Each line is the bank balance. (Until 2026-11-15 the savings line subtracted money parked in savings for bills;
+  // the owner now pays every bill from checking.)
   DASH_ACCOUNTS.main.forEach((line, i) => {
     const r = R.first + i;
     put('A' + r, line.label + (line.sub ? ' (' + line.sub + ')' : '')).setFontWeight('bold').setBackground(COLORS.CARD_GROSS);
@@ -99,14 +98,6 @@ function buildAccountsBlock_(sh, R) {
     mergePut('C' + r + ':D' + r, F('=IF(' + countOf(line, line.type) + '=0,"not connected yet",IFERROR(LET(d,' + maxOf(line, line.type, 'lastSynced') + ',IF(d=0,"",TEXT(d,"mmm d, h:mm am/pm"))),""))')).setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_GROSS);
     sh.setRowHeight(r, 28);
   });
-  if (R.withBills) {
-    // the old "Savings + bill transfers" row: written empty, so an older build's line does not linger
-    const old = sh.getRange('A' + R.withBills + ':D' + R.withBills);
-    old.breakApart();
-    old.setValues([['', '', '', '']]);
-    old.setBackground(null).setFontColor(COLORS.TEXT).setFontWeight('normal').setFontSize(10).setBorder(false, false, false, false, false, false);
-    sh.setRowHeight(R.withBills, 21);
-  }
   DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = R.first + i;
     put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);

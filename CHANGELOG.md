@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2026-11-15 — Parked for Bills removed completely
+- Why (the owner): bills are paid from checking; nothing left over from the
+  parked-money feature should stay in the tracker.
+- Schema 3.18 (`Config.gs`): Savings & Reserves Contributions, Withdrawals and
+  Current Amount lose their Parked for Bills branches (a fund with a Backing
+  Account is that account's balance; any other fund is Starting +
+  Contributions − Withdrawals). "Parked for Bills" leaves the Fund Type list;
+  `RETIRED_LIST_VALUES` lets the upgrade remove it from the live list unless a
+  fund still uses it (`Upgrade.gs`, `upgradeLists_`).
+- `QA.gs`: the fund check matches the simpler formulas.
+- `Dashboard.gs`, `FinancialSummary.gs`: the empty row left by the old
+  "Savings + bill transfers" line and `FINSUM.ACCT_WITH_BILLS` are gone. The
+  Financial Summary's Savings & Reserves section lists only funds that have
+  an ID, so an emptied row leaves no blank line.
+- `AGENTS.md`: the data reviewer checks again only when its first review
+  found a Must fix item (the owner: a second pass over small adjustments is
+  not worth the usage).
+- In the Sheet (not in the repository): the CAR PAYMENT rule row emptied.
+- `BUILD_VERSION` 1.25.0. Files changed in `apps-script/`: `Config.gs`,
+  `Upgrade.gs`, `QA.gs`, `Dashboard.gs`, `FinancialSummary.gs`. Run
+  **Upgrade workbook** once, then **Run QA checks**; step page
+  `handoffs/2026-11-15-parked-cleanup.json`.
+- Tested: Node (fund formulas, retired list value removed by the upgrade,
+  Financial Summary fund list, safety check); data review. Not yet seen in
+  Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — Bills from checking: the parked-in-savings display is removed
 - Why (the owner's decision): every bill is now paid from checking, so no
   money is parked in savings for bills.

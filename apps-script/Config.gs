@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.17-groceries-2026-11-15',
-  BUILD_VERSION: '1.24.1',
+  SCHEMA_VERSION: '3.18-no-parked-2026-11-15',
+  BUILD_VERSION: '1.25.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -132,7 +132,7 @@ const LISTS = [
   { key: 'OWNERS', header: 'Owners', values: ['Ben', 'Valerie', 'Household'] },
   { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other', 'Pension'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
-  { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other', 'Parked for Bills'] },
+  { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
   { key: 'DEBT_TYPES', header: 'Debt Types', values: ['Credit Card', 'Student Loan', 'Auto Loan', 'Mortgage', 'Personal Loan', 'Medical', 'Tax Debt', 'Other'] },
   { key: 'FREQUENCIES', header: 'Frequencies', values: ['Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Semiannual', 'Annual'] },
   { key: 'PAY_FREQUENCIES', header: 'Pay Frequencies', values: ['Weekly', 'Biweekly', 'Semimonthly', 'Monthly'] },
@@ -155,6 +155,12 @@ const LISTS = [
   // 3.17: where a grocery receipt line came from
   { key: 'GROCERY_SOURCES', header: 'Grocery Sources', values: ['Costco export', 'Receipt photo'] },
 ];
+
+/**
+ * Dropdown values taken out of a list. The upgrade removes them from the live list, unless a row still uses one
+ * (then it stays and the report says so). 3.18: Parked for Bills (the owner pays every bill from checking).
+ */
+const RETIRED_LIST_VALUES = { FUND_TYPES: { values: ['Parked for Bills'], usedBy: ['FUNDS', 'fundType'] } };
 
 /** Lists derived by formula from the taxonomy table on the Categories tab. */
 const DERIVED_LISTS = [
@@ -544,14 +550,14 @@ TABLES.FUNDS = {
     { key: 'target', h: 'Target Amount', w: 110, fmt: C.cur },
     { key: 'starting', h: 'Starting Amount', w: 110, fmt: C.cur },
     { key: 'contributions', h: 'Contributions', w: 110, fmt: C.cur,
-      f: '=IF([@id]="","",IF([@fundType]="Parked for Bills",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[TX.isDeleted],"<>TRUE",[TX.date],">"&MAX(MAXIFS([TX.date],[TX.fundId],[@id],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"),MAXIFS([TX.date],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE"))),SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[TX.isDeleted],"<>TRUE")))',
-      note: 'Changed in 3.9: a Transfer that carries this Fund ID counts too. For a Parked for Bills fund only the tagged deposits since the last tagged bill payment count (the current cycle), so money left over from earlier cycles is savings again.' },
+      f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Savings",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Transfer",[TX.isDeleted],"<>TRUE"))',
+      note: 'Changed in 3.9: a Transfer that carries this Fund ID counts too. 3.18: the Parked for Bills rule is gone (bills are paid from checking).' },
     { key: 'withdrawals', h: 'Withdrawals', w: 110, fmt: C.cur,
-      f: '=IF([@id]="","",IF([@fundType]="Parked for Bills",IF(MAX(MAXIFS([TX.date],[TX.fundId],[@id],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"),MAXIFS([TX.date],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE"))>0,N([@starting]),0),SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Refund",[TX.isDeleted],"<>TRUE")))',
-      note: 'Changed in 3.9: a Debt Payment that carries this Fund ID counts too. For a Parked for Bills fund this is the Starting Amount once the first tagged bill payment has gone out (the seed is spent); the cycle itself is in Contributions.' },
+      f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")+SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.fundId],[@id],[TX.type],"Refund",[TX.isDeleted],"<>TRUE"))',
+      note: 'Changed in 3.9: a Debt Payment that carries this Fund ID counts too. 3.18: the Parked for Bills rule is gone.' },
     { key: 'current', h: 'Current Amount', w: 110, fmt: C.cur,
-      f: '=IF([@id]="","",IF(AND([@backingAccount]<>"",[@fundType]<>"Parked for Bills"),IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0)-SUMPRODUCT(([@@id]<>"")*([@@fundType]="Parked for Bills")*([@@backingAccount]=[@backingAccount])*IF((N(+[@@target])>0)*((N(+[@@starting])+N(+[@@contributions])-N(+[@@withdrawals]))>N(+[@@target])),N(+[@@target]),N(+[@@starting])+N(+[@@contributions])-N(+[@@withdrawals]))),IF(AND([@fundType]="Parked for Bills",N([@target])>0),MIN(N([@starting])+[@contributions]-[@withdrawals],N([@target])),N([@starting])+[@contributions]-[@withdrawals])))',
-      note: 'Changed in 3.9: a fund with a Backing Account shows that account\'s live balance minus whatever "Parked for Bills" funds hold on the same account, so it reads as the money that is permanently there. A Parked for Bills fund holds the tagged deposits of the current cycle (since the last tagged bill payment), capped at its Target Amount when one is set (one payment\'s worth); anything beyond the cap counts as savings.' },
+      f: '=IF([@id]="","",IF([@backingAccount]<>"",IFERROR(N(INDEX([ACCOUNTS.currentBalance],MATCH([@backingAccount],[ACCOUNTS.id],0))),0),N([@starting])+[@contributions]-[@withdrawals]))',
+      note: 'A fund with a Backing Account shows that account\'s live balance; any other fund is Starting Amount + Contributions − Withdrawals. 3.18: nothing is subtracted for money parked for bills any more (bills are paid from checking).' },
     { key: 'targetDate', h: 'Target Date', w: 100, fmt: C.date, v: { date: true } },
     { key: 'plannedMonthly', h: 'Planned Monthly', w: 110, fmt: C.cur },
     { key: 'amountNeeded', h: 'Amount Needed', w: 110, fmt: C.cur, f: '=IF([@id]="","",MAX(N([@target])-[@current],0))' },

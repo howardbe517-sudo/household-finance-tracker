@@ -470,14 +470,33 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (/\[DEBTS\.plannedExtra\]/.test(dpF) && /SETTING_DEBT_EXTRA_ALL/.test(dpF)) ok('Monthly Plan debt payments add the planned extras and the household plan amount'); else bad('plan formula: ' + dpF);
   if (R(`(function(){ showPayoffPlanner(); return true; })()`) === true) ok('Payoff planner dialog opens from a template that includes PayoffMath'); else bad('showPayoffPlanner failed');
 })();
-/* Parked for Bills: fund formulas, dashboard rows */
+/* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
   const fcol = (k) => fundsDef.columns.filter(c => c.key === k)[0].f;
   const fundTypes = vm.runInContext("LISTS.filter(function(l){ return l.key==='FUND_TYPES'; })[0].values", ctx);
-  if (fundTypes.indexOf('Parked for Bills') >= 0 && /"Transfer"/.test(fcol('contributions')) && /MAXIFS\(\[TX\.date\]/.test(fcol('contributions')) && /"Debt Payment"/.test(fcol('withdrawals')) && /"Parked for Bills"/.test(fcol('current')) && /\[@fundType\]<>"Parked for Bills"/.test(fcol('current')) && /MIN\(/.test(fcol('current')) && /SUMPRODUCT/.test(fcol('current'))) ok('Parked for Bills: a fund type; tagged transfers count as contributions, tagged debt payments as withdrawals; a backed fund shows its balance minus the parked funds on the same account'); else bad('parked fund formulas: ' + [fcol('contributions'), fcol('withdrawals'), fcol('current')].join(' | ').slice(0, 300));
-  const savF = fsAcc.getRange('B5').getFormula(), oldA = fsAcc.getRange('A' + FINSUM.ACCT_WITH_BILLS).getValue(), oldB = fsAcc.getRange('B' + FINSUM.ACCT_WITH_BILLS).getFormula();
-  if (!/Parked for Bills/.test(savF) && /SUMPRODUCT/.test(savF) && oldA === '' && oldB === '' && !/parked/i.test(fsAcc.getRange('A' + FINSUM.ACCT_NOTE).getValue())) ok('the savings line is the savings bank balance (bills are paid from checking; no parked-for-bills split, and the old faded line is empty)'); else bad('savings line: ' + JSON.stringify([savF.slice(0, 120), oldA, oldB]));
+  const retired = vm.runInContext('RETIRED_LIST_VALUES.FUND_TYPES.values', ctx);
+  const all = ['contributions', 'withdrawals', 'current'].map(fcol).join(' ');
+  if (fundTypes.indexOf('Parked for Bills') < 0 && retired.indexOf('Parked for Bills') >= 0 && !/Parked/.test(all) && /"Transfer"/.test(fcol('contributions')) && /"Debt Payment"/.test(fcol('withdrawals')) && /\[@backingAccount\]<>""/.test(fcol('current')) && !/SUMPRODUCT/.test(fcol('current')))
+    ok('funds: Transfers count as contributions and Debt Payments as withdrawals; a fund backed by an account is that account\'s balance; Parked for Bills is gone from the formulas and retired from the Fund Type list');
+  else bad('fund formulas: ' + all.slice(0, 200));
+  const fsAcc = ss.getSheetByName(SHEETS.FINSUM);
+  const savF = fsAcc.getRange('B5').getFormula(), row6 = fsAcc.getRange('A6').getValue() + fsAcc.getRange('B6').getFormula();
+  const fundF = fsAcc.getRange('A' + vm.runInContext('FINSUM.FUNDS_FIRST', ctx)).getFormula();
+  if (!/Parked/.test(savF) && /SUMPRODUCT/.test(savF) && row6 === '' && !/parked/i.test(fsAcc.getRange('A' + vm.runInContext('FINSUM.ACCT_NOTE', ctx)).getValue()) && /FILTER\('Savings & Reserves'!\$B\$5:\$B,'Savings & Reserves'!\$A\$5:\$A<>""\)/.test(fundF))
+    ok('Financial Summary: savings is the bank balance (no parked split), and the fund list skips emptied rows on Savings & Reserves');
+  else bad('summary savings / funds: ' + JSON.stringify([savF.slice(0, 80), row6, fundF.slice(0, 120)]));
+  {
+    // a live workbook still has the retired value in its list: the upgrade removes it (no fund uses it)
+    const lr = ss.getRangeByName('LIST_FUND_TYPES');
+    const vals = lr.getValues().map(r => r[0]);
+    const n = vals.filter(v => v !== '').length;
+    lr.getSheet().getRange(lr.getRow() + n, lr.getColumn()).setValue('Parked for Bills');
+    const rep = R('upgradeLists_()');
+    const after = ss.getRangeByName('LIST_FUND_TYPES').getValues().map(r => r[0]).filter(v => v !== '');
+    if (after.indexOf('Parked for Bills') < 0 && after.length === n && rep.some(x => /removed Parked for Bills/.test(x))) ok('the upgrade removes Parked for Bills from the live Fund Type list when no fund uses it');
+    else bad('retired list value: ' + JSON.stringify([after, rep]));
+  }
 })();
 (function () {
   // a single-name line (Capital One, Checking) must not compare TRUE/FALSE with 0: in Sheets FALSE>0 is TRUE

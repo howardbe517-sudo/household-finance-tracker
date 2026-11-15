@@ -243,6 +243,22 @@ function upgradeLists_() {
   LISTS.forEach(list => {
     const existing = ss.getRangeByName('LIST_' + list.key);
     if (existing) {
+      // values taken out of the schema: drop them from the live list unless a row still uses one
+      const retired = (typeof RETIRED_LIST_VALUES !== 'undefined' && RETIRED_LIST_VALUES[list.key]) || null;
+      if (retired) {
+        const have = existing.getValues().map(r => r[0]).filter(v => v !== '');
+        const used = {};
+        try { readTable_(tdef_(retired.usedBy[0])).forEach(row => { used[row[retired.usedBy[1]]] = true; }); } catch (e) { /* table missing: nothing uses it */ }
+        const drop = retired.values.filter(v => have.indexOf(v) >= 0 && !used[v]);
+        const kept = retired.values.filter(v => have.indexOf(v) >= 0 && used[v]);
+        if (drop.length) {
+          const left = have.filter(v => drop.indexOf(v) < 0);
+          // the list column holds only these dropdown values (no entered data): rewrite it, blanks at the end
+          existing.setValues(existing.getValues().map((r, i) => [i < left.length ? left[i] : '']));
+          report.push('List ' + list.header + ': removed ' + drop.join(', '));
+        }
+        if (kept.length) report.push('List ' + list.header + ': kept ' + kept.join(', ') + ' because a row still uses it');
+      }
       // append any new values the schema added to an existing list
       const current = existing.getValues().map(r => r[0]).filter(v => v !== '');
       const missing = list.values.filter(v => current.indexOf(v) < 0);
