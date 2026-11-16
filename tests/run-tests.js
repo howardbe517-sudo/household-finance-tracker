@@ -496,6 +496,85 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (/'Import Staging'!/.test(gF) && /"Superseded"/.test(gF) && /TODAY\(\)-10/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 62.99) ok('each card on the Financial Summary shows its posted balance plus charges still pending at the bank, read from Import Staging whether reviewed or not (superseded, removed, posted, other cards and pending rows older than 10 calendar days left out, exactly 10 kept as in TODAY()-10; payments take away), and says how much is pending');
   else bad('card pending: ' + JSON.stringify([gF.slice(0, 160), p]));
 })();
+/* calendar: bills, paychecks, utilities and card minimums for one month (2026-11-16) */
+(function () {
+  const r = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const src = {
+      accounts: [{ id: 'A1', name: 'Checking', accountType: 'Checking' }, { id: 'C1', name: 'Card X', accountType: 'Credit Card' }],
+      recur: [
+        { id: 'R1', name: 'Rent', active: true, amount: 1000, frequency: 'Monthly', dueDay: 1, category: 'Housing', subcategory: 'Mortgage or Rent', accountId: 'A1' },
+        { id: 'R2', name: 'Stream A', active: true, amount: 10, frequency: 'Monthly', dueDay: 11, category: 'Personal', subcategory: 'Subscriptions', accountId: 'C1', autoPay: true },
+        { id: 'R3', name: 'Stream B', active: true, amount: 50, frequency: 'Monthly', dueDay: 11, category: 'Personal', subcategory: 'Subscriptions', accountId: 'C1' },
+        { id: 'R4', name: 'Sitter', active: true, amount: 200, frequency: 'Weekly', nextPayment: D(2030, 1, 4), category: 'Childcare', subcategory: 'Nanny' },
+        { id: 'R5', name: 'Car loan', active: true, amount: 250, frequency: 'Monthly', dueDay: 31, category: 'Debt Payments', subcategory: 'Auto Loan Payment' },
+        { id: 'R6', name: 'No date', active: true, amount: '', frequency: 'Monthly', dueDay: '' },
+        { id: 'R7', name: 'Yearly', active: true, amount: 120, frequency: 'Annual', nextPayment: D(2029, 3, 9) },
+        { id: 'R8', name: 'Off', active: false, amount: 5, frequency: 'Monthly', dueDay: 2 },
+      ],
+      debts: [
+        { id: 'D1', name: 'Old card', minPayment: 40, dueDay: 14, latestBalance: 900 },
+        { id: 'D2', name: 'Car', minPayment: 250, dueDay: 31, latestBalance: 5000 },
+        { id: 'D3', name: 'Paid off', minPayment: 30, dueDay: 5, latestBalance: 0 },
+      ],
+      util: [
+        { id: 'U1', utility: 'Gas', provider: 'GasCo', dueDate: D(2029, 3, 5), amount: 90, status: 'Paid' },
+        { id: 'U2', utility: 'Gas', provider: 'GasCo', dueDate: D(2030, 2, 5), amount: 70, status: 'Paid' },
+        { id: 'U5', utility: 'Water', provider: 'Old', dueDate: D(2029, 11, 5), amount: 40, status: 'Paid' },
+        { id: 'U3', utility: 'Electric', provider: 'PowerCo', dueDate: D(2030, 3, 2), amount: 120, status: 'Due' },
+        { id: 'U4', utility: 'Electric', provider: 'PowerCo', dueDate: D(2030, 2, 2), amount: 100, status: 'Paid' },
+      ],
+      expect: [
+        { id: 'E1', person: 'Ben', employer: 'Job A', frequency: 'Biweekly', typicalTakeHome: 1500, active: true, lastPayDate: D(2030, 2, 22) },
+        { id: 'E2', person: 'Valerie', employer: 'Job B', frequency: 'Weekly', typicalTakeHome: 200, active: true, lastPayDate: '' },
+      ],
+      income: [
+        { id: 'I1', person: 'Ben', employer: 'Job A', payDate: D(2030, 3, 9), takeHome: 1490 },
+        { id: 'I2', person: 'Ben', employer: 'Bonus Co', payDate: D(2030, 3, 12), takeHome: 300 },
+      ],
+      tx: [
+        { id: 'T1', date: D(2030, 2, 27), type: 'Expense', category: 'Housing', subcategory: 'Mortgage or Rent', amount: 600, isDeleted: false },
+        { id: 'T2', date: D(2030, 3, 3), type: 'Expense', category: 'Housing', subcategory: 'Mortgage or Rent', amount: 400, isDeleted: false },
+        { id: 'T3', date: D(2030, 3, 11), type: 'Expense', category: 'Personal', subcategory: 'Subscriptions', amount: 49.5, isDeleted: false },
+        { id: 'T4', date: D(2030, 3, 2), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 190, isDeleted: false },
+        { id: 'T5', date: D(2030, 3, 10), type: 'Debt Payment', debtId: 'D1', amount: 40, isDeleted: false },
+        { id: 'T6', date: D(2030, 3, 1), type: 'Expense', category: 'Housing', subcategory: 'Mortgage or Rent', amount: 1000, isDeleted: false, notes: 'Recorded automatically · REC' },
+        { id: 'T7', date: D(2030, 3, 3), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 999, isDeleted: true },
+      ],
+    };
+    return calendarMonth_(2030, 2, src, D(2030, 3, 15), { 'R4|2030-03-08': '2030-03-10' });
+  })()`, ctx);
+  const by = (k) => r.items.filter(it => it.key.indexOf(k) === 0);
+  const one = (k) => by(k)[0] || {};
+  const errs = [];
+  const want = (c, m) => { if (!c) errs.push(m); };
+  want(r.label === 'March 2030' && r.daysInMonth === 31 && r.firstWeekday === 5, 'month frame');
+  want(one('R1').status === 'paid' && one('R1').paidAmount === 1000, 'rent paid in two parts, automatic entry ignored');
+  want(one('R2').status === 'late' && one('R3').status === 'paid', 'shared subscriptions matched by amount');
+  want(one('R2').onCard && /charged to Card X/.test(one('R2').detail) && /auto-pay/.test(one('R2').detail), 'card and auto-pay detail');
+  const sit = by('R4|');
+  want(sit.map(i => i.date).join() === '2030-03-01,2030-03-08,2030-03-15,2030-03-22,2030-03-29', 'weekly on the weekday of Next Payment Date: ' + sit.map(i => i.date));
+  want(sit[0].status === 'paid' && sit[1].status === 'checked' && sit[2].status === 'due' && sit[3].status === 'due', 'weekly statuses: ' + sit.map(i => i.status));
+  want(one('R5').date === '2030-03-31', 'due day 31 kept in a 31-day month');
+  want(by('R6').length === 0 && r.notShown.some(t => /No date/.test(t)), 'undated bill listed as not shown');
+  want(one('R7').date === '2030-03-09' && by('R8').length === 0, 'annual bill on its month; inactive left out');
+  want(one('D1').status === 'paid' && by('D2').length === 0 && by('D3').length === 0, 'debt minimums: paid, covered by a recurring row, paid off');
+  want(one('U3').status === 'paid' === false && one('U3').status === 'late' && one('U3').amount === 120, 'real utility bill');
+  const gas = by('UTIL:Gas');
+  want(by('UTIL:Water').length === 0 && gas.length === 1 && gas[0].amount === 90 && gas[0].estimate && gas[0].date === '2030-03-05' && /same month last year/.test(gas[0].detail), 'gas estimated from the same month last year: ' + JSON.stringify(gas));
+  const pay = by('E1|');
+  want(pay.length === 2 && pay[0].date === '2030-03-09' && pay[0].status === 'received' && pay[0].amount === 1490 && pay[1].date === '2030-03-22' && pay[1].status === 'expected' && pay[1].amount === 1500, 'biweekly pay received a day late, next one expected: ' + JSON.stringify(pay));
+  want(one('I2').status === 'received' && one('I2').amount === 300, 'one-off income shown');
+  want(r.notShown.some(t => /Job B/.test(t)), 'paycheck with no history listed as not shown');
+  want(r.totals.comingIn === 3290 && r.totals.stillComingIn === 1500, 'pay totals ' + JSON.stringify(r.totals));
+  const bills = r.items.filter(i => i.kind !== 'pay').reduce((s, i) => s + (i.amount || 0), 0);
+  want(Math.abs(r.totals.bills - bills) < 0.001 && r.totals.billsOnCards === 60, 'bill totals ' + JSON.stringify(r.totals));
+  want(r.totals.stillToPay === 10 + 200 * 3 + 250 + 120 + 120 + 90 && r.totals.lateCount === 4, 'still to pay ' + JSON.stringify(r.totals) + ' ' + r.items.filter(i=>i.kind!=='pay').map(i=>i.key+':'+i.status+':'+i.amount).join(' '));
+  const keys = r.items.map(i => i.key);
+  want(keys.length === new Set(keys).size, 'item keys unique');
+  if (!errs.length) ok('bills & paychecks calendar: bills on their due days (weekly ones on the weekday of Next Payment Date), paychecks counted from the last pay date, utility estimates, card minimums not already a bill, paid from Transactions (rent in parts, shared categories by amount, automatic entries ignored), hand ticks, totals');
+  else bad('calendar: ' + errs.join(' | '));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);

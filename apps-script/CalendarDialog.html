@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1F2933; margin: 0; padding: 10px 14px; height: 100vh; display: flex; flex-direction: column; }
+  .top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .top h2 { font-size: 18px; margin: 0 6px; min-width: 160px; text-align: center; }
+  button { font: inherit; font-weight: 600; padding: 5px 11px; border-radius: 8px; border: 1px solid #C9D2DC; background: #fff; cursor: pointer; }
+  button:hover { background: #F2F5F8; }
+  button.arrow { font-size: 16px; padding: 3px 11px; }
+  .sum { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tile { border: 1px solid #E1E7ED; border-radius: 8px; padding: 3px 10px; background: #FAFBFC; }
+  .tile b { display: block; font-size: 14px; }
+  .tile span { font-size: 11px; color: #5F6B7A; }
+  .main { flex: 1; display: flex; gap: 12px; min-height: 0; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
+  .grid .wd { font-size: 11px; font-weight: 700; color: #5F6B7A; text-align: center; padding: 2px 0; }
+  .grid.head { flex: 0 0 auto; grid-auto-rows: auto; margin-bottom: 3px; }
+  .gridwrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .cell { border: 1px solid #E1E7ED; border-radius: 6px; padding: 3px 4px; overflow: hidden; cursor: pointer; background: #fff; min-height: 0; }
+  .cell.out { background: #F7F9FA; border-color: #F0F2F4; cursor: default; }
+  .cell.today { border: 2px solid #17324D; }
+  .cell.sel { background: #EEF3F8; }
+  .cell .n { font-size: 11px; font-weight: 700; color: #5F6B7A; }
+  .chip { font-size: 11px; line-height: 1.25; border-radius: 4px; padding: 1px 4px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; }
+  .cell .chip { display: flex; gap: 4px; }
+  .chip .nm { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .chip .am { flex-shrink: 0; font-weight: 600; }
+  .more { font-size: 11px; color: #5F6B7A; margin-top: 2px; }
+  /* statuses */
+  .s-received { background: #E3F4E8; border-color: #2E7D4F; color: #1E5434; }
+  .s-expected { background: #fff; border-color: #2E7D4F; color: #1E5434; outline: 1px dashed #9CCBAE; outline-offset: -1px; }
+  .s-paid { background: #EEF0F2; border-color: #8A96A3; color: #5F6B7A; }
+  .s-checked { background: #E2F1F4; border-color: #1F7A8C; color: #155866; }
+  .s-due { background: #EAF0F7; border-color: #17324D; color: #17324D; }
+  .s-partial { background: #FFF4DB; border-color: #B7791F; color: #7A4F0E; }
+  .s-late { background: #FDECEA; border-color: #B42318; color: #7A1A12; }
+  .side { width: 300px; display: flex; flex-direction: column; min-height: 0; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+  .tabs button { flex: 1; font-size: 12px; }
+  .tabs button.on { background: #17324D; color: #fff; border-color: #17324D; }
+  .list { flex: 1; overflow-y: auto; border: 1px solid #E1E7ED; border-radius: 8px; padding: 6px; }
+  .day { font-size: 12px; font-weight: 700; color: #5F6B7A; margin: 8px 2px 3px; }
+  .day:first-child { margin-top: 0; }
+  .item { border-radius: 6px; padding: 6px 8px; margin-bottom: 5px; border-left: 4px solid; }
+  .item .row { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+  .item .st { font-size: 12px; margin-top: 1px; }
+  .item .dt { font-size: 11px; color: #5F6B7A; margin-top: 2px; word-wrap: break-word; }
+  .item label { display: flex; gap: 6px; align-items: center; font-size: 12px; margin-top: 4px; cursor: pointer; }
+  .foot { font-size: 11px; color: #5F6B7A; margin-top: 6px; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .legend .chip { display: inline-block; margin: 0; }
+  .muted { color: #5F6B7A; }
+  .err { color: #842029; }
+  #busy { font-size: 12px; color: #5F6B7A; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <button class="arrow" onclick="go(-1)" title="Previous month">‹</button>
+    <h2 id="title">Loading…</h2>
+    <button class="arrow" onclick="go(1)" title="Next month">›</button>
+    <button onclick="goToday()">This month</button>
+    <span id="busy"></span>
+    <div class="sum" id="sum"></div>
+  </div>
+  <div class="main">
+    <div class="gridwrap">
+      <div class="grid head"><div class="wd">Sun</div><div class="wd">Mon</div><div class="wd">Tue</div><div class="wd">Wed</div><div class="wd">Thu</div><div class="wd">Fri</div><div class="wd">Sat</div></div>
+      <div class="grid" id="grid"></div>
+      <div class="legend">
+        <span class="chip s-received">Paycheck received</span><span class="chip s-expected">Paycheck expected</span>
+        <span class="chip s-due">Bill due</span><span class="chip s-paid">✓ Paid</span><span class="chip s-checked">✓ Paid, not in tracker yet</span>
+        <span class="chip s-partial">Part paid</span><span class="chip s-late">Not seen yet</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="tabs"><button id="tDay" onclick="setTab('day')">Selected day</button><button id="tMonth" onclick="setTab('month')">Whole month</button></div>
+      <div class="list" id="list"></div>
+      <div class="foot" id="foot"></div>
+    </div>
+  </div>
+<script>
+  var data = null, cur = null, sel = null, tab = 'month';
+  function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(x) { if (x === null || x === undefined) return '—'; var s = Math.abs(x).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return (x < 0 ? '−$' : '$') + s; }
+  function short(x) { if (x === null || x === undefined) return ''; return '$' + Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function busy(on) { document.getElementById('busy').textContent = on ? 'Working…' : ''; }
+  function fail(e) { busy(false); document.getElementById('list').innerHTML = '<p class="err">' + esc(e && e.message || e) + '</p>'; }
+  function load(y, m) {
+    busy(true);
+    google.script.run.withSuccessHandler(show).withFailureHandler(fail).getCalendarMonth(y || null, m || null);
+  }
+  function go(step) { if (!cur) return; var m = cur.m + step, y = cur.y; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; } sel = null; load(y, m); }
+  function goToday() { sel = null; load(); }
+  function setTab(t) { tab = t; renderList(); }
+  function dateOf(day) { return cur.y + '-' + ('0' + cur.m).slice(-2) + '-' + ('0' + day).slice(-2); }
+  function show(d) {
+    busy(false); data = d; cur = { y: d.year, m: d.month };
+    document.getElementById('title').textContent = d.label;
+    var ym = dateOf(1).slice(0, 7);
+    if (!sel || sel.slice(0, 7) !== ym) sel = d.today.slice(0, 7) === ym ? d.today : null;
+    var t = d.totals;
+    document.getElementById('sum').innerHTML =
+      '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Paychecks this month</span></div>' +
+      '<div class="tile"><b>' + money(t.stillComingIn) + '</b><span>Still to come in</span></div>' +
+      '<div class="tile"><b>' + money(t.bills) + '</b><span>Bills this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
+      '<div class="tile"><b>' + money(t.stillToPay) + '</b><span>Still to pay' + (t.lateCount ? ' · ' + t.lateCount + ' not seen yet' : '') + '</span></div>';
+    renderGrid(); renderList();
+    var notes = [];
+    if (t.estimates) notes.push('Amounts marked "estimate" are guesses until the real bill or paycheck arrives.');
+    if (t.billsOnCards) notes.push('Bills charged to a credit card are paid when the card is paid, not on the day shown.');
+    if (d.notShown.length) notes.push('Not on the calendar: ' + d.notShown.map(esc).join('; ') + '.');
+    notes.push('Ticks you add here only mark the calendar; they change no table or total.');
+    document.getElementById('foot').innerHTML = notes.join('<br>');
+  }
+  function itemsOn(date) { return data.items.filter(function (it) { return it.date === date; }); }
+  function chipHtml(it) { return '<span class="nm">' + esc((it.status === 'paid' || it.status === 'checked' || it.status === 'received' ? '✓ ' : '') + it.chip) + '</span><span class="am">' + esc(it.amount !== null ? short(it.amount) : '') + '</span>'; }
+  function renderGrid() {
+    var g = document.getElementById('grid'), html = '', lead = data.firstWeekday, total = lead + data.daysInMonth, rows = Math.ceil(total / 7);
+    g.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+    for (var i = 0; i < rows * 7; i++) {
+      var day = i - lead + 1;
+      if (day < 1 || day > data.daysInMonth) { html += '<div class="cell out"></div>'; continue; }
+      var ds = dateOf(day), its = itemsOn(ds);
+      html += '<div class="cell' + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + day + '</div>';
+      var max = rows > 5 ? 2 : 3;
+      its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
+      if (its.length > max + 1) html += '<div class="more">+' + (its.length - max) + ' more</div>';
+      html += '</div>';
+    }
+    g.innerHTML = html;
+  }
+  function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
+  function itemHtml(it, idx) {
+    var pay = it.kind === 'pay';
+    var h = '<div class="item s-' + it.status + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
+      '<div class="st">' + esc(it.statusText) + '</div>' + (it.detail ? '<div class="dt">' + esc(it.detail) + '</div>' : '');
+    if (it.canCheck) h += '<label><input type="checkbox" ' + (it.checked ? 'checked ' : '') + 'onchange="tick(' + idx + ', this.checked)"> ' + (pay ? 'Received, not in the tracker yet' : 'Paid, not in the tracker yet') + '</label>';
+    return h + '</div>';
+  }
+  function renderList() {
+    document.getElementById('tDay').className = tab === 'day' ? 'on' : '';
+    document.getElementById('tMonth').className = tab === 'month' ? 'on' : '';
+    var el = document.getElementById('list'), html = '';
+    if (tab === 'day') {
+      if (!sel) { el.innerHTML = '<p class="muted">Click a day on the calendar.</p>'; return; }
+      var p = sel.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
+      html += '<div class="day">' + esc(d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>';
+      var any = false;
+      data.items.forEach(function (it, i) { if (it.date === sel) { any = true; html += itemHtml(it, i); } });
+      if (!any) html += '<p class="muted">Nothing due or expected this day.</p>';
+    } else {
+      var last = '';
+      data.items.forEach(function (it, i) {
+        if (it.date !== last) { last = it.date; var p2 = it.date.split('-'); html += '<div class="day">' + esc(new Date(+p2[0], +p2[1] - 1, +p2[2]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) + '</div>'; }
+        html += itemHtml(it, i);
+      });
+      if (!data.items.length) html = '<p class="muted">Nothing on the calendar this month.</p>';
+    }
+    el.innerHTML = html;
+  }
+  function tick(idx, on) {
+    var it = data.items[idx]; if (!it) return;
+    busy(true);
+    google.script.run.withSuccessHandler(show).withFailureHandler(fail).setCalendarCheck(it.key, on, cur.y, cur.m);
+  }
+  load();
+</script>
+</body>
+</html>

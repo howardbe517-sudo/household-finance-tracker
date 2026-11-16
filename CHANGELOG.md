@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 2026-11-16 — Bills & paychecks calendar
+- Why (the owner): "a pop up calendar that shows all our upcoming bills and
+  paychecks", with childcare on each Friday, paid or not paid, and a way to
+  tick off something already paid that has not reached the tracker yet
+  (childcare by Venmo); this month first, arrows for others.
+- New `Calendar.gs` and `CalendarDialog.html`; menu item Finance Tracker →
+  Bills & paychecks calendar… (`Main.gs`).
+  - Bills: every active Recurring Payments row on its Due Day (monthly), or
+    every week or two weeks on the weekday of its Next Payment Date (weekly
+    and biweekly; else the weekday of its last payment), or every 3, 6 or 12
+    months from its Next Payment Date.
+  - Paychecks: each active Expected Income row, counted forward and back from
+    its last pay date by its frequency; the actual take-home once it is on
+    Income (within 3 days), else the typical take-home. Other pay on Income
+    that month shows too.
+  - Utilities: each bill on Utility Bills on its due date; for months whose
+    bill has not arrived, an estimate (same month last year, else the average
+    of the last 12 bills) on the usual due day, while the utility is still
+    billing.
+  - Debts: a card or loan with a Minimum Payment and Due Day, unless a
+    Recurring Payments row with the same day and amount already covers it.
+  - Paid: a Transactions payment with the bill's Category and Subcategory
+    within a few days of the due date (several payments add up, as rent by
+    Venmo; where bills share a category, the one within 10% of the amount);
+    a Debt Payment to the debt since the last due date; a utility bill marked
+    Paid. Automatic bill entries and soft-deleted rows never count.
+  - Ticks for "paid, not in the tracker yet" are kept in Script Properties
+    (`CALENDAR_CHECKS`), change no table or total, and drop after 13 months.
+  - Header: paychecks this month, still to come in, bills this month (how
+    much is charged to cards), still to pay.
+- `BUILD_VERSION` 1.27.0. Files changed in `apps-script/`: `Calendar.gs`
+  (new), `CalendarDialog.html` (new), `Main.gs`, `Config.gs`. Nothing to run:
+  reload the Sheet so the menu item appears.
+- Tested: Node (`calendarMonth_` with fictional data: dates, paid matching,
+  ticks, totals); the pop-up rendered in a browser with fictional data. Not
+  yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-16 — Card amounts owed include pending charges
 - Why (the owner): "add it to the total amount since that is what I will owe
   eventually".
