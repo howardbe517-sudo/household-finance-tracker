@@ -410,20 +410,24 @@ function appendChangeLog_(entry) {
   return id;
 }
 
+/** A pending card charge older than this many days is left out of what is owed (it most likely never posted). */
+const CARD_PENDING_DAYS = 10;
+
 /**
  * Charges still pending on a set of card accounts, as the Financial Summary adds them to what is owed (the owner,
- * 2026-11-16). Pure. Pending, not deleted, not split children (their parent carries the charge): Expenses and
- * Split Parents add, Refunds and Transfers (payments) take away.
+ * 2026-11-16). Pure. Reads Import Staging rows (every bank charge lands there first, reviewed or not): Pending?
+ * ticked, not Superseded (its posted version has arrived) or Removed, dated within CARD_PENDING_DAYS of today,
+ * summing the bank's own signed amount (a charge is positive, a payment or credit negative).
  */
-function cardPending_(txRows, accountIds) {
+function cardPending_(stagingRows, accountIds, today) {
   const ids = {};
   (accountIds || []).forEach(id => { ids[id] = true; });
-  return (txRows || []).reduce((s, t) => {
-    if (t.status !== 'Pending' || t.isDeleted === true || t.splitRole === 'Child' || !ids[t.accountId]) return s;
-    const a = Number(t.amount);
-    if (!isFinite(a)) return s;
-    if (t.type === 'Expense' || t.type === 'Split Parent') return s + a;
-    if (t.type === 'Refund' || t.type === 'Transfer') return s - a;
-    return s;
-  }, 0);
+  const t0 = today instanceof Date ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : new Date();
+  const cutoff = t0.getTime() - CARD_PENDING_DAYS * 86400000;
+  return Math.round((stagingRows || []).reduce((s, r) => {
+    if (r.pending !== true || r.status === 'Superseded' || r.status === 'Removed' || !ids[r.accountId]) return s;
+    if (!(r.date instanceof Date) || r.date.getTime() < cutoff) return s;
+    const a = Number(r.amount);
+    return isFinite(a) ? s + a : s;
+  }, 0) * 100) / 100;
 }

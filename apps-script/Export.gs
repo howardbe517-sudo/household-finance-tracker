@@ -413,7 +413,7 @@ function buildSnapshotText_(d) {
   const byType = {}; nwAcc.filter(a => !isLiab(a)).forEach(a => { byType[a.accountType] = (byType[a.accountType] || 0) + num(a.currentBalance); });
   if (Object.keys(byType).length) L.push('Assets by account type: ' + Object.keys(byType).map(t => t + ' ' + money(byType[t])).join(' · ') + '.');
   const owedCards = nwAcc.filter(a => a.accountType === 'Credit Card');
-  if (owedCards.length) L.push('Credit-card balances owed (on Accounts): ' + money(sum(owedCards, a => a.currentBalance)) + '; cards linked to a Debts row are counted once, through Debts.');
+  if (owedCards.length) L.push('Credit-card balances owed (posted balances on Accounts; charges still pending at the bank are not included here, though the Financial Summary adds them): ' + money(sum(owedCards, a => a.currentBalance)) + '; cards linked to a Debts row are counted once, through Debts.');
   const snaps = nw.filter(n => isDate(n.month)).sort((a, b) => a.month - b.month);
   if (snaps.length) L.push('Net-worth snapshots: ' + snaps.slice(-6).map(n => monthName(mk(n.month)) + ' ' + money(num(n.cash) + num(n.savings) + num(n.retirement) + num(n.investments) + num(n.property) + num(n.otherDeprecated) - num(n.totalDebt))).join('; ') + '.');
   const pensions = accounts.filter(a => a.accountType === 'Pension');

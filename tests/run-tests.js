@@ -483,16 +483,16 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const fsAcc = ss.getSheetByName(SHEETS.FINSUM);
   const r = vm.runInContext('FINSUM.ACCT_FIRST', ctx);
   const gF = fsAcc.getRange('G' + r).getFormula(), hF = fsAcc.getRange('H' + r).getFormula();
-  const p = vm.runInContext(`cardPending_([
-    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 42 },
-    { status: 'Pending', accountId: 'C1', type: 'Split Parent', amount: 100 },
-    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 60, splitRole: 'Child' },
-    { status: 'Pending', accountId: 'C1', type: 'Refund', amount: 5 },
-    { status: 'Pending', accountId: 'C1', type: 'Transfer', amount: 20 },
-    { status: 'Posted', accountId: 'C1', type: 'Expense', amount: 999 },
-    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 7, isDeleted: true },
-    { status: 'Pending', accountId: 'C2', type: 'Expense', amount: 500 }], ['C1'])`, ctx);
-  if (/'Transactions'!\$P\$5:\$P="Pending"/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 117) ok('each card on the Financial Summary shows its posted balance plus charges still pending (split children, deleted rows and other cards left out; refunds and payments take away), and says how much is pending');
+  const p = vm.runInContext(`(function () { const d = (n) => new Date(2030, 0, 20 - n); return cardPending_([
+    { pending: true, status: 'Needs Review', accountId: 'C1', amount: 60, date: d(1) },
+    { pending: true, status: 'Imported', accountId: 'C1', amount: 15.99, date: d(2) },
+    { pending: true, status: 'Ready', accountId: 'C1', amount: -20, date: d(1) },
+    { pending: true, status: 'Superseded', accountId: 'C1', amount: 99, date: d(1) },
+    { pending: true, status: 'Removed', accountId: 'C1', amount: 99, date: d(1) },
+    { pending: false, status: 'Needs Review', accountId: 'C1', amount: 999, date: d(1) },
+    { pending: true, status: 'Needs Review', accountId: 'C1', amount: 50, date: d(11) },
+    { pending: true, status: 'Needs Review', accountId: 'C2', amount: 500, date: d(1) }], ['C1'], new Date(2030, 0, 20)); })()`, ctx);
+  if (/'Import Staging'!/.test(gF) && /"Superseded"/.test(gF) && /TODAY\(\)-10/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 55.99) ok('each card on the Financial Summary shows its posted balance plus charges still pending at the bank, read from Import Staging whether reviewed or not (superseded, removed, posted, other cards and pending rows older than 10 days left out; payments take away), and says how much is pending');
   else bad('card pending: ' + JSON.stringify([gF.slice(0, 160), p]));
 })();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
