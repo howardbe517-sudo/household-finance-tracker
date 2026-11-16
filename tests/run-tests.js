@@ -511,11 +511,15 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
         { id: 'R6', name: 'No date', active: true, amount: '', frequency: 'Monthly', dueDay: '' },
         { id: 'R7', name: 'Yearly', active: true, amount: 120, frequency: 'Annual', nextPayment: D(2029, 3, 9) },
         { id: 'R8', name: 'Off', active: false, amount: 5, frequency: 'Monthly', dueDay: 2 },
+        { id: 'R9', name: 'Loan', active: true, amount: 75, frequency: 'Monthly', dueDay: 21, category: 'Debt Payments', subcategory: 'Other Debt Payment', notes: 'Pays D5 with escrow' },
+        { id: 'R10', name: 'Power', active: true, amount: 100, frequency: 'Monthly', dueDay: 2, category: 'Housing', subcategory: 'Electric' },
       ],
       debts: [
         { id: 'D1', name: 'Old card', minPayment: 40, dueDay: 14, latestBalance: 900 },
         { id: 'D2', name: 'Car', minPayment: 250, dueDay: 31, latestBalance: 5000 },
         { id: 'D3', name: 'Paid off', minPayment: 30, dueDay: 5, latestBalance: 0 },
+        { id: 'D4', name: 'Late card', minPayment: 50, dueDay: 25, latestBalance: 700 },
+        { id: 'D5', name: 'Named loan', minPayment: 60, dueDay: 20, latestBalance: 700 },
       ],
       util: [
         { id: 'U1', utility: 'Gas', provider: 'GasCo', dueDate: D(2029, 3, 5), amount: 90, status: 'Paid' },
@@ -525,10 +529,12 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
         { id: 'U4', utility: 'Electric', provider: 'PowerCo', dueDate: D(2030, 2, 2), amount: 100, status: 'Paid' },
       ],
       expect: [
-        { id: 'E1', person: 'Ben', employer: 'Job A', frequency: 'Biweekly', typicalTakeHome: 1500, active: true, lastPayDate: D(2030, 2, 22) },
+        { id: 'E1', person: 'Ben', employer: 'Job A', frequency: 'Biweekly', typicalTakeHome: 1500, active: true, lastPayDate: D(2030, 3, 9) },
         { id: 'E2', person: 'Valerie', employer: 'Job B', frequency: 'Weekly', typicalTakeHome: 200, active: true, lastPayDate: '' },
       ],
       income: [
+        { id: 'I0', person: 'Ben', employer: 'Job A', payDate: D(2030, 2, 8), takeHome: 1500 },
+        { id: 'I00', person: 'Ben', employer: 'Job A', payDate: D(2030, 2, 22), takeHome: 1500 },
         { id: 'I1', person: 'Ben', employer: 'Job A', payDate: D(2030, 3, 9), takeHome: 1490 },
         { id: 'I2', person: 'Ben', employer: 'Bonus Co', payDate: D(2030, 3, 12), takeHome: 300 },
       ],
@@ -540,9 +546,13 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
         { id: 'T5', date: D(2030, 3, 10), type: 'Debt Payment', debtId: 'D1', amount: 40, isDeleted: false },
         { id: 'T6', date: D(2030, 3, 1), type: 'Expense', category: 'Housing', subcategory: 'Mortgage or Rent', amount: 1000, isDeleted: false, notes: 'Recorded automatically · REC' },
         { id: 'T7', date: D(2030, 3, 3), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 999, isDeleted: true },
+        { id: 'T8', date: D(2030, 2, 27), type: 'Debt Payment', debtId: 'D4', amount: 50, isDeleted: false },
+        { id: 'T9', date: D(2030, 3, 15), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 20, isDeleted: false },
       ],
     };
-    return calendarMonth_(2030, 2, src, D(2030, 3, 15), { 'R4|2030-03-08': '2030-03-10' });
+    const mar = calendarMonth_(2030, 2, src, D(2030, 3, 15), { 'R4|2030-03-08': '2030-03-10' });
+    mar.jan = calendarMonth_(2030, 0, src, D(2030, 3, 15), {});
+    return mar;
   })()`, ctx);
   const by = (k) => r.items.filter(it => it.key.indexOf(k) === 0);
   const one = (k) => by(k)[0] || {};
@@ -554,11 +564,15 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   want(one('R2').onCard && /charged to Card X/.test(one('R2').detail) && /auto-pay/.test(one('R2').detail), 'card and auto-pay detail');
   const sit = by('R4|');
   want(sit.map(i => i.date).join() === '2030-03-01,2030-03-08,2030-03-15,2030-03-22,2030-03-29', 'weekly on the weekday of Next Payment Date: ' + sit.map(i => i.date));
-  want(sit[0].status === 'paid' && sit[1].status === 'checked' && sit[2].status === 'due' && sit[3].status === 'due', 'weekly statuses: ' + sit.map(i => i.status));
+  want(sit[0].status === 'paid' && sit[1].status === 'checked' && sit[2].status === 'partial' && sit[3].status === 'due', 'weekly statuses: ' + sit.map(i => i.status));
   want(one('R5').date === '2030-03-31', 'due day 31 kept in a 31-day month');
   want(by('R6').length === 0 && r.notShown.some(t => /No date/.test(t)), 'undated bill listed as not shown');
   want(one('R7').date === '2030-03-09' && by('R8').length === 0, 'annual bill on its month; inactive left out');
   want(one('D1').status === 'paid' && by('D2').length === 0 && by('D3').length === 0, 'debt minimums: paid, covered by a recurring row, paid off');
+  want(one('D4').status === 'due' && by('D5').length === 0, 'a late payment last month does not pay this month; a debt named by a Recurring row is not shown twice');
+  want(by('R10').length === 0, 'a utility on Utility Bills is not shown again from Recurring Payments');
+  const jan = r.jan.items;
+  want(jan.filter(i => i.kind !== 'pay' && i.status === 'past').length > 0 && !jan.some(i => i.status === 'late') && r.jan.totals.stillToPay === 0 && r.jan.totals.lateCount === 0, 'items more than a month back with no payment are history, not still to pay');
   want(one('U3').status === 'paid' === false && one('U3').status === 'late' && one('U3').amount === 120, 'real utility bill');
   const gas = by('UTIL:Gas');
   want(by('UTIL:Water').length === 0 && gas.length === 1 && gas[0].amount === 90 && gas[0].estimate && gas[0].date === '2030-03-05' && /same month last year/.test(gas[0].detail), 'gas estimated from the same month last year: ' + JSON.stringify(gas));
@@ -569,7 +583,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   want(r.totals.comingIn === 3290 && r.totals.stillComingIn === 1500, 'pay totals ' + JSON.stringify(r.totals));
   const bills = r.items.filter(i => i.kind !== 'pay').reduce((s, i) => s + (i.amount || 0), 0);
   want(Math.abs(r.totals.bills - bills) < 0.001 && r.totals.billsOnCards === 60, 'bill totals ' + JSON.stringify(r.totals));
-  want(r.totals.stillToPay === 10 + 200 * 3 + 250 + 120 + 120 + 90 && r.totals.lateCount === 4, 'still to pay ' + JSON.stringify(r.totals) + ' ' + r.items.filter(i=>i.kind!=='pay').map(i=>i.key+':'+i.status+':'+i.amount).join(' '));
+  want(r.totals.stillToPay === 10 + 200 * 3 - 20 + 250 + 120 + 120 + 90 + 50 + 75 && r.totals.lateCount === 4 && r.totals.lateAmount === 10 + 120 + 120 + 90, 'still to pay ' + JSON.stringify(r.totals) + ' ' + r.items.filter(i=>i.kind!=='pay').map(i=>i.key+':'+i.status+':'+i.amount).join(' '));
   const keys = r.items.map(i => i.key);
   want(keys.length === new Set(keys).size, 'item keys unique');
   if (!errs.length) ok('bills & paychecks calendar: bills on their due days (weekly ones on the weekday of Next Payment Date), paychecks counted from the last pay date, utility estimates, card minimums not already a bill, paid from Transactions (rent in parts, shared categories by amount, automatic entries ignored), hand ticks, totals');

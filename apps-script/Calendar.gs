@@ -124,7 +124,8 @@ function calMonthStepDates_(anchor, months, day, y, m) {
  *   { key, date 'yyyy-mm-dd', kind 'bill'|'pay'|'utility'|'debt', name, amount, estimate, status, statusText,
  *     detail, onCard, paidAmount, checked }
  * status: 'paid' (the tracker has the payment), 'checked' (ticked by hand), 'partial', 'due' (still to come),
- * 'late' (its day has passed and nothing has been seen); for paychecks 'received', 'checked', 'expected', 'late'.
+ * 'late' (its day passed within the last 31 days and nothing has been seen), 'past' (older and nothing seen);
+ * for paychecks 'received', 'checked', 'expected', 'late', 'past'.
  */
 function calendarMonth_(y, m, src, today, checks) {
   src = src || {}; checks = checks || {};
@@ -144,7 +145,11 @@ function calendarMonth_(y, m, src, today, checks) {
   const pairKey = (c, s) => String(c || '') + '|' + String(s || '');
 
   /* -- Recurring Payments -- */
-  const recur = (src.recur || []).filter(r => r.id && r.active === true);
+  // A utility tracked bill by bill on Utility Bills is shown from there, not again from Recurring Payments.
+  const utilMap = typeof UTILITY_FROM_SUBCATEGORY === 'object' ? UTILITY_FROM_SUBCATEGORY : { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer' };
+  const utilTracked = {};
+  (src.util || []).forEach(u => { if (u.id && u.utility) utilTracked[u.utility] = true; });
+  const recur = (src.recur || []).filter(r => r.id && r.active === true && !(r.category === 'Housing' && utilTracked[utilMap[r.subcategory]]));
   const pairCount = {};
   recur.forEach(r => { const k = pairKey(r.category, r.subcategory); pairCount[k] = (pairCount[k] || 0) + 1; });
   const lastTxDate = (r) => {
@@ -181,17 +186,20 @@ function calendarMonth_(y, m, src, today, checks) {
     if (amt === null && dates.length) notShown.push(r.name + ': shown without an amount until Amount is filled in on Recurring Payments');
     const shared = pairCount[pairKey(r.category, r.subcategory)] > 1;
     dates.forEach(d => {
-      // Payments within the window with the bill's Category and Subcategory; where several bills share
-      // them, only a payment within 10% (at least $1) of this bill's Amount, the closest one.
+      // Payments within the window with the bill's Category and Subcategory. Where several bills share
+      // them, only a payment within 10% (at least $1) of this bill's Amount counts, the closest one. Otherwise
+      // every payment in the window adds up (rent paid in several Venmo payments); a weekly or biweekly bill
+      // needs half its Amount to show as paid (a short childcare week), any other bill 90%. The windows of
+      // two dates of one bill never overlap (3 days for weekly, 5 for biweekly, 10 monthly, 15 longer).
       const from = calAddDays_(d, -window), to = calAddDays_(d, window);
       const cands = payTx.filter(p => !p.used && p.t.date >= from && p.t.date <= to && pairKey(p.t.category, p.t.subcategory) === pairKey(r.category, r.subcategory));
       let matched = [];
-      if (shared || freq === 'Weekly' || freq === 'Biweekly') {
-        const ok = cands.filter(p => !shared || amt === null || Math.abs(Number(p.t.amount) - amt) <= Math.max(1, amt * 0.1));
+      if (shared) {
+        const ok = cands.filter(p => amt === null || Math.abs(Number(p.t.amount) - amt) <= Math.max(1, amt * 0.1));
         ok.sort((a, b) => Math.abs(calDaysBetween_(a.t.date, d)) - Math.abs(calDaysBetween_(b.t.date, d)));
         if (ok.length) matched = [ok[0]];
       } else {
-        matched = cands; // rent paid in several Venmo payments still adds up
+        matched = cands;
       }
       matched.forEach(p => { p.used = true; });
       const paid = calRound_(matched.reduce((s, p) => s + (Number(p.t.amount) || 0), 0));
@@ -200,7 +208,7 @@ function calendarMonth_(y, m, src, today, checks) {
         key: r.id + '|' + calYmd_(d), date: d, kind: 'bill', name: String(r.name || r.id).trim(), amount: amt,
         estimate: false, paidAmount: matched.length ? paid : null, matched: matched.map(p => p.t),
         onCard, account: r.accountId ? (accName[r.accountId] || r.accountId) : '', autoPay: r.autoPay === true,
-        needFull: !(shared || freq === 'Weekly' || freq === 'Biweekly'),
+        share: shared ? 0 : (freq === 'Weekly' || freq === 'Biweekly') ? 0.5 : 0.9,
       }, t0, checks));
     });
   });
@@ -211,18 +219,22 @@ function calendarMonth_(y, m, src, today, checks) {
     if (!dbt.id || !min || min <= 0 || !day) return;
     const bal = calNum_(dbt.latestBalance);
     if (bal !== null && bal <= 0) return;
-    const covered = recur.some(r => calNum_(r.dueDay) === day && calNum_(r.amount) !== null && Math.abs(calNum_(r.amount) - min) < 1);
+    // Covered by a Recurring Payments row: the same due day and amount, or a row that names this debt.
+    const idRe = new RegExp('\\b' + String(dbt.id).replace(/[^A-Za-z0-9-]/g, '') + '\\b');
+    const covered = recur.some(r => (calNum_(r.dueDay) === day && calNum_(r.amount) !== null && Math.abs(calNum_(r.amount) - min) < 1) ||
+      idRe.test(String(r.name || '') + ' ' + String(r.notes || '')));
     if (covered) return;
     const d = calDayIn_(y, m, day);
-    // A payment to this debt since the previous due date counts (cards are often paid early).
+    // A payment to this debt since the previous due date counts (cards are often paid early), up to 3 days
+    // late. The previous month's 3 late days are left to that month, so one payment never pays two months.
     const prev = calDayIn_(y, m - 1, day);
-    const matched = payTx.filter(p => !p.used && p.t.debtId === dbt.id && p.t.type === 'Debt Payment' && p.t.date > prev && p.t.date <= calAddDays_(d, 3));
+    const matched = payTx.filter(p => !p.used && p.t.debtId === dbt.id && p.t.type === 'Debt Payment' && p.t.date > calAddDays_(prev, 3) && p.t.date <= calAddDays_(d, 3));
     matched.forEach(p => { p.used = true; });
     const paid = calRound_(matched.reduce((s, p) => s + (Number(p.t.amount) || 0), 0));
     items.push(calItem_({
       key: dbt.id + '|' + calYmd_(d), date: d, kind: 'debt', name: String(dbt.name || dbt.id) + ' (minimum)', amount: min,
       estimate: false, paidAmount: matched.length ? paid : null, matched: matched.map(p => p.t), onCard: false,
-      account: '', needFull: true,
+      account: '', share: 0.9,
     }, t0, checks));
   });
 
@@ -239,7 +251,7 @@ function calendarMonth_(y, m, src, today, checks) {
       items.push(calItem_({
         key: u.id, date: calDay_(u.dueDate), kind: 'utility', name: k + (u.provider ? ' (' + u.provider + ')' : ''), amount: amt,
         estimate: false, paidAmount: paidHere ? amt : null, matched: [], paidOn: calIsDate_(u.paidDate) ? u.paidDate : null,
-        utilityPaid: paidHere, onCard: false, account: '', needFull: false,
+        utilityPaid: paidHere, onCard: false, account: '', share: 0,
       }, t0, checks));
     });
     // No bill yet for this month: estimate it, but only for months after the newest bill, and only for
@@ -254,14 +266,22 @@ function calendarMonth_(y, m, src, today, checks) {
     items.push(calItem_({
       key: 'UTIL:' + k + '|' + calYmd_(d), date: d, kind: 'utility', name: k + (newest.provider ? ' (' + newest.provider + ')' : ''),
       amount: est, estimate: true, estimateBasis: lastYear.length ? 'same month last year' : 'average of the last ' + last12.length + ' bills',
-      paidAmount: null, matched: [], onCard: false, account: '', needFull: false,
+      paidAmount: null, matched: [], onCard: false, account: '', share: 0,
     }, t0, checks));
   });
 
   /* -- Paychecks -- */
   const income = (src.income || []).filter(i => i.id && calIsDate_(i.payDate)).map(i => ({ i, used: false }));
   (src.expect || []).filter(e => e.id && e.active === true).forEach(e => {
-    const anchor = calIsDate_(e.lastPayDate) ? e.lastPayDate : null;
+    // Count from the newest paycheck on the usual payday (the most common weekday of the last 6), so a
+    // bonus or a late deposit for the same employer does not shift the schedule.
+    const mine = income.filter(x => x.i.person === e.person && x.i.employer === e.employer).map(x => x.i.payDate).sort((a, b) => b - a).slice(0, 6);
+    let anchor = calIsDate_(e.lastPayDate) ? e.lastPayDate : null;
+    if (mine.length) {
+      const cnt = {}; mine.forEach(d => { cnt[d.getDay()] = (cnt[d.getDay()] || 0) + 1; });
+      const wd = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || mine.findIndex(d => d.getDay() == a) - mine.findIndex(d => d.getDay() == b))[0];
+      anchor = mine.find(d => String(d.getDay()) === String(wd)) || anchor;
+    }
     const freq = e.frequency;
     let dates = [];
     if (freq === 'Weekly' || freq === 'Biweekly') {
@@ -302,11 +322,12 @@ function calendarMonth_(y, m, src, today, checks) {
   const settled = (it) => it.status === 'paid' || it.status === 'checked' || it.status === 'received';
   const totals = {
     comingIn: sum(it => it.kind === 'pay'),
-    stillComingIn: sum(it => it.kind === 'pay' && !settled(it)),
+    stillComingIn: sum(it => it.kind === 'pay' && !settled(it) && it.status !== 'past'),
     bills: sum(isBill),
     billsOnCards: sum(it => isBill(it) && it.onCard),
-    stillToPay: calRound_(items.filter(it => isBill(it) && !settled(it)).reduce((s, it) => s + Math.max(0, (it.amount || 0) - (it.status === 'partial' ? (it.paidAmount || 0) : 0)), 0)),
+    stillToPay: calRound_(items.filter(it => isBill(it) && !settled(it) && it.status !== 'past').reduce((s, it) => s + Math.max(0, (it.amount || 0) - (it.status === 'partial' ? (it.paidAmount || 0) : 0)), 0)),
     lateCount: items.filter(it => it.status === 'late').length,
+    lateAmount: sum(it => isBill(it) && it.status === 'late'),
     estimates: items.some(it => it.estimate),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -320,16 +341,21 @@ function calItem_(o, t0, checks) {
   const checked = Object.prototype.hasOwnProperty.call(checks, o.key);
   let status, statusText;
   const past = o.date < t0;
+  // More than a month back, a missing payment is history (often from before the tracker started), not
+  // something still owed: it is shown, but left out of what is still to pay or still to come in.
+  const old = o.date < new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - 31);
   if (o.kind === 'pay') {
     if (o.received) { status = 'received'; statusText = 'Received'; }
     else if (checked) { status = 'checked'; statusText = 'Received (ticked; not in the tracker yet)'; }
+    else if (old) { status = 'past'; statusText = 'No paycheck on Income'; }
     else if (past) { status = 'late'; statusText = 'Not on Income yet'; }
     else { status = 'expected'; statusText = 'Expected'; }
   } else {
-    const full = o.paidAmount !== null && (!o.needFull || o.amount === null || o.paidAmount >= o.amount * 0.9 - 0.005);
+    const full = o.paidAmount !== null && (!o.share || o.amount === null || o.paidAmount >= o.amount * o.share - 0.005);
     if (o.utilityPaid || full) { status = 'paid'; statusText = 'Paid'; }
     else if (checked) { status = 'checked'; statusText = 'Paid (ticked; not in the tracker yet)'; }
     else if (o.paidAmount !== null && o.paidAmount > 0) { status = 'partial'; statusText = fmt(o.paidAmount) + ' paid so far'; }
+    else if (old) { status = 'past'; statusText = 'No payment found in the tracker'; }
     else if (past) { status = 'late'; statusText = 'Not seen in the tracker yet'; }
     else { status = 'due'; statusText = 'Due'; }
   }

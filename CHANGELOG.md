@@ -26,10 +26,19 @@
     Venmo; where bills share a category, the one within 10% of the amount);
     a Debt Payment to the debt since the last due date; a utility bill marked
     Paid. Automatic bill entries and soft-deleted rows never count.
+  - After the data review: a card payment a few days late no longer also
+    pays the next month; weekly bills need half their amount to show paid
+    (less shows part paid); items more than a month back with nothing found
+    show as history, not as still to pay; paydays count from the newest
+    paycheck on the usual weekday (a bonus or late deposit does not shift
+    them); a debt named in a Recurring Payments row's notes is not shown
+    twice; a utility tracked on Utility Bills is not shown again from
+    Recurring Payments; clearer header labels, with the not-seen amount.
   - Ticks for "paid, not in the tracker yet" are kept in Script Properties
     (`CALENDAR_CHECKS`), change no table or total, and drop after 13 months.
-  - Header: paychecks this month, still to come in, bills this month (how
-    much is charged to cards), still to pay.
+  - Header: pay this month (received + expected), pay not received yet,
+    bills due this month (how much is charged to cards), still to pay (with
+    the amount not seen yet).
 - `BUILD_VERSION` 1.27.0. Files changed in `apps-script/`: `Calendar.gs`
   (new), `CalendarDialog.html` (new), `Main.gs`, `Config.gs`. Nothing to run:
   reload the Sheet so the menu item appears.

@@ -38,6 +38,7 @@
   .s-due { background: #EAF0F7; border-color: #17324D; color: #17324D; }
   .s-partial { background: #FFF4DB; border-color: #B7791F; color: #7A4F0E; }
   .s-late { background: #FDECEA; border-color: #B42318; color: #7A1A12; }
+  .s-past { background: #fff; border-color: #C9D2DC; color: #5F6B7A; }
   .side { width: 300px; display: flex; flex-direction: column; min-height: 0; }
   .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
   .tabs button { flex: 1; font-size: 12px; }
@@ -74,7 +75,7 @@
       <div class="legend">
         <span class="chip s-received">Paycheck received</span><span class="chip s-expected">Paycheck expected</span>
         <span class="chip s-due">Bill due</span><span class="chip s-paid">✓ Paid</span><span class="chip s-checked">✓ Paid, not in tracker yet</span>
-        <span class="chip s-partial">Part paid</span><span class="chip s-late">Not seen yet</span>
+        <span class="chip s-partial">Part paid</span><span class="chip s-late">! Not seen yet</span><span class="chip s-past">Older, none found</span>
       </div>
     </div>
     <div class="side">
@@ -105,10 +106,10 @@
     if (!sel || sel.slice(0, 7) !== ym) sel = d.today.slice(0, 7) === ym ? d.today : null;
     var t = d.totals;
     document.getElementById('sum').innerHTML =
-      '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Paychecks this month</span></div>' +
-      '<div class="tile"><b>' + money(t.stillComingIn) + '</b><span>Still to come in</span></div>' +
-      '<div class="tile"><b>' + money(t.bills) + '</b><span>Bills this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
-      '<div class="tile"><b>' + money(t.stillToPay) + '</b><span>Still to pay' + (t.lateCount ? ' · ' + t.lateCount + ' not seen yet' : '') + '</span></div>';
+      '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Pay this month (received + expected)</span></div>' +
+      '<div class="tile"><b>' + money(t.stillComingIn) + '</b><span>Pay not received yet</span></div>' +
+      '<div class="tile"><b>' + money(t.bills) + '</b><span>Bills due this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
+      '<div class="tile"><b>' + money(t.stillToPay) + '</b><span>Still to pay' + (t.lateCount ? ' · incl. ' + short(t.lateAmount) + ' not seen yet' : '') + '</span></div>';
     renderGrid(); renderList();
     var notes = [];
     if (t.estimates) notes.push('Amounts marked "estimate" are guesses until the real bill or paycheck arrives.');
@@ -118,7 +119,7 @@
     document.getElementById('foot').innerHTML = notes.join('<br>');
   }
   function itemsOn(date) { return data.items.filter(function (it) { return it.date === date; }); }
-  function chipHtml(it) { return '<span class="nm">' + esc((it.status === 'paid' || it.status === 'checked' || it.status === 'received' ? '✓ ' : '') + it.chip) + '</span><span class="am">' + esc(it.amount !== null ? short(it.amount) : '') + '</span>'; }
+  function chipHtml(it) { return '<span class="nm">' + esc((it.status === 'paid' || it.status === 'checked' || it.status === 'received' ? '✓ ' : it.status === 'late' ? '! ' : '') + it.chip) + '</span><span class="am">' + esc(it.amount !== null ? short(it.amount) : '') + '</span>'; }
   function renderGrid() {
     var g = document.getElementById('grid'), html = '', lead = data.firstWeekday, total = lead + data.daysInMonth, rows = Math.ceil(total / 7);
     g.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
