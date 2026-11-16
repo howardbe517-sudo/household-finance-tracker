@@ -478,6 +478,23 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (/\[DEBTS\.plannedExtra\]/.test(dpF) && /SETTING_DEBT_EXTRA_ALL/.test(dpF)) ok('Monthly Plan debt payments add the planned extras and the household plan amount'); else bad('plan formula: ' + dpF);
   if (R(`(function(){ showPayoffPlanner(); return true; })()`) === true) ok('Payoff planner dialog opens from a template that includes PayoffMath'); else bad('showPayoffPlanner failed');
 })();
+/* cards: what is owed includes charges still pending at the bank (2026-11-16) */
+(function () {
+  const fsAcc = ss.getSheetByName(SHEETS.FINSUM);
+  const r = vm.runInContext('FINSUM.ACCT_FIRST', ctx);
+  const gF = fsAcc.getRange('G' + r).getFormula(), hF = fsAcc.getRange('H' + r).getFormula();
+  const p = vm.runInContext(`cardPending_([
+    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 42 },
+    { status: 'Pending', accountId: 'C1', type: 'Split Parent', amount: 100 },
+    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 60, splitRole: 'Child' },
+    { status: 'Pending', accountId: 'C1', type: 'Refund', amount: 5 },
+    { status: 'Pending', accountId: 'C1', type: 'Transfer', amount: 20 },
+    { status: 'Posted', accountId: 'C1', type: 'Expense', amount: 999 },
+    { status: 'Pending', accountId: 'C1', type: 'Expense', amount: 7, isDeleted: true },
+    { status: 'Pending', accountId: 'C2', type: 'Expense', amount: 500 }], ['C1'])`, ctx);
+  if (/'Transactions'!\$P\$5:\$P="Pending"/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 117) ok('each card on the Financial Summary shows its posted balance plus charges still pending (split children, deleted rows and other cards left out; refunds and payments take away), and says how much is pending');
+  else bad('card pending: ' + JSON.stringify([gF.slice(0, 160), p]));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);

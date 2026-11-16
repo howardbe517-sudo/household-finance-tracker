@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-16 — Card amounts owed include pending charges
+- Why (the owner): "add it to the total amount since that is what I will owe
+  eventually".
+- `Dashboard.gs` (`buildAccountsBlock_`, Financial Summary): each card's Owed
+  is its posted balance plus its charges still pending at the bank (pending,
+  not deleted, not split children; expenses and split parents add, refunds
+  and payments take away); the line beside it says how much is pending, and
+  Total owed on cards includes it.
+- `Helpers.gs`: pure `cardPending_`; `QA.gs` checks each card against its
+  Accounts rows plus pending charges.
+- `BUILD_VERSION` 1.26.1. Files changed in `apps-script/`: `Dashboard.gs`,
+  `Helpers.gs`, `QA.gs`, `Config.gs`. Run **Upgrade workbook** once.
+- Tested: Node (formula, pending sum, safety check); data review. Not yet
+  seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-15 — AI snapshot matches the workbook again
 - Why (the owner): the "Copy financial snapshot for AI" text had fallen behind
   the tabs; it should hold whatever an AI needs to answer any question.

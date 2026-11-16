@@ -409,3 +409,21 @@ function appendChangeLog_(entry) {
   sh.getRange(r, 2).setNumberFormat(FORMATS.datetime);
   return id;
 }
+
+/**
+ * Charges still pending on a set of card accounts, as the Financial Summary adds them to what is owed (the owner,
+ * 2026-11-16). Pure. Pending, not deleted, not split children (their parent carries the charge): Expenses and
+ * Split Parents add, Refunds and Transfers (payments) take away.
+ */
+function cardPending_(txRows, accountIds) {
+  const ids = {};
+  (accountIds || []).forEach(id => { ids[id] = true; });
+  return (txRows || []).reduce((s, t) => {
+    if (t.status !== 'Pending' || t.isDeleted === true || t.splitRole === 'Child' || !ids[t.accountId]) return s;
+    const a = Number(t.amount);
+    if (!isFinite(a)) return s;
+    if (t.type === 'Expense' || t.type === 'Split Parent') return s + a;
+    if (t.type === 'Refund' || t.type === 'Transfer') return s - a;
+    return s;
+  }, 0);
+}

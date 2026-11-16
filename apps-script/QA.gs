@@ -252,10 +252,14 @@ function qaReport_() {
       return { connected: rows.some(a => a.connectionId), sum: rows.reduce((s, a) => s + Number(a.currentBalance || 0), 0) };
     };
     const acctProblems = [];
+    const txAll = readTable_(tdef_('TX'));
     DASH_ACCOUNTS.cards.forEach((card, i) => {
       const exp = lineSum(card, 'Credit Card');
+      const names = (card.patterns || [card.institution]).map(x => String(x).toLowerCase());
+      const ids = accRows.filter(a => a.accountType === 'Credit Card' && a.includeNW === 'Yes' && names.some(n => String(a.institution || '').toLowerCase().indexOf(n) >= 0)).map(a => a.id);
+      const pend = cardPending_(txAll, ids);
       const shown = fsAcct.getRange('G' + (FINSUM.ACCT_FIRST + i)).getValue();
-      if (exp.connected && !near(shown, exp.sum)) acctProblems.push(card.label + ' card shows ' + money(shown) + ' but its Accounts rows add up to ' + money(exp.sum));
+      if (exp.connected && !near(shown, exp.sum + pend)) acctProblems.push(card.label + ' card shows ' + money(shown) + ' but its Accounts rows plus pending charges add up to ' + money(exp.sum + pend));
     });
     DASH_ACCOUNTS.main.filter(l => l.type === 'Checking').forEach(line => {
       const exp = lineSum(line, line.type);
@@ -268,7 +272,7 @@ function qaReport_() {
       const shown = fsAcct.getRange('B' + (FINSUM.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(savLine))).getValue();
       if (exp.connected && !near(shown, exp.sum)) acctProblems.push(savLine.label + ' shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
     }
-    if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card, checking and savings match their Accounts rows');
+    if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card (with its pending charges), checking and savings match their Accounts rows');
   }
 
   /* 12. financial summary */

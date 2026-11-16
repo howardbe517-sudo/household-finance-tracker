@@ -101,10 +101,14 @@ function buildAccountsBlock_(sh, R) {
   DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = R.first + i;
     put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
-    put('G' + r, F('=' + balanceOf(card, 'Credit Card'))).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
+    // what will be owed (the owner, 2026-11-16): the card's posted balance plus its charges still pending at the bank
+    const cardIds = 'FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + namesHit(card) + ',[ACCOUNTS.includeNW]="Yes")';
+    const pendingOf = 'IFERROR(SUMPRODUCT(([TX.status]="Pending")*([TX.isDeleted]<>TRUE)*([TX.splitRole]<>"Child")*ISNUMBER(MATCH([TX.accountId],' + cardIds + ',0))*' +
+      '((([TX.type]="Expense")+([TX.type]="Split Parent"))-(([TX.type]="Refund")+([TX.type]="Transfer"))),IF(ISNUMBER([TX.amount]),[TX.amount],0)),0)';
+    put('G' + r, F('=LET(b,' + balanceOf(card, 'Credit Card') + ',IF(ISNUMBER(b),b+' + pendingOf + ',b))')).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
     const anyPat = namesHit(card);
     const idOf = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + anyPat + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
-    mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))),"")'))
+    mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))&LET(p,' + pendingOf + ',IF(p=0,"",IF(nd="",""," · ")&"incl. "&TEXT(p,"$#,##0.00")&" pending"))),"")'))
       .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_SPENDING);
     sh.setRowHeight(r, 28);
   });
@@ -114,7 +118,7 @@ function buildAccountsBlock_(sh, R) {
   sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
   sh.getRange('A' + R.header + ':D' + (R.first + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('F' + R.header + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + R.note + ':I' + R.note, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender.')
+  mergePut('A' + R.note + ':I' + R.note, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. What a card shows as owed includes charges still pending at the bank (they post in a day or two).')
     .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
 }
 
