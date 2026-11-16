@@ -272,7 +272,7 @@ function qaReport_() {
       const shown = fsAcct.getRange('B' + (FINSUM.ACCT_FIRST + DASH_ACCOUNTS.main.indexOf(savLine))).getValue();
       if (exp.connected && !near(shown, exp.sum)) acctProblems.push(savLine.label + ' shows ' + money(shown) + ' but the savings Accounts rows add up to ' + money(exp.sum));
     }
-    const stale = stagedAll.filter(r => r.pending === true && r.status !== 'Superseded' && r.status !== 'Removed' && r.date instanceof Date && r.date.getTime() < today.getTime() - CARD_PENDING_DAYS * 86400000);
+    const stale = stagedAll.filter(r => r.pending === true && r.status !== 'Superseded' && r.status !== 'Removed' && r.date instanceof Date && r.date.getTime() < cardPendingCutoff_(today));
     if (stale.length) info('Import Staging: ' + stale.length + ' pending row(s) older than ' + CARD_PENDING_DAYS + ' days never posted (' + stale.slice(0, 5).map(r => r.importId).join(', ') + '); they are left out of what cards owe');
     if (acctProblems.length) fail('Financial Summary accounts block: ' + acctProblems.join('; ')); else pass('Financial Summary accounts block: each card (with its pending charges), checking and savings match their Accounts rows');
   }

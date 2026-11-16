@@ -491,8 +491,9 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     { pending: true, status: 'Removed', accountId: 'C1', amount: 99, date: d(1) },
     { pending: false, status: 'Needs Review', accountId: 'C1', amount: 999, date: d(1) },
     { pending: true, status: 'Needs Review', accountId: 'C1', amount: 50, date: d(11) },
-    { pending: true, status: 'Needs Review', accountId: 'C2', amount: 500, date: d(1) }], ['C1'], new Date(2030, 0, 20)); })()`, ctx);
-  if (/'Import Staging'!/.test(gF) && /"Superseded"/.test(gF) && /TODAY\(\)-10/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 55.99) ok('each card on the Financial Summary shows its posted balance plus charges still pending at the bank, read from Import Staging whether reviewed or not (superseded, removed, posted, other cards and pending rows older than 10 days left out; payments take away), and says how much is pending');
+    { pending: true, status: 'Needs Review', accountId: 'C1', amount: 7, date: d(10) },
+    { pending: true, status: 'Needs Review', accountId: 'C2', amount: 500, date: d(1) }], ['C1'], new Date(2030, 0, 20, 15, 30)); })()`, ctx);
+  if (/'Import Staging'!/.test(gF) && /"Superseded"/.test(gF) && /TODAY\(\)-10/.test(gF) && /^=LET\(b,/.test(gF) && /pending/.test(hF) && p === 62.99) ok('each card on the Financial Summary shows its posted balance plus charges still pending at the bank, read from Import Staging whether reviewed or not (superseded, removed, posted, other cards and pending rows older than 10 calendar days left out, exactly 10 kept as in TODAY()-10; payments take away), and says how much is pending');
   else bad('card pending: ' + JSON.stringify([gF.slice(0, 160), p]));
 })();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */

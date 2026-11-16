@@ -419,11 +419,16 @@ const CARD_PENDING_DAYS = 10;
  * ticked, not Superseded (its posted version has arrived) or Removed, dated within CARD_PENDING_DAYS of today,
  * summing the bank's own signed amount (a charge is positive, a payment or credit negative).
  */
+function cardPendingCutoff_(today) {
+  const t = today instanceof Date ? today : new Date();
+  // Calendar days, like the Sheet's TODAY()-10, so a clock change never moves the boundary.
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate() - CARD_PENDING_DAYS).getTime();
+}
+
 function cardPending_(stagingRows, accountIds, today) {
   const ids = {};
   (accountIds || []).forEach(id => { ids[id] = true; });
-  const t0 = today instanceof Date ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : new Date();
-  const cutoff = t0.getTime() - CARD_PENDING_DAYS * 86400000;
+  const cutoff = cardPendingCutoff_(today);
   return Math.round((stagingRows || []).reduce((s, r) => {
     if (r.pending !== true || r.status === 'Superseded' || r.status === 'Removed' || !ids[r.accountId]) return s;
     if (!(r.date instanceof Date) || r.date.getTime() < cutoff) return s;
