@@ -409,3 +409,30 @@ function appendChangeLog_(entry) {
   sh.getRange(r, 2).setNumberFormat(FORMATS.datetime);
   return id;
 }
+
+/** A pending card charge older than this many days is left out of what is owed (it most likely never posted). */
+const CARD_PENDING_DAYS = 10;
+
+/**
+ * Charges still pending on a set of card accounts, as the Financial Summary adds them to what is owed (the owner,
+ * 2026-11-16). Pure. Reads Import Staging rows (every bank charge lands there first, reviewed or not): Pending?
+ * ticked, not Superseded (its posted version has arrived) or Removed, dated within CARD_PENDING_DAYS of today,
+ * summing the bank's own signed amount (a charge is positive, a payment or credit negative).
+ */
+function cardPendingCutoff_(today) {
+  const t = today instanceof Date ? today : new Date();
+  // Calendar days, like the Sheet's TODAY()-10, so a clock change never moves the boundary.
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate() - CARD_PENDING_DAYS).getTime();
+}
+
+function cardPending_(stagingRows, accountIds, today) {
+  const ids = {};
+  (accountIds || []).forEach(id => { ids[id] = true; });
+  const cutoff = cardPendingCutoff_(today);
+  return Math.round((stagingRows || []).reduce((s, r) => {
+    if (r.pending !== true || r.status === 'Superseded' || r.status === 'Removed' || !ids[r.accountId]) return s;
+    if (!(r.date instanceof Date) || r.date.getTime() < cutoff) return s;
+    const a = Number(r.amount);
+    return isFinite(a) ? s + a : s;
+  }, 0) * 100) / 100;
+}
