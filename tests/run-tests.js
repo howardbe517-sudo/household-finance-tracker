@@ -610,6 +610,8 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
         { importId: 'S1', accountId: 'C1', date: D(2030, 4, 9), amount: -900, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
         { importId: 'S2', accountId: 'C1', date: D(2030, 4, 18), amount: 50, rawDescription: 'Shop', status: 'Needs Review', pending: true },
         { importId: 'S3', accountId: 'C1', date: D(2030, 3, 18), amount: -800, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
+        { importId: 'S4', accountId: 'C1', date: D(2030, 4, 12), amount: -40, rawDescription: 'AMAZON PAYMENTS REFUND', suggestedType: 'Refund', status: 'Imported', pending: false },
+        { importId: 'S5', accountId: 'C1', date: D(2030, 4, 13), amount: -15, rawDescription: 'PAYMENT REFUND SHOP', status: 'Needs Review', pending: false },
       ],
       tx: [
         { id: 'T1', date: D(2030, 4, 9), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 300, isDeleted: false },
@@ -618,16 +620,20 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     };
     const apr = calendarMonth_(2030, 3, src, D(2030, 4, 20), {});
     const may = calendarMonth_(2030, 4, src, D(2030, 4, 20), {});
-    return { apr, may, months: [monthsSetting_(D(1900, 1, 11)), monthsSetting_(6)] };
+    const jun = calendarMonth_(2030, 5, src, D(2030, 4, 20), {});
+    return { apr, may, jun, months: [monthsSetting_(D(1900, 1, 11)), monthsSetting_(6)] };
   })()`, ctx);
   const errs = [], want = (c, m) => { if (!c) errs.push(m); };
   const one = (res, k) => res.items.filter(i => i.key.indexOf(k) === 0)[0] || {};
   const aCard = one(r.apr, 'C1|'), mCard = one(r.may, 'C1|');
   want(aCard.date === '2030-04-16' && aCard.status === 'paid' && aCard.amount === 900 && /4\/9 payment \$900\.00/.test(aCard.detail), 'April card payment paid by the 4/9 payment, not by 3/18: ' + JSON.stringify(aCard));
   want(mCard.date === '2030-05-16' && mCard.status === 'due' && mCard.amount === 450 && mCard.estimate && /owed on the card now/.test(mCard.detail), 'May card payment shows what is owed now (posted + pending): ' + JSON.stringify(mCard));
+  const jCard = one(r.jun, 'C1|');
+  want(jCard.amount === 850 && /average of the card payments/.test(jCard.detail), 'a later month uses the recent card payments, not the owed-now figure again: ' + JSON.stringify(jCard));
+  want(aCard.statusText === 'Paid $900.00', 'the card payment says how much was paid (refunds not taken for payments): ' + aCard.statusText);
   want(!r.apr.items.some(i => i.key.indexOf('D1|') === 0), 'the card\'s Debts minimum is not shown as well');
   const st = one(r.apr, 'R1|');
-  want(st.inTotals === false && /counted once, in the Card X ····1234 payment/.test(st.detail) && r.apr.totals.inCardPayments === 20 && r.apr.totals.billsOnCards === 0, 'a bill charged to the card is counted once, in the card payment: ' + JSON.stringify(r.apr.totals));
+  want(st.inTotals === false && /counted once, in the Card X payment/.test(st.detail) && r.apr.totals.inCardPayments === 20 && r.apr.totals.billsOnCards === 0, 'a bill charged to the card is counted once, in the card payment: ' + JSON.stringify(r.apr.totals));
   const sit = r.apr.items.filter(i => i.key.indexOf('R2|') === 0);
   want(sit[0].date === '2030-04-05' && sit[0].status === 'paid' && sit[1].date === '2030-04-12' && sit[1].status === 'late', 'a childcare payment 4 days late counts for the Friday before it, not the next one: ' + sit.map(i => i.date + ':' + i.status));
   want(r.apr.totals.bills === 900 + 300 * 4, 'bills total counts the card payment and childcare, not the card-charged bill: ' + r.apr.totals.bills);

@@ -11,7 +11,14 @@
   charges, as on the Financial Summary) until a payment to the card is seen
   in Import Staging (since the previous due date, up to 3 days late), then
   the amount paid. Bills charged to that card still show on their own days,
-  faded, and are counted once, inside the card payment. The card's Debts
+  faded, and are counted once, inside the card payment.
+  After the data review: a payment is a money-in row labelled Transfer or
+  Debt Payment (or paired with checking); the description is used only for
+  a row with no type yet, never for a refund. This cycle's payment shows the
+  larger of what is owed now and the month's bills charged to the card; a
+  later month uses the average of the card payments in the last 3 months
+  instead of repeating the owed-now figure. A paid card payment says how
+  much was paid. The not-seen count covers only bills in the totals. The card's Debts
   minimum, if any, is not shown as well. A weekly bill's payment counts for
   the date before it, up to 5 days late (1 day early); biweekly 10 late, 3
   early. `CalendarDialog.html`: faded card-charged bills and a note.
