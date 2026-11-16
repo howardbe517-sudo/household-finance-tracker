@@ -1,0 +1,42 @@
+{
+  "title": "Bills Calendar and Pending Charges",
+  "key": "household-finance-tracker-2026-11-16-calendar-and-pending",
+  "subtitle": "A pop-up calendar of this month's bills and paychecks, and card amounts owed that include charges still pending at the bank.",
+  "intro": [
+    "Both changes are already in your Sheet's code. I have already set the childcare row's Next Payment Date on Recurring Payments to Friday, November 20, so childcare lands on every Friday.",
+    "**What does not change:** no transactions, balances, bills or paychecks. Ticks you add in the calendar only mark the calendar; they change no table or total."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before calendar 2026-11-16`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade (for the card change)",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.27.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The upgrade report appears and the Sheet works as before." },
+        { "text": "Open **Financial Summary** and look at the credit card lines in the accounts block.", "done": "A card with charges still pending at the bank shows an Owed amount that includes them, and the line beside it says \"incl. $… pending\". A card with nothing pending looks as before." },
+        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "The card checks pass." }
+      ]
+    },
+    {
+      "heading": "Open the calendar",
+      "steps": [
+        { "text": "Open **Finance Tracker → Bills & paychecks calendar…**. The first time, Google may ask you to allow the script again; allow it.", "done": "This month opens, with today outlined. The four boxes at the top show pay this month (received plus expected), pay not received yet, bills due this month, and what is still to pay (with how much of it the tracker has not seen yet)." },
+        { "text": "Look at the Fridays.", "done": "Childcare shows on every Friday at its usual amount. Paychecks show in green: solid when received, dashed when still expected." },
+        { "text": "Click a day, or use **Whole month** on the right, to see each item with its status (Paid, Due, Part paid, or Not seen in the tracker yet, marked with !) and the payment the tracker matched it to. In earlier months, an item with nothing found shows in grey as history and does not count as still to pay." },
+        { "text": "For a payment you have made that the tracker has not seen yet (for example last Friday's childcare by Venmo), tick **Paid, not in the tracker yet**.", "done": "The item turns blue-green with a check mark, and Still to pay goes down by its amount. Untick it to undo." },
+        { "text": "Use the **›** arrow to look at next month, and **This month** to come back.", "done": "Next month shows bills on their due days and utility estimates (marked with *) for bills that have not arrived yet." }
+      ]
+    },
+    {
+      "heading": "Tell me",
+      "steps": [
+        { "text": "Anything placed on the wrong day, a bill that shows \"Not seen\" although you paid it, or anything missing (the note at the bottom right lists bills that cannot be placed, such as Amazon Prime with no Due Day)." }
+      ]
+    }
+  ]
+}
