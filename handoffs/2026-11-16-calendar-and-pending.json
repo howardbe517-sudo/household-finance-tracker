@@ -25,9 +25,9 @@
     {
       "heading": "Open the calendar",
       "steps": [
-        { "text": "Open **Finance Tracker → Bills & paychecks calendar…**. The first time, Google may ask you to allow the script again; allow it.", "done": "This month opens, with today outlined. The four boxes at the top show paychecks this month, what is still to come in, bills this month, and what is still to pay." },
+        { "text": "Open **Finance Tracker → Bills & paychecks calendar…**. The first time, Google may ask you to allow the script again; allow it.", "done": "This month opens, with today outlined. The four boxes at the top show pay this month (received plus expected), pay not received yet, bills due this month, and what is still to pay (with how much of it the tracker has not seen yet)." },
         { "text": "Look at the Fridays.", "done": "Childcare shows on every Friday at its usual amount. Paychecks show in green: solid when received, dashed when still expected." },
-        { "text": "Click a day, or use **Whole month** on the right, to see each item with its status (Paid, Due, or Not seen in the tracker yet) and the payment the tracker matched it to." },
+        { "text": "Click a day, or use **Whole month** on the right, to see each item with its status (Paid, Due, Part paid, or Not seen in the tracker yet, marked with !) and the payment the tracker matched it to. In earlier months, an item with nothing found shows in grey as history and does not count as still to pay." },
         { "text": "For a payment you have made that the tracker has not seen yet (for example last Friday's childcare by Venmo), tick **Paid, not in the tracker yet**.", "done": "The item turns blue-green with a check mark, and Still to pay goes down by its amount. Untick it to undo." },
         { "text": "Use the **›** arrow to look at next month, and **This month** to come back.", "done": "Next month shows bills on their due days and utility estimates (marked with *) for bills that have not arrived yet." }
       ]
