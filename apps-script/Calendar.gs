@@ -46,7 +46,7 @@ function getCalendarMonth(year, month) {
     accounts: readTable_(tdef_('ACCOUNTS')),
     staging: readTable_(tdef_('STAGING')),
   };
-  return calendarMonth_(y, m, src, today, calendarChecks_());
+  return calendarView_(y, m, src, today, calendarChecks_());
 }
 
 /** Ticks (or unticks) an item as paid but not in the tracker yet. Returns the month again. */
@@ -116,6 +116,35 @@ function calMonthStepDates_(anchor, months, day, y, m) {
   const diff = (y - anchor.getFullYear()) * 12 + (m - anchor.getMonth());
   if (((diff % months) + months) % months !== 0) return [];
   return [calDayIn_(y, m, day || anchor.getDate())];
+}
+
+/**
+ * The month as the pop-up draws it. Pure. The grid runs from the Sunday on or before the 1st to the Saturday on
+ * or after the last day, and, in the current month, on far enough that the 7 days after today are always on
+ * it (the owner, 2026-11-16: "always show the days for the upcoming week"). Days of the months before and after
+ * are filled with their own items (spill), worked out for their own month; the totals stay this month's.
+ * Adds { gridStart 'yyyy-mm-dd', gridDays, spill: [items] } to calendarMonth_'s result.
+ */
+function calendarView_(y, m, src, today, checks) {
+  const res = calendarMonth_(y, m, src, today, checks);
+  const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+  const t0 = calDay_(today instanceof Date ? today : new Date());
+  const gridStart = calAddDays_(first, -first.getDay());
+  let gridEnd = calAddDays_(last, 6 - last.getDay());
+  if (t0 >= first && t0 <= last) { const wk = calAddDays_(t0, 7); while (gridEnd < wk) gridEnd = calAddDays_(gridEnd, 7); }
+  const spill = [];
+  if (gridStart < first) {
+    const p = new Date(y, m - 1, 1), from = calYmd_(gridStart);
+    calendarMonth_(p.getFullYear(), p.getMonth(), src, today, checks).items.forEach(it => { if (it.date >= from) spill.push(it); });
+  }
+  if (gridEnd > last) {
+    const n = new Date(y, m + 1, 1), to = calYmd_(gridEnd);
+    calendarMonth_(n.getFullYear(), n.getMonth(), src, today, checks).items.forEach(it => { if (it.date <= to) spill.push(it); });
+  }
+  res.gridStart = calYmd_(gridStart);
+  res.gridDays = calDaysBetween_(gridStart, gridEnd) + 1;
+  res.spill = spill;
+  return res;
 }
 
 /**

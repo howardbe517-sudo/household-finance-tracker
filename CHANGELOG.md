@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-16 — Calendar shows the days around the month
+- Why (the owner): the grey boxes after the 30th should show the next days;
+  "we always show the days for the upcoming week".
+- `Calendar.gs` (`calendarView_`, pure): the grid's days before the 1st and
+  after the last day show their own bills and paychecks (worked out for their
+  own month), and in the current month the grid always reaches 7 days past
+  today, adding a row when needed. The totals stay this month's.
+  `CalendarDialog.html`: those days are shaded, the first one is labelled
+  with its month ("Dec 1"), and they can be clicked and ticked like any day.
+- `BUILD_VERSION` 1.28.1. Files changed in `apps-script/`: `Calendar.gs`,
+  `CalendarDialog.html`, `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node (grid range, neighbouring items, totals unchanged); the
+  pop-up rendered with fictional data. Not yet seen in Google. No numbers
+  change, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-16 — Card payments on the calendar
 - Why (the owner): "credit card payments should land on the tracker"; the
   Elan payment is due on the 16th; "what I owe on the card now is fine"; the

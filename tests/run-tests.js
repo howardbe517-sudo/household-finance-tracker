@@ -641,6 +641,24 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('calendar: a card with a Payment Due Day shows its payment on that day (what is owed now until a payment is seen, then the amount paid), bills charged to it are counted once, its Debts minimum is not repeated, and a late Venmo childcare payment counts for the Friday before it');
   else bad('calendar cards: ' + errs.join(' | '));
 })();
+/* calendar: the grid shows the neighbouring months' days, and always the week after today (2026-11-16) */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const src = { recur: [{ id: 'R1', name: 'Gym', active: true, amount: 40, frequency: 'Monthly', dueDay: 2, category: 'G', subcategory: 'G' },
+      { id: 'R2', name: 'Late', active: true, amount: 10, frequency: 'Monthly', dueDay: 28, category: 'L', subcategory: 'L' }] };
+    const nov = calendarView_(2026, 10, src, D(2026, 11, 30), {});
+    const oct = calendarView_(2026, 9, src, D(2026, 11, 28), {});
+    return { nov: { gridStart: nov.gridStart, gridDays: nov.gridDays, spill: nov.spill.map(i => i.key), bills: nov.totals.bills },
+      oct: { gridStart: oct.gridStart, gridDays: oct.gridDays, spill: oct.spill.map(i => i.key) } };
+  })()`, ctx);
+  // November 2026 starts on a Sunday and ends on a Monday; today the 30th, so the grid adds a row to Saturday Dec 12.
+  // October 2026 starts on a Thursday (Sep 27–30 shown) and ends on a Saturday.
+  if (v.nov.gridStart === '2026-11-01' && v.nov.gridDays === 42 && v.nov.spill.join() === 'R1|2026-12-02' && v.nov.bills === 50
+    && v.oct.gridStart === '2026-09-27' && v.oct.gridDays === 35 && v.oct.spill.join() === 'R2|2026-09-28')
+    ok('calendar grid: the days before and after the month show their own bills, the week after today is always on the grid, and the totals stay this month\'s');
+  else bad('calendar grid: ' + JSON.stringify(v));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);

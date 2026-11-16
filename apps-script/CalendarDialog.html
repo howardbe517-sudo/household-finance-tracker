@@ -22,6 +22,8 @@
   .gridwrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .cell { border: 1px solid #E1E7ED; border-radius: 6px; padding: 3px 4px; overflow: hidden; cursor: pointer; background: #fff; min-height: 0; }
   .cell.out { background: #F7F9FA; border-color: #F0F2F4; cursor: default; }
+  .cell.adj { background: #F7F9FA; }
+  .cell.adj .n { color: #8A96A3; }
   .cell.today { border: 2px solid #17324D; }
   .cell.sel { background: #EEF3F8; }
   .cell .n { font-size: 11px; font-weight: 700; color: #5F6B7A; }
@@ -104,7 +106,8 @@
     busy(false); data = d; cur = { y: d.year, m: d.month };
     document.getElementById('title').textContent = d.label;
     var ym = dateOf(1).slice(0, 7);
-    if (!sel || sel.slice(0, 7) !== ym) sel = d.today.slice(0, 7) === ym ? d.today : null;
+    var gs0 = d.gridStart.split('-'), gEnd = ymd(new Date(+gs0[0], +gs0[1] - 1, +gs0[2] + d.gridDays - 1));
+    if (!sel || sel < d.gridStart || sel > gEnd) sel = d.today.slice(0, 7) === ym ? d.today : null;
     var t = d.totals;
     document.getElementById('sum').innerHTML =
       '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Pay this month (received + expected)</span></div>' +
@@ -120,16 +123,20 @@
     notes.push('Ticks you add here only mark the calendar; they change no table or total.');
     document.getElementById('foot').innerHTML = notes.join('<br>');
   }
-  function itemsOn(date) { return data.items.filter(function (it) { return it.date === date; }); }
+  // This month's items, then the neighbouring months' items shown on the grid (their own month's figures).
+  function all() { return data.items.concat(data.spill || []); }
+  function itemsOn(date) { return all().filter(function (it) { return it.date === date; }); }
+  function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function chipHtml(it) { return '<span class="nm">' + esc((it.status === 'paid' || it.status === 'checked' || it.status === 'received' ? '✓ ' : it.status === 'late' ? '! ' : '') + it.chip) + '</span><span class="am">' + esc(it.amount !== null ? short(it.amount) : '') + '</span>'; }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function renderGrid() {
-    var g = document.getElementById('grid'), html = '', lead = data.firstWeekday, total = lead + data.daysInMonth, rows = Math.ceil(total / 7);
+    var g = document.getElementById('grid'), html = '', gs = data.gridStart.split('-'), rows = Math.ceil(data.gridDays / 7), ym = dateOf(1).slice(0, 7);
     g.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
     for (var i = 0; i < rows * 7; i++) {
-      var day = i - lead + 1;
-      if (day < 1 || day > data.daysInMonth) { html += '<div class="cell out"></div>'; continue; }
-      var ds = dateOf(day), its = itemsOn(ds);
-      html += '<div class="cell' + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + day + '</div>';
+      var dt = new Date(+gs[0], +gs[1] - 1, +gs[2] + i), ds = ymd(dt), day = dt.getDate(), its = itemsOn(ds);
+      var adj = ds.slice(0, 7) !== ym;
+      var label = adj && (day === 1 || i === 0) ? MON[dt.getMonth()] + ' ' + day : String(day);
+      html += '<div class="cell' + (adj ? ' adj' : '') + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + label + '</div>';
       var max = rows > 5 ? 2 : 3;
       its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + (it.inTotals ? '' : ' nt') + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
       if (its.length > max + 1) html += '<div class="more">+' + (its.length - max) + ' more</div>';
@@ -154,7 +161,8 @@
       var p = sel.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
       html += '<div class="day">' + esc(d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>';
       var any = false;
-      data.items.forEach(function (it, i) { if (it.date === sel) { any = true; html += itemHtml(it, i); } });
+      all().forEach(function (it, i) { if (it.date === sel) { any = true; html += itemHtml(it, i); } });
+      if (any && sel.slice(0, 7) !== dateOf(1).slice(0, 7)) html += '<p class="muted">This day is in ' + esc(d.toLocaleDateString(undefined, { month: 'long' })) + '; its amounts count in that month\'s totals.</p>';
       if (!any) html += '<p class="muted">Nothing due or expected this day.</p>';
     } else {
       var last = '';
@@ -167,7 +175,7 @@
     el.innerHTML = html;
   }
   function tick(idx, on) {
-    var it = data.items[idx]; if (!it) return;
+    var it = all()[idx]; if (!it) return;
     busy(true);
     google.script.run.withSuccessHandler(show).withFailureHandler(fail).setCalendarCheck(it.key, on, cur.y, cur.m);
   }
