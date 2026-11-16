@@ -1,5 +1,17 @@
 # STATUS
 
+2026-11-16 (builds 1.26.1–1.28.0, schema 3.19): card amounts owed include
+charges still pending at the bank (live; the owner ran the upgrade and QA,
+the card figure checked against Import Staging). Bills & paychecks calendar
+(Finance Tracker → Bills & paychecks calendar…): bills, paychecks, utility
+bills and estimates, card minimums, card payments on the card's Payment Due
+Day (Accounts) at what is owed now, bills charged to such a card counted once,
+late Venmo childcare matched to the Friday before it, hand ticks for "paid,
+not in the tracker yet". Childcare (REC-013) Next Payment Date set to a
+Friday. Only the Elan card is used day to day (the owner, 2026-11-16).
+QA on 2026-11-16 reported 1 of 121 checks failing; the failing line was cut
+off in the pop-up (asked the owner for it from Executions).
+
 2026-11-15 (build 1.25.0, schema 3.18): Parked for Bills removed completely
 (formulas, Fund Type list, blank lines); the data reviewer re-checks only
 after a Must fix. AI snapshot export rewritten to match the workbook (build 1.26.0).
@@ -20,6 +32,12 @@ tab; Fixed Costs uses their 12-month average (offered, not decided: a
 same-month-last-year figure for month-by-month planning).
 
 ## Raise first at the start of the next conversation (the owner asked, 2026-11-15)
+- **Amazon Prime (the owner asked, 2026-11-16):** remind the owner to fill
+  in Amazon Prime's Amount, Frequency, Due Day and Account ID on Recurring
+  Payments (REC-012) so it shows on the calendar.
+- **Coming In vs Expected Take-Home (the owner asked to be reminded):** come
+  back to why the Spending tab's "coming in" for a typical month differs from
+  the expected take-home.
 - **Missing Costco months: answered 2026-11-15.** The owner pulled the full
   receipt history from Costco's own records (51 receipts, 2024-01-05 to
   2026-11-14). Every trip was already in the tracker except Costco's copy of

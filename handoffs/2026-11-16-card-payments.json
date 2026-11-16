@@ -1,0 +1,46 @@
+{
+  "title": "Card Payments on the Calendar",
+  "key": "household-finance-tracker-2026-11-16-card-payments",
+  "subtitle": "The Elan card payment shows on the 16th, bills charged to the card are counted once, and a late Venmo childcare payment counts for the Friday before it.",
+  "intro": [
+    "The code is already in your Sheet. One new column, Payment Due Day, is added at the end of the Accounts table by the upgrade.",
+    "**What does not change:** no transactions, balances, bills or paychecks. The Financial Summary and every other total stay as they are; only the calendar changes."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before card payments 2026-11-16`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.28.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The upgrade report appears." },
+        { "text": "On **App Setup**, look at the Settings section.", "done": "**PSLF count reminder after (months)** shows `12` (not a date) and **Balance reminder after (months…)** shows `6` (not $6.00)." }
+      ]
+    },
+    {
+      "heading": "Add the Elan due day",
+      "steps": [
+        { "text": "Open the **Accounts** tab and find the row **Elan Credit Card ····7763** (ACC-017). Scroll right to the last column, **Payment Due Day**, and type `16`." }
+      ]
+    },
+    {
+      "heading": "Check the calendar",
+      "steps": [
+        { "text": "Open **Finance Tracker → Bills & paychecks calendar…** and look at November 16.", "done": "**Elan Credit Card payment** shows **Paid $1,243.00**, the payment the bank recorded on Nov 6." },
+        { "text": "Look at November 11 (Netflix, Audible) and the 3rd (YMCA, Apple).", "done": "These bills charged to the Elan card are faded. Click one: it says it is counted once, in the Elan Credit Card payment." },
+        { "text": "Click **›** to go to December and look at the 16th.", "done": "The Elan payment shows an estimate marked with *: the average of your Elan payments over the last 3 months. Once November's payment cycle is past, the next payment shows what you owe on the card now (the same amount as on the Financial Summary)." },
+        { "text": "Look at the Fridays in November.", "done": "A childcare payment that showed up a few days after a Friday counts for that Friday, not the next one." }
+      ]
+    },
+    {
+      "heading": "Tell me",
+      "steps": [
+        { "text": "The one QA check that failed earlier: in **Extensions → Apps Script → Executions**, open the latest **runQA** and copy the line that starts with **FAIL**. Also tell me anything on the calendar that looks wrong." }
+      ]
+    }
+  ]
+}

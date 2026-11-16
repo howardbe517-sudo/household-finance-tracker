@@ -7,6 +7,9 @@
  *   - every paycheck on Expected Income, counted forward and back from its last pay date;
  *   - every utility bill on Utility Bills, and for months whose bill has not arrived yet an estimate
  *     (the same month last year, else the average of the last 12 bills) on the usual due day;
+ *   - each credit card with a Payment Due Day on Accounts, on that day, at what is owed on it now (posted
+ *     balance plus pending charges) until a payment to the card is seen; bills charged to that card still
+ *     show on their own days but are counted once, inside the card payment;
  *   - each card or loan on Debts with a minimum payment and due day that no Recurring Payments row
  *     already covers.
  * An item shows as paid (or received) when the tracker has the matching payment. Anything paid that
@@ -41,6 +44,7 @@ function getCalendarMonth(year, month) {
     debts: readTable_(tdef_('DEBTS')),
     tx: readTable_(tdef_('TX')),
     accounts: readTable_(tdef_('ACCOUNTS')),
+    staging: readTable_(tdef_('STAGING')),
   };
   return calendarMonth_(y, m, src, today, calendarChecks_());
 }
@@ -117,7 +121,7 @@ function calMonthStepDates_(anchor, months, day, y, m) {
 /**
  * Everything on the calendar for one month. Pure.
  *   y, m      the year and month (0–11)
- *   src       { recur, expect, income, util, debts, tx, accounts }: rows as readTable_ returns them
+ *   src       { recur, expect, income, util, debts, tx, accounts, staging }: rows as readTable_ returns them
  *   today     today's date
  *   checks    { itemKey: 'yyyy-mm-dd ticked' }: items ticked as paid by hand
  * Returns { year, month, label, today, items: [...], totals: {...}, notShown: [text] }. Each item:
@@ -132,8 +136,12 @@ function calendarMonth_(y, m, src, today, checks) {
   const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
   const t0 = calDay_(today instanceof Date ? today : new Date());
   const items = [], notShown = [];
-  const accName = {}, cardIds = {};
-  (src.accounts || []).forEach(a => { if (!a.id) return; accName[a.id] = a.name || a.id; if (a.accountType === 'Credit Card') cardIds[a.id] = true; });
+  const accName = {}, cardIds = {}, cardDue = {}, cardBills = {};
+  (src.accounts || []).forEach(a => {
+    if (!a.id) return;
+    accName[a.id] = a.name || a.id;
+    if (a.accountType === 'Credit Card') { cardIds[a.id] = true; if (calNum_(a.paymentDueDay)) cardDue[a.id] = a; }
+  });
 
   // Transactions that can pay a bill: live, not a split parent, not an automatic stand-in for a bill.
   const autoMark = typeof AUTO_RECORD_MARK === 'string' ? AUTO_RECORD_MARK : 'Recorded automatically';
@@ -167,10 +175,13 @@ function calendarMonth_(y, m, src, today, checks) {
     const day = calNum_(r.dueDay);
     const next = calIsDate_(r.nextPayment) ? r.nextPayment : null;
     const freq = r.frequency || 'Monthly';
-    let dates = [], window = 10;
+    let dates = [], window = 10, early = null;
     if (freq === 'Weekly' || freq === 'Biweekly') {
       const anchor = next || lastTxDate(r);
-      window = freq === 'Weekly' ? 3 : 5;
+      // A payment counts for the date before it, up to 5 days late (10 for biweekly): Venmo can take
+      // days to show. It may be 1 day early (3 for biweekly). The windows of two dates never overlap.
+      window = freq === 'Weekly' ? 5 : 10;
+      early = freq === 'Weekly' ? 1 : 3;
       if (anchor) dates = calStepDates_(anchor, freq === 'Weekly' ? 7 : 14, first, last);
       else { notShown.push(r.name + ' (' + freq.toLowerCase() + '): add a Next Payment Date on Recurring Payments to place it'); return; }
     } else if (freq === 'Monthly') {
@@ -190,8 +201,9 @@ function calendarMonth_(y, m, src, today, checks) {
       // them, only a payment within 10% (at least $1) of this bill's Amount counts, the closest one. Otherwise
       // every payment in the window adds up (rent paid in several Venmo payments); a weekly or biweekly bill
       // needs half its Amount to show as paid (a short childcare week), any other bill 90%. The windows of
-      // two dates of one bill never overlap (3 days for weekly, 5 for biweekly, 10 monthly, 15 longer).
-      const from = calAddDays_(d, -window), to = calAddDays_(d, window);
+      // two dates of one bill never overlap (weekly 1 day early to 5 late, biweekly 3 early to 10 late,
+      // 10 days either side for monthly, 15 for longer).
+      const from = calAddDays_(d, -(early === null ? window : early)), to = calAddDays_(d, window);
       const cands = payTx.filter(p => !p.used && p.t.date >= from && p.t.date <= to && pairKey(p.t.category, p.t.subcategory) === pairKey(r.category, r.subcategory));
       let matched = [];
       if (shared) {
@@ -204,19 +216,71 @@ function calendarMonth_(y, m, src, today, checks) {
       matched.forEach(p => { p.used = true; });
       const paid = calRound_(matched.reduce((s, p) => s + (Number(p.t.amount) || 0), 0));
       const onCard = !!(r.accountId && cardIds[r.accountId]);
+      const inCardPayment = onCard && !!cardDue[r.accountId];
+      if (inCardPayment) cardBills[r.accountId] = (cardBills[r.accountId] || 0) + (amt || 0);
       items.push(calItem_({
         key: r.id + '|' + calYmd_(d), date: d, kind: 'bill', name: String(r.name || r.id).trim(), amount: amt,
         estimate: false, paidAmount: matched.length ? paid : null, matched: matched.map(p => p.t),
         onCard, account: r.accountId ? (accName[r.accountId] || r.accountId) : '', autoPay: r.autoPay === true,
         share: shared ? 0 : (freq === 'Weekly' || freq === 'Biweekly') ? 0.5 : 0.9,
+        inTotals: !inCardPayment, cardName: inCardPayment ? calCardName_(cardDue[r.accountId]) : '',
       }, t0, checks));
     });
+  });
+
+  /* -- Credit card payments (Accounts: Payment Due Day) -- */
+  const staging = (src.staging || []).filter(x => x.importId && calIsDate_(x.date) && x.status !== 'Superseded' && x.status !== 'Removed');
+  // A payment to the card: money in, labelled Transfer or Debt Payment (as the feed pairs card payments), or
+  // paired with the checking side. The description is used only for a row with no type yet, so a refund
+  // ("AMAZON PAYMENTS REFUND") is never taken for a payment.
+  const isCardPayment = (x) => Number(x.amount) < 0 && (x.suggestedType === 'Transfer' || x.suggestedType === 'Debt Payment' ||
+    (!!x.pairedImportId && x.suggestedType !== 'Refund' && x.suggestedType !== 'Income') ||
+    (!x.suggestedType && /PAYMENT|PYMT|THANK YOU/i.test(String(x.rawDescription || '')) && !/REFUND|RETURN|CREDIT/i.test(String(x.rawDescription || ''))));
+  Object.keys(cardDue).forEach(id => {
+    const a = cardDue[id];
+    const day = calNum_(a.paymentDueDay);
+    const d = calDayIn_(y, m, day);
+    // A payment to the card since the previous due date counts, up to 3 days late (as for a debt), so a
+    // payment never pays two months. The card's own side of the payment is read from Import Staging.
+    const prev = calDayIn_(y, m - 1, day);
+    const pays = staging.filter(x => x.accountId === id && isCardPayment(x) && x.date > calAddDays_(prev, 3) && x.date <= calAddDays_(d, 3));
+    const paid = calRound_(pays.reduce((s2, x) => s2 - Number(x.amount), 0));
+    // Until then: what is owed on the card now, as the Financial Summary shows it (posted balance plus
+    // charges still pending at the bank).
+    const bal = calNum_(a.currentBalance);
+    const owed = bal === null ? null : calRound_(bal + (typeof cardPending_ === 'function' ? cardPending_(src.staging || [], [id], t0) : 0));
+    const fd = (x) => (x.getMonth() + 1) + '/' + x.getDate();
+    const fm = (x) => '$' + Number(x).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    // Until it is paid: for this cycle's payment (the next due date, or one just missed), what is owed on the
+    // card now, or this month's bills charged to it if those come to more (a bill charged after today is not
+    // owed yet). A later month's payment would repeat that figure, so it uses the card's recent payments.
+    let nextDue = calDayIn_(t0.getFullYear(), t0.getMonth(), day);
+    if (nextDue < t0) nextDue = calDayIn_(t0.getFullYear(), t0.getMonth() + 1, day);
+    const bills = calRound_(cardBills[id] || 0);
+    let est = null, basis = '';
+    if (d <= nextDue) {
+      est = owed === null ? (bills || null) : Math.max(owed, bills);
+      basis = owed !== null && owed >= bills ? 'what is owed on the card now, including charges not due yet' : "this month's bills charged to the card";
+    } else {
+      const recent = staging.filter(x => x.accountId === id && isCardPayment(x) && x.date > calAddDays_(t0, -92)).map(x => -Number(x.amount));
+      const avg = recent.length ? calRound_(recent.reduce((s2, v) => s2 + v, 0) / recent.length) : null;
+      est = avg === null ? (owed === null ? (bills || null) : Math.max(owed, bills)) : Math.max(avg, bills);
+      basis = avg === null ? 'what is owed on the card now' : 'the average of the card payments in the last 3 months';
+    }
+    items.push(calItem_({
+      key: id + '|' + calYmd_(d), date: d, kind: 'card', name: calCardName_(a) + ' payment',
+      chip: /card/i.test(String(a.name || id).split(/\s+/)[0]) ? calCardName_(a) : String(a.name || id).split(/\s+/)[0] + ' card',
+      amount: pays.length ? paid : est, estimate: !pays.length, estimateBasis: basis,
+      paidAmount: pays.length ? paid : null, share: 0, matched: [], onCard: false, account: '',
+      extra: pays.length ? pays.map(x => fd(x.date) + ' payment ' + fm(-Number(x.amount))).join('; ') : '',
+    }, t0, checks));
   });
 
   /* -- Debts with a minimum payment that no Recurring Payments row covers -- */
   (src.debts || []).forEach(dbt => {
     const min = calNum_(dbt.minPayment), day = calNum_(dbt.dueDay);
     if (!dbt.id || !min || min <= 0 || !day) return;
+    if (dbt.linkedAccount && cardDue[dbt.linkedAccount]) return; // shown as a card payment instead
     const bal = calNum_(dbt.latestBalance);
     if (bal !== null && bal <= 0) return;
     // Covered by a Recurring Payments row: the same due day and amount, or a row that names this debt.
@@ -316,21 +380,25 @@ function calendarMonth_(y, m, src, today, checks) {
   items.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.kind === 'pay' ? -1 : b.kind === 'pay' ? 1 : a.name.localeCompare(b.name)));
 
   const sum = (f) => calRound_(items.filter(f).reduce((s, it) => s + (it.amount || 0), 0));
-  const isBill = (it) => it.kind !== 'pay';
+  const isBill = (it) => it.kind !== 'pay' && it.inTotals !== false;
   const settled = (it) => it.status === 'paid' || it.status === 'checked' || it.status === 'received';
   const totals = {
     comingIn: sum(it => it.kind === 'pay'),
     stillComingIn: sum(it => it.kind === 'pay' && !settled(it) && it.status !== 'past'),
     bills: sum(isBill),
     billsOnCards: sum(it => isBill(it) && it.onCard),
+    inCardPayments: sum(it => it.kind !== 'pay' && it.inTotals === false),
     stillToPay: calRound_(items.filter(it => isBill(it) && !settled(it) && it.status !== 'past').reduce((s, it) => s + Math.max(0, (it.amount || 0) - (it.status === 'partial' ? (it.paidAmount || 0) : 0)), 0)),
-    lateCount: items.filter(it => it.status === 'late').length,
+    lateCount: items.filter(it => isBill(it) && it.status === 'late').length,
     lateAmount: sum(it => isBill(it) && it.status === 'late'),
     estimates: items.some(it => it.estimate),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown };
 }
+
+/** A card's name without its ····1234 ending, as the calendar names its payment. Pure. */
+function calCardName_(a) { return String((a && (a.name || a.id)) || 'Card').replace(/\s*·.*$/, ''); }
 
 /** The paycheck date (newest first in `dates`) that the pay cycle is best counted from. Pure. */
 function calPayAnchor_(dates, freq) {
@@ -372,7 +440,7 @@ function calItem_(o, t0, checks) {
     else { status = 'expected'; statusText = 'Expected'; }
   } else {
     const full = o.paidAmount !== null && (!o.share || o.amount === null || o.paidAmount >= o.amount * o.share - 0.005);
-    if (o.utilityPaid || full) { status = 'paid'; statusText = 'Paid'; }
+    if (o.utilityPaid || full) { status = 'paid'; statusText = o.kind === 'card' && o.paidAmount !== null ? 'Paid ' + fmt(o.paidAmount) : 'Paid'; }
     else if (checked) { status = 'checked'; statusText = 'Paid (ticked; not in the tracker yet)'; }
     else if (o.paidAmount !== null && o.paidAmount > 0) { status = 'partial'; statusText = fmt(o.paidAmount) + ' paid so far'; }
     else if (old) { status = 'past'; statusText = 'No payment found in the tracker'; }
@@ -382,6 +450,8 @@ function calItem_(o, t0, checks) {
   const bits = [];
   if (o.estimate && o.kind === 'pay') bits.push('typical take-home');
   if (o.estimate && o.kind !== 'pay') bits.push('estimate: ' + (o.estimateBasis || 'no bill yet'));
+  if (o.extra) bits.push(o.extra);
+  if (o.inTotals === false) bits.push('counted once, in the ' + (o.cardName || o.account) + ' payment');
   if (o.matched && o.matched.length) bits.push(o.matched.map(t => fd(t.date) + ' ' + String(t.description || '').slice(0, 40) + ' ' + fmt(t.amount)).join('; '));
   if (o.paidOn) bits.push('paid ' + fd(o.paidOn));
   if (o.account) bits.push((o.onCard ? 'charged to ' : 'from ') + o.account);
@@ -389,7 +459,7 @@ function calItem_(o, t0, checks) {
   return {
     key: o.key, date: calYmd_(o.date), kind: o.kind, name: o.name, chip: o.chip || String(o.name).replace(/\s*\(.*\)\s*$/, '') || o.name, amount: o.amount === null || o.amount === undefined ? null : calRound_(o.amount),
     estimate: !!o.estimate, onCard: !!o.onCard, paidAmount: o.paidAmount === null || o.paidAmount === undefined ? null : o.paidAmount,
-    checked, status, statusText, detail: bits.join(' · '),
+    checked, status, statusText, detail: bits.join(' · '), inTotals: o.inTotals !== false,
     canCheck: status !== 'paid' && status !== 'received',
   };
 }

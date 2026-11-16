@@ -168,6 +168,9 @@ function buildAppSetup_(withSample) {
     if (opts && opts.name) setNamedRange_(opts.name, cell);
     if (opts && opts.checkbox) cell.setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
     if (opts && opts.fmt) cell.setNumberFormat(opts.fmt);
+    // A plain number (a number of months) gets a plain format, so a format left behind in that cell by an
+    // older layout of this tab never shows it as a date or dollars.
+    else if (typeof v === 'number') cell.setNumberFormat('0');
     sh.getRange(r, 2, 1, W - 1).mergeAcross();
     r++;
   };

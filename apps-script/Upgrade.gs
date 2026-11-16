@@ -300,10 +300,10 @@ function readSettings_() {
     changeLog: get('SETTING_CHANGE_LOG', true),
     samplePresent: get('SETTING_SAMPLE_PRESENT', false) === true,
     autoPairs: get('SETTING_AUTO_PAIRS', true),
-    pslfMonths: get('SETTING_PSLF_REMINDER_MONTHS', 12),
-    creditMonths: get('SETTING_CREDIT_REMINDER_MONTHS', 3),
-    stubMonths: get('SETTING_PAYSTUB_REMINDER_MONTHS', 6),
-    balanceMonths: get('SETTING_BALANCE_REMINDER_MONTHS', 6),
+    pslfMonths: monthsSetting_(get('SETTING_PSLF_REMINDER_MONTHS', 12)),
+    creditMonths: monthsSetting_(get('SETTING_CREDIT_REMINDER_MONTHS', 3)),
+    stubMonths: monthsSetting_(get('SETTING_PAYSTUB_REMINDER_MONTHS', 6)),
+    balanceMonths: monthsSetting_(get('SETTING_BALANCE_REMINDER_MONTHS', 6)),
     accountsNote: get('SETTING_ACCOUNTS_NOTE', ''),
     reminderEmail: get('SETTING_REMINDER_EMAIL', true),
     debtExtraAll: get('SETTING_DEBT_EXTRA_ALL', 0),
@@ -311,6 +311,15 @@ function readSettings_() {
     qaRun: get('QA_LAST_RUN', ''),
     qaResult: get('QA_LAST_RESULT', ''),
   };
+}
+
+/**
+ * A number-of-months setting as a plain number. An older layout of App Setup could leave a date format on the
+ * cell, so 12 came back as the date 1900-01-11; that date is turned back into its number. Pure.
+ */
+function monthsSetting_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime())) return Math.round((v.getTime() - new Date(1899, 11, 30).getTime()) / 86400000);
+  return v;
 }
 
 function restoreSettings_(s) {

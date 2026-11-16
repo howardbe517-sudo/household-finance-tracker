@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.18-no-parked-2026-11-15',
-  BUILD_VERSION: '1.27.0',
+  SCHEMA_VERSION: '3.19-card-due-day-2026-11-16',
+  BUILD_VERSION: '1.28.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -374,6 +374,8 @@ TABLES.ACCOUNTS = {
       note: 'Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day.' },
     { key: 'about', h: 'About This Account', w: 320,
       note: 'Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves.' },
+    { key: 'paymentDueDay', h: 'Payment Due Day', w: 95, fmt: C.int,
+      note: 'Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The Bills & paychecks calendar then shows the card payment on that day at what is owed on the card now (posted balance plus pending charges), and counts bills charged to the card once, inside that payment.' },
   ],
 };
 

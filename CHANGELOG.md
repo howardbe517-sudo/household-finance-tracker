@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-16 — Card payments on the calendar
+- Why (the owner): "credit card payments should land on the tracker"; the
+  Elan payment is due on the 16th; "what I owe on the card now is fine"; the
+  reviewer's suggestions 1 (late Venmo childcare) and 2 (card bills counted
+  once) approved.
+- `Config.gs`: Accounts gets **Payment Due Day** (appended, column R; schema
+  3.19). `Calendar.gs`: a credit card with a Payment Due Day shows its
+  payment on that day at what is owed on it now (posted balance plus pending
+  charges, as on the Financial Summary) until a payment to the card is seen
+  in Import Staging (since the previous due date, up to 3 days late), then
+  the amount paid. Bills charged to that card still show on their own days,
+  faded, and are counted once, inside the card payment.
+  After the data review: a payment is a money-in row labelled Transfer or
+  Debt Payment (or paired with checking); the description is used only for
+  a row with no type yet, never for a refund. This cycle's payment shows the
+  larger of what is owed now and the month's bills charged to the card; a
+  later month uses the average of the card payments in the last 3 months
+  instead of repeating the owed-now figure. A paid card payment says how
+  much was paid. The not-seen count covers only bills in the totals. The card's Debts
+  minimum, if any, is not shown as well. A weekly bill's payment counts for
+  the date before it, up to 5 days late (1 day early); biweekly 10 late, 3
+  early. `CalendarDialog.html`: faded card-charged bills and a note.
+- `Reference.gs`, `Upgrade.gs`: number-of-months settings on App Setup get a
+  plain number format; a value left showing as a date (1900-01-11) is carried
+  over by the upgrade as its number (12).
+- `BUILD_VERSION` 1.28.0. Files changed in `apps-script/`: `Calendar.gs`,
+  `CalendarDialog.html`, `Config.gs`, `Reference.gs`, `Upgrade.gs`. Run
+  **Upgrade workbook** once, then type 16 in the Elan row's Payment Due Day.
+- Tested: Node (card payment paid and owed, counted-once totals, late
+  childcare, months setting, upgrade on an older Accounts tab). Not yet seen
+  in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-16 — Bills & paychecks calendar
 - Why (the owner): "a pop up calendar that shows all our upcoming bills and
   paychecks", with childcare on each Friday, paid or not paid, and a way to
