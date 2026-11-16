@@ -273,16 +273,14 @@ function calendarMonth_(y, m, src, today, checks) {
   /* -- Paychecks -- */
   const income = (src.income || []).filter(i => i.id && calIsDate_(i.payDate)).map(i => ({ i, used: false }));
   (src.expect || []).filter(e => e.id && e.active === true).forEach(e => {
-    // Count from the newest paycheck on the usual payday (the most common weekday of the last 6), so a
-    // bonus or a late deposit for the same employer does not shift the schedule.
-    const mine = income.filter(x => x.i.person === e.person && x.i.employer === e.employer).map(x => x.i.payDate).sort((a, b) => b - a).slice(0, 6);
-    let anchor = calIsDate_(e.lastPayDate) ? e.lastPayDate : null;
-    if (mine.length) {
-      const cnt = {}; mine.forEach(d => { cnt[d.getDay()] = (cnt[d.getDay()] || 0) + 1; });
-      const wd = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || mine.findIndex(d => d.getDay() == a) - mine.findIndex(d => d.getDay() == b))[0];
-      anchor = mine.find(d => String(d.getDay()) === String(wd)) || anchor;
-    }
     const freq = e.frequency;
+    // Count from the paycheck that fits the pay cycle best, so a bonus or a late deposit for the same
+    // employer does not shift the schedule: of the last 6 paychecks, the one that the most others are a
+    // whole number of cycles away from (weekly, biweekly), or that is on the most common day of the
+    // month (monthly); on a tie, the newest.
+    const mine = income.filter(x => x.i.person === e.person && x.i.employer === e.employer).map(x => calDay_(x.i.payDate)).sort((a, b) => b - a).slice(0, 6);
+    let anchor = calIsDate_(e.lastPayDate) ? e.lastPayDate : null;
+    if (mine.length) anchor = calPayAnchor_(mine, freq) || anchor;
     let dates = [];
     if (freq === 'Weekly' || freq === 'Biweekly') {
       if (!anchor) { notShown.push((e.person ? e.person + ' · ' : '') + (e.employer || e.id) + ': no paycheck on Income yet to count paydays from'); return; }
@@ -332,6 +330,28 @@ function calendarMonth_(y, m, src, today, checks) {
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown };
+}
+
+/** The paycheck date (newest first in `dates`) that the pay cycle is best counted from. Pure. */
+function calPayAnchor_(dates, freq) {
+  if (!dates.length) return null;
+  if (freq === 'Weekly' || freq === 'Biweekly') {
+    const step = freq === 'Weekly' ? 7 : 14;
+    let best = null, bestFit = -1;
+    dates.forEach(a => {
+      const fit = dates.filter(d => ((calDaysBetween_(a, d) % step) + step) % step === 0).length;
+      if (fit > bestFit) { best = a; bestFit = fit; }
+    });
+    return best;
+  }
+  if (freq === 'Monthly') {
+    const cnt = {};
+    dates.forEach(d => { cnt[d.getDate()] = (cnt[d.getDate()] || 0) + 1; });
+    let best = null;
+    dates.forEach(d => { if (!best || cnt[d.getDate()] > cnt[best.getDate()]) best = d; });
+    return best;
+  }
+  return dates[0];
 }
 
 /** Sets an item's status and the line of detail the pop-up shows. Pure. */

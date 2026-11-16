@@ -29,9 +29,10 @@
   - After the data review: a card payment a few days late no longer also
     pays the next month; weekly bills need half their amount to show paid
     (less shows part paid); items more than a month back with nothing found
-    show as history, not as still to pay; paydays count from the newest
-    paycheck on the usual weekday (a bonus or late deposit does not shift
-    them); a debt named in a Recurring Payments row's notes is not shown
+    show as history, not as still to pay; paydays count from the recent
+    paycheck that fits the pay cycle best (weekly and biweekly: the most
+    others a whole number of cycles away; monthly: the most common day of
+    the month), so a bonus or a late deposit does not shift them; a debt named in a Recurring Payments row's notes is not shown
     twice; a utility tracked on Utility Bills is not shown again from
     Recurring Payments; clearer header labels, with the not-seen amount.
   - Ticks for "paid, not in the tracker yet" are kept in Script Properties

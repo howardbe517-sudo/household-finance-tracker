@@ -584,6 +584,11 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   const bills = r.items.filter(i => i.kind !== 'pay').reduce((s, i) => s + (i.amount || 0), 0);
   want(Math.abs(r.totals.bills - bills) < 0.001 && r.totals.billsOnCards === 60, 'bill totals ' + JSON.stringify(r.totals));
   want(r.totals.stillToPay === 10 + 200 * 3 - 20 + 250 + 120 + 120 + 90 + 50 + 75 && r.totals.lateCount === 4 && r.totals.lateAmount === 10 + 120 + 120 + 90, 'still to pay ' + JSON.stringify(r.totals) + ' ' + r.items.filter(i=>i.kind!=='pay').map(i=>i.key+':'+i.status+':'+i.amount).join(' '));
+  const anc = vm.runInContext(`(function () { const D = (y, m, d) => new Date(y, m - 1, d);
+    const mo = calPayAnchor_([D(2030, 10, 1), D(2030, 9, 1), D(2030, 7, 31), D(2030, 7, 1), D(2030, 6, 1), D(2030, 5, 1)], 'Monthly');
+    const bi = calPayAnchor_([D(2030, 11, 1), D(2030, 10, 25), D(2030, 10, 11), D(2030, 9, 27)], 'Biweekly');
+    return [mo.getDate(), bi.getMonth() + 1, bi.getDate()]; })()`, ctx);
+  want(anc[0] === 1 && anc[1] === 10 && anc[2] === 25, 'payday anchor ignores a weekend-shifted monthly pay and an off-cycle bonus: ' + anc);
   const keys = r.items.map(i => i.key);
   want(keys.length === new Set(keys).size, 'item keys unique');
   if (!errs.length) ok('bills & paychecks calendar: bills on their due days (weekly ones on the weekday of Next Payment Date), paychecks counted from the last pay date, utility estimates, card minimums not already a bill, paid from Transactions (rent in parts, shared categories by amount, automatic entries ignored), hand ticks, totals');
