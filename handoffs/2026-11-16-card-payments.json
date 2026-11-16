@@ -30,9 +30,9 @@
     {
       "heading": "Check the calendar",
       "steps": [
-        { "text": "Open **Finance Tracker → Bills & paychecks calendar…** and look at November 16.", "done": "**Elan Credit Card payment** shows as Paid with the payment the bank recorded on Nov 6." },
-        { "text": "Look at November 11 (Netflix, Audible) and the 3rd (YMCA, Apple).", "done": "These bills charged to the Elan card are faded. Click one: it says it is counted once, in the Elan card payment." },
-        { "text": "Click **›** to go to December and look at the 16th.", "done": "The Elan payment shows what you owe on the card now (the same amount as on the Financial Summary), marked with * as an estimate." },
+        { "text": "Open **Finance Tracker → Bills & paychecks calendar…** and look at November 16.", "done": "**Elan Credit Card payment** shows **Paid $1,243.00**, the payment the bank recorded on Nov 6." },
+        { "text": "Look at November 11 (Netflix, Audible) and the 3rd (YMCA, Apple).", "done": "These bills charged to the Elan card are faded. Click one: it says it is counted once, in the Elan Credit Card payment." },
+        { "text": "Click **›** to go to December and look at the 16th.", "done": "The Elan payment shows an estimate marked with *: the average of your Elan payments over the last 3 months. Once November's payment cycle is past, the next payment shows what you owe on the card now (the same amount as on the Financial Summary)." },
         { "text": "Look at the Fridays in November.", "done": "A childcare payment that showed up a few days after a Friday counts for that Friday, not the next one." }
       ]
     },
