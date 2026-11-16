@@ -40,7 +40,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 33 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('33 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 17, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 18, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -594,6 +594,47 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('bills & paychecks calendar: bills on their due days (weekly ones on the weekday of Next Payment Date), paychecks counted from the last pay date, utility estimates, card minimums not already a bill, paid from Transactions (rent in parts, shared categories by amount, automatic entries ignored), hand ticks, totals');
   else bad('calendar: ' + errs.join(' | '));
 })();
+/* calendar: a card with a Payment Due Day, bills charged to it counted once, late Venmo childcare (2026-11-16) */
+(function () {
+  const r = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const src = {
+      accounts: [{ id: 'A1', name: 'Checking', accountType: 'Checking' },
+        { id: 'C1', name: 'Card X ····1234', accountType: 'Credit Card', paymentDueDay: 16, currentBalance: 400 }],
+      recur: [
+        { id: 'R1', name: 'Stream', active: true, amount: 20, frequency: 'Monthly', dueDay: 11, category: 'E', subcategory: 'S', accountId: 'C1' },
+        { id: 'R2', name: 'Sitter', active: true, amount: 300, frequency: 'Weekly', nextPayment: D(2030, 4, 5), category: 'Childcare', subcategory: 'Nanny', accountId: 'A1' },
+      ],
+      debts: [{ id: 'D1', name: 'Card X', minPayment: 35, dueDay: 16, latestBalance: 400, linkedAccount: 'C1' }],
+      staging: [
+        { importId: 'S1', accountId: 'C1', date: D(2030, 4, 9), amount: -900, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
+        { importId: 'S2', accountId: 'C1', date: D(2030, 4, 18), amount: 50, rawDescription: 'Shop', status: 'Needs Review', pending: true },
+        { importId: 'S3', accountId: 'C1', date: D(2030, 3, 18), amount: -800, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
+      ],
+      tx: [
+        { id: 'T1', date: D(2030, 4, 9), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 300, isDeleted: false },
+        { id: 'T2', date: D(2030, 4, 11), type: 'Expense', category: 'E', subcategory: 'S', amount: 20, isDeleted: false },
+      ],
+    };
+    const apr = calendarMonth_(2030, 3, src, D(2030, 4, 20), {});
+    const may = calendarMonth_(2030, 4, src, D(2030, 4, 20), {});
+    return { apr, may, months: [monthsSetting_(D(1900, 1, 11)), monthsSetting_(6)] };
+  })()`, ctx);
+  const errs = [], want = (c, m) => { if (!c) errs.push(m); };
+  const one = (res, k) => res.items.filter(i => i.key.indexOf(k) === 0)[0] || {};
+  const aCard = one(r.apr, 'C1|'), mCard = one(r.may, 'C1|');
+  want(aCard.date === '2030-04-16' && aCard.status === 'paid' && aCard.amount === 900 && /4\/9 payment \$900\.00/.test(aCard.detail), 'April card payment paid by the 4/9 payment, not by 3/18: ' + JSON.stringify(aCard));
+  want(mCard.date === '2030-05-16' && mCard.status === 'due' && mCard.amount === 450 && mCard.estimate && /owed on the card now/.test(mCard.detail), 'May card payment shows what is owed now (posted + pending): ' + JSON.stringify(mCard));
+  want(!r.apr.items.some(i => i.key.indexOf('D1|') === 0), 'the card\'s Debts minimum is not shown as well');
+  const st = one(r.apr, 'R1|');
+  want(st.inTotals === false && /counted once, in the Card X ····1234 payment/.test(st.detail) && r.apr.totals.inCardPayments === 20 && r.apr.totals.billsOnCards === 0, 'a bill charged to the card is counted once, in the card payment: ' + JSON.stringify(r.apr.totals));
+  const sit = r.apr.items.filter(i => i.key.indexOf('R2|') === 0);
+  want(sit[0].date === '2030-04-05' && sit[0].status === 'paid' && sit[1].date === '2030-04-12' && sit[1].status === 'late', 'a childcare payment 4 days late counts for the Friday before it, not the next one: ' + sit.map(i => i.date + ':' + i.status));
+  want(r.apr.totals.bills === 900 + 300 * 4, 'bills total counts the card payment and childcare, not the card-charged bill: ' + r.apr.totals.bills);
+  want(r.months[0] === 12 && r.months[1] === 6, 'a number-of-months setting shown as a date is carried over as its number: ' + r.months);
+  if (!errs.length) ok('calendar: a card with a Payment Due Day shows its payment on that day (what is owed now until a payment is seen, then the amount paid), bills charged to it are counted once, its Debts minimum is not repeated, and a late Venmo childcare payment counts for the Friday before it');
+  else bad('calendar cards: ' + errs.join(' | '));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
@@ -792,7 +833,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       && /'Accounts'!\$Q\$5:\$Q/.test(aboutF) && /No description yet/.test(aboutF) && !/Bank feed, every night/.test(aboutF + nameF)
       && fEmpty && last === tableEnd && fsh.merges.indexOf('D' + r1 + ':P' + r1) >= 0 && !fsh.merges.some(m => { const row = Number(String(m).replace(/^[A-Z]+/, '').split(':')[0]); return row > 4 && row <= tableEnd; })) ok('Savings & Reserves ends with About your accounts, a reading section: each retirement account and the HSA, then the pension last (no savings or investment accounts), with its name, type and the About This Account text, and no balances or amounts; column F stays free, so the table still ends where it did, and when the table is extended the section moves below it with nothing left inside the table'); else bad('funds guide: ' + JSON.stringify([fsh.getRange('A' + top).getValue(), heads, last, fEmpty, nameF.slice(0, 200), aboutF.slice(-120)]));
     const adef = vm.runInContext('TABLES.ACCOUNTS', ctx);
-    if (adef.columns[adef.columns.length - 1].key === 'about' && adef.columns[adef.columns.length - 1].h === 'About This Account') ok('About This Account is appended as the last column of Accounts (delivered by the upgrade)'); else bad('about column');
+    if (adef.columns[16].key === 'about' && adef.columns[16].h === 'About This Account' && adef.columns[17].key === 'paymentDueDay') ok('About This Account stays column Q of Accounts, with Payment Due Day appended after it (both delivered by the upgrade)'); else bad('about column');
   })();
   // Groceries: Costco receipts, duplicate trips, splitting the card charge (1.22.0)
   (function () {
@@ -1202,7 +1243,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 7); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 8); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');

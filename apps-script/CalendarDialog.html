@@ -38,6 +38,7 @@
   .s-due { background: #EAF0F7; border-color: #17324D; color: #17324D; }
   .s-partial { background: #FFF4DB; border-color: #B7791F; color: #7A4F0E; }
   .s-late { background: #FDECEA; border-color: #B42318; color: #7A1A12; }
+  .nt { opacity: .6; }
   .s-past { background: #fff; border-color: #C9D2DC; color: #5F6B7A; }
   .side { width: 300px; display: flex; flex-direction: column; min-height: 0; }
   .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
@@ -113,6 +114,7 @@
     renderGrid(); renderList();
     var notes = [];
     if (t.estimates) notes.push('Amounts marked "estimate" are guesses until the real bill or paycheck arrives.');
+    if (t.inCardPayments) notes.push('Bills charged to a card with a Payment Due Day (on Accounts) show on the day they are charged, faded, and are counted once, in the card payment.');
     if (t.billsOnCards) notes.push('Bills charged to a credit card are paid when the card is paid, not on the day shown.');
     if (d.notShown.length) notes.push('Not on the calendar: ' + d.notShown.map(esc).join('; ') + '.');
     notes.push('Ticks you add here only mark the calendar; they change no table or total.');
@@ -129,7 +131,7 @@
       var ds = dateOf(day), its = itemsOn(ds);
       html += '<div class="cell' + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + day + '</div>';
       var max = rows > 5 ? 2 : 3;
-      its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
+      its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + (it.inTotals ? '' : ' nt') + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
       if (its.length > max + 1) html += '<div class="more">+' + (its.length - max) + ' more</div>';
       html += '</div>';
     }
@@ -138,7 +140,7 @@
   function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
   function itemHtml(it, idx) {
     var pay = it.kind === 'pay';
-    var h = '<div class="item s-' + it.status + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
+    var h = '<div class="item s-' + it.status + (it.inTotals ? '' : ' nt') + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
       '<div class="st">' + esc(it.statusText) + '</div>' + (it.detail ? '<div class="dt">' + esc(it.detail) + '</div>' : '');
     if (it.canCheck) h += '<label><input type="checkbox" ' + (it.checked ? 'checked ' : '') + 'onchange="tick(' + idx + ', this.checked)"> ' + (pay ? 'Received, not in the tracker yet' : 'Paid, not in the tracker yet') + '</label>';
     return h + '</div>';
