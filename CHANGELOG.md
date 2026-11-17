@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-11-17 — Bills with no set day; the haircut
+- Why (the owner): a haircut every month, about $55 with tip, paid with the
+  card on a different day each month at Local's Barber.
+- In the Sheet (done by Claude): Recurring Payments REC-015 "Haircut (Local's
+  Barber)", $55 monthly, Personal → Haircuts & Grooming, Elan card, no Due
+  Day, **inactive**: the owner then chose to keep the haircut as flexible
+  spending and off the calendar unless he gives a date, so it is not
+  counted as a bill. Import Rule RULE-028 (BARBER → Personal → Haircuts &
+  Grooming, Flexible, auto-import). The Matches formula on Import Rules was put back in three rows
+  where it had been replaced by a number (RULE-002, RULE-027, RULE-028).
+- `CalendarMath.html`: a monthly bill with no Due Day is due some day that
+  month: shown on the month's last day, paid by a payment on any day of it;
+  a Next Payment Date in that month places it on that day, still matched
+  over the whole month (after the data review: a guessed date can no longer
+  leave it late, and one payment never pays two months). On a card with a
+  due day, a charge of about the same amount counts for such a bill only if
+  its description shares a word with the bill's name. A bill with no
+  amount and no day stays in "Not on the calendar". A bill with no Category
+  is never matched to a payment (it could take an uncategorized card
+  payment).
+- `BUILD_VERSION` 1.31.1. Files changed in `apps-script/`: `CalendarMath.html`,
+  `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node (any-day bill paid, due, placed by Next Payment Date; no
+  category, no amount). Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Change a bill for one week from the calendar
 - Why (the owner): "nanny is 300 this week, but she called in sick probably
   for 2 days … I want to enter a new number, and then that will update the

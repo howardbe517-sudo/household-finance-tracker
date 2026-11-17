@@ -762,6 +762,33 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('bill changes: a bill changed on the calendar for one date shows the new amount there only (other weeks and Recurring Payments unchanged), is kept on Bill Changes (changing or undoing it ticks Is Deleted, nothing removed), loan payments are not changeable, and the Monthly Plan counts that month\'s difference in Bills');
   else bad('bill changes: ' + errs.join(' | '));
 })();
+/* calendar: a monthly bill with no set day (Ben's haircut, 2026-11-17) is due any day that month */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const hair = { id: 'R1', name: 'Haircut', group: 'Other', active: true, amount: 55, frequency: 'Monthly', category: 'Personal', subcategory: 'Haircuts & Grooming' };
+    const src = { recur: [hair, { id: 'R2', name: 'Prime', active: true, amount: '', frequency: 'Monthly' }],
+      tx: [{ id: 'T1', date: D(2030, 3, 3), type: 'Expense', category: 'Personal', subcategory: 'Haircuts & Grooming', amount: 55, isDeleted: false },
+        { id: 'T2', date: D(2030, 3, 9), type: 'Transfer', amount: 900, isDeleted: false }] };
+    const pick = (res) => res.items.filter(i => i.key.indexOf('R1|') === 0).map(i => [i.date, i.status, i.amount, i.detail]);
+    const mar = calendarMonth_(2030, 2, src, D(2030, 4, 8), {});
+    const apr = calendarMonth_(2030, 3, src, D(2030, 4, 8), {});
+    const known = calendarMonth_(2030, 3, Object.assign({}, src, { recur: [Object.assign({}, hair, { nextPayment: D(2030, 4, 12) })] }), D(2030, 4, 8), {});
+    // on a card with a due day: a $57 gas charge is not the haircut; a guessed date (the 3rd) still matches a cut on the 20th
+    const card = { accounts: [{ id: 'C1', name: 'Card', accountType: 'Credit Card', paymentDueDay: 16, currentBalance: 0 }],
+      recur: [Object.assign({}, hair, { accountId: 'C1', nextPayment: D(2030, 4, 3) })],
+      staging: [{ importId: 'S1', accountId: 'C1', date: D(2030, 4, 5), amount: 57, rawDescription: 'SHELL OIL', status: 'Needs Review' }],
+      tx: [{ id: 'T9', date: D(2030, 4, 20), type: 'Expense', category: 'Personal', subcategory: 'Haircuts & Grooming', amount: 55, isDeleted: false }] };
+    const cardApr = calendarMonth_(2030, 3, Object.assign({}, card, { tx: [] }), D(2030, 4, 8), {}).items.filter(i => i.key.indexOf('R1|') === 0)[0];
+    const cardPaid = calendarMonth_(2030, 3, card, D(2030, 4, 25), {}).items.filter(i => i.key.indexOf('R1|') === 0)[0];
+    return { gas: cardApr ? [cardApr.inTotals, cardApr.date] : null, late: cardPaid ? [cardPaid.status, cardPaid.inTotals] : null, mar: pick(mar), apr: pick(apr), known: pick(known), prime: apr.items.some(i => i.key.indexOf('R2|') === 0), note: apr.notShown.join(' ') };
+  })()`, ctx);
+  if (v.mar.length === 1 && v.mar[0][0] === '2030-03-31' && v.mar[0][1] === 'paid' && v.apr[0][0] === '2030-04-30' && v.apr[0][1] === 'due' && /some day this month/.test(v.apr[0][3])
+    && v.known[0][0] === '2030-04-12' && !v.prime && /Prime: add an Amount/.test(v.note)
+    && v.gas && v.gas[0] === true && v.gas[1] === '2030-04-03' && v.late && v.late[0] === 'paid' && v.late[1] === false)
+    ok('calendar: a monthly bill with no set day (the haircut) is due some day that month, shown on its last day and paid by a payment on any day of it; a Next Payment Date in the month places it on that day but it is still matched over the whole month; on a card, a charge of about the same amount counts only if its description shares a word with the bill\'s name; a bill with no amount or day stays off the calendar, and a bill with no category never takes an uncategorized payment');
+  else bad('calendar any-day bill: ' + JSON.stringify(v));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
