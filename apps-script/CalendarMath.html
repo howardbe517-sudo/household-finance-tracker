@@ -168,11 +168,11 @@ function calendarMonth_(y, m, src, today, checks) {
       if (anchor) dates = calStepDates_(anchor, freq === 'Weekly' ? 7 : 14, first, last);
       else { notShown.push(r.name + ' (' + freq.toLowerCase() + '): add a Next Payment Date on Recurring Payments to place it'); return; }
     } else if (freq === 'Monthly') {
-      // A monthly bill with no Due Day comes on a different day each month (Ben's haircut, 2026-11-17): it is due
-      // some day this month, shown on the month's last day, and any payment that month counts. A Next Payment Date
-      // in this month places it on that day instead (when the date is known ahead of time).
+      // A monthly bill with no Due Day comes on a different day each month (2026-11-17): it is due some day this
+      // month, shown on the month's last day, and a payment on any day of the month counts (never one from another
+      // month). A Next Payment Date in this month shows it on that day instead, still matched over the whole month.
       if (day) dates = [calDayIn_(y, m, day)];
-      else if (next && next >= first && next <= last) dates = [calDay_(next)];
+      else if (next && next >= first && next <= last && amtUsual !== null) { anyDay = true; dates = [calDay_(next)]; }
       else if (amtUsual === null) { notShown.push(r.name + ': add an Amount (and a Due Day if it has one) on Recurring Payments to place it'); return; }
       else { anyDay = true; dates = [last]; }
     } else {
@@ -218,9 +218,12 @@ function calendarMonth_(y, m, src, today, checks) {
         if (matched.length) seenOnCard = true;
         else {
           const words = String(r.name || '').toUpperCase().split(/[^A-Z0-9]+/).filter(w => w.length >= 4);
+          // Over a whole month (a bill with no set day) a near amount is not enough: the charge must share a word
+          // with the bill's name, so an unrelated charge of about the same amount is never taken for it.
           const c = staging.filter(x => !x.__used && x.accountId === r.accountId && Number(x.amount) > 0 && x.date >= from && x.date <= to &&
             (amt === null || Math.abs(Number(x.amount) - amt) <= Math.max(1, amt * 0.1)))
             .map(x => ({ x, w: words.some(w => String(x.rawDescription || '').toUpperCase().indexOf(w) >= 0) ? 0 : 1, gap: amt === null ? 0 : Math.abs(Number(x.amount) - amt) }))
+            .filter(c2 => !anyDay || c2.w === 0)
             .sort((a2, b2) => a2.w - b2.w || a2.gap - b2.gap)[0];
           if (c) { c.x.__used = true; seenOnCard = true; }
         }
@@ -235,7 +238,7 @@ function calendarMonth_(y, m, src, today, checks) {
         // A bill outside the Loans group can be changed for this one date from the calendar (Bill Changes).
         editable: r.group !== 'Loans', recurId: r.id, usualAmount: amtUsual, changed: !!ch, changeNote: ch ? String(ch.notes || '') : '',
         period: freq === 'Weekly' ? 'week' : freq === 'Biweekly' ? 'two weeks' : 'month',
-        extra: anyDay ? 'due some day this month (no set day); shown on the last day' : '',
+        extra: anyDay ? (calYmd_(d) === calYmd_(last) ? 'due some day this month (no set day); shown on the last day' : 'no set day; shown on its Next Payment Date, paid by a payment any day this month') : '',
         // changed to $0 (the nanny out all week): nothing is due, so it is never "not seen yet"
         forceStatus: ch && amt === 0 ? 'note' : '', forceText: 'Nothing due this time (changed to $0)',
       }, t0, checks));

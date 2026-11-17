@@ -12,7 +12,11 @@
   where it had been replaced by a number (RULE-002, RULE-027, RULE-028).
 - `CalendarMath.html`: a monthly bill with no Due Day is due some day that
   month: shown on the month's last day, paid by a payment on any day of it;
-  a Next Payment Date in that month places it on that day. A bill with no
+  a Next Payment Date in that month places it on that day, still matched
+  over the whole month (after the data review: a guessed date can no longer
+  leave it late, and one payment never pays two months). On a card with a
+  due day, a charge of about the same amount counts for such a bill only if
+  its description shares a word with the bill's name. A bill with no
   amount and no day stays in "Not on the calendar". A bill with no Category
   is never matched to a payment (it could take an uncategorized card
   payment).
