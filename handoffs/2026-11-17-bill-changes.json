@@ -1,0 +1,39 @@
+{
+  "title": "Change a Bill for One Week",
+  "key": "household-finance-tracker-2026-11-17-bill-changes",
+  "subtitle": "Change what a bill costs in one week (childcare when the nanny is out sick) right on the calendar, and that month's plan shows the extra money.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade adds one new tab, **Bill Changes**, right after Recurring Payments, and updates the Monthly Plan so it counts those changes.",
+    "**What does not change:** Recurring Payments, your transactions, and every other week. A change applies to the one date you pick. The Financial Summary's typical-month cards stay as they are, because a one-off week is not a typical month."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before bill changes 2026-11-17`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.31.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report includes \"Added tab: Bill Changes\". The new tab sits right after Recurring Payments and is empty." }
+      ]
+    },
+    {
+      "heading": "Change this week's childcare",
+      "steps": [
+        { "text": "Open **Finance Tracker → 📅 Calendar**, click **Friday, November 20**, and find **Nanny (childcare)** in the list on the right." },
+        { "text": "Click **Change amount**, type this week's amount (for example `100`), add a short reason such as `out sick 2 days`, and click **Save**.", "done": "Friday shows the new amount, the list says \"changed for this week from $300.00\", and the week's Bills and Still owe go down. The other Fridays still show $300." },
+        { "text": "Open the **Bill Changes** tab.", "done": "One row: the nanny, Nov 20, usual $300, new amount, and the difference (for example −$200)." },
+        { "text": "Open the **Monthly Plan** tab and find November.", "done": "**Bills** is lower by the difference, and **Flexible Target (auto)** and **Amount Available** are higher by the same amount. The Spending tab's November figures follow." }
+      ]
+    },
+    {
+      "heading": "Undo, if needed",
+      "steps": [
+        { "text": "To put a week back, click the bill on the calendar and click **Back to usual**.", "done": "The bill shows its usual amount again; on Bill Changes the row is greyed and crossed out (kept, not removed), and the Monthly Plan goes back." }
+      ]
+    }
+  ]
+}
