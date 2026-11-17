@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-11-17 — Weekly totals on the calendar
+- Why (the owner): a total of the bills due each week; "let's try it on every
+  row"; weeks start on Monday.
+- `CalendarMath.html`: the grid runs Monday to Sunday (as the Spending tab's
+  weekly guidance counts weeks). New `calWeekTotals_` (pure): for each row,
+  bills due (childcare and card payments included; bills charged to a card
+  with a due day are inside its card payment), still to pay (not paid or
+  ticked, less any part paid; an unpaid bill over a month old is history),
+  and pay (received plus expected). Days of the next or last month count
+  with their own figures. The month totals use the same helpers
+  (`calIsBill_`, `calSettled_`, `calStillOwed_`) and are unchanged.
+- `CalendarDialog.html`: a Week column at the end of each row; the current
+  week is outlined and labelled "This week". `Calendar.gs`: the pop-up is
+  1180 wide (was 1060) to make room.
+- `BUILD_VERSION` 1.29.0. Files changed in `apps-script/`: `CalendarMath.html`,
+  `CalendarDialog.html`, `Calendar.gs`, `Config.gs`. Nothing to run: reload
+  the Sheet.
+- Tested: Node (Monday grid, weekly totals, history left out); the pop-up
+  run in a browser with fictional data. Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Faster calendar
 - Why (the owner): "it is very slow when I pull it up".
 - Before: the pop-up opened empty, then asked the Sheet for the month (eight
