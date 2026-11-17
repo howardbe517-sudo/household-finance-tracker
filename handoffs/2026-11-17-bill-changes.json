@@ -26,7 +26,8 @@
         { "text": "Open **Finance Tracker → 📅 Calendar**, click **Friday, November 20**, and find **Nanny (childcare)** in the list on the right." },
         { "text": "Click **Change amount**, type this week's amount (for example `100`), add a short reason such as `out sick 2 days`, and click **Save**.", "done": "Friday shows the new amount, the list says \"changed for this week from $300.00\", and the week's Bills and Still owe go down. The other Fridays still show $300." },
         { "text": "Open the **Bill Changes** tab.", "done": "One row: the nanny, Nov 20, usual $300, new amount, and the difference (for example −$200)." },
-        { "text": "Open the **Monthly Plan** tab and find November.", "done": "**Bills** is lower by the difference, and **Flexible Target (auto)** and **Amount Available** are higher by the same amount. The Spending tab's November figures follow." }
+        { "text": "Open the **Monthly Plan** tab and find November.", "done": "**Bills** is lower by the difference, and **Flexible Target (auto)** and **Amount Available** are higher by the same amount. The Spending tab's November figures follow." },
+        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "It includes a line like \"Monthly Plan 2026-11: Bills … = recurring … + one-week changes −$200.00\", and the result passes." }
       ]
     },
     {
