@@ -16,6 +16,8 @@ const source = files.map(f => `// ---- ${f} ----\n` + fs.readFileSync(path.join(
 const g = makeGlobals();
 const ctx = vm.createContext(g);
 vm.runInContext(source, ctx, { filename: 'bundle.gs' });
+// The calendar's arithmetic lives in CalendarMath.html (it runs in the pop-up); load it as the page does.
+vm.runInContext(fs.readFileSync(path.join(SRC_DIR, 'CalendarMath.html'), 'utf8').replace(/<\/?script>/g, ''), ctx, { filename: 'CalendarMath.html' });
 
 let failures = 0;
 const ok = (m) => console.log('  ok   ' + m);
@@ -658,6 +660,33 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     && v.oct.gridStart === '2026-09-27' && v.oct.gridDays === 35 && v.oct.spill.join() === 'R2|2026-09-28')
     ok('calendar grid: the days before and after the month show their own bills, the week after today is always on the grid, and the totals stay this month\'s');
   else bad('calendar grid: ' + JSON.stringify(v));
+})();
+/* calendar speed (2026-11-17): the tables are read once and handed to the pop-up, which gives the same calendar */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const ad = TABLES.ACCOUNTS, sh = ss_().getSheetByName(ad.sheet);
+    const rows = readTable_(ad), card = rows.filter(a => a.accountType === 'Credit Card')[0];
+    if (card) sh.getRange(card.__row, ad.columns.findIndex(c => c.key === 'paymentDueDay') + 1).setValue(16);
+    const now = new Date();
+    const payload = JSON.parse(JSON.stringify(calendarPayload_(now)));
+    const direct = { recur: readTable_(tdef_('RECUR')), expect: readTable_(tdef_('EXPECT')), income: readTable_(tdef_('INCOME')), util: readTable_(tdef_('UTIL')),
+      debts: readTable_(tdef_('DEBTS')), tx: readTable_(tdef_('TX')), accounts: readTable_(tdef_('ACCOUNTS')), staging: readTable_(tdef_('STAGING')) };
+    const strip = (r) => JSON.stringify(r.items.concat(r.spill).map(i => [i.key, i.date, i.amount, i.status, i.detail]));
+    const out = [];
+    for (let k = -2; k <= 2; k++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + k, 1);
+      out.push(strip(calendarView_(d.getFullYear(), d.getMonth(), calReviveSource_(payload), now, payload.checks)) === strip(calendarView_(d.getFullYear(), d.getMonth(), direct, now, calendarChecks_())));
+    }
+    const html = HtmlService.createTemplateFromFile('CalendarDialog');
+    showBillsCalendar();
+    if (card) sh.getRange(card.__row, ad.columns.findIndex(c => c.key === 'paymentDueDay') + 1).setValue('');
+    return { same: out, card: !!card, owed: card ? payload.cardOwed[card.id] !== undefined : true, size: JSON.stringify(payload).length,
+      dated: payload.tx.length > 0 && /^D:\\d{4}-\\d{2}-\\d{2}$/.test(payload.tx[0].date), notes: payload.tx.every(t => t.notes === '' || t.notes === AUTO_RECORD_MARK) };
+  })()`, ctx);
+  const page = fs.readFileSync(path.join(SRC_DIR, 'CalendarDialog.html'), 'utf8');
+  if (v.same.every(Boolean) && v.owed && v.dated && v.notes && /includeHtml_\('CalendarMath'\)/.test(page) && /<\?!= dataJson \?>/.test(page) && !/getCalendarMonth/.test(page))
+    ok('calendar opens with its data: the tables are read once, trimmed, and handed to the pop-up, which works out the same months (5 months checked) without going back to the Sheet (' + Math.round(v.size / 1000) + ' k characters with the sample data)');
+  else bad('calendar payload: ' + JSON.stringify(v));
 })();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-11-17 — Faster calendar
+- Why (the owner): "it is very slow when I pull it up".
+- Before: the pop-up opened empty, then asked the Sheet for the month (eight
+  tables read), and read all eight again for every arrow click and tick.
+- Now `Calendar.gs` (`calendarPayload_`) reads the tables once while the
+  pop-up opens, trims them to the columns the calendar uses, works out what
+  is owed on each card with a due day, and hands it all to the page. The
+  arithmetic moved unchanged to the new `CalendarMath.html`, which the
+  pop-up includes (as the Payoff planner does with `PayoffMath.html`), so
+  months and ticks are worked out in the pop-up at once; a tick is saved in
+  the background (and undone on screen if saving fails). A toast says the
+  calendar is opening.
+- `BUILD_VERSION` 1.28.3. Files changed in `apps-script/`: `Calendar.gs`,
+  `CalendarMath.html` (new), `CalendarDialog.html`, `Config.gs`. Nothing to
+  run: reload the Sheet.
+- Tested: Node (the pop-up's copy of the data gives the same calendar as
+  reading the tables, five months checked); the pop-up run in a browser with
+  fictional data (month change and tick with no trip to the Sheet). Not yet
+  seen in Google. No numbers change, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Calendar menu item renamed
 - Why (the owner): the menu item should just say "Calendar" with a calendar
   emoji.
