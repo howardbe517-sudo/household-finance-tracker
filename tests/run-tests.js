@@ -39,7 +39,7 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 33 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('33 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 34 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('34 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 18, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
@@ -707,6 +707,54 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (v.same.every(Boolean) && v.owed && v.dated && v.notes && /includeHtml_\('CalendarMath'\)/.test(page) && /<\?!= dataJson \?>/.test(page) && !/getCalendarMonth/.test(page))
     ok('calendar opens with its data: the tables are read once, trimmed, and handed to the pop-up, which works out the same months (5 months checked) without going back to the Sheet (' + Math.round(v.size / 1000) + ' k characters with the sample data)');
   else bad('calendar payload: ' + JSON.stringify(v));
+})();
+/* bill changes (2026-11-17): a one-week change made on the calendar, kept on Bill Changes, counted in that month's plan */
+(function () {
+  const errs = [], want = (c, m) => { if (!c) errs.push(m); };
+  const m1 = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const src = {
+      recur: [{ id: 'R1', name: 'Nanny', group: 'Other', active: true, amount: 300, frequency: 'Weekly', nextPayment: D(2030, 4, 5), category: 'C', subcategory: 'N' },
+        { id: 'R2', name: 'Car', group: 'Loans', active: true, amount: 250, frequency: 'Monthly', dueDay: 2, category: 'DP', subcategory: 'A' }],
+      billChanges: [{ id: 'BCH-0001', recurId: 'R1', date: D(2030, 4, 12), usualAmount: 300, newAmount: 100, notes: 'out sick 2 days', isDeleted: false },
+        { id: 'BCH-0002', recurId: 'R1', date: D(2030, 4, 19), usualAmount: 300, newAmount: 0, notes: 'undone', isDeleted: true }],
+    };
+    const v = calendarView_(2030, 3, src, D(2030, 4, 8), {});
+    return { items: v.items.map(i => [i.key, i.amount, i.changed, i.editable, i.detail]), bills: v.totals.bills, weeks: v.weeks.map(w => w.bills) };
+  })()`, ctx);
+  const it = (k) => m1.items.filter(i => i[0] === k)[0] || [];
+  want(it('R1|2030-04-12')[1] === 100 && it('R1|2030-04-12')[2] === true && /changed for this week from \$300\.00: out sick 2 days/.test(it('R1|2030-04-12')[4]), 'the changed week shows the new amount and why: ' + JSON.stringify(it('R1|2030-04-12')));
+  want(it('R1|2030-04-05')[1] === 300 && it('R1|2030-04-19')[1] === 300 && it('R1|2030-04-26')[1] === 300, 'other weeks (and an undone change) keep the usual amount');
+  want(it('R1|2030-04-05')[3] === true && it('R2|2030-04-02')[3] === false, 'bills can be changed, loan payments cannot');
+  want(m1.bills === 300 * 3 + 100 + 250, 'the month total follows the change: ' + m1.bills);
+
+  const planF = vm.runInContext('TABLES.PLAN.columns.filter(function (c) { return c.key === "bills"; })[0].f', ctx);
+  want(/SUMIFS\(\[BILLCHG\.difference\],\[BILLCHG\.month\],\[@month\],\[BILLCHG\.isDeleted\],"<>TRUE"\)/.test(planF), 'the Monthly Plan adds that month\'s Bill Changes to Bills');
+  const sv = vm.runInContext(`(function () {
+    const rec = readTable_(tdef_('RECUR')).filter(r => r.active === true && r.group !== 'Loans' && Number(r.amount) > 0)[0];
+    const loan = readTable_(tdef_('RECUR')).filter(r => r.active === true && r.group === 'Loans')[0];
+    const out = { rec: rec ? rec.id : null };
+    if (!rec) return out;
+    const rows = () => readTable_(tdef_('BILLCHG')).map(c => [c.recurId, calYmd_(c.date), c.usualAmount, c.newAmount, c.isDeleted === true, c.notes]);
+    out.first = saveBillChange(rec.id, '2030-04-12', 100, 'out sick');
+    out.second = saveBillChange(rec.id, '2030-04-12', 150, 'one day');
+    out.afterSecond = rows();
+    out.undo = undoBillChange(rec.id, '2030-04-12');
+    out.usual = saveBillChange(rec.id, '2030-04-19', Number(rec.amount), '');
+    out.rows = rows();
+    out.amount = Number(rec.amount);
+    try { saveBillChange(rec.id, '2030-04-12', -5, ''); out.neg = 'saved'; } catch (e) { out.neg = 'refused'; }
+    if (loan) { try { saveBillChange(loan.id, '2030-04-02', 1, ''); out.loan = 'saved'; } catch (e) { out.loan = 'refused'; } }
+    return out;
+  })()`, ctx);
+  if (sv.rec) {
+    want(sv.first.length === 1 && sv.first[0].newAmount === 100 && /^D:2030-04-12$/.test(sv.first[0].date), 'a change is saved and sent back to the pop-up: ' + JSON.stringify(sv.first));
+    want(sv.second.length === 1 && sv.second[0].newAmount === 150 && sv.afterSecond.length === 2 && sv.afterSecond[0][4] === true && sv.afterSecond[1][4] === false && sv.afterSecond[1][2] === sv.amount, 'changing it again undoes the first (Is Deleted, kept) and adds the new one: ' + JSON.stringify(sv.afterSecond));
+    want(sv.undo.length === 0 && sv.rows.every(r => r[4] === true) && sv.rows.length === 2, 'Back to usual ticks Is Deleted; typing the usual amount adds nothing: ' + JSON.stringify(sv.rows));
+    want(sv.neg === 'refused' && (sv.loan === undefined || sv.loan === 'refused'), 'a negative amount and a loan payment are refused');
+  } else errs.push('no sample bill to change');
+  if (!errs.length) ok('bill changes: a bill changed on the calendar for one date shows the new amount there only (other weeks and Recurring Payments unchanged), is kept on Bill Changes (changing or undoing it ticks Is Deleted, nothing removed), loan payments are not changeable, and the Monthly Plan counts that month\'s difference in Bills');
+  else bad('bill changes: ' + errs.join(' | '));
 })();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {

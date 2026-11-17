@@ -36,7 +36,8 @@ function showBillsCalendar() {
 
 /** The columns the calendar uses, per table. */
 const CAL_COLUMNS = {
-  recur: ['id', 'name', 'category', 'subcategory', 'amount', 'frequency', 'dueDay', 'nextPayment', 'accountId', 'autoPay', 'active', 'notes'],
+  recur: ['id', 'name', 'group', 'category', 'subcategory', 'amount', 'frequency', 'dueDay', 'nextPayment', 'accountId', 'autoPay', 'active', 'notes'],
+  billChanges: ['id', 'recurId', 'date', 'usualAmount', 'newAmount', 'notes', 'isDeleted'],
   expect: ['id', 'person', 'employer', 'frequency', 'typicalTakeHome', 'active', 'lastPayDate'],
   income: ['id', 'person', 'employer', 'payDate', 'takeHome'],
   util: ['id', 'utility', 'provider', 'dueDate', 'amount', 'status', 'paidDate'],
@@ -60,6 +61,7 @@ function calendarPayload_(today) {
   const tables = { recur: 'RECUR', expect: 'EXPECT', income: 'INCOME', util: 'UTIL', debts: 'DEBTS', tx: 'TX', accounts: 'ACCOUNTS' };
   const out = { autoMark: AUTO_RECORD_MARK, utilMap: UTILITY_FROM_SUBCATEGORY, checks: calendarChecks_(), cardOwed: {} };
   Object.keys(tables).forEach(k => { out[k] = trim(readTable_(tdef_(tables[k])), CAL_COLUMNS[k]); });
+  out.billChanges = calendarBillChanges_();
   out.tx.forEach(t => { t.notes = String(t.notes || '').indexOf(AUTO_RECORD_MARK) >= 0 ? AUTO_RECORD_MARK : ''; });
   const cards = out.accounts.filter(a => a.id && a.accountType === 'Credit Card' && Number(a.paymentDueDay) > 0).map(a => a.id);
   out.staging = [];
@@ -75,6 +77,71 @@ function calendarPayload_(today) {
     out.staging = trim(staged.filter(x => cards.indexOf(x.accountId) >= 0 && (Number(x.amount) < 0 || (x.date instanceof Date && x.date >= since))), CAL_COLUMNS.staging);
   }
   return out;
+}
+
+/** The Bill Changes still in force, as the pop-up takes them (dates as "D:yyyy-mm-dd"). */
+function calendarBillChanges_() {
+  if (!ss_().getSheetByName(SHEETS.BILLCHG)) return []; // before Upgrade workbook adds the tab
+  return readTable_(tdef_('BILLCHG')).filter(c => c.isDeleted !== true && c.recurId && c.date instanceof Date).map(c => {
+    const o = {}; CAL_COLUMNS.billChanges.forEach(k => { o[k] = k === 'date' ? 'D:' + calYmd_(c[k]) : c[k]; }); return o;
+  });
+}
+
+/**
+ * Changes one bill on one date (the owner, 2026-11-17: the nanny out sick for two days, so this week's
+ * childcare is less). Written to Bill Changes; the calendar shows the new amount for that date only, and that
+ * month's Monthly Plan counts the difference. A change already there for the same bill and date is undone
+ * first (Is Deleted ticked; rows are never removed); typing the usual amount just undoes it.
+ * Returns the changes in force, for the pop-up to redraw.
+ */
+function saveBillChange(recurId, ymd, newAmount, note) {
+  const bill = calendarChangeableBill_(recurId, ymd);
+  const amount = Math.round(Number(newAmount) * 100) / 100;
+  if (newAmount === '' || newAmount === null || !isFinite(amount) || amount < 0 || amount > 100000) throw new Error('Type an amount of $0 or more.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    calendarUndoChanges_(recurId, bill.date);
+    const usual = Number(bill.row.amount);
+    if (!(isFinite(usual) && Math.abs(usual - amount) < 0.005)) {
+      const def = tdef_('BILLCHG');
+      writeRows_(def, [{ id: nextId_(def, 4), recurId: bill.row.id, billName: String(bill.row.name || '').trim(), date: bill.date,
+        usualAmount: isFinite(usual) ? usual : '', newAmount: amount, notes: String(note || '').slice(0, 200), createdAt: new Date(), isDeleted: false }]);
+    }
+  } finally { lock.releaseLock(); }
+  return calendarBillChanges_();
+}
+
+/** Puts a bill back to its usual amount on that date (the change's Is Deleted is ticked). */
+function undoBillChange(recurId, ymd) {
+  const bill = calendarChangeableBill_(recurId, ymd);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try { calendarUndoChanges_(recurId, bill.date); } finally { lock.releaseLock(); }
+  return calendarBillChanges_();
+}
+
+/** The Recurring Payments row and date of a change, checked: an active bill outside the Loans group. */
+function calendarChangeableBill_(recurId, ymd) {
+  if (!ss_().getSheetByName(SHEETS.BILLCHG)) throw new Error('Run Finance Tracker → Upgrade workbook first: it adds the Bill Changes tab.');
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+  if (!m) throw new Error('That date could not be read.');
+  const row = readTable_(tdef_('RECUR')).filter(r => r.id === String(recurId || ''))[0];
+  if (!row || row.active !== true) throw new Error('That bill is not an active row on Recurring Payments.');
+  if (row.group === 'Loans') throw new Error('Loan payments are changed on Debts, not here.');
+  return { row: row, date: new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) };
+}
+
+/** Ticks Is Deleted on every change in force for this bill and date. Changes only those cells. */
+function calendarUndoChanges_(recurId, date) {
+  const def = tdef_('BILLCHG');
+  const sh = ss_().getSheetByName(def.sheet);
+  const colDel = def.columns.findIndex(c => c.key === 'isDeleted') + 1, colAt = def.columns.findIndex(c => c.key === 'deletedAt') + 1;
+  const ymd = calYmd_(date);
+  readTable_(def).filter(c => c.recurId === recurId && c.isDeleted !== true && c.date instanceof Date && calYmd_(c.date) === ymd).forEach(c => {
+    sh.getRange(c.__row, colDel).setValue(true);
+    sh.getRange(c.__row, colAt).setValue(new Date());
+  });
 }
 
 /** Ticks (or unticks) an item as paid but not in the tracker yet. The pop-up has already redrawn itself. */
