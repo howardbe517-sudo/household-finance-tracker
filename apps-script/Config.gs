@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.19-card-due-day-2026-11-16',
-  BUILD_VERSION: '1.29.0',
+  BUILD_VERSION: '1.30.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -375,7 +375,7 @@ TABLES.ACCOUNTS = {
     { key: 'about', h: 'About This Account', w: 320,
       note: 'Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves.' },
     { key: 'paymentDueDay', h: 'Payment Due Day', w: 95, fmt: C.int,
-      note: 'Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The Bills & paychecks calendar then shows the card payment on that day at what is owed on the card now (posted balance plus pending charges), and counts bills charged to the card once, inside that payment.' },
+      note: 'Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The calendar then treats the card as paid off from the paychecks: what is owed on it now (posted balance plus pending charges) is a bill on the next payday, payments already made and bills already charged to it are not counted again, and this day is shown as a reminder.' },
   ],
 };
 
