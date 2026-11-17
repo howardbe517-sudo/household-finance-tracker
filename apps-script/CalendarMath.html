@@ -121,7 +121,8 @@ function calendarMonth_(y, m, src, today, checks) {
   const utilMap = src.utilMap || (typeof UTILITY_FROM_SUBCATEGORY === 'object' ? UTILITY_FROM_SUBCATEGORY : { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer' });
   const utilTracked = {};
   (src.util || []).forEach(u => { if (u.id && u.utility) utilTracked[u.utility] = true; });
-  const staging = (src.staging || []).filter(x => x.importId && calIsDate_(x.date) && x.status !== 'Superseded' && x.status !== 'Removed');
+  // Copies, so marking a charge as used never changes the rows passed in (the pop-up reuses them every month).
+  const staging = (src.staging || []).filter(x => x.importId && calIsDate_(x.date) && x.status !== 'Superseded' && x.status !== 'Removed').map(x => Object.assign({}, x));
   // A payment to the card: money in, labelled Transfer or Debt Payment (as the feed pairs card payments), or
   // paired with the checking side. The description is used only for a row with no type yet, so a refund
   // ("AMAZON PAYMENTS REFUND") is never taken for a payment.
@@ -131,6 +132,13 @@ function calendarMonth_(y, m, src, today, checks) {
   const recur = (src.recur || []).filter(r => r.id && r.active === true && !(r.category === 'Housing' && utilTracked[utilMap[r.subcategory]]));
   const pairCount = {};
   recur.forEach(r => { const k = pairKey(r.category, r.subcategory); pairCount[k] = (pairCount[k] || 0) + 1; });
+  // A card charge already imported as a transaction with a card bill's Category and Subcategory belongs to that
+  // bill (it is matched through its transaction), so no other bill may take it, whatever order they are read in.
+  const cardBillPairs = {};
+  recur.forEach(r => { if (r.accountId && cardDue[r.accountId]) cardBillPairs[pairKey(r.category, r.subcategory)] = true; });
+  const txPair = {};
+  (src.tx || []).forEach(t => { if (t.id) txPair[t.id] = pairKey(t.category, t.subcategory); });
+  staging.forEach(x => { if (x.importedTxId && cardBillPairs[txPair[x.importedTxId]]) x.__used = true; });
   const lastTxDate = (r) => {
     let best = null;
     payTx.forEach(p => {
@@ -192,8 +200,20 @@ function calendarMonth_(y, m, src, today, checks) {
       // window and within 10% of the amount): then it is counted inside the card payoff on the next payday,
       // not again. A charge not seen yet counts on its own, in its own week (late once its day has passed),
       // whatever its date, so nothing is counted twice or dropped.
-      const seenOnCard = onCard && !!cardDue[r.accountId] && (matched.length > 0 || staging.some(x => x.accountId === r.accountId &&
-        Number(x.amount) > 0 && x.date >= from && x.date <= to && (amt === null || Math.abs(Number(x.amount) - amt) <= Math.max(1, amt * 0.1))));
+      // Each charge is used once: the card's side of a matched transaction is used by that bill, and otherwise
+      // the charge whose description shares a word with the bill's name is preferred, then the closest amount.
+      let seenOnCard = false;
+      if (onCard && cardDue[r.accountId]) {
+        if (matched.length) seenOnCard = true;
+        else {
+          const words = String(r.name || '').toUpperCase().split(/[^A-Z0-9]+/).filter(w => w.length >= 4);
+          const c = staging.filter(x => !x.__used && x.accountId === r.accountId && Number(x.amount) > 0 && x.date >= from && x.date <= to &&
+            (amt === null || Math.abs(Number(x.amount) - amt) <= Math.max(1, amt * 0.1)))
+            .map(x => ({ x, w: words.some(w => String(x.rawDescription || '').toUpperCase().indexOf(w) >= 0) ? 0 : 1, gap: amt === null ? 0 : Math.abs(Number(x.amount) - amt) }))
+            .sort((a2, b2) => a2.w - b2.w || a2.gap - b2.gap)[0];
+          if (c) { c.x.__used = true; seenOnCard = true; }
+        }
+      }
       const inCardPayment = seenOnCard;
       items.push(calItem_({
         key: r.id + '|' + calYmd_(d), date: d, kind: 'bill', name: String(r.name || r.id).trim(), amount: amt,
@@ -235,8 +255,8 @@ function calendarMonth_(y, m, src, today, checks) {
       : bal === null ? null : calRound_(bal + (typeof cardPending_ === 'function' ? cardPending_(src.staging || [], [id], t0) : 0));
     let when = nextPay;
     if (!when) { when = calDayIn_(t0.getFullYear(), t0.getMonth(), calNum_(a.paymentDueDay)); if (when < t0) when = calDayIn_(t0.getFullYear(), t0.getMonth() + 1, calNum_(a.paymentDueDay)); }
-    const asOf = calIsDate_(a.lastUpdated) ? ' as of ' + (a.lastUpdated.getMonth() + 1) + '/' + a.lastUpdated.getDate() : '';
-    if (owed !== null && owed > 0) cardPayoffs.push({ name: name, amount: owed, date: calYmd_(when), asOf: asOf.trim() });
+    const asOf = calIsDate_(a.lastUpdated) ? ' as of ' + (a.lastUpdated.getMonth() + 1) + '/' + a.lastUpdated.getDate() : ' (balance date unknown)';
+    if (owed !== null && owed > 0) cardPayoffs.push({ name: name, amount: owed, date: calYmd_(when), asOf: calIsDate_(a.lastUpdated) ? asOf.trim() : 'balance date unknown' });
     if (owed !== null && owed > 0 && when >= first && when <= last) {
       items.push(calItem_({
         key: id + '|payoff|' + calYmd_(when), date: when, kind: 'card', name: 'Pay off ' + name, chip: 'Pay ' + short,

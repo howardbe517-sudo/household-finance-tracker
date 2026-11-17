@@ -43,7 +43,7 @@ const CAL_COLUMNS = {
   debts: ['id', 'name', 'minPayment', 'dueDay', 'latestBalance', 'linkedAccount'],
   tx: ['id', 'date', 'description', 'amount', 'type', 'category', 'subcategory', 'debtId', 'isDeleted', 'splitRole', 'notes'],
   accounts: ['id', 'name', 'accountType', 'currentBalance', 'lastUpdated', 'paymentDueDay'],
-  staging: ['importId', 'accountId', 'date', 'rawDescription', 'amount', 'status', 'suggestedType', 'pairedImportId'],
+  staging: ['importId', 'accountId', 'date', 'rawDescription', 'amount', 'status', 'suggestedType', 'pairedImportId', 'importedTxId'],
 };
 
 /**

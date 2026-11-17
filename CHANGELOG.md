@@ -17,7 +17,10 @@
   day has passed. After the data review: decided by whether the charge was
   seen, not by date (a bill charged a day early was counted twice; one never
   charged was dropped); the footer names the payoff (amount, balance date,
-  payday) in every month; past months say card spending is not counted. The old monthly card payment (on the due date,
+  payday) in every month; past months say card spending is not counted.
+  Each card charge is used for one bill only: a charge already filed under a
+  card bill's category belongs to that bill, and otherwise a charge whose
+  description shares a word with the bill's name is preferred. The old monthly card payment (on the due date,
   estimated from recent payments) is gone. New `calNextPayday_` and
   `calPayAnchorFor_` (shared with the paychecks).
 - `CalendarDialog.html`: a note explains the card; in a crowded day box,
