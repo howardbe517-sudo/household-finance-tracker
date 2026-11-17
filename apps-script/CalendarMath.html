@@ -141,6 +141,7 @@ function calendarMonth_(y, m, src, today, checks) {
   staging.forEach(x => { if (x.importedTxId && cardBillPairs[txPair[x.importedTxId]]) x.__used = true; });
   const lastTxDate = (r) => {
     let best = null;
+    if (!r.category) return null;
     payTx.forEach(p => {
       if (pairKey(p.t.category, p.t.subcategory) !== pairKey(r.category, r.subcategory)) return;
       const amt = calNum_(r.amount);
@@ -157,7 +158,7 @@ function calendarMonth_(y, m, src, today, checks) {
     const day = calNum_(r.dueDay);
     const next = calIsDate_(r.nextPayment) ? r.nextPayment : null;
     const freq = r.frequency || 'Monthly';
-    let dates = [], window = 10, early = null;
+    let dates = [], window = 10, early = null, anyDay = false;
     if (freq === 'Weekly' || freq === 'Biweekly') {
       const anchor = next || lastTxDate(r);
       // A payment counts for the date before it, up to 5 days late (10 for biweekly): Venmo can take
@@ -167,9 +168,13 @@ function calendarMonth_(y, m, src, today, checks) {
       if (anchor) dates = calStepDates_(anchor, freq === 'Weekly' ? 7 : 14, first, last);
       else { notShown.push(r.name + ' (' + freq.toLowerCase() + '): add a Next Payment Date on Recurring Payments to place it'); return; }
     } else if (freq === 'Monthly') {
+      // A monthly bill with no Due Day comes on a different day each month (Ben's haircut, 2026-11-17): it is due
+      // some day this month, shown on the month's last day, and any payment that month counts. A Next Payment Date
+      // in this month places it on that day instead (when the date is known ahead of time).
       if (day) dates = [calDayIn_(y, m, day)];
-      else if (next) dates = [calDayIn_(y, m, next.getDate())];
-      else { notShown.push(r.name + ': add a Due Day on Recurring Payments to place it'); return; }
+      else if (next && next >= first && next <= last) dates = [calDay_(next)];
+      else if (amtUsual === null) { notShown.push(r.name + ': add an Amount (and a Due Day if it has one) on Recurring Payments to place it'); return; }
+      else { anyDay = true; dates = [last]; }
     } else {
       const months = freq === 'Quarterly' ? 3 : freq === 'Semiannual' ? 6 : 12;
       window = 15;
@@ -187,8 +192,9 @@ function calendarMonth_(y, m, src, today, checks) {
       // needs half its Amount to show as paid (a short childcare week), any other bill 90%. The windows of
       // two dates of one bill never overlap (weekly 1 day early to 5 late, biweekly 3 early to 10 late,
       // 10 days either side for monthly, 15 for longer).
-      const from = calAddDays_(d, -(early === null ? window : early)), to = calAddDays_(d, window);
-      const cands = payTx.filter(p => !p.used && p.t.date >= from && p.t.date <= to && pairKey(p.t.category, p.t.subcategory) === pairKey(r.category, r.subcategory));
+      const from = anyDay ? first : calAddDays_(d, -(early === null ? window : early)), to = anyDay ? last : calAddDays_(d, window);
+      // A bill with no Category is never matched (it would take any uncategorized payment, such as a card payment).
+      const cands = !r.category ? [] : payTx.filter(p => !p.used && p.t.date >= from && p.t.date <= to && pairKey(p.t.category, p.t.subcategory) === pairKey(r.category, r.subcategory));
       let matched = [];
       if (shared) {
         const ok = cands.filter(p => amt === null || Math.abs(Number(p.t.amount) - amt) <= Math.max(1, amt * 0.1));
@@ -229,6 +235,7 @@ function calendarMonth_(y, m, src, today, checks) {
         // A bill outside the Loans group can be changed for this one date from the calendar (Bill Changes).
         editable: r.group !== 'Loans', recurId: r.id, usualAmount: amtUsual, changed: !!ch, changeNote: ch ? String(ch.notes || '') : '',
         period: freq === 'Weekly' ? 'week' : freq === 'Biweekly' ? 'two weeks' : 'month',
+        extra: anyDay ? 'due some day this month (no set day); shown on the last day' : '',
         // changed to $0 (the nanny out all week): nothing is due, so it is never "not seen yet"
         forceStatus: ch && amt === 0 ? 'note' : '', forceText: 'Nothing due this time (changed to $0)',
       }, t0, checks));
