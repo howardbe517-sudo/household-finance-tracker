@@ -16,13 +16,14 @@
   .tile b { display: block; font-size: 14px; }
   .tile span { font-size: 11px; color: #5F6B7A; }
   .main { flex: 1; display: flex; gap: 12px; min-height: 0; }
-  .grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 104px; grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 124px; grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
   .wk { border: 1px solid #E1E7ED; border-radius: 6px; padding: 3px 6px; background: #FAFBFC; font-size: 11px; line-height: 1.35; overflow: hidden; }
   .wk.cur { border: 2px solid #17324D; background: #EEF3F8; }
   .wk .h { font-weight: 700; color: #5F6B7A; margin-bottom: 1px; }
-  .wk .l { display: flex; justify-content: space-between; gap: 4px; color: #5F6B7A; }
+  .wk .l { display: flex; justify-content: space-between; gap: 4px; color: #5F6B7A; white-space: nowrap; }
   .wk .l b { color: #1F2933; }
   .wk .l.due b { color: #7A1A12; }
+  .wk .l.in b { color: #1E5434; }
   .grid .wd { font-size: 11px; font-weight: 700; color: #5F6B7A; text-align: center; padding: 2px 0; }
   .grid.head { flex: 0 0 auto; grid-auto-rows: auto; margin-bottom: 3px; }
   .gridwrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -123,10 +124,10 @@
     if (!sel || sel < d.gridStart || sel > gEnd) sel = d.today.slice(0, 7) === ym ? d.today : null;
     var t = d.totals;
     document.getElementById('sum').innerHTML =
-      '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Pay this month (received + expected)</span></div>' +
-      '<div class="tile"><b>' + money(t.stillComingIn) + '</b><span>Pay not received yet</span></div>' +
-      '<div class="tile"><b>' + money(t.bills) + '</b><span>Bills due this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
-      '<div class="tile"><b>' + money(t.stillToPay) + '</b><span>Still to pay' + (t.lateCount ? ' · incl. ' + short(t.lateAmount) + ' not seen yet' : '') + '</span></div>';
+      '<div class="tile"><b>' + money(t.comingIn) + '</b><span>Coming in this month (received + expected)</span></div>' +
+      '<div class="tile"><b>' + money(t.stillComingIn) + '</b><span>Still coming in</span></div>' +
+      '<div class="tile"><b>' + money(t.bills) + '</b><span>Bills this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
+      '<div class="tile"><b>' + money(t.stillToPay) + '</b><span>Still owe' + (t.lateCount ? ' · incl. ' + short(t.lateAmount) + ' not seen yet' : '') + '</span></div>';
     renderGrid(); renderList();
     var notes = [];
     if (t.estimates) notes.push('Amounts marked "estimate" are guesses until the real bill or paycheck arrives.');
@@ -135,7 +136,7 @@
     if (t.billsOnCards) notes.push('Bills charged to a credit card are paid when the card is paid, not on the day shown.');
     (d.cardPayoffs || []).forEach(function (c) {
       var p = c.date.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
-      notes.push('Pay off ' + esc(c.name) + ': ' + money(c.amount) + (c.asOf ? ' (' + esc(c.asOf) + ')' : '') + ', on ' + esc(dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) + '.');
+      notes.push('Owed on ' + esc(c.name) + ': ' + money(c.amount) + (c.asOf ? ' (' + esc(c.asOf) + ')' : '') + ', due on your next payday, ' + esc(dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) + '.');
     });
     if (d.past && (d.cardPayoffs || []).length) notes.push('In past months, spending on the card is not counted as bills; the card payments show as notes.');
     if (d.notShown.length) notes.push('Not on the calendar: ' + d.notShown.map(esc).join('; ') + '.');
@@ -173,9 +174,9 @@
   function weekHtml(w) {
     if (!w) return '<div class="wk"></div>';
     var line = function (label, v, cls) { return '<div class="l' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + short(v) + '</b></div>'; };
-    return '<div class="wk' + (w.current ? ' cur' : '') + '" title="Monday to Sunday. Bills due includes childcare and card payments; bills charged to a card are inside its card payment.">' +
+    return '<div class="wk' + (w.current ? ' cur' : '') + '" title="Monday to Sunday. Coming in: paychecks received or expected. Bills: everything due that week, including childcare and what you owe on the card. Still owe: bills not paid yet.">' +
       '<div class="h">' + (w.current ? 'This week' : 'Week') + '</div>' +
-      line('Bills', w.bills) + line('To pay', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + line('Pay', w.pay) + '</div>';
+      line('Coming in', w.pay, 'in') + line('Bills', w.bills) + line('Still owe', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + '</div>';
   }
   function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
   function itemHtml(it, idx) {
