@@ -229,6 +229,8 @@ function calendarMonth_(y, m, src, today, checks) {
         // A bill outside the Loans group can be changed for this one date from the calendar (Bill Changes).
         editable: r.group !== 'Loans', recurId: r.id, usualAmount: amtUsual, changed: !!ch, changeNote: ch ? String(ch.notes || '') : '',
         period: freq === 'Weekly' ? 'week' : freq === 'Biweekly' ? 'two weeks' : 'month',
+        // changed to $0 (the nanny out all week): nothing is due, so it is never "not seen yet"
+        forceStatus: ch && amt === 0 ? 'note' : '', forceText: 'Nothing due this time (changed to $0)',
       }, t0, checks));
     });
   });

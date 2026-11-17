@@ -717,19 +717,25 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       recur: [{ id: 'R1', name: 'Nanny', group: 'Other', active: true, amount: 300, frequency: 'Weekly', nextPayment: D(2030, 4, 5), category: 'C', subcategory: 'N' },
         { id: 'R2', name: 'Car', group: 'Loans', active: true, amount: 250, frequency: 'Monthly', dueDay: 2, category: 'DP', subcategory: 'A' }],
       billChanges: [{ id: 'BCH-0001', recurId: 'R1', date: D(2030, 4, 12), usualAmount: 300, newAmount: 100, notes: 'out sick 2 days', isDeleted: false },
-        { id: 'BCH-0002', recurId: 'R1', date: D(2030, 4, 19), usualAmount: 300, newAmount: 0, notes: 'undone', isDeleted: true }],
+        { id: 'BCH-0002', recurId: 'R1', date: D(2030, 4, 19), usualAmount: 300, newAmount: 0, notes: 'undone', isDeleted: true },
+        { id: 'BCH-0003', recurId: 'R1', date: D(2030, 3, 29), usualAmount: 300, newAmount: 0, notes: 'out all week', isDeleted: false }],
     };
     const v = calendarView_(2030, 3, src, D(2030, 4, 8), {});
-    return { items: v.items.map(i => [i.key, i.amount, i.changed, i.editable, i.detail]), bills: v.totals.bills, weeks: v.weeks.map(w => w.bills) };
+    const zero = calendarMonth_(2030, 2, src, D(2030, 4, 8), {}).items.filter(i => i.key === 'R1|2030-03-29')[0];
+    v.zero = zero ? [zero.amount, zero.status, zero.editable] : null;
+    return { items: v.items.map(i => [i.key, i.amount, i.changed, i.editable, i.detail]), bills: v.totals.bills, weeks: v.weeks.map(w => w.bills), zero: v.zero };
   })()`, ctx);
   const it = (k) => m1.items.filter(i => i[0] === k)[0] || [];
   want(it('R1|2030-04-12')[1] === 100 && it('R1|2030-04-12')[2] === true && /changed for this week from \$300\.00: out sick 2 days/.test(it('R1|2030-04-12')[4]), 'the changed week shows the new amount and why: ' + JSON.stringify(it('R1|2030-04-12')));
   want(it('R1|2030-04-05')[1] === 300 && it('R1|2030-04-19')[1] === 300 && it('R1|2030-04-26')[1] === 300, 'other weeks (and an undone change) keep the usual amount');
   want(it('R1|2030-04-05')[3] === true && it('R2|2030-04-02')[3] === false, 'bills can be changed, loan payments cannot');
   want(m1.bills === 300 * 3 + 100 + 250, 'the month total follows the change: ' + m1.bills);
+  want(m1.zero && m1.zero[0] === 0 && m1.zero[1] === 'note' && m1.zero[2] === true, 'a week changed to $0 is "nothing due", never late, and can still be put back: ' + JSON.stringify(m1.zero));
 
   const planF = vm.runInContext('TABLES.PLAN.columns.filter(function (c) { return c.key === "bills"; })[0].f', ctx);
-  want(/SUMIFS\(\[BILLCHG\.difference\],\[BILLCHG\.month\],\[@month\],\[BILLCHG\.isDeleted\],"<>TRUE"\)/.test(planF), 'the Monthly Plan adds that month\'s Bill Changes to Bills');
+  want(/SUMPRODUCT\(\(\[BILLCHG\.month\]=\[@month\]\)\*\(\[BILLCHG\.isDeleted\]<>TRUE\)\*\(COUNTIFS\(\[RECUR\.id\],\[BILLCHG\.recurId\],\[RECUR\.active\],TRUE,\[RECUR\.group\],"<>Loans"\)>0\)\*N\(\+\[BILLCHG\.difference\]\)\)/.test(planF), 'the Monthly Plan adds that month\'s Bill Changes to Bills, for bills still active and outside Loans: ' + planF);
+  const diffF = vm.runInContext('TABLES.BILLCHG.columns.filter(function (c) { return c.key === "difference"; })[0].f', ctx);
+  want(/INDEX\(\[RECUR\.amount\],MATCH\(\[@recurId\],\[RECUR\.id\],0\)\)/.test(diffF), 'the difference is measured from the bill\'s amount on Recurring Payments now');
   const sv = vm.runInContext(`(function () {
     const rec = readTable_(tdef_('RECUR')).filter(r => r.active === true && r.group !== 'Loans' && Number(r.amount) > 0)[0];
     const loan = readTable_(tdef_('RECUR')).filter(r => r.active === true && r.group === 'Loans')[0];

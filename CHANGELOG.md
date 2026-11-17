@@ -19,8 +19,16 @@
   **Change amount** and **Back to usual** under a bill in the day or month
   list. `Tables.gs`: the tab is built with the core tables; undone changes
   are greyed and struck through.
+- After the data review: the Monthly Plan counts a change only while its
+  bill is active and outside Loans; Difference is measured from the bill's
+  amount on Recurring Payments now (so a later price change stays right); a
+  week changed to $0 shows "Nothing due this time", never late; the Spending
+  tab's flexible line says when bills include one-week changes; `QA.gs`
+  checks each month's Bills (recurring + changes) and lists changes not
+  counted or saved at another amount.
 - `BUILD_VERSION` 1.31.0. Files changed in `apps-script/`: `Config.gs`,
-  `Calendar.gs`, `CalendarMath.html`, `CalendarDialog.html`, `Tables.gs`.
+  `Calendar.gs`, `CalendarMath.html`, `CalendarDialog.html`, `Tables.gs`,
+  `Spending.gs`, `QA.gs`.
   Run **Upgrade workbook** once (adds the tab and updates the Monthly Plan's
   Bills formula).
 - Tested: Node (calendar amounts, save/change/undo on the mock workbook,
