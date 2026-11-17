@@ -1,6 +1,6 @@
 /**
  * Household Finance Tracker — Calendar.gs
- * The bills and paychecks calendar: Finance Tracker → Bills & paychecks calendar… opens a pop-up with
+ * The bills and paychecks calendar: Finance Tracker → 📅 Calendar opens a pop-up with
  * one month at a time (this month first, arrows for the others). It shows:
  *   - every active bill on Recurring Payments on its due day (weekly bills, such as childcare, repeat
  *     on the weekday of their Next Payment Date);
@@ -25,7 +25,7 @@ const CAL_KEEP_MONTHS = 13;      // ticks older than this are dropped when a new
 const CAL_PAY_WINDOW = 3;        // a paycheck counts as received within 3 days of its payday
 const CAL_INCOME_WINDOW = 3;
 
-/** Finance Tracker → Bills & paychecks calendar… */
+/** Finance Tracker → 📅 Calendar */
 function showBillsCalendar() {
   const html = HtmlService.createHtmlOutputFromFile('CalendarDialog').setWidth(1060).setHeight(720);
   ui_().showModalDialog(html, 'Bills & paychecks');

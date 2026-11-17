@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-17 — Calendar menu item renamed
+- Why (the owner): the menu item should just say "Calendar" with a calendar
+  emoji.
+- `Main.gs`: Finance Tracker → **📅 Calendar** (was "Bills & paychecks
+  calendar…"); the pop-up is unchanged. `BUILD_VERSION` 1.28.2. Files
+  changed in `apps-script/`: `Main.gs`, `Calendar.gs` (comments),
+  `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node test suite. Wording only, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-16 — Calendar shows the days around the month
 - Why (the owner): the grey boxes after the 30th should show the next days;
   "we always show the days for the upcoming week".

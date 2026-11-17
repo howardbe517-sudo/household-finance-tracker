@@ -94,7 +94,7 @@ function onOpen() {
       .addItem('Turn nightly sync on', 'enableNightlySync')
       .addItem('Turn nightly sync off', 'disableNightlySync'))
     .addSeparator()
-    .addItem('Bills & paychecks calendar…', 'showBillsCalendar')
+    .addItem('📅 Calendar', 'showBillsCalendar')
     .addItem('Copy financial snapshot for AI…', 'exportSnapshot')
     .addItem('Show reminders', 'showReminders')
     .addItem('Payoff planner…', 'showPayoffPlanner')
