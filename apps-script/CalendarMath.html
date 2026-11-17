@@ -259,7 +259,7 @@ function calendarMonth_(y, m, src, today, checks) {
     if (owed !== null && owed > 0) cardPayoffs.push({ name: name, amount: owed, date: calYmd_(when), asOf: calIsDate_(a.lastUpdated) ? asOf.trim() : 'balance date unknown' });
     if (owed !== null && owed > 0 && when >= first && when <= last) {
       items.push(calItem_({
-        key: id + '|payoff|' + calYmd_(when), date: when, kind: 'card', name: 'Pay off ' + name, chip: 'Pay ' + short,
+        key: id + '|payoff|' + calYmd_(when), date: when, kind: 'card', name: 'Owed on ' + name, chip: short + ' owed',
         amount: owed, share: 0, paidAmount: null, matched: [], account: '',
         extra: 'what is owed on the card now (posted balance' + asOf + ' plus pending charges), on ' + (nextPay ? 'the next payday' : 'the due date (no payday found)') + '; until it is paid it moves on to the next payday',
       }, t0, checks));

@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-17 — Calendar wording: coming in, bills, still owe
+- Why (the owner): "pay" and "to pay" were confusing; clearer words for what
+  is coming in versus what is owed; "owe" works better than "pay".
+- `CalendarDialog.html`: the month boxes read **Coming in this month**
+  (received + expected), **Still coming in**, **Bills this month** and
+  **Still owe**; each week box reads **Coming in** (green), **Bills** and
+  **Still owe** (red); the week column is a little wider so the words fit on
+  one line. `CalendarMath.html`: the card item is **Owed on Elan Credit
+  Card** (chip "Elan owed"); the note under the calendar says "Owed on …,
+  due on your next payday". No numbers change.
+- `BUILD_VERSION` 1.30.1. Files changed in `apps-script/`: `CalendarDialog.html`,
+  `CalendarMath.html`, `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node test suite; the pop-up rendered with fictional data. Wording
+  only, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Card balance on the next payday
 - Why (the owner): the $1,243 already paid on the Elan card still counted in
   that week's bills, while the $771.61 actually owed did not; the card is
