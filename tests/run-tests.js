@@ -596,51 +596,67 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('bills & paychecks calendar: bills on their due days (weekly ones on the weekday of Next Payment Date), paychecks counted from the last pay date, utility estimates, card minimums not already a bill, paid from Transactions (rent in parts, shared categories by amount, automatic entries ignored), hand ticks, totals');
   else bad('calendar: ' + errs.join(' | '));
 })();
-/* calendar: a card with a Payment Due Day, bills charged to it counted once, late Venmo childcare (2026-11-16) */
+/* calendar: a card paid off from the paychecks (2026-11-17): the balance is a bill on the next payday, payments
+   already made are faded notes, the due date is a reminder; late Venmo childcare counts for the Friday before it */
 (function () {
   const r = vm.runInContext(`(function () {
     const D = (y, m, d) => new Date(y, m - 1, d);
     const src = {
       accounts: [{ id: 'A1', name: 'Checking', accountType: 'Checking' },
         { id: 'C1', name: 'Card X ····1234', accountType: 'Credit Card', paymentDueDay: 16, currentBalance: 400 }],
+      expect: [{ id: 'E1', person: 'Ben', employer: 'Job', frequency: 'Weekly', typicalTakeHome: 200, active: true, lastPayDate: D(2030, 4, 5) }],
+      income: [{ id: 'I1', person: 'Ben', employer: 'Job', payDate: D(2030, 4, 5), takeHome: 200 }],
       recur: [
         { id: 'R1', name: 'Stream', active: true, amount: 20, frequency: 'Monthly', dueDay: 11, category: 'E', subcategory: 'S', accountId: 'C1' },
         { id: 'R2', name: 'Sitter', active: true, amount: 300, frequency: 'Weekly', nextPayment: D(2030, 4, 5), category: 'Childcare', subcategory: 'Nanny', accountId: 'A1' },
+        // Gym is due on the 21st but its $50 charge already shows on the card (S2, the 18th); Phone's charge never came.
+        // Food box's $55 charge (the 2nd) is close to Phone's $60, but it belongs to Food box (its transaction T3), even though
+        // Phone is read first.
+        { id: 'R3', name: 'Gym', active: true, amount: 50, frequency: 'Monthly', dueDay: 21, category: 'H', subcategory: 'G', accountId: 'C1' },
+        { id: 'R4', name: 'Phone', active: true, amount: 60, frequency: 'Monthly', dueDay: 10, category: 'P', subcategory: 'P', accountId: 'C1' },
+        { id: 'R5', name: 'Food box', active: true, amount: 55, frequency: 'Monthly', dueDay: 2, category: 'F', subcategory: 'B', accountId: 'C1' },
       ],
       debts: [{ id: 'D1', name: 'Card X', minPayment: 35, dueDay: 16, latestBalance: 400, linkedAccount: 'C1' }],
       staging: [
-        { importId: 'S1', accountId: 'C1', date: D(2030, 4, 9), amount: -900, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
+        { importId: 'S1', accountId: 'C1', date: D(2030, 4, 9), amount: -900, rawDescription: 'INTERNET PAYMENT THANK YOU', suggestedType: 'Transfer', status: 'Imported', pending: false },
         { importId: 'S2', accountId: 'C1', date: D(2030, 4, 18), amount: 50, rawDescription: 'Shop', status: 'Needs Review', pending: true },
         { importId: 'S3', accountId: 'C1', date: D(2030, 3, 18), amount: -800, rawDescription: 'INTERNET PAYMENT THANK YOU', status: 'Imported', pending: false },
+        { importId: 'S6', accountId: 'C1', date: D(2030, 4, 2), amount: 55, rawDescription: 'FOODBOX', status: 'Imported', importedTxId: 'T3', pending: false },
         { importId: 'S4', accountId: 'C1', date: D(2030, 4, 12), amount: -40, rawDescription: 'AMAZON PAYMENTS REFUND', suggestedType: 'Refund', status: 'Imported', pending: false },
-        { importId: 'S5', accountId: 'C1', date: D(2030, 4, 13), amount: -15, rawDescription: 'PAYMENT REFUND SHOP', status: 'Needs Review', pending: false },
       ],
       tx: [
         { id: 'T1', date: D(2030, 4, 9), type: 'Expense', category: 'Childcare', subcategory: 'Nanny', amount: 300, isDeleted: false },
         { id: 'T2', date: D(2030, 4, 11), type: 'Expense', category: 'E', subcategory: 'S', amount: 20, isDeleted: false },
+        { id: 'T3', date: D(2030, 4, 2), type: 'Expense', category: 'F', subcategory: 'B', amount: 55, isDeleted: false },
       ],
     };
-    const apr = calendarMonth_(2030, 3, src, D(2030, 4, 20), {});
-    const may = calendarMonth_(2030, 4, src, D(2030, 4, 20), {});
-    const jun = calendarMonth_(2030, 5, src, D(2030, 4, 20), {});
-    return { apr, may, jun, months: [monthsSetting_(D(1900, 1, 11)), monthsSetting_(6)] };
+    const today = D(2030, 4, 20); // a Saturday; the next payday is Friday Apr 26
+    const apr = calendarMonth_(2030, 3, src, today, {});
+    const may = calendarMonth_(2030, 4, src, today, {});
+    const noPay = calendarMonth_(2030, 4, Object.assign({}, src, { expect: [], income: [] }), today, {});
+    return { apr, may, noPay, months: [monthsSetting_(D(1900, 1, 11)), monthsSetting_(6)] };
   })()`, ctx);
   const errs = [], want = (c, m) => { if (!c) errs.push(m); };
   const one = (res, k) => res.items.filter(i => i.key.indexOf(k) === 0)[0] || {};
-  const aCard = one(r.apr, 'C1|'), mCard = one(r.may, 'C1|');
-  want(aCard.date === '2030-04-16' && aCard.status === 'paid' && aCard.amount === 900 && /4\/9 payment \$900\.00/.test(aCard.detail), 'April card payment paid by the 4/9 payment, not by 3/18: ' + JSON.stringify(aCard));
-  want(mCard.date === '2030-05-16' && mCard.status === 'due' && mCard.amount === 450 && mCard.estimate && /owed on the card now/.test(mCard.detail), 'May card payment shows what is owed now (posted + pending): ' + JSON.stringify(mCard));
-  const jCard = one(r.jun, 'C1|');
-  want(jCard.amount === 850 && /average of the card payments/.test(jCard.detail), 'a later month uses the recent card payments, not the owed-now figure again: ' + JSON.stringify(jCard));
-  want(aCard.statusText === 'Paid $900.00', 'the card payment says how much was paid (refunds not taken for payments): ' + aCard.statusText);
+  const pay = one(r.apr, 'C1|payoff|');
+  want(pay.date === '2030-04-26' && pay.amount === 450 && pay.status === 'due' && pay.inTotals && /next payday/.test(pay.detail), 'the card balance (posted + pending) is a bill on the next payday: ' + JSON.stringify(pay));
+  const paid = r.apr.items.filter(i => i.kind === 'cardpaid');
+  want(paid.length === 1 && paid[0].date === '2030-04-09' && paid[0].amount === 900 && paid[0].status === 'paid' && !paid[0].inTotals && !paid[0].canCheck, 'a payment already made is a faded note (refunds and last month\'s payment not shown): ' + JSON.stringify(paid));
+  const due = one(r.apr, 'C1|due|');
+  want(due.date === '2030-04-16' && due.status === 'note' && !due.inTotals && due.amount === null && !due.canCheck, 'the due date is a reminder, not a bill: ' + JSON.stringify(due));
+  const st = one(r.apr, 'R1|'), stMay = one(r.may, 'R1|');
+  want(!st.inTotals && /already on the Card X balance/.test(st.detail) && stMay.inTotals, 'a bill already charged to the card is inside its balance; one still to be charged counts in its own week');
   want(!r.apr.items.some(i => i.key.indexOf('D1|') === 0), 'the card\'s Debts minimum is not shown as well');
-  const st = one(r.apr, 'R1|');
-  want(st.inTotals === false && /counted once, in the Card X payment/.test(st.detail) && r.apr.totals.inCardPayments === 20 && r.apr.totals.billsOnCards === 0, 'a bill charged to the card is counted once, in the card payment: ' + JSON.stringify(r.apr.totals));
+  want(!r.may.items.some(i => i.kind === 'card') && one(r.noPay, 'C1|payoff|').date === '2030-05-16', 'the payoff is shown once, on the next payday (on the due date when no payday is known)');
   const sit = r.apr.items.filter(i => i.key.indexOf('R2|') === 0);
   want(sit[0].date === '2030-04-05' && sit[0].status === 'paid' && sit[1].date === '2030-04-12' && sit[1].status === 'late', 'a childcare payment 4 days late counts for the Friday before it, not the next one: ' + sit.map(i => i.date + ':' + i.status));
-  want(r.apr.totals.bills === 900 + 300 * 4, 'bills total counts the card payment and childcare, not the card-charged bill: ' + r.apr.totals.bills);
+  want(!one(r.apr, 'R3|').inTotals && one(r.apr, 'R4|').inTotals && one(r.apr, 'R4|').status === 'late' && one(r.may, 'R3|').inTotals,
+    'a card bill is inside the balance only once its charge is seen (Gym charged early is not counted twice; Phone never charged still counts, late, even with a near-amount charge on the card that belongs to another bill)');
+  want(!one(r.apr, 'R5|').inTotals, 'a bill matched by its transaction is inside the balance');
+  want(r.apr.cardPayoffs.length === 1 && r.apr.cardPayoffs[0].amount === 450 && r.apr.cardPayoffs[0].date === '2030-04-26' && r.may.cardPayoffs[0].date === '2030-04-26', 'the payoff is listed for the footer in every month');
+  want(r.apr.totals.bills === 300 * 4 + 450 + 60 && r.apr.totals.lateCount === 3 && r.may.totals.bills === 20 + 300 * 5 + 50 + 60 + 55, 'bills totals: April childcare and the card payoff (not the payment already made, the due date or the charged bill); May childcare and the bill still to be charged: ' + JSON.stringify([r.apr.totals, r.may.totals.bills]));
   want(r.months[0] === 12 && r.months[1] === 6, 'a number-of-months setting shown as a date is carried over as its number: ' + r.months);
-  if (!errs.length) ok('calendar: a card with a Payment Due Day shows its payment on that day (what is owed now until a payment is seen, then the amount paid), bills charged to it are counted once, its Debts minimum is not repeated, and a late Venmo childcare payment counts for the Friday before it');
+  if (!errs.length) ok('calendar: a card paid off from the paychecks puts what is owed now on the next payday (moving on until it is paid), shows payments already made as faded notes and the due date as a reminder, counts bills already charged to it only inside the balance, does not repeat its Debts minimum, and a late Venmo childcare payment counts for the Friday before it');
   else bad('calendar cards: ' + errs.join(' | '));
 })();
 /* calendar: the grid shows the neighbouring months' days, and always the week after today (2026-11-16) */

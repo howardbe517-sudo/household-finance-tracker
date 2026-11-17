@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-17 — Card balance on the next payday
+- Why (the owner): the $1,243 already paid on the Elan card still counted in
+  that week's bills, while the $771.61 actually owed did not; the card is
+  paid off from whichever paycheck has the money that week, sometimes a
+  week later; payments already made should be faded notes.
+- `CalendarMath.html`: for a card with a Payment Due Day, what is owed on it
+  now (posted balance plus pending charges) is a bill on the next payday
+  from today (any paycheck on Expected Income; the due date when no payday
+  is known). If it is not paid that week, it moves on to the next payday by
+  itself. Payments already made show on their day as faded notes, not
+  counted; the due date is a reminder, not counted. A bill charged to the
+  card is inside the balance once its charge is seen (a matching transaction,
+  or a charge on the card in Import Staging within 10% of the amount):
+  faded, not counted. Until then it counts in its own week, late once its
+  day has passed. After the data review: decided by whether the charge was
+  seen, not by date (a bill charged a day early was counted twice; one never
+  charged was dropped); the footer names the payoff (amount, balance date,
+  payday) in every month; past months say card spending is not counted.
+  Each card charge is used for one bill only: a charge already filed under a
+  card bill's category belongs to that bill, and otherwise a charge whose
+  description shares a word with the bill's name is preferred. The old monthly card payment (on the due date,
+  estimated from recent payments) is gone. New `calNextPayday_` and
+  `calPayAnchorFor_` (shared with the paychecks).
+- `CalendarDialog.html`: a note explains the card; in a crowded day box,
+  what still needs paying shows first. `Config.gs`: the Payment Due Day
+  note describes the new behaviour.
+- `BUILD_VERSION` 1.30.0. Files changed in `apps-script/`: `CalendarMath.html`,
+  `CalendarDialog.html`, `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node (payoff on the next payday, payments as notes, due-date
+  reminder, charged bills inside the balance, no payday known); the pop-up
+  run in a browser with fictional data. Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Weekly totals on the calendar
 - Why (the owner): a total of the bills due each week; "let's try it on every
   row"; weeks start on Monday.

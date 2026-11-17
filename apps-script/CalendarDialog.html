@@ -47,6 +47,7 @@
   .s-partial { background: #FFF4DB; border-color: #B7791F; color: #7A4F0E; }
   .s-late { background: #FDECEA; border-color: #B42318; color: #7A1A12; }
   .nt { opacity: .6; }
+  .s-note { background: #fff; border-color: #8A96A3; color: #5F6B7A; border-left-style: dashed; }
   .s-past { background: #fff; border-color: #C9D2DC; color: #5F6B7A; }
   .side { width: 300px; display: flex; flex-direction: column; min-height: 0; }
   .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
@@ -129,8 +130,14 @@
     renderGrid(); renderList();
     var notes = [];
     if (t.estimates) notes.push('Amounts marked "estimate" are guesses until the real bill or paycheck arrives.');
-    if (t.inCardPayments) notes.push('Bills charged to a card with a Payment Due Day (on Accounts) show on the day they are charged, faded, and are counted once, in the card payment.');
+    if (data.items.concat(data.spill || []).some(function (it) { return it.kind === 'card' || it.kind === 'carddue'; }))
+      notes.push('Credit card: what you owe on the card now is a bill on your next payday, and moves on to the following payday until it is paid. Bills already charged to the card and payments already made show faded and are not counted again; the due date is a reminder.');
     if (t.billsOnCards) notes.push('Bills charged to a credit card are paid when the card is paid, not on the day shown.');
+    (d.cardPayoffs || []).forEach(function (c) {
+      var p = c.date.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
+      notes.push('Pay off ' + esc(c.name) + ': ' + money(c.amount) + (c.asOf ? ' (' + esc(c.asOf) + ')' : '') + ', on ' + esc(dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) + '.');
+    });
+    if (d.past && (d.cardPayoffs || []).length) notes.push('In past months, spending on the card is not counted as bills; the card payments show as notes.');
     if (d.notShown.length) notes.push('Not on the calendar: ' + d.notShown.map(esc).join('; ') + '.');
     notes.push('Ticks you add here only mark the calendar; they change no table or total.');
     document.getElementById('foot').innerHTML = notes.join('<br>');
@@ -140,12 +147,17 @@
   function itemsOn(date) { return all().filter(function (it) { return it.date === date; }); }
   function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function chipHtml(it) { return '<span class="nm">' + esc((it.status === 'paid' || it.status === 'checked' || it.status === 'received' ? '✓ ' : it.status === 'late' ? '! ' : '') + it.chip) + '</span><span class="am">' + esc(it.amount !== null ? short(it.amount) : '') + '</span>'; }
+  // In a crowded day box, what still needs paying shows first, then pay, then what is settled or only a note.
+  function chipOrder(its) {
+    var rank = function (it) { return it.kind !== 'pay' && it.inTotals && /due|late|partial/.test(it.status) ? 0 : it.kind === 'pay' ? 1 : 2; };
+    return its.map(function (it, i) { return { it: it, i: i }; }).sort(function (a, b) { return rank(a.it) - rank(b.it) || a.i - b.i; }).map(function (x) { return x.it; });
+  }
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function renderGrid() {
     var g = document.getElementById('grid'), html = '', gs = data.gridStart.split('-'), rows = Math.ceil(data.gridDays / 7), ym = dateOf(1).slice(0, 7);
     g.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
     for (var i = 0; i < rows * 7; i++) {
-      var dt = new Date(+gs[0], +gs[1] - 1, +gs[2] + i), ds = ymd(dt), day = dt.getDate(), its = itemsOn(ds);
+      var dt = new Date(+gs[0], +gs[1] - 1, +gs[2] + i), ds = ymd(dt), day = dt.getDate(), its = chipOrder(itemsOn(ds));
       var adj = ds.slice(0, 7) !== ym;
       var label = adj && (day === 1 || i === 0) ? MON[dt.getMonth()] + ' ' + day : String(day);
       html += '<div class="cell' + (adj ? ' adj' : '') + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + label + '</div>';

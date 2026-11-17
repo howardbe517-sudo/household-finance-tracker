@@ -75,7 +75,7 @@ Named range `TBL_ACCOUNTS` covers the header row through the last formula row.
 | O | Payroll Deposit From (Source ID) | `payrollSource` | text | dropdown: Expected Income IDs | Added in 3.15: for an account the bank feed cannot reach that a paycheck pays into through payroll (HSA, 401(k), 457): the Expected Income row of that paycheck. Each of its paychecks adds Payroll Deposit per Paycheck to Current Balance. |
 | P | Payroll Deposit per Paycheck | `payrollPerPaycheck` | currency | input | Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day. |
 | Q | About This Account | `about` | text | input | Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves. |
-| R | Payment Due Day | `paymentDueDay` | integer | input | Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The Bills & paychecks calendar then shows the card payment on that day at what is owed on the card now (posted balance plus pending charges), and counts bills charged to the card once, inside that payment. |
+| R | Payment Due Day | `paymentDueDay` | integer | input | Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The calendar then treats the card as paid off from the paychecks: what is owed on it now (posted balance plus pending charges) is a bill on the next payday, payments already made and bills already charged to it are not counted again, and this day is shown as a reminder. |
 
 ## Income (`INCOME`)
 
