@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.19-card-due-day-2026-11-16**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.20-bill-changes-2026-11-17**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -14,6 +14,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 18 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 20 | yes |
+| BILLCHG | Bill Changes | 4 | 5 | 304 | BCH-0001 | 12 | no |
 | UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
 | GROCNAMES | Grocery Item Names | 4 | 5 | 1004 | GN-0001 | 8 | no |
 | GROC | Grocery Items | 4 | 5 | 3004 | GI-000001 | 22 | no |
@@ -201,6 +202,27 @@ Named range `TBL_RECUR` covers the header row through the last formula row.
 | R | Notes | `notes` | text | input |  |
 | S | Match / Source | `matchSource` | text | input |  |
 | T | Record Automatically? | `autoRecord` | text | checkbox | Added in 3.13: tick for a fixed monthly bill that should count from its due day whether or not the bank has shown the payment (rent paid by Venmo). The sync writes it to Transactions at the Amount and reduces that entry as real payments with the same Category and Subcategory arrive, so the bill counts once. |
+
+## Bill Changes (`BILLCHG`)
+
+One row per change made on the calendar (📅 Calendar → click a bill → Change amount): a bill that costs something different in one week or month only, such as childcare when the nanny is out sick. The change applies to that one date: the calendar shows the new amount, and that month's Monthly Plan counts the difference (Bills), so the Spending tab shows the extra money available. Other weeks and Recurring Payments do not change. Undo a change on the calendar, or tick Is Deleted here; rows are never removed.
+
+Named range `TBL_BILLCHG` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Change ID | `id` | text | input |  |
+| B | Recurring ID | `recurId` | text | dropdown: Recurring Payments IDs |  |
+| C | Bill | `billName` | text | input |  |
+| D | Bill Date | `date` | date | input (date) |  |
+| E | Month | `month` | month (1st-of-month date) | calculated | `=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))` |
+| F | Usual Amount | `usualAmount` | currency | input |  |
+| G | New Amount | `newAmount` | currency | input |  |
+| H | Difference | `difference` | currency | calculated | `=IF(OR([@id]="",[@newAmount]=""),"",N([@newAmount])-IFERROR(N(INDEX([RECUR.amount],MATCH([@recurId],[RECUR.id],0))),N([@usualAmount])))` — New Amount − the bill's Amount on Recurring Payments now (Usual Amount, the amount when the change was saved, if the bill is gone), so a later price change keeps the difference right. The Monthly Plan adds this to that month's Bills while the bill is active and outside Loans (a negative number means more money available). |
+| I | Notes | `notes` | text | input |  |
+| J | Created At | `createdAt` | datetime | input |  |
+| K | Is Deleted | `isDeleted` | text | checkbox |  |
+| L | Deleted At | `deletedAt` | datetime | input |  |
 
 ## Utility Bills (`UTIL`)
 
@@ -513,7 +535,7 @@ Named range `TBL_PLAN` covers the header row through the last formula row.
 | H | Notes | `notes` | text | input |  |
 | I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N…` — Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists). |
 | J | Income Adjustment | `incomeAdjustment` | currency | input | Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered. |
-| K | Bills (Recurring, monthly) | `bills` | currency | calculated | `=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))` — Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). |
+| K | Bills (Recurring, monthly) | `bills` | currency | calculated | `=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans")+SUMPRODUCT(([BILLCHG.month]=[@month])*([BILLCHG.isDeleted]<>TRUE)*(COUN…` — Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). Changed in 3.20: plus that month's Bill Changes (one-week changes made on the calendar; Difference, not deleted, for a bill still active and outside Loans). |
 | L | Debt Payments (planned) | `debtPayments` | currency | calculated | `=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans"))+SUM([DEBTS.plannedExtra])+N(IFERROR(SETTING_…` — Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments. |
 | M | Planned Savings | `plannedSavings` | currency | calculated | `=IF([@id]="","",SUM([FUNDS.plannedMonthly]))` — Added in 3.4: Planned Monthly across Savings & Reserves. Raise or lower those to decide what goes to savings. |
 | N | Flexible Target (auto) | `autoTarget` | currency | calculated | `=IF([@id]="","",N([@expectedIncome])+N([@incomeAdjustment])-N([@bills])-N([@debtPayments])-N([@plannedSavings]))` — Added in 3.4: what is left for flexible spending after bills, debt payments and planned savings. |

@@ -123,7 +123,7 @@ function buildSpending_() {
   sh.setRowHeight(SPEND.CARD_VALUE, 44); sh.setRowHeight(SPEND.CARD_SUB, 30);
   // how the flexible figure is reached
   mergePut('A' + SPEND.EXPECT_LINE + ':I' + SPEND.EXPECT_LINE, F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
-    '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
+    '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&IF(ROUND(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),2)<>0," (incl. "&TEXT(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),"+$#,##0;−$#,##0")&" of one-week bill changes)","")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
     .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
 
   /* --- three tiles --- */

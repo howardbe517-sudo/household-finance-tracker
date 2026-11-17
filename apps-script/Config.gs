@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.19-card-due-day-2026-11-16',
-  BUILD_VERSION: '1.30.2',
+  SCHEMA_VERSION: '3.20-bill-changes-2026-11-17',
+  BUILD_VERSION: '1.31.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -56,6 +56,7 @@ const SHEETS = {
   GROCHARTS: 'Grocery Charts',
   GROC: 'Grocery Items',
   GROCNAMES: 'Grocery Item Names',
+  BILLCHG: 'Bill Changes',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -68,8 +69,9 @@ const TAB_ORDER = [
   // 2026-11-12: the Dashboard tab is retired; its month view is the top of Spending and its
   // accounts block the top of Financial Summary. SHEETS.DASH stays so an old tab can be found and hidden.
   // 2026-11-15: Groceries after Utilities, then Grocery Charts (the owner: the graphs on their own tab); its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
+  // 2026-11-17: Bill Changes (one-week changes made on the calendar) right after Recurring Payments.
   SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
@@ -768,6 +770,28 @@ TABLES.GROCNAMES = {
   ],
 };
 
+TABLES.BILLCHG = {
+  key: 'BILLCHG', sheet: SHEETS.BILLCHG, headerRow: 4, firstRow: 5, lastRow: 304,
+  title: 'Bill Changes — One-Week Changes from the Calendar',
+  note: 'One row per change made on the calendar (📅 Calendar → click a bill → Change amount): a bill that costs something different in one week or month only, such as childcare when the nanny is out sick. The change applies to that one date: the calendar shows the new amount, and that month\'s Monthly Plan counts the difference (Bills), so the Spending tab shows the extra money available. Other weeks and Recurring Payments do not change. Undo a change on the calendar, or tick Is Deleted here; rows are never removed.',
+  idPrefix: 'BCH', idPattern: 'BCH-0001', logChanges: false,
+  columns: [
+    { key: 'id', h: 'Change ID', w: 95 },
+    { key: 'recurId', h: 'Recurring ID', w: 100, v: { idsOf: 'RECUR' } },
+    { key: 'billName', h: 'Bill', w: 180 },
+    { key: 'date', h: 'Bill Date', w: 100, fmt: C.date, v: { date: true } },
+    { key: 'month', h: 'Month', w: 95, fmt: C.month, f: '=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))' },
+    { key: 'usualAmount', h: 'Usual Amount', w: 110, fmt: C.cur },
+    { key: 'newAmount', h: 'New Amount', w: 110, fmt: C.cur },
+    { key: 'difference', h: 'Difference', w: 110, fmt: C.cur, f: '=IF(OR([@id]="",[@newAmount]=""),"",N([@newAmount])-IFERROR(N(INDEX([RECUR.amount],MATCH([@recurId],[RECUR.id],0))),N([@usualAmount])))',
+      note: 'New Amount − the bill\'s Amount on Recurring Payments now (Usual Amount, the amount when the change was saved, if the bill is gone), so a later price change keeps the difference right. The Monthly Plan adds this to that month\'s Bills while the bill is active and outside Loans (a negative number means more money available).' },
+    { key: 'notes', h: 'Notes', w: 240 },
+    { key: 'createdAt', h: 'Created At', w: 130, fmt: C.dt },
+    { key: 'isDeleted', h: 'Is Deleted', w: 80, v: { checkbox: true } },
+    { key: 'deletedAt', h: 'Deleted At', w: 130, fmt: C.dt },
+  ],
+};
+
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Import Staging — Raw Bank Imports',
@@ -923,8 +947,8 @@ TABLES.PLAN = {
       note: 'Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists).' },
     { key: 'incomeAdjustment', h: 'Income Adjustment', w: 110, fmt: C.cur,
       note: 'Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered.' },
-    { key: 'bills', h: 'Bills (Recurring, monthly)', w: 130, fmt: C.cur, f: '=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"))',
-      note: 'Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments).' },
+    { key: 'bills', h: 'Bills (Recurring, monthly)', w: 130, fmt: C.cur, f: '=IF([@id]="","",SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans")+SUMPRODUCT(([BILLCHG.month]=[@month])*([BILLCHG.isDeleted]<>TRUE)*(COUNTIFS([RECUR.id],[BILLCHG.recurId],[RECUR.active],TRUE,[RECUR.group],"<>Loans")>0)*N(+[BILLCHG.difference])))',
+      note: 'Added in 3.4: active Recurring Payments at their monthly equivalent, except the Loans group (counted under Debt Payments). Changed in 3.20: plus that month\'s Bill Changes (one-week changes made on the calendar; Difference, not deleted, for a bill still active and outside Loans).' },
     { key: 'debtPayments', h: 'Debt Payments (planned)', w: 130, fmt: C.cur, f: '=IF([@id]="","",MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans"))+SUM([DEBTS.plannedExtra])+N(IFERROR(SETTING_DEBT_EXTRA_ALL,0)))',
       note: 'Added in 3.4: the larger of the Debts minimum payments and the Loans group on Recurring Payments.' },
     { key: 'plannedSavings', h: 'Planned Savings', w: 115, fmt: C.cur, f: '=IF([@id]="","",SUM([FUNDS.plannedMonthly]))',
@@ -1021,7 +1045,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'UTIL', 'GROCNAMES', 'GROC', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

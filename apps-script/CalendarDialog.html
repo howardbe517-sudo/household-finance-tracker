@@ -67,6 +67,14 @@
   .item .st { font-size: 14px; margin-top: 1px; }
   .item .dt { font-size: 13px; color: #5F6B7A; margin-top: 2px; word-wrap: break-word; }
   .item label { display: flex; gap: 6px; align-items: center; font-size: 14px; margin-top: 4px; cursor: pointer; }
+  .erow { display: flex; gap: 8px; align-items: center; margin-top: 5px; flex-wrap: wrap; }
+  .edit { margin-top: 6px; padding: 6px; background: #fff; border: 1px solid #C9D2DC; border-radius: 6px; }
+  .edit input { font: inherit; padding: 4px 6px; border: 1px solid #C9D2DC; border-radius: 6px; }
+  .edit input[type=number] { width: 110px; }
+  .edit input[type=text] { width: 100%; margin-top: 5px; }
+  button.primary { background: #17324D; color: #fff; border-color: #17324D; }
+  button.link { border: none; background: none; padding: 0; color: #1F5F8B; text-decoration: underline; font-weight: 600; }
+  .small { font-size: 12px; margin-top: 4px; }
   .foot { font-size: 13px; color: #5F6B7A; margin-top: 6px; }
   .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .legend .chip { display: inline-block; margin: 0; }
@@ -189,7 +197,40 @@
     var h = '<div class="item s-' + it.status + (it.inTotals ? '' : ' nt') + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
       '<div class="st">' + esc(it.statusText) + '</div>' + (it.detail ? '<div class="dt">' + esc(it.detail) + '</div>' : '');
     if (it.canCheck) h += '<label><input type="checkbox" ' + (it.checked ? 'checked ' : '') + 'onchange="tick(' + idx + ', this.checked)"> ' + (pay ? 'Received, not in the tracker yet' : 'Paid, not in the tracker yet') + '</label>';
+    // A bill can be changed for this one date (Bill Changes); the month's plan follows.
+    if (it.editable && it.kind === 'bill') {
+      if (editKey === it.key) {
+        h += '<div class="edit"><div class="erow"><span>New amount for this date</span><input id="ea" type="number" min="0" step="0.01" value="' + (it.amount !== null ? it.amount : '') + '"></div>' +
+          '<input id="en" type="text" maxlength="200" placeholder="Why (optional), e.g. nanny out sick 2 days">' +
+          '<div class="erow"><button class="primary" onclick="saveChange(' + idx + ')">Save</button><button onclick="editKey=null;renderList()">Cancel</button></div>' +
+          '<div class="muted small">Only this date changes. Usual amount: ' + money(it.usualAmount) + '. This month\'s plan follows.</div></div>';
+      } else {
+        h += '<div class="erow"><button class="link" onclick="editKey=\'' + it.key + '\';renderList()">Change amount</button>' +
+          (it.changed ? '<button class="link" onclick="undoChange(' + idx + ')">Back to usual (' + money(it.usualAmount) + ')</button>' : '') + '</div>';
+      }
+    }
     return h + '</div>';
+  }
+  var editKey = null;
+  function changesSaved(list) {
+    SRC.billChanges = calReviveSource_({ b: list }).b;
+    editKey = null;
+    redraw();
+    document.getElementById('busy').textContent = 'Saved';
+    setTimeout(function () { var b = document.getElementById('busy'); if (b.textContent === 'Saved') b.textContent = ''; }, 2500);
+  }
+  function changeFailed(e) { document.getElementById('busy').innerHTML = '<span class="err">Not saved: ' + esc(e && e.message || e) + '</span>'; }
+  function saveChange(idx) {
+    var it = all()[idx]; if (!it) return;
+    var v = document.getElementById('ea').value, n = document.getElementById('en').value;
+    if (v === '' || isNaN(Number(v)) || Number(v) < 0) { changeFailed('type an amount of $0 or more'); return; }
+    document.getElementById('busy').textContent = 'Saving…';
+    google.script.run.withSuccessHandler(changesSaved).withFailureHandler(changeFailed).saveBillChange(it.recurId, it.date, Number(v), n);
+  }
+  function undoChange(idx) {
+    var it = all()[idx]; if (!it) return;
+    document.getElementById('busy').textContent = 'Saving…';
+    google.script.run.withSuccessHandler(changesSaved).withFailureHandler(changeFailed).undoBillChange(it.recurId, it.date);
   }
   function renderList() {
     document.getElementById('tDay').className = tab === 'day' ? 'on' : '';

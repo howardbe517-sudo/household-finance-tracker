@@ -103,7 +103,22 @@ function qaReport_() {
   const plans = readTable_(tdef_('PLAN')).filter(p => p.month instanceof Date);
   const today = todayMidnight_();
   const curKey = mk(monthStart_(today));
+  // Bills on the Monthly Plan: active Recurring Payments outside Loans at their monthly equivalent, plus that month's
+  // Bill Changes (one-week changes from the calendar) for a bill still active and outside Loans.
+  const recurAll = readTable_(tdef_('RECUR'));
+  const recurById = {}; recurAll.forEach(r => { if (r.id) recurById[r.id] = r; });
+  const billBase = recurAll.filter(r => r.active === true && r.group !== 'Loans' && typeof r.monthlyEq === 'number').reduce((s, r) => s + r.monthlyEq, 0);
+  const billChg = ss.getSheetByName(SHEETS.BILLCHG) ? readTable_(tdef_('BILLCHG')).filter(c => c.isDeleted !== true && c.date instanceof Date) : [];
+  const chgCounts = (c) => { const r = recurById[c.recurId]; return !!r && r.active === true && r.group !== 'Loans'; };
+  const chgDiff = (c) => Number(c.newAmount || 0) - (recurById[c.recurId] && recurById[c.recurId].amount !== '' ? Number(recurById[c.recurId].amount || 0) : Number(c.usualAmount || 0));
+  const orphan = billChg.filter(c => !chgCounts(c));
+  if (orphan.length) info('Bill Changes: ' + orphan.length + ' change(s) not counted because the bill is no longer active or is a loan payment (' + orphan.slice(0, 5).map(c => c.id).join(', ') + ')');
+  const stale = billChg.filter(c => chgCounts(c) && Math.abs(Number(c.usualAmount || 0) - Number(recurById[c.recurId].amount || 0)) > 0.005);
+  if (stale.length) info('Bill Changes: ' + stale.length + ' change(s) saved when the bill had another amount; the difference uses the amount on Recurring Payments now (' + stale.slice(0, 5).map(c => c.id).join(', ') + ')');
   plans.forEach(p => {
+    const mChg = billChg.filter(c => chgCounts(c) && mk(monthStart_(c.date)) === mk(p.month)).reduce((s, c) => s + chgDiff(c), 0);
+    if (!near(p.bills, billBase + mChg, 0.02)) fail('Monthly Plan ' + mk(p.month) + ': Bills ' + money(p.bills) + ' ≠ ' + money(billBase + mChg) + ' (recurring ' + money(billBase) + (mChg ? ', one-week changes ' + money(mChg) : '') + ')');
+    else if (mChg) pass('Monthly Plan ' + mk(p.month) + ': Bills ' + money(p.bills) + ' = recurring ' + money(billBase) + ' + one-week changes ' + money(mChg));
     const m = mk(p.month);
     const isFlexExp = t => mk(t.month) === m && t.spendingType === 'Flexible' && t.type === 'Expense';
     const isFlexRef = t => mk(t.month) === m && t.spendingType === 'Flexible' && t.type === 'Refund';

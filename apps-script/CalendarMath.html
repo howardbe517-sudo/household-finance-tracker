@@ -149,8 +149,11 @@ function calendarMonth_(y, m, src, today, checks) {
     });
     return best;
   };
+  // One-week (or one-month) changes made on the calendar (Bill Changes): the new amount for that one date.
+  const billChg = {};
+  (src.billChanges || []).forEach(c => { if (c.recurId && calIsDate_(c.date) && c.isDeleted !== true && calNum_(c.newAmount) !== null) billChg[c.recurId + '|' + calYmd_(c.date)] = c; });
   recur.forEach(r => {
-    const amt = calNum_(r.amount);
+    const amtUsual = calNum_(r.amount);
     const day = calNum_(r.dueDay);
     const next = calIsDate_(r.nextPayment) ? r.nextPayment : null;
     const freq = r.frequency || 'Monthly';
@@ -173,9 +176,11 @@ function calendarMonth_(y, m, src, today, checks) {
       if (!next) { notShown.push(r.name + ' (' + freq.toLowerCase() + '): add a Next Payment Date on Recurring Payments to place it'); return; }
       dates = calMonthStepDates_(next, months, day, y, m);
     }
-    if (amt === null && dates.length) notShown.push(r.name + ': shown without an amount until Amount is filled in on Recurring Payments');
+    if (amtUsual === null && dates.length) notShown.push(r.name + ': shown without an amount until Amount is filled in on Recurring Payments');
     const shared = pairCount[pairKey(r.category, r.subcategory)] > 1;
     dates.forEach(d => {
+      const ch = billChg[r.id + '|' + calYmd_(d)];
+      const amt = ch ? calNum_(ch.newAmount) : amtUsual;
       // Payments within the window with the bill's Category and Subcategory. Where several bills share
       // them, only a payment within 10% (at least $1) of this bill's Amount counts, the closest one. Otherwise
       // every payment in the window adds up (rent paid in several Venmo payments); a weekly or biweekly bill
@@ -221,6 +226,11 @@ function calendarMonth_(y, m, src, today, checks) {
         onCard, account: r.accountId ? (accName[r.accountId] || r.accountId) : '', autoPay: r.autoPay === true,
         share: shared ? 0 : (freq === 'Weekly' || freq === 'Biweekly') ? 0.5 : 0.9,
         inTotals: !inCardPayment, cardName: inCardPayment ? calCardName_(cardDue[r.accountId]) : '',
+        // A bill outside the Loans group can be changed for this one date from the calendar (Bill Changes).
+        editable: r.group !== 'Loans', recurId: r.id, usualAmount: amtUsual, changed: !!ch, changeNote: ch ? String(ch.notes || '') : '',
+        period: freq === 'Weekly' ? 'week' : freq === 'Biweekly' ? 'two weeks' : 'month',
+        // changed to $0 (the nanny out all week): nothing is due, so it is never "not seen yet"
+        forceStatus: ch && amt === 0 ? 'note' : '', forceText: 'Nothing due this time (changed to $0)',
       }, t0, checks));
     });
   });
@@ -497,6 +507,7 @@ function calItem_(o, t0, checks) {
   const bits = [];
   if (o.estimate && o.kind === 'pay') bits.push('typical take-home');
   if (o.estimate && o.kind !== 'pay') bits.push('estimate: ' + (o.estimateBasis || 'no bill yet'));
+  if (o.changed) bits.push('changed for this ' + (o.period || 'week') + ' from ' + fmt(o.usualAmount) + (o.changeNote ? ': ' + o.changeNote : ''));
   if (o.extra) bits.push(o.extra);
   if (o.inTotals === false && o.cardName) bits.push('already on the ' + o.cardName + ' balance, counted in its payoff');
   if (o.matched && o.matched.length) bits.push(o.matched.map(t => fd(t.date) + ' ' + String(t.description || '').slice(0, 40) + ' ' + fmt(t.amount)).join('; '));
@@ -507,6 +518,7 @@ function calItem_(o, t0, checks) {
     key: o.key, date: calYmd_(o.date), kind: o.kind, name: o.name, chip: o.chip || String(o.name).replace(/\s*\(.*\)\s*$/, '') || o.name, amount: o.amount === null || o.amount === undefined ? null : calRound_(o.amount),
     estimate: !!o.estimate, onCard: !!o.onCard, paidAmount: o.paidAmount === null || o.paidAmount === undefined ? null : o.paidAmount,
     checked, status, statusText, detail: bits.join(' · '), inTotals: o.inTotals !== false,
+    editable: !!o.editable, recurId: o.recurId || '', usualAmount: o.usualAmount === undefined ? null : o.usualAmount, changed: !!o.changed,
     canCheck: status !== 'paid' && status !== 'received' && status !== 'note',
   };
 }

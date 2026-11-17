@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## 2026-11-17 — Change a bill for one week from the calendar
+- Why (the owner): "nanny is 300 this week, but she called in sick probably
+  for 2 days … I want to enter a new number, and then that will update the
+  rest of the tracker"; one week only, and the month's plan should follow,
+  "because this means we'll have more money than we had anticipated".
+- `Config.gs`: new table **Bill Changes** (new tab, after Recurring
+  Payments; schema 3.20): Change ID, Recurring ID, Bill, Bill Date, Month,
+  Usual Amount, New Amount, Difference, Notes, Created At, Is Deleted,
+  Deleted At. Monthly Plan **Bills** adds that month's Difference (not
+  deleted), so Flexible Target, Amount Available and the Spending tab show
+  the extra money. Recurring Payments and other weeks do not change.
+- `Calendar.gs`: `saveBillChange`, `undoBillChange` (an active bill outside
+  the Loans group; changing a date again, or going back to usual, ticks Is
+  Deleted on the earlier row, nothing is removed); the pop-up gets the
+  changes when it opens. `CalendarMath.html`: the changed date shows the new
+  amount and why; totals and week boxes follow. `CalendarDialog.html`:
+  **Change amount** and **Back to usual** under a bill in the day or month
+  list. `Tables.gs`: the tab is built with the core tables; undone changes
+  are greyed and struck through.
+- After the data review: the Monthly Plan counts a change only while its
+  bill is active and outside Loans; Difference is measured from the bill's
+  amount on Recurring Payments now (so a later price change stays right); a
+  week changed to $0 shows "Nothing due this time", never late; the Spending
+  tab's flexible line says when bills include one-week changes; `QA.gs`
+  checks each month's Bills (recurring + changes) and lists changes not
+  counted or saved at another amount.
+- `BUILD_VERSION` 1.31.0. Files changed in `apps-script/`: `Config.gs`,
+  `Calendar.gs`, `CalendarMath.html`, `CalendarDialog.html`, `Tables.gs`,
+  `Spending.gs`, `QA.gs`.
+  Run **Upgrade workbook** once (adds the tab and updates the Monthly Plan's
+  Bills formula).
+- Tested: Node (calendar amounts, save/change/undo on the mock workbook,
+  refusals, the plan formula, 34 tabs); the pop-up rendered with fictional
+  data. Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Calendar: coloured month boxes, larger text
 - Why (the owner): colour the four boxes at the top (two greens for money
   coming in, pink for bills, orange for what is still owed) and make the
