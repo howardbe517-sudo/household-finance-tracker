@@ -16,7 +16,13 @@
   .tile b { display: block; font-size: 14px; }
   .tile span { font-size: 11px; color: #5F6B7A; }
   .main { flex: 1; display: flex; gap: 12px; min-height: 0; }
-  .grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 104px; grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
+  .wk { border: 1px solid #E1E7ED; border-radius: 6px; padding: 3px 6px; background: #FAFBFC; font-size: 11px; line-height: 1.35; overflow: hidden; }
+  .wk.cur { border: 2px solid #17324D; background: #EEF3F8; }
+  .wk .h { font-weight: 700; color: #5F6B7A; margin-bottom: 1px; }
+  .wk .l { display: flex; justify-content: space-between; gap: 4px; color: #5F6B7A; }
+  .wk .l b { color: #1F2933; }
+  .wk .l.due b { color: #7A1A12; }
   .grid .wd { font-size: 11px; font-weight: 700; color: #5F6B7A; text-align: center; padding: 2px 0; }
   .grid.head { flex: 0 0 auto; grid-auto-rows: auto; margin-bottom: 3px; }
   .gridwrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -73,7 +79,7 @@
   </div>
   <div class="main">
     <div class="gridwrap">
-      <div class="grid head"><div class="wd">Sun</div><div class="wd">Mon</div><div class="wd">Tue</div><div class="wd">Wed</div><div class="wd">Thu</div><div class="wd">Fri</div><div class="wd">Sat</div></div>
+      <div class="grid head"><div class="wd">Mon</div><div class="wd">Tue</div><div class="wd">Wed</div><div class="wd">Thu</div><div class="wd">Fri</div><div class="wd">Sat</div><div class="wd">Sun</div><div class="wd">Week</div></div>
       <div class="grid" id="grid"></div>
       <div class="legend">
         <span class="chip s-received">Paycheck received</span><span class="chip s-expected">Paycheck expected</span>
@@ -147,8 +153,17 @@
       its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + (it.inTotals ? '' : ' nt') + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
       if (its.length > max + 1) html += '<div class="more">+' + (its.length - max) + ' more</div>';
       html += '</div>';
+      if (i % 7 === 6) html += weekHtml(data.weeks[(i - 6) / 7]);
     }
     g.innerHTML = html;
+  }
+  // The total at the end of each row: that week's bills due, what is still to pay, and pay coming in.
+  function weekHtml(w) {
+    if (!w) return '<div class="wk"></div>';
+    var line = function (label, v, cls) { return '<div class="l' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + short(v) + '</b></div>'; };
+    return '<div class="wk' + (w.current ? ' cur' : '') + '" title="Monday to Sunday. Bills due includes childcare and card payments; bills charged to a card are inside its card payment.">' +
+      '<div class="h">' + (w.current ? 'This week' : 'Week') + '</div>' +
+      line('Bills', w.bills) + line('To pay', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + line('Pay', w.pay) + '</div>';
   }
   function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
   function itemHtml(it, idx) {

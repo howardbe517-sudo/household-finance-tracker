@@ -651,14 +651,18 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       { id: 'R2', name: 'Late', active: true, amount: 10, frequency: 'Monthly', dueDay: 28, category: 'L', subcategory: 'L' }] };
     const nov = calendarView_(2026, 10, src, D(2026, 11, 30), {});
     const oct = calendarView_(2026, 9, src, D(2026, 11, 28), {});
-    return { nov: { gridStart: nov.gridStart, gridDays: nov.gridDays, spill: nov.spill.map(i => i.key), bills: nov.totals.bills },
+    return { nov: { gridStart: nov.gridStart, gridDays: nov.gridDays, spill: nov.spill.map(i => i.key), bills: nov.totals.bills,
+        weeks: nov.weeks.map(w => [w.start, w.bills, w.stillToPay, w.pay, w.current]) },
       oct: { gridStart: oct.gridStart, gridDays: oct.gridDays, spill: oct.spill.map(i => i.key) } };
   })()`, ctx);
-  // November 2026 starts on a Sunday and ends on a Monday; today the 30th, so the grid adds a row to Saturday Dec 12.
-  // October 2026 starts on a Thursday (Sep 27–30 shown) and ends on a Saturday.
-  if (v.nov.gridStart === '2026-11-01' && v.nov.gridDays === 42 && v.nov.spill.join() === 'R1|2026-12-02' && v.nov.bills === 50
-    && v.oct.gridStart === '2026-09-27' && v.oct.gridDays === 35 && v.oct.spill.join() === 'R2|2026-09-28')
-    ok('calendar grid: the days before and after the month show their own bills, the week after today is always on the grid, and the totals stay this month\'s');
+  // Weeks run Monday to Sunday. November 2026 starts on a Sunday (Oct 26–31 shown) and ends on a Monday; today the
+  // 30th, so the grid adds a row to Sunday Dec 13. October 2026 starts on a Thursday (Sep 28–30 shown), ends Saturday.
+  const wk = JSON.stringify(v.nov.weeks);
+  const wantWeeks = JSON.stringify([['2026-10-26', 10, 0, 0, false], ['2026-11-02', 40, 40, 0, false], ['2026-11-09', 0, 0, 0, false], ['2026-11-16', 0, 0, 0, false],
+    ['2026-11-23', 10, 10, 0, false], ['2026-11-30', 40, 40, 0, true], ['2026-12-07', 0, 0, 0, false]]);
+  if (v.nov.gridStart === '2026-10-26' && v.nov.gridDays === 49 && v.nov.spill.join() === 'R2|2026-10-28,R1|2026-12-02' && v.nov.bills === 50
+    && v.oct.gridStart === '2026-09-28' && v.oct.gridDays === 35 && v.oct.spill.join() === 'R2|2026-09-28' && wk === wantWeeks)
+    ok('calendar grid: weeks run Monday to Sunday, each row has its week\'s bills due, still to pay and pay (an unpaid bill over a month old is history, not still to pay), the days before and after the month show their own bills, the week after today is always on the grid, and the month totals stay this month\'s');
   else bad('calendar grid: ' + JSON.stringify(v));
 })();
 /* calendar speed (2026-11-17): the tables are read once and handed to the pop-up, which gives the same calendar */

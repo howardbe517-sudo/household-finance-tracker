@@ -55,14 +55,16 @@ function calMonthStepDates_(anchor, months, day, y, m) {
  * or after the last day, and, in the current month, on far enough that the 7 days after today are always on
  * it (the owner, 2026-11-16: "always show the days for the upcoming week"). Days of the months before and after
  * are filled with their own items (spill), worked out for their own month; the totals stay this month's.
- * Adds { gridStart 'yyyy-mm-dd', gridDays, spill: [items] } to calendarMonth_'s result.
+ * Adds { gridStart 'yyyy-mm-dd' (a Monday), gridDays, spill: [items], weeks: [...] } to calendarMonth_'s result;
+ * weeks holds one total per row of the grid (calWeekTotals_).
  */
 function calendarView_(y, m, src, today, checks) {
   const res = calendarMonth_(y, m, src, today, checks);
   const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
   const t0 = calDay_(today instanceof Date ? today : new Date());
-  const gridStart = calAddDays_(first, -first.getDay());
-  let gridEnd = calAddDays_(last, 6 - last.getDay());
+  // Weeks run Monday to Sunday, as the Spending tab's weekly guidance counts them (the owner, 2026-11-17).
+  const gridStart = calAddDays_(first, -((first.getDay() + 6) % 7));
+  let gridEnd = calAddDays_(last, (7 - last.getDay()) % 7);
   if (t0 >= first && t0 <= last) { const wk = calAddDays_(t0, 7); while (gridEnd < wk) gridEnd = calAddDays_(gridEnd, 7); }
   const spill = [];
   if (gridStart < first) {
@@ -76,6 +78,7 @@ function calendarView_(y, m, src, today, checks) {
   res.gridStart = calYmd_(gridStart);
   res.gridDays = calDaysBetween_(gridStart, gridEnd) + 1;
   res.spill = spill;
+  res.weeks = calWeekTotals_(res.items.concat(spill), gridStart, res.gridDays, t0);
   return res;
 }
 
@@ -343,21 +346,52 @@ function calendarMonth_(y, m, src, today, checks) {
   items.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.kind === 'pay' ? -1 : b.kind === 'pay' ? 1 : a.name.localeCompare(b.name)));
 
   const sum = (f) => calRound_(items.filter(f).reduce((s, it) => s + (it.amount || 0), 0));
-  const isBill = (it) => it.kind !== 'pay' && it.inTotals !== false;
-  const settled = (it) => it.status === 'paid' || it.status === 'checked' || it.status === 'received';
+  const isBill = calIsBill_, settled = calSettled_;
   const totals = {
     comingIn: sum(it => it.kind === 'pay'),
     stillComingIn: sum(it => it.kind === 'pay' && !settled(it) && it.status !== 'past'),
     bills: sum(isBill),
     billsOnCards: sum(it => isBill(it) && it.onCard),
     inCardPayments: sum(it => it.kind !== 'pay' && it.inTotals === false),
-    stillToPay: calRound_(items.filter(it => isBill(it) && !settled(it) && it.status !== 'past').reduce((s, it) => s + Math.max(0, (it.amount || 0) - (it.status === 'partial' ? (it.paidAmount || 0) : 0)), 0)),
+    stillToPay: calRound_(items.reduce((s, it) => s + calStillOwed_(it), 0)),
     lateCount: items.filter(it => isBill(it) && it.status === 'late').length,
     lateAmount: sum(it => isBill(it) && it.status === 'late'),
     estimates: items.some(it => it.estimate),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown };
+}
+
+/** A bill counted in the totals: not a paycheck, and not a bill charged to a card counted in its card payment. */
+function calIsBill_(it) { return it.kind !== 'pay' && it.inTotals !== false; }
+function calSettled_(it) { return it.status === 'paid' || it.status === 'checked' || it.status === 'received'; }
+/** What is still to pay on an item: a bill not paid or ticked (and not older history), less any part paid. */
+function calStillOwed_(it) {
+  if (!calIsBill_(it) || calSettled_(it) || it.status === 'past') return 0;
+  return Math.max(0, (it.amount || 0) - (it.status === 'partial' ? (it.paidAmount || 0) : 0));
+}
+
+/**
+ * One total per row of the grid, Monday to Sunday (the owner, 2026-11-17: "for each week … my total for bills
+ * due that week"), counted as the month's totals are: bills due (childcare and card payments included, bills
+ * charged to a card with a due day left out as they are inside the card payment), still to pay, and pay
+ * (received plus expected). Days of the next or last month count with their own figures. Pure.
+ * Returns [{ start, end 'yyyy-mm-dd', bills, stillToPay, pay, current }].
+ */
+function calWeekTotals_(items, gridStart, gridDays, today) {
+  const t = calYmd_(calDay_(today instanceof Date ? today : new Date()));
+  const out = [];
+  for (let w = 0; w * 7 < gridDays; w++) {
+    const start = calYmd_(calAddDays_(gridStart, w * 7)), end = calYmd_(calAddDays_(gridStart, w * 7 + 6));
+    const its = items.filter(it => it.date >= start && it.date <= end);
+    out.push({
+      start, end, current: t >= start && t <= end,
+      bills: calRound_(its.filter(calIsBill_).reduce((s, it) => s + (it.amount || 0), 0)),
+      stillToPay: calRound_(its.reduce((s, it) => s + calStillOwed_(it), 0)),
+      pay: calRound_(its.filter(it => it.kind === 'pay').reduce((s, it) => s + (it.amount || 0), 0)),
+    });
+  }
+  return out;
 }
 
 /** A card's name without its ····1234 ending, as the calendar names its payment. Pure. */
