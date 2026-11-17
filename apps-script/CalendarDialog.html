@@ -133,6 +133,11 @@
     if (data.items.concat(data.spill || []).some(function (it) { return it.kind === 'card' || it.kind === 'carddue'; }))
       notes.push('Credit card: what you owe on the card now is a bill on your next payday, and moves on to the following payday until it is paid. Bills already charged to the card and payments already made show faded and are not counted again; the due date is a reminder.');
     if (t.billsOnCards) notes.push('Bills charged to a credit card are paid when the card is paid, not on the day shown.');
+    (d.cardPayoffs || []).forEach(function (c) {
+      var p = c.date.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]);
+      notes.push('Pay off ' + esc(c.name) + ': ' + money(c.amount) + (c.asOf ? ' (' + esc(c.asOf) + ')' : '') + ', on ' + esc(dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) + '.');
+    });
+    if (d.past && (d.cardPayoffs || []).length) notes.push('In past months, spending on the card is not counted as bills; the card payments show as notes.');
     if (d.notShown.length) notes.push('Not on the calendar: ' + d.notShown.map(esc).join('; ') + '.');
     notes.push('Ticks you add here only mark the calendar; they change no table or total.');
     document.getElementById('foot').innerHTML = notes.join('<br>');

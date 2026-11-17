@@ -11,8 +11,13 @@
   is known). If it is not paid that week, it moves on to the next payday by
   itself. Payments already made show on their day as faded notes, not
   counted; the due date is a reminder, not counted. A bill charged to the
-  card is inside the balance once charged (faded, not counted) and counts in
-  its own week until then. The old monthly card payment (on the due date,
+  card is inside the balance once its charge is seen (a matching transaction,
+  or a charge on the card in Import Staging within 10% of the amount):
+  faded, not counted. Until then it counts in its own week, late once its
+  day has passed. After the data review: decided by whether the charge was
+  seen, not by date (a bill charged a day early was counted twice; one never
+  charged was dropped); the footer names the payoff (amount, balance date,
+  payday) in every month; past months say card spending is not counted. The old monthly card payment (on the due date,
   estimated from recent payments) is gone. New `calNextPayday_` and
   `calPayAnchorFor_` (shared with the paychecks).
 - `CalendarDialog.html`: a note explains the card; in a crowded day box,

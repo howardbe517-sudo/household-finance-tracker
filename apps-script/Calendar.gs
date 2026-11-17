@@ -42,7 +42,7 @@ const CAL_COLUMNS = {
   util: ['id', 'utility', 'provider', 'dueDate', 'amount', 'status', 'paidDate'],
   debts: ['id', 'name', 'minPayment', 'dueDay', 'latestBalance', 'linkedAccount'],
   tx: ['id', 'date', 'description', 'amount', 'type', 'category', 'subcategory', 'debtId', 'isDeleted', 'splitRole', 'notes'],
-  accounts: ['id', 'name', 'accountType', 'currentBalance', 'paymentDueDay'],
+  accounts: ['id', 'name', 'accountType', 'currentBalance', 'lastUpdated', 'paymentDueDay'],
   staging: ['importId', 'accountId', 'date', 'rawDescription', 'amount', 'status', 'suggestedType', 'pairedImportId'],
 };
 
@@ -51,7 +51,7 @@ const CAL_COLUMNS = {
  * the ticks, and for each card with a Payment Due Day what is owed on it now (balance plus pending charges,
  * worked out here with cardPending_ as the Financial Summary does). Only rows that can matter are kept:
  * a transaction's notes only say whether it is an automatic bill entry, and Import Staging keeps only the
- * money-in rows of the cards with a due day (the payments the calendar looks for).
+ * rows of the cards with a due day: their payments, and their charges of the last 75 days.
  */
 function calendarPayload_(today) {
   const t0 = today instanceof Date ? today : new Date();
@@ -70,7 +70,9 @@ function calendarPayload_(today) {
       const bal = Number(acc.currentBalance);
       out.cardOwed[id] = acc.currentBalance === '' || isNaN(bal) ? null : Math.round((bal + cardPending_(staged, [id], t0)) * 100) / 100;
     });
-    out.staging = trim(staged.filter(x => cards.indexOf(x.accountId) >= 0 && Number(x.amount) < 0), CAL_COLUMNS.staging);
+    // The cards' payments (money in), and their charges of the last 75 days (to tell a bill already charged).
+    const since = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - 75);
+    out.staging = trim(staged.filter(x => cards.indexOf(x.accountId) >= 0 && (Number(x.amount) < 0 || (x.date instanceof Date && x.date >= since))), CAL_COLUMNS.staging);
   }
   return out;
 }

@@ -121,6 +121,13 @@ function calendarMonth_(y, m, src, today, checks) {
   const utilMap = src.utilMap || (typeof UTILITY_FROM_SUBCATEGORY === 'object' ? UTILITY_FROM_SUBCATEGORY : { 'Natural Gas': 'Gas', 'Electric': 'Electric', 'Water & Sewer': 'Water & Sewer' });
   const utilTracked = {};
   (src.util || []).forEach(u => { if (u.id && u.utility) utilTracked[u.utility] = true; });
+  const staging = (src.staging || []).filter(x => x.importId && calIsDate_(x.date) && x.status !== 'Superseded' && x.status !== 'Removed');
+  // A payment to the card: money in, labelled Transfer or Debt Payment (as the feed pairs card payments), or
+  // paired with the checking side. The description is used only for a row with no type yet, so a refund
+  // ("AMAZON PAYMENTS REFUND") is never taken for a payment.
+  const isCardPayment = (x) => Number(x.amount) < 0 && (x.suggestedType === 'Transfer' || x.suggestedType === 'Debt Payment' ||
+    (!!x.pairedImportId && x.suggestedType !== 'Refund' && x.suggestedType !== 'Income') ||
+    (!x.suggestedType && /PAYMENT|PYMT|THANK YOU/i.test(String(x.rawDescription || '')) && !/REFUND|RETURN|CREDIT/i.test(String(x.rawDescription || ''))));
   const recur = (src.recur || []).filter(r => r.id && r.active === true && !(r.category === 'Housing' && utilTracked[utilMap[r.subcategory]]));
   const pairCount = {};
   recur.forEach(r => { const k = pairKey(r.category, r.subcategory); pairCount[k] = (pairCount[k] || 0) + 1; });
@@ -180,9 +187,14 @@ function calendarMonth_(y, m, src, today, checks) {
       matched.forEach(p => { p.used = true; });
       const paid = calRound_(matched.reduce((s, p) => s + (Number(p.t.amount) || 0), 0));
       const onCard = !!(r.accountId && cardIds[r.accountId]);
-      // A bill charged to a card paid from the paychecks is part of the card's balance once it is charged (it is
-      // counted in the card payoff on the next payday); one still to be charged counts in its own week.
-      const inCardPayment = onCard && !!cardDue[r.accountId] && d <= t0;
+      // A bill charged to a card paid from the paychecks is part of the card's balance once its charge is seen
+      // (a matching transaction, or a charge on the card in Import Staging, pending or posted, within the
+      // window and within 10% of the amount): then it is counted inside the card payoff on the next payday,
+      // not again. A charge not seen yet counts on its own, in its own week (late once its day has passed),
+      // whatever its date, so nothing is counted twice or dropped.
+      const seenOnCard = onCard && !!cardDue[r.accountId] && (matched.length > 0 || staging.some(x => x.accountId === r.accountId &&
+        Number(x.amount) > 0 && x.date >= from && x.date <= to && (amt === null || Math.abs(Number(x.amount) - amt) <= Math.max(1, amt * 0.1))));
+      const inCardPayment = seenOnCard;
       items.push(calItem_({
         key: r.id + '|' + calYmd_(d), date: d, kind: 'bill', name: String(r.name || r.id).trim(), amount: amt,
         estimate: false, paidAmount: matched.length ? paid : null, matched: matched.map(p => p.t),
@@ -199,14 +211,8 @@ function calendarMonth_(y, m, src, today, checks) {
   // payday from today; if it is not paid that week, it moves on to the following payday by itself. Payments
   // already made show on their day as faded notes, not counted (the charges they paid off are not counted
   // either); the due date is a reminder, not a bill.
-  const staging = (src.staging || []).filter(x => x.importId && calIsDate_(x.date) && x.status !== 'Superseded' && x.status !== 'Removed');
-  // A payment to the card: money in, labelled Transfer or Debt Payment (as the feed pairs card payments), or
-  // paired with the checking side. The description is used only for a row with no type yet, so a refund
-  // ("AMAZON PAYMENTS REFUND") is never taken for a payment.
-  const isCardPayment = (x) => Number(x.amount) < 0 && (x.suggestedType === 'Transfer' || x.suggestedType === 'Debt Payment' ||
-    (!!x.pairedImportId && x.suggestedType !== 'Refund' && x.suggestedType !== 'Income') ||
-    (!x.suggestedType && /PAYMENT|PYMT|THANK YOU/i.test(String(x.rawDescription || '')) && !/REFUND|RETURN|CREDIT/i.test(String(x.rawDescription || ''))));
   const nextPay = Object.keys(cardDue).length ? calNextPayday_(src, t0) : null;
+  const cardPayoffs = [];
   Object.keys(cardDue).forEach(id => {
     const a = cardDue[id], name = calCardName_(a);
     const short = /card/i.test(String(a.name || id).split(/\s+/)[0]) ? name : String(a.name || id).split(/\s+/)[0];
@@ -229,11 +235,13 @@ function calendarMonth_(y, m, src, today, checks) {
       : bal === null ? null : calRound_(bal + (typeof cardPending_ === 'function' ? cardPending_(src.staging || [], [id], t0) : 0));
     let when = nextPay;
     if (!when) { when = calDayIn_(t0.getFullYear(), t0.getMonth(), calNum_(a.paymentDueDay)); if (when < t0) when = calDayIn_(t0.getFullYear(), t0.getMonth() + 1, calNum_(a.paymentDueDay)); }
+    const asOf = calIsDate_(a.lastUpdated) ? ' as of ' + (a.lastUpdated.getMonth() + 1) + '/' + a.lastUpdated.getDate() : '';
+    if (owed !== null && owed > 0) cardPayoffs.push({ name: name, amount: owed, date: calYmd_(when), asOf: asOf.trim() });
     if (owed !== null && owed > 0 && when >= first && when <= last) {
       items.push(calItem_({
         key: id + '|payoff|' + calYmd_(when), date: when, kind: 'card', name: 'Pay off ' + name, chip: 'Pay ' + short,
         amount: owed, share: 0, paidAmount: null, matched: [], account: '',
-        extra: 'what is owed on the card now (posted balance plus pending charges), on ' + (nextPay ? 'the next payday' : 'the due date (no payday found)') + '; until it is paid it moves on to the next payday',
+        extra: 'what is owed on the card now (posted balance' + asOf + ' plus pending charges), on ' + (nextPay ? 'the next payday' : 'the due date (no payday found)') + '; until it is paid it moves on to the next payday',
       }, t0, checks));
     }
   });
@@ -353,7 +361,8 @@ function calendarMonth_(y, m, src, today, checks) {
     estimates: items.some(it => it.estimate),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown };
+  return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown,
+    cardPayoffs: cardPayoffs, past: last < new Date(t0.getFullYear(), t0.getMonth(), 1) };
 }
 
 /** A bill counted in the totals: not a paycheck, and not a bill charged to a card counted in its card payment. */

@@ -609,6 +609,9 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       recur: [
         { id: 'R1', name: 'Stream', active: true, amount: 20, frequency: 'Monthly', dueDay: 11, category: 'E', subcategory: 'S', accountId: 'C1' },
         { id: 'R2', name: 'Sitter', active: true, amount: 300, frequency: 'Weekly', nextPayment: D(2030, 4, 5), category: 'Childcare', subcategory: 'Nanny', accountId: 'A1' },
+        // Gym is due on the 21st but its $50 charge already shows on the card (S2, the 18th); Phone's charge never came.
+        { id: 'R3', name: 'Gym', active: true, amount: 50, frequency: 'Monthly', dueDay: 21, category: 'H', subcategory: 'G', accountId: 'C1' },
+        { id: 'R4', name: 'Phone', active: true, amount: 60, frequency: 'Monthly', dueDay: 10, category: 'P', subcategory: 'P', accountId: 'C1' },
       ],
       debts: [{ id: 'D1', name: 'Card X', minPayment: 35, dueDay: 16, latestBalance: 400, linkedAccount: 'C1' }],
       staging: [
@@ -642,7 +645,10 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   want(!r.may.items.some(i => i.kind === 'card') && one(r.noPay, 'C1|payoff|').date === '2030-05-16', 'the payoff is shown once, on the next payday (on the due date when no payday is known)');
   const sit = r.apr.items.filter(i => i.key.indexOf('R2|') === 0);
   want(sit[0].date === '2030-04-05' && sit[0].status === 'paid' && sit[1].date === '2030-04-12' && sit[1].status === 'late', 'a childcare payment 4 days late counts for the Friday before it, not the next one: ' + sit.map(i => i.date + ':' + i.status));
-  want(r.apr.totals.bills === 300 * 4 + 450 && r.apr.totals.lateCount === 2 && r.may.totals.bills === 20 + 300 * 5, 'bills totals: April childcare and the card payoff (not the payment already made, the due date or the charged bill); May childcare and the bill still to be charged: ' + JSON.stringify([r.apr.totals, r.may.totals.bills]));
+  want(!one(r.apr, 'R3|').inTotals && one(r.apr, 'R4|').inTotals && one(r.apr, 'R4|').status === 'late' && one(r.may, 'R3|').inTotals,
+    'a card bill is inside the balance only once its charge is seen (Gym charged early is not counted twice; Phone never charged still counts, late)');
+  want(r.apr.cardPayoffs.length === 1 && r.apr.cardPayoffs[0].amount === 450 && r.apr.cardPayoffs[0].date === '2030-04-26' && r.may.cardPayoffs[0].date === '2030-04-26', 'the payoff is listed for the footer in every month');
+  want(r.apr.totals.bills === 300 * 4 + 450 + 60 && r.apr.totals.lateCount === 3 && r.may.totals.bills === 20 + 300 * 5 + 50 + 60, 'bills totals: April childcare and the card payoff (not the payment already made, the due date or the charged bill); May childcare and the bill still to be charged: ' + JSON.stringify([r.apr.totals, r.may.totals.bills]));
   want(r.months[0] === 12 && r.months[1] === 6, 'a number-of-months setting shown as a date is carried over as its number: ' + r.months);
   if (!errs.length) ok('calendar: a card paid off from the paychecks puts what is owed now on the next payday (moving on until it is paid), shows payments already made as faded notes and the due date as a reminder, counts bills already charged to it only inside the balance, does not repeat its Debts minimum, and a late Venmo childcare payment counts for the Friday before it');
   else bad('calendar cards: ' + errs.join(' | '));
