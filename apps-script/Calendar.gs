@@ -31,7 +31,7 @@ function showBillsCalendar() {
   const t = HtmlService.createTemplateFromFile('CalendarDialog');
   // "<" is escaped so no text in the data can close the page's script tag.
   t.dataJson = JSON.stringify(calendarPayload_(new Date())).replace(/</g, '\\u003c');
-  ui_().showModalDialog(t.evaluate().setWidth(1180).setHeight(720), 'Bills & paychecks');
+  ui_().showModalDialog(t.evaluate().setWidth(1260).setHeight(780), 'Bills & paychecks');
 }
 
 /** The columns the calendar uses, per table. */

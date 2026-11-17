@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-17 — Calendar: coloured month boxes, larger text
+- Why (the owner): colour the four boxes at the top (two greens for money
+  coming in, pink for bills, orange for what is still owed) and make the
+  text and numbers larger, as the pop-up was hard to read.
+- `CalendarDialog.html`: the boxes are coloured (Coming in this month,
+  green; Still coming in, light green; Bills this month, pink; Still owe,
+  orange); their numbers are larger (20px) and all other text is about 2px
+  larger (days, chips, week boxes, lists, notes). `Calendar.gs`: the pop-up
+  is 1260 × 780 (was 1180 × 720) to make room. No numbers change.
+- `BUILD_VERSION` 1.30.2. Files changed in `apps-script/`: `CalendarDialog.html`,
+  `Calendar.gs`, `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node test suite; the pop-up rendered with fictional data. Display
+  only, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Calendar wording: coming in, bills, still owe
 - Why (the owner): "pay" and "to pay" were confusing; clearer words for what
   is coming in versus what is owed; "owe" works better than "pay".
