@@ -87,7 +87,11 @@
       <div class="foot" id="foot"></div>
     </div>
   </div>
+<script>var CAL_DATA = <?!= dataJson ?>;</script>
+<?!= includeHtml_('CalendarMath'); ?>
 <script>
+  // The tables arrived with the page (CAL_DATA); every month is worked out here, so arrows and ticks are instant.
+  var SRC = calReviveSource_(CAL_DATA), CHECKS = CAL_DATA.checks || {};
   var data = null, cur = null, sel = null, tab = 'month';
   function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(x) { if (x === null || x === undefined) return '—'; var s = Math.abs(x).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return (x < 0 ? '−$' : '$') + s; }
@@ -95,10 +99,12 @@
   function busy(on) { document.getElementById('busy').textContent = on ? 'Working…' : ''; }
   function fail(e) { busy(false); document.getElementById('list').innerHTML = '<p class="err">' + esc(e && e.message || e) + '</p>'; }
   function load(y, m) {
-    busy(true);
-    google.script.run.withSuccessHandler(show).withFailureHandler(fail).getCalendarMonth(y || null, m || null);
+    var now = new Date();
+    try { show(calendarView_(y || now.getFullYear(), m ? m - 1 : now.getMonth(), SRC, now, CHECKS)); }
+    catch (e) { fail(e); }
   }
   function go(step) { if (!cur) return; var m = cur.m + step, y = cur.y; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; } sel = null; load(y, m); }
+  function redraw() { var keep = sel; load(cur.y, cur.m); sel = keep; renderGrid(); renderList(); }
   function goToday() { sel = null; load(); }
   function setTab(t) { tab = t; renderList(); }
   function dateOf(day) { return cur.y + '-' + ('0' + cur.m).slice(-2) + '-' + ('0' + day).slice(-2); }
@@ -176,8 +182,18 @@
   }
   function tick(idx, on) {
     var it = all()[idx]; if (!it) return;
-    busy(true);
-    google.script.run.withSuccessHandler(show).withFailureHandler(fail).setCalendarCheck(it.key, on, cur.y, cur.m);
+    var key = it.key, before = CHECKS[key];
+    if (on) CHECKS[key] = 'now'; else delete CHECKS[key];
+    redraw();
+    document.getElementById('busy').textContent = 'Saving…';
+    google.script.run
+      .withSuccessHandler(function () { document.getElementById('busy').textContent = ''; })
+      .withFailureHandler(function (e) {
+        if (before === undefined) delete CHECKS[key]; else CHECKS[key] = before;
+        redraw();
+        document.getElementById('busy').innerHTML = '<span class="err">Not saved: ' + esc(e && e.message || e) + '</span>';
+      })
+      .setCalendarCheck(key, on);
   }
   load();
 </script>

@@ -80,6 +80,7 @@ the App Setup tab; both are generated from `Config.gs`.
 | `apps-script/PayoffPlanner.html` | Dialog: slider for extra payments, one debt or all debts (Avalanche / Snowball), save a plan |
 | `apps-script/Calendar.gs` | Bills & paychecks calendar: works out one month's bills, paychecks, utility bills and card minimums and whether each is paid (`calendarMonth_`, pure); keeps the hand ticks in Script Properties |
 | `apps-script/CalendarDialog.html` | Dialog: month grid with arrows, day and month lists, "paid, not in the tracker yet" ticks |
+| `apps-script/CalendarMath.html` | The calendar's arithmetic (`calendarView_`, `calendarMonth_`, pure), included by the pop-up and loaded by the Node tests; `Calendar.gs` only reads the tables once and saves ticks |
 | `apps-script/PayoffMath.html` | The payoff arithmetic (pure JS), included by the dialog and loaded by the Node tests |
 | `apps-script/appsscript.json` | Manifest (time zone, scopes, web-app settings); optional, for clasp users |
 
