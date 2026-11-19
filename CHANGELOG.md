@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-19 — Calendar list: day, this week, whole month
+- Why (the owner): the list on the right should show the week he is on or
+  the whole month; then: clicking a day is still the only way to see a busy
+  day in full.
+- `CalendarDialog.html`: three tabs above the list. **This week** (opens
+  first): Monday to Sunday of the selected day, grouped by day; labelled
+  "This week" for the current week, else "Week of …". **Day** (named for the
+  day, for example "Fri, Nov 20"): everything on the clicked day; clicking a
+  day opens it. **Whole month** as before. No numbers change.
+- `BUILD_VERSION` 1.32.1. Files changed in `apps-script/`: `CalendarDialog.html`,
+  `Config.gs`. Nothing to run: reload the Sheet.
+- Tested: Node test suite; the pop-up rendered with fictional data (week
+  list on opening, day list after a click). Display only, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-19 — Savings transfers on the calendar (the Roth IRA)
 - Why (the owner): the weekly Roth IRA transfer was not on the calendar; it
   is "transferred from my checking account so it is money coming out that I

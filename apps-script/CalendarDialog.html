@@ -62,11 +62,12 @@
   .s-past { background: #fff; border-color: #C9D2DC; color: #5F6B7A; }
   .side { width: 330px; display: flex; flex-direction: column; min-height: 0; }
   .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
-  .tabs button { flex: 1; font-size: 14px; }
+  .tabs button { flex: 1; font-size: 14px; padding: 5px 6px; white-space: nowrap; }
   .tabs button.on { background: #17324D; color: #fff; border-color: #17324D; }
   .list { flex: 1; overflow-y: auto; border: 1px solid #E1E7ED; border-radius: 8px; padding: 6px; }
   .day { font-size: 14px; font-weight: 700; color: #5F6B7A; margin: 8px 2px 3px; }
   .day:first-child { margin-top: 0; }
+  .day.picked { color: #17324D; text-decoration: underline; }
   .item { border-radius: 6px; padding: 6px 8px; margin-bottom: 5px; border-left: 4px solid; }
   .item .row { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
   .item .st { font-size: 14px; margin-top: 1px; }
@@ -108,7 +109,7 @@
       </div>
     </div>
     <div class="side">
-      <div class="tabs"><button id="tDay" onclick="setTab('day')">Selected day</button><button id="tMonth" onclick="setTab('month')">Whole month</button></div>
+      <div class="tabs"><button id="tSel" onclick="setTab('sel')">Day</button><button id="tDay" onclick="setTab('day')">This week</button><button id="tMonth" onclick="setTab('month')">Whole month</button></div>
       <div class="list" id="list"></div>
       <div class="foot" id="foot"></div>
     </div>
@@ -118,7 +119,9 @@
 <script>
   // The tables arrived with the page (CAL_DATA); every month is worked out here, so arrows and ticks are instant.
   var SRC = calReviveSource_(CAL_DATA), CHECKS = CAL_DATA.checks || {};
-  var data = null, cur = null, sel = null, tab = 'month';
+  // The list on the right: the clicked day ('sel'), the week (Monday to Sunday) of the selected day, which opens on the
+  // current week ('day'), or the whole month ('month').
+  var data = null, cur = null, sel = null, tab = 'day';
   function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(x) { if (x === null || x === undefined) return '—'; var s = Math.abs(x).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); return (x < 0 ? '−$' : '$') + s; }
   function short(x) { if (x === null || x === undefined) return ''; return '$' + Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
@@ -197,7 +200,12 @@
       line('Coming in', w.pay, 'in') + line('Bills', w.bills) + (w.savings ? '<div class="l sv"><span>incl. savings</span><b>' + short(w.savings) + '</b></div>' : '') +
       line('Still owe', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + '</div>';
   }
-  function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
+  function pick(ds) { sel = ds; tab = 'sel'; renderGrid(); renderList(); }
+  // Monday and Sunday of the week holding a yyyy-mm-dd date.
+  function weekOf(ds) {
+    var p = ds.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]), mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+    return { mon: ymd(mon), sun: ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)), monDate: mon };
+  }
   function itemHtml(it, idx) {
     var pay = it.kind === 'pay';
     var h = '<div class="item k-' + it.kind + ' s-' + it.status + (it.inTotals ? '' : ' nt') + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
@@ -239,17 +247,35 @@
     google.script.run.withSuccessHandler(changesSaved).withFailureHandler(changeFailed).undoBillChange(it.recurId, it.date);
   }
   function renderList() {
+    var wk = weekOf(sel || (data.today.slice(0, 7) === dateOf(1).slice(0, 7) ? data.today : dateOf(1)));
+    var isNow = data.today >= wk.mon && data.today <= wk.sun;
+    document.getElementById('tDay').textContent = isNow ? 'This week' : 'Week of ' + wk.monDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     document.getElementById('tDay').className = tab === 'day' ? 'on' : '';
+    document.getElementById('tSel').className = tab === 'sel' ? 'on' : '';
+    document.getElementById('tSel').textContent = sel ? (function () { var q = sel.split('-'); return new Date(+q[0], +q[1] - 1, +q[2]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); })() : 'Day';
     document.getElementById('tMonth').className = tab === 'month' ? 'on' : '';
     var el = document.getElementById('list'), html = '';
-    if (tab === 'day') {
-      if (!sel) { el.innerHTML = '<p class="muted">Click a day on the calendar.</p>'; return; }
-      var p = sel.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
-      html += '<div class="day">' + esc(d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>';
-      var any = false;
-      all().forEach(function (it, i) { if (it.date === sel) { any = true; html += itemHtml(it, i); } });
-      if (any && sel.slice(0, 7) !== dateOf(1).slice(0, 7)) html += '<p class="muted">This day is in ' + esc(d.toLocaleDateString(undefined, { month: 'long' })) + '; its amounts count in that month\'s totals.</p>';
-      if (!any) html += '<p class="muted">Nothing due or expected this day.</p>';
+    if (tab === 'sel') {
+      if (!sel) { el.innerHTML = '<p class="muted">Click a day on the calendar to see everything on it.</p>'; return; }
+      var p3 = sel.split('-'), d3 = new Date(+p3[0], +p3[1] - 1, +p3[2]), anyDay = false;
+      html += '<div class="day">' + esc(d3.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>';
+      all().forEach(function (it, i) { if (it.date === sel) { anyDay = true; html += itemHtml(it, i); } });
+      if (!anyDay) html += '<p class="muted">Nothing due or expected this day.</p>';
+      else if (sel.slice(0, 7) !== dateOf(1).slice(0, 7)) html += '<p class="muted">This day is in another month; its amounts count in that month\'s totals.</p>';
+    } else if (tab === 'day') {
+      var rows = all().map(function (it, i) { return { it: it, i: i }; }).filter(function (x) { return x.it.date >= wk.mon && x.it.date <= wk.sun; })
+        .sort(function (a, b) { return a.it.date < b.it.date ? -1 : a.it.date > b.it.date ? 1 : a.i - b.i; });
+      var lastDay = '', other = false;
+      rows.forEach(function (x) {
+        if (x.it.date !== lastDay) {
+          lastDay = x.it.date; var p2 = lastDay.split('-');
+          html += '<div class="day' + (lastDay === sel ? ' picked' : '') + '" id="d-' + lastDay + '">' + esc(new Date(+p2[0], +p2[1] - 1, +p2[2]).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })) + '</div>';
+        }
+        if (x.it.date.slice(0, 7) !== dateOf(1).slice(0, 7)) other = true;
+        html += itemHtml(x.it, x.i);
+      });
+      if (!rows.length) html += '<p class="muted">Nothing due or expected this week.</p>';
+      if (other) html += '<p class="muted">Days in another month count in that month\'s totals.</p>';
     } else {
       var last = '';
       data.items.forEach(function (it, i) {
