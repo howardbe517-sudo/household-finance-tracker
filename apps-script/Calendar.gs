@@ -45,7 +45,7 @@ const CAL_COLUMNS = {
   util: ['id', 'utility', 'provider', 'dueDate', 'amount', 'status', 'paidDate'],
   debts: ['id', 'name', 'minPayment', 'dueDay', 'latestBalance', 'linkedAccount'],
   tx: ['id', 'date', 'description', 'amount', 'type', 'category', 'subcategory', 'debtId', 'fundId', 'isDeleted', 'splitRole', 'notes'],
-  funds: ['id', 'name', 'plannedMonthly'],
+  funds: ['id', 'name', 'plannedMonthly', 'status'],
   accounts: ['id', 'name', 'accountType', 'currentBalance', 'lastUpdated', 'paymentDueDay'],
   staging: ['importId', 'accountId', 'date', 'rawDescription', 'amount', 'status', 'suggestedType', 'pairedImportId', 'importedTxId'],
 };

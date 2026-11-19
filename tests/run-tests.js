@@ -813,6 +813,36 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     ok('calendar: a savings transfer from checking (a fund with a Planned Monthly) is placed on the schedule of its recent transfers (weekly Roth IRA on Mondays, a monthly fund on its day), marked paid by the transfer, counted with the bills and shown as savings in each week; a fund with no transfers is listed as not placed');
   else bad('calendar savings: ' + JSON.stringify(v));
 })();
+/* calendar savings: the schedule is learnt carefully (data review, 2026-11-19) */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const sv = (id, d, f, a) => ({ id: id, date: d, type: 'Savings', fundId: f, amount: a, isDeleted: false });
+    const today = D(2026, 11, 19);
+    const run = (funds, tx, m) => { const r = calendarMonth_(2026, m, { funds: funds, tx: tx }, today, {}); return { items: r.items.map(i => [i.date, i.status, i.amount, i.name]), note: r.notShown.join(' | '), savings: r.totals.savings }; };
+    const P = (id, pm) => ({ id: id, name: id, plannedMonthly: pm });
+    return {
+      single: run([P('ONE', 216.67)], [sv('a', D(2026, 11, 2), 'ONE', 216.67)], 10),
+      singleDec: run([P('ONE', 216.67)], [sv('a', D(2026, 11, 2), 'ONE', 216.67)], 11),
+      extra: run([P('ROTH', 216.67)], [sv('a', D(2026, 10, 26), 'ROTH', 50), sv('b', D(2026, 11, 2), 'ROTH', 50), sv('c', D(2026, 11, 9), 'ROTH', 50), sv('d', D(2026, 11, 16), 'ROTH', 50), sv('e', D(2026, 11, 18), 'ROTH', 500)], 10),
+      extraDec: run([P('ROTH', 216.67)], [sv('a', D(2026, 10, 26), 'ROTH', 50), sv('b', D(2026, 11, 2), 'ROTH', 50), sv('c', D(2026, 11, 9), 'ROTH', 50), sv('d', D(2026, 11, 16), 'ROTH', 50), sv('e', D(2026, 11, 18), 'ROTH', 500)], 11),
+      newer: run([P('NEW', 216.67)], [sv('a', D(2026, 11, 16), 'NEW', 50)], 10),
+      stopped: run([P('OLD', 216.67)], [sv('a', D(2026, 7, 27), 'OLD', 50), sv('b', D(2026, 8, 3), 'OLD', 50)], 10),
+      quarterly: run([P('Q', 216.67)], [sv('a', D(2026, 2, 10), 'Q', 600), sv('b', D(2026, 5, 10), 'Q', 600), sv('c', D(2026, 8, 10), 'Q', 600)], 10),
+      funded: run([{ id: 'F', name: 'F', plannedMonthly: 50, status: 'Funded' }], [sv('a', D(2026, 11, 2), 'F', 50)], 10),
+    };
+  })()`, ctx);
+  const errs = [], want = (c, m) => { if (!c) errs.push(m + ': ' + JSON.stringify(v)); };
+  want(v.single.items.length === 1 && v.single.items[0][0] === '2026-11-02' && v.single.items[0][1] === 'paid' && v.singleDec.items.length === 1 && v.singleDec.items[0][0] === '2026-12-02' && v.singleDec.items[0][2] === 216.67, 'one transfer the size of Planned Monthly is monthly');
+  want(JSON.stringify(v.extra.items.map(i => [i[0], i[1], i[2]])) === JSON.stringify([['2026-11-02', 'paid', 50], ['2026-11-09', 'paid', 50], ['2026-11-16', 'paid', 50], ['2026-11-18', 'paid', 500], ['2026-11-23', 'due', 50], ['2026-11-30', 'due', 50]])
+    && v.extraDec.items.every(i => i[2] === 50 && new Date(i[0] + 'T12:00').getDay() === 1), 'an extra deposit is shown as paid and does not move the schedule or the amount');
+  want(JSON.stringify(v.newer.items.map(i => [i[0], i[1]])) === JSON.stringify([['2026-11-16', 'paid'], ['2026-11-23', 'due'], ['2026-11-30', 'due']]), 'nothing before the first transfer; one $50 transfer against $216.67 a month is weekly');
+  want(v.stopped.items.length === 0 && /no transfer since 8\/3/.test(v.stopped.note), 'transfers that stopped are not projected');
+  want(v.quarterly.items.length === 0 && /not projected/.test(v.quarterly.note), 'transfers every three months are not projected as monthly');
+  want(v.funded.items.length === 0, 'a Funded fund is not projected');
+  if (!errs.length) ok('calendar savings: the schedule comes from the usual transfer amount (an extra deposit shows as paid but does not move it), one transfer is read against Planned Monthly, nothing is projected before the first transfer, after transfers stop, for irregular deposits or for a Funded fund');
+  else bad('calendar savings schedule: ' + errs.join(' || '));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);

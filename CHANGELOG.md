@@ -11,6 +11,14 @@
   the date marks it paid. It is counted with the bills (Bills, Still owe);
   the month box says "incl. $X savings" and each week box has an "incl.
   savings" line. A fund with no transfers yet is listed as not placed.
+  After the data review, the schedule is learnt carefully: from the most
+  common recent amount (an extra deposit shows as paid but does not move the
+  schedule); one transfer is read against Planned Monthly (about the same:
+  monthly; about a quarter: weekly); nothing is projected before the first
+  transfer, after the transfers stop, for irregular deposits (every three
+  months), far above Planned Monthly, or for a Funded fund. A fund's
+  transfers are never taken by a Recurring Payments bill. A missed transfer
+  reads "Transfer not seen yet"; paid transfers stay purple.
   `CalendarDialog.html`: savings transfers are purple, with a legend entry.
   `Calendar.gs`: the pop-up gets Savings & Reserves (ID, name, Planned
   Monthly) and each transaction's Fund ID. The Monthly Plan is unchanged (it
