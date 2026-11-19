@@ -830,6 +830,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
       stopped: run([P('OLD', 216.67)], [sv('a', D(2026, 7, 27), 'OLD', 50), sv('b', D(2026, 8, 3), 'OLD', 50)], 10),
       quarterly: run([P('Q', 216.67)], [sv('a', D(2026, 2, 10), 'Q', 600), sv('b', D(2026, 5, 10), 'Q', 600), sv('c', D(2026, 8, 10), 'Q', 600)], 10),
       funded: run([{ id: 'F', name: 'F', plannedMonthly: 50, status: 'Funded' }], [sv('a', D(2026, 11, 2), 'F', 50)], 10),
+      raised: run([P('UP', 216.67)], [sv('a', D(2026, 10, 19), 'UP', 50), sv('b', D(2026, 10, 26), 'UP', 50), sv('c', D(2026, 11, 2), 'UP', 50), sv('d', D(2026, 11, 9), 'UP', 75), sv('e', D(2026, 11, 16), 'UP', 75)], 10),
     };
   })()`, ctx);
   const errs = [], want = (c, m) => { if (!c) errs.push(m + ': ' + JSON.stringify(v)); };
@@ -840,6 +841,8 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   want(v.stopped.items.length === 0 && /no transfer since 8\/3/.test(v.stopped.note), 'transfers that stopped are not projected');
   want(v.quarterly.items.length === 0 && /not projected/.test(v.quarterly.note), 'transfers every three months are not projected as monthly');
   want(v.funded.items.length === 0, 'a Funded fund is not projected');
+  want(JSON.stringify(v.raised.items.map(i => [i[0], i[1], i[2]])) === JSON.stringify([['2026-11-02', 'paid', 50], ['2026-11-09', 'paid', 75], ['2026-11-16', 'paid', 75], ['2026-11-23', 'due', 75], ['2026-11-30', 'due', 75]]) && v.raised.savings === 350,
+    'a raised amount is used once two transfers in a row agree, and a transfer on its day pays it whatever the amount');
   if (!errs.length) ok('calendar savings: the schedule comes from the usual transfer amount (an extra deposit shows as paid but does not move it), one transfer is read against Planned Monthly, nothing is projected before the first transfer, after transfers stop, for irregular deposits or for a Funded fund');
   else bad('calendar savings schedule: ' + errs.join(' || '));
 })();

@@ -307,7 +307,9 @@ function calendarMonth_(y, m, src, today, checks) {
     if (!own.length) { notShown.push(f.name + ': no transfers yet to learn its schedule from (Savings transactions with this Fund ID)'); return; }
     const recent = own.slice(0, 5), count = {};
     recent.forEach(x => { const k = calRound_(Number(x.t.amount)).toFixed(2); count[k] = (count[k] || 0) + 1; });
-    const usualKey = Object.keys(count).sort((a, b) => count[b] - count[a] || Math.abs(Number(a) - planned) - Math.abs(Number(b) - planned))[0];
+    // the newest amount once two transfers in a row agree (a raised amount is picked up at once), else the most common
+    const k0 = calRound_(Number(own[0].t.amount)).toFixed(2), k1 = own[1] ? calRound_(Number(own[1].t.amount)).toFixed(2) : null;
+    const usualKey = k0 === k1 ? k0 : Object.keys(count).sort((a, b) => count[b] - count[a] || Math.abs(Number(a) - planned) - Math.abs(Number(b) - planned))[0];
     const usual = Number(usualKey);
     const reg = own.filter(x => calRound_(Number(x.t.amount)).toFixed(2) === usualKey);
     let step = null;
@@ -336,8 +338,10 @@ function calendarMonth_(y, m, src, today, checks) {
     if (why) notShown.push(f.name + ': ' + why);
     const win = step === 7 ? 3 : step === 14 ? 6 : 10;
     dates.forEach(d => {
-      const hit = own.filter(x => !x.used && calRound_(Number(x.t.amount)).toFixed(2) === usualKey && Math.abs(calDaysBetween_(x.d, d)) <= win)
-        .sort((a, b) => Math.abs(calDaysBetween_(a.d, d)) - Math.abs(calDaysBetween_(b.d, d)))[0];
+      // a transfer near the date pays it whatever its amount (the usual amount first, then the nearest date)
+      const isUsual = (x) => calRound_(Number(x.t.amount)).toFixed(2) === usualKey ? 0 : 1;
+      const hit = own.filter(x => !x.used && Math.abs(calDaysBetween_(x.d, d)) <= win)
+        .sort((a, b) => isUsual(a) - isUsual(b) || Math.abs(calDaysBetween_(a.d, d)) - Math.abs(calDaysBetween_(b.d, d)))[0];
       if (hit) hit.used = true;
       items.push(calItem_({
         key: f.id + '|' + calYmd_(d), date: d, kind: 'savings', name: short + ' · savings', chip: short + ' · savings',

@@ -18,7 +18,9 @@
   transfer, after the transfers stop, for irregular deposits (every three
   months), far above Planned Monthly, or for a Funded fund. A fund's
   transfers are never taken by a Recurring Payments bill. A missed transfer
-  reads "Transfer not seen yet"; paid transfers stay purple.
+  reads "Transfer not seen yet"; paid transfers stay purple. A raised amount
+  is used as soon as two transfers in a row agree, and a transfer on its
+  usual day pays it whatever its amount.
   `CalendarDialog.html`: savings transfers are purple, with a legend entry.
   `Calendar.gs`: the pop-up gets Savings & Reserves (ID, name, Planned
   Monthly) and each transaction's Fund ID. The Monthly Plan is unchanged (it
