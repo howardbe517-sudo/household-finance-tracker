@@ -11,7 +11,9 @@
  *     balance plus pending charges) until a payment to the card is seen; bills charged to that card still
  *     show on their own days but are counted once, inside the card payment;
  *   - each card or loan on Debts with a minimum payment and due day that no Recurring Payments row
- *     already covers.
+ *     already covers;
+ *   - each savings transfer from checking: a fund on Savings & Reserves with a Planned Monthly, on the schedule
+ *     its recent Savings transactions follow (the Roth IRA, $50 every Monday), counted with the bills.
  * An item shows as paid (or received) when the tracker has the matching payment. Anything paid that
  * the tracker has not seen yet (childcare by Venmo) can be ticked off by hand in the pop-up; those
  * ticks are kept in Script Properties, change no table and no total, and are only for the calendar.
@@ -42,7 +44,8 @@ const CAL_COLUMNS = {
   income: ['id', 'person', 'employer', 'payDate', 'takeHome'],
   util: ['id', 'utility', 'provider', 'dueDate', 'amount', 'status', 'paidDate'],
   debts: ['id', 'name', 'minPayment', 'dueDay', 'latestBalance', 'linkedAccount'],
-  tx: ['id', 'date', 'description', 'amount', 'type', 'category', 'subcategory', 'debtId', 'isDeleted', 'splitRole', 'notes'],
+  tx: ['id', 'date', 'description', 'amount', 'type', 'category', 'subcategory', 'debtId', 'fundId', 'isDeleted', 'splitRole', 'notes'],
+  funds: ['id', 'name', 'plannedMonthly'],
   accounts: ['id', 'name', 'accountType', 'currentBalance', 'lastUpdated', 'paymentDueDay'],
   staging: ['importId', 'accountId', 'date', 'rawDescription', 'amount', 'status', 'suggestedType', 'pairedImportId', 'importedTxId'],
 };
@@ -58,7 +61,7 @@ function calendarPayload_(today) {
   const t0 = today instanceof Date ? today : new Date();
   const isDate = (v) => Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime());
   const trim = (rows, keys) => rows.map(r => { const o = {}; keys.forEach(k => { const v = r[k]; o[k] = isDate(v) ? 'D:' + calYmd_(v) : v; }); return o; });
-  const tables = { recur: 'RECUR', expect: 'EXPECT', income: 'INCOME', util: 'UTIL', debts: 'DEBTS', tx: 'TX', accounts: 'ACCOUNTS' };
+  const tables = { recur: 'RECUR', expect: 'EXPECT', income: 'INCOME', util: 'UTIL', debts: 'DEBTS', tx: 'TX', accounts: 'ACCOUNTS', funds: 'FUNDS' };
   const out = { autoMark: AUTO_RECORD_MARK, utilMap: UTILITY_FROM_SUBCATEGORY, checks: calendarChecks_(), cardOwed: {} };
   Object.keys(tables).forEach(k => { out[k] = trim(readTable_(tdef_(tables[k])), CAL_COLUMNS[k]); });
   out.billChanges = calendarBillChanges_();

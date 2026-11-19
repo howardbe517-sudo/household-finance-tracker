@@ -286,6 +286,35 @@ function calendarMonth_(y, m, src, today, checks) {
     }
   });
 
+  /* -- Savings transfers from checking (Savings & Reserves: a fund with a Planned Monthly) -- */
+  // The owner (2026-11-19): the Roth IRA's $50 a week comes out of checking, not out of a paycheck, so it is money
+  // going out to plan for. Each fund with a Planned Monthly is placed on the schedule its last Savings transactions
+  // follow (weekly, every two weeks or monthly, from the newest one, at its amount) and counted with the bills;
+  // a Savings transaction to the fund near the date marks it paid. A fund with no transfers yet is listed as not
+  // placed.
+  (src.funds || []).filter(f => f.id && calNum_(f.plannedMonthly) > 0).forEach(f => {
+    const own = (src.tx || []).filter(t => t.id && t.isDeleted !== true && t.type === 'Savings' && t.fundId === f.id && calIsDate_(t.date))
+      .map(t => ({ t, d: calDay_(t.date) })).sort((a, b) => b.d - a.d);
+    if (!own.length) { notShown.push(f.name + ': no transfers yet to learn its schedule from (Savings transactions with this Fund ID)'); return; }
+    const gaps = own.slice(0, 4).map((x, i, a) => i ? calDaysBetween_(x.d, a[i - 1].d) : null).filter(g => g !== null);
+    const typical = gaps.length ? gaps.slice().sort((a, b) => a - b)[Math.floor(gaps.length / 2)] : 7;
+    const step = typical <= 9 ? 7 : typical <= 17 ? 14 : 0;   // 0: monthly
+    const anchor = own[0].d, amount = calNum_(own[0].t.amount);
+    const dates = step ? calStepDates_(anchor, step, first, last) : [calDayIn_(y, m, anchor.getDate())];
+    const win = step === 7 ? 3 : step === 14 ? 6 : 10;
+    const short = String(f.name || f.id).replace(/^(Fidelity|Vanguard|Schwab|Independent Bank)\s+/i, '');
+    dates.forEach(d => {
+      const hit = own.filter(x => !x.used && Math.abs(calDaysBetween_(x.d, d)) <= win).sort((a, b) => Math.abs(calDaysBetween_(a.d, d)) - Math.abs(calDaysBetween_(b.d, d)))[0];
+      if (hit) hit.used = true;
+      items.push(calItem_({
+        key: f.id + '|' + calYmd_(d), date: d, kind: 'savings', name: short + ' · savings', chip: short + ' · savings',
+        amount: hit ? calRound_(Number(hit.t.amount)) : amount, paidAmount: hit ? calRound_(Number(hit.t.amount)) : null, share: 0.9,
+        matched: hit ? [hit.t] : [], account: '', inTotals: true,
+        extra: 'a transfer from checking to ' + (f.name || 'savings') + ' (' + (step === 7 ? 'every week' : step === 14 ? 'every two weeks' : 'every month') + '), counted with the bills',
+      }, t0, checks));
+    });
+  });
+
   /* -- Debts with a minimum payment that no Recurring Payments row covers -- */
   (src.debts || []).forEach(dbt => {
     const min = calNum_(dbt.minPayment), day = calNum_(dbt.dueDay);
@@ -399,6 +428,7 @@ function calendarMonth_(y, m, src, today, checks) {
     lateCount: items.filter(it => isBill(it) && it.status === 'late').length,
     lateAmount: sum(it => isBill(it) && it.status === 'late'),
     estimates: items.some(it => it.estimate),
+    savings: sum(it => it.kind === 'savings'),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown,
@@ -432,6 +462,7 @@ function calWeekTotals_(items, gridStart, gridDays, today) {
       bills: calRound_(its.filter(calIsBill_).reduce((s, it) => s + (it.amount || 0), 0)),
       stillToPay: calRound_(its.reduce((s, it) => s + calStillOwed_(it), 0)),
       pay: calRound_(its.filter(it => it.kind === 'pay').reduce((s, it) => s + (it.amount || 0), 0)),
+      savings: calRound_(its.filter(it => it.kind === 'savings').reduce((s, it) => s + (it.amount || 0), 0)),
     });
   }
   return out;

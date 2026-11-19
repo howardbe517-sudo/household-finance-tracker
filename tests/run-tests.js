@@ -690,7 +690,8 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const now = new Date();
     const payload = JSON.parse(JSON.stringify(calendarPayload_(now)));
     const direct = { recur: readTable_(tdef_('RECUR')), expect: readTable_(tdef_('EXPECT')), income: readTable_(tdef_('INCOME')), util: readTable_(tdef_('UTIL')),
-      debts: readTable_(tdef_('DEBTS')), tx: readTable_(tdef_('TX')), accounts: readTable_(tdef_('ACCOUNTS')), staging: readTable_(tdef_('STAGING')) };
+      debts: readTable_(tdef_('DEBTS')), tx: readTable_(tdef_('TX')), accounts: readTable_(tdef_('ACCOUNTS')), staging: readTable_(tdef_('STAGING')),
+      funds: readTable_(tdef_('FUNDS')), billChanges: calReviveSource_({ b: calendarBillChanges_() }).b };
     const strip = (r) => JSON.stringify(r.items.concat(r.spill).map(i => [i.key, i.date, i.amount, i.status, i.detail]));
     const out = [];
     for (let k = -2; k <= 2; k++) {
@@ -788,6 +789,29 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     && v.gas && v.gas[0] === true && v.gas[1] === '2030-04-03' && v.late && v.late[0] === 'paid' && v.late[1] === false)
     ok('calendar: a monthly bill with no set day (the haircut) is due some day that month, shown on its last day and paid by a payment on any day of it; a Next Payment Date in the month places it on that day but it is still matched over the whole month; on a card, a charge of about the same amount counts only if its description shares a word with the bill\'s name; a bill with no amount or day stays off the calendar, and a bill with no category never takes an uncategorized payment');
   else bad('calendar any-day bill: ' + JSON.stringify(v));
+})();
+/* calendar: savings transfers from checking (the Roth IRA, 2026-11-19) are placed on their schedule and counted with the bills */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const sv = (id, d, f, a) => ({ id: id, date: d, type: 'Savings', fundId: f, amount: a, isDeleted: false });
+    const src = {
+      funds: [{ id: 'F1', name: 'Fidelity Roth IRA', plannedMonthly: 216.67 }, { id: 'F2', name: 'Vacation', plannedMonthly: 100 }, { id: 'F3', name: 'Emergency', plannedMonthly: '' },
+        { id: 'F4', name: 'Car fund', plannedMonthly: 150 }],
+      tx: [sv('T1', D(2030, 4, 1), 'F1', 50), sv('T2', D(2030, 4, 8), 'F1', 50), sv('T3', D(2030, 4, 15), 'F1', 50), sv('T4', D(2030, 3, 25), 'F1', 50),
+        sv('T5', D(2030, 2, 10), 'F4', 150), sv('T6', D(2030, 3, 10), 'F4', 150)],
+    };
+    const v = calendarView_(2030, 3, src, D(2030, 4, 17), {});
+    return { roth: v.items.filter(i => i.key.indexOf('F1|') === 0).map(i => [i.date, i.status, i.amount, i.kind, i.inTotals]),
+      car: v.items.filter(i => i.key.indexOf('F4|') === 0).map(i => [i.date, i.status, i.amount]),
+      other: v.items.some(i => i.key.indexOf('F2|') === 0 || i.key.indexOf('F3|') === 0), note: v.notShown.join(' '), totals: v.totals, weeks: v.weeks.map(w => [w.start, w.savings, w.bills]) };
+  })()`, ctx);
+  const roth = JSON.stringify(v.roth);
+  const want = JSON.stringify([['2030-04-01', 'paid', 50, 'savings', true], ['2030-04-08', 'paid', 50, 'savings', true], ['2030-04-15', 'paid', 50, 'savings', true], ['2030-04-22', 'due', 50, 'savings', true], ['2030-04-29', 'due', 50, 'savings', true]]);
+  if (roth === want && JSON.stringify(v.car) === JSON.stringify([['2030-04-10', 'late', 150]]) && !v.other && /Vacation: no transfers yet/.test(v.note)
+    && v.totals.savings === 400 && v.totals.bills === 400 && v.totals.stillToPay === 250 && v.weeks.filter(w => w[0] === '2030-04-22')[0][1] === 50)
+    ok('calendar: a savings transfer from checking (a fund with a Planned Monthly) is placed on the schedule of its recent transfers (weekly Roth IRA on Mondays, a monthly fund on its day), marked paid by the transfer, counted with the bills and shown as savings in each week; a fund with no transfers is listed as not placed');
+  else bad('calendar savings: ' + JSON.stringify(v));
 })();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
