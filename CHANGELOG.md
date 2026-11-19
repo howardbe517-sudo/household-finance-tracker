@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-11-19 — Savings transfers on the calendar (the Roth IRA)
+- Why (the owner): the weekly Roth IRA transfer was not on the calendar; it
+  is "transferred from my checking account so it is money coming out that I
+  have to plan", and should be clear on the calendar.
+- `CalendarMath.html`: each fund on Savings & Reserves with a Planned
+  Monthly is placed on the schedule its recent Savings transactions follow
+  (weekly, every two weeks or monthly, from the newest one, at its amount;
+  the Roth IRA: $50 every Monday). A Savings transaction to the fund near
+  the date marks it paid. It is counted with the bills (Bills, Still owe);
+  the month box says "incl. $X savings" and each week box has an "incl.
+  savings" line. A fund with no transfers yet is listed as not placed.
+  After the data review, the schedule is learnt carefully: from the most
+  common recent amount (an extra deposit shows as paid but does not move the
+  schedule); one transfer is read against Planned Monthly (about the same:
+  monthly; about a quarter: weekly); nothing is projected before the first
+  transfer, after the transfers stop, for irregular deposits (every three
+  months), far above Planned Monthly, or for a Funded fund. A fund's
+  transfers are never taken by a Recurring Payments bill. A missed transfer
+  reads "Transfer not seen yet"; paid transfers stay purple. A raised amount
+  is used as soon as two transfers in a row agree, and a transfer on its
+  usual day pays it whatever its amount.
+  `CalendarDialog.html`: savings transfers are purple, with a legend entry.
+  `Calendar.gs`: the pop-up gets Savings & Reserves (ID, name, Planned
+  Monthly) and each transaction's Fund ID. The Monthly Plan is unchanged (it
+  already sets the Planned Monthly aside as planned savings).
+- `BUILD_VERSION` 1.32.0. Files changed in `apps-script/`: `CalendarMath.html`,
+  `CalendarDialog.html`, `Calendar.gs`, `Config.gs`. Nothing to run: reload
+  the Sheet.
+- Tested: Node (weekly and monthly funds, paid and due, totals, week boxes,
+  a fund with no transfers; the pop-up data still gives the same calendar);
+  the pop-up rendered with fictional data. Not yet seen in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-17 — Bills with no set day; the haircut
 - Why (the owner): a haircut every month, about $55 with tip, paid with the
   card on a different day each month at Local's Barber.

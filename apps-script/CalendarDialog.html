@@ -29,6 +29,11 @@
   .wk .l b { color: #1F2933; }
   .wk .l.due b { color: #7A1A12; }
   .wk .l.in b { color: #1E5434; }
+  .wk .l.sv { font-size: 12px; padding-left: 8px; }
+  .wk .l.sv b, .wk .l.sv span { color: #5B3FA6; font-weight: 600; }
+  /* savings transfers from checking: purple, so they are never taken for a bill */
+  .k-savings.s-due, .k-savings.s-late, .k-savings.s-partial { background: #F1EDFB; border-color: #6B4FBB; color: #45307F; }
+  .k-savings.s-paid, .k-savings.s-checked, .k-savings.s-past { background: #F6F3FC; border-color: #A898D6; color: #6B5A9E; }
   .grid .wd { font-size: 13px; font-weight: 700; color: #5F6B7A; text-align: center; padding: 2px 0; }
   .grid.head { flex: 0 0 auto; grid-auto-rows: auto; margin-bottom: 3px; }
   .gridwrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -98,7 +103,7 @@
       <div class="grid" id="grid"></div>
       <div class="legend">
         <span class="chip s-received">Paycheck received</span><span class="chip s-expected">Paycheck expected</span>
-        <span class="chip s-due">Bill due</span><span class="chip s-paid">✓ Paid</span><span class="chip s-checked">✓ Paid, not in tracker yet</span>
+        <span class="chip s-due">Bill due</span><span class="chip k-savings s-due">Savings transfer</span><span class="chip s-paid">✓ Paid</span><span class="chip s-checked">✓ Paid, not in tracker yet</span>
         <span class="chip s-partial">Part paid</span><span class="chip s-late">! Not seen yet</span><span class="chip s-past">Older, none found</span>
       </div>
     </div>
@@ -139,7 +144,7 @@
     document.getElementById('sum').innerHTML =
       '<div class="tile t-in"><b>' + money(t.comingIn) + '</b><span>Coming in this month (received + expected)</span></div>' +
       '<div class="tile t-in2"><b>' + money(t.stillComingIn) + '</b><span>Still coming in</span></div>' +
-      '<div class="tile t-bill"><b>' + money(t.bills) + '</b><span>Bills this month' + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
+      '<div class="tile t-bill"><b>' + money(t.bills) + '</b><span>Bills this month' + (t.savings ? ' (incl. ' + short(t.savings) + ' savings)' : '') + (t.billsOnCards ? ' (' + short(t.billsOnCards) + ' on cards)' : '') + '</span></div>' +
       '<div class="tile t-owe"><b>' + money(t.stillToPay) + '</b><span>Still owe' + (t.lateCount ? ' · incl. ' + short(t.lateAmount) + ' not seen yet' : '') + '</span></div>';
     renderGrid(); renderList();
     var notes = [];
@@ -176,7 +181,7 @@
       var label = adj && (day === 1 || i === 0) ? MON[dt.getMonth()] + ' ' + day : String(day);
       html += '<div class="cell' + (adj ? ' adj' : '') + (ds === data.today ? ' today' : '') + (ds === sel ? ' sel' : '') + '" onclick="pick(\'' + ds + '\')"><div class="n">' + label + '</div>';
       var max = rows > 5 ? 2 : 3;
-      its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip s-' + it.status + (it.inTotals ? '' : ' nt') + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
+      its.slice(0, its.length > max + 1 ? max : max + 1).forEach(function (it) { html += '<div class="chip k-' + it.kind + ' s-' + it.status + (it.inTotals ? '' : ' nt') + '" title="' + esc(it.name + ' · ' + money(it.amount) + ' · ' + it.statusText) + '">' + chipHtml(it) + '</div>'; });
       if (its.length > max + 1) html += '<div class="more">+' + (its.length - max) + ' more</div>';
       html += '</div>';
       if (i % 7 === 6) html += weekHtml(data.weeks[(i - 6) / 7]);
@@ -189,12 +194,13 @@
     var line = function (label, v, cls) { return '<div class="l' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + short(v) + '</b></div>'; };
     return '<div class="wk' + (w.current ? ' cur' : '') + '" title="Monday to Sunday. Coming in: paychecks received or expected. Bills: everything due that week, including childcare and what you owe on the card. Still owe: bills not paid yet.">' +
       '<div class="h">' + (w.current ? 'This week' : 'Week') + '</div>' +
-      line('Coming in', w.pay, 'in') + line('Bills', w.bills) + line('Still owe', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + '</div>';
+      line('Coming in', w.pay, 'in') + line('Bills', w.bills) + (w.savings ? '<div class="l sv"><span>incl. savings</span><b>' + short(w.savings) + '</b></div>' : '') +
+      line('Still owe', w.stillToPay, w.stillToPay > 0 ? 'due' : '') + '</div>';
   }
   function pick(ds) { sel = ds; tab = 'day'; renderGrid(); renderList(); }
   function itemHtml(it, idx) {
     var pay = it.kind === 'pay';
-    var h = '<div class="item s-' + it.status + (it.inTotals ? '' : ' nt') + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
+    var h = '<div class="item k-' + it.kind + ' s-' + it.status + (it.inTotals ? '' : ' nt') + '"><div class="row"><span>' + esc(it.name) + '</span><span>' + money(it.amount) + (it.estimate ? '*' : '') + '</span></div>' +
       '<div class="st">' + esc(it.statusText) + '</div>' + (it.detail ? '<div class="dt">' + esc(it.detail) + '</div>' : '');
     if (it.canCheck) h += '<label><input type="checkbox" ' + (it.checked ? 'checked ' : '') + 'onchange="tick(' + idx + ', this.checked)"> ' + (pay ? 'Received, not in the tracker yet' : 'Paid, not in the tracker yet') + '</label>';
     // A bill can be changed for this one date (Bill Changes); the month's plan follows.

@@ -107,11 +107,16 @@ function calendarMonth_(y, m, src, today, checks) {
     if (a.accountType === 'Credit Card') { cardIds[a.id] = true; if (calNum_(a.paymentDueDay)) cardDue[a.id] = a; }
   });
 
+  // Savings transfers to a fund with a Planned Monthly belong to that fund (placed below), never to a bill.
+  const plannedFunds = {};
+  (src.funds || []).forEach(f => { if (f.id && calNum_(f.plannedMonthly) > 0) plannedFunds[f.id] = true; });
+  const fundTx = (src.tx || []).filter(t => t.id && t.isDeleted !== true && t.type === 'Savings' && plannedFunds[t.fundId] && calIsDate_(t.date))
+    .map(t => ({ t, d: calDay_(t.date), used: false })).sort((a, b) => b.d - a.d);
   // Transactions that can pay a bill: live, not a split parent, not an automatic stand-in for a bill.
   const autoMark = src.autoMark || (typeof AUTO_RECORD_MARK === 'string' ? AUTO_RECORD_MARK : 'Recorded automatically');
   const payTx = (src.tx || []).filter(t => t.id && t.isDeleted !== true && t.splitRole !== 'Parent' && calIsDate_(t.date) &&
     String(t.notes || '').indexOf(autoMark) < 0 &&
-    (t.type === 'Expense' || t.type === 'Debt Payment' || t.type === 'Savings' || t.type === 'Transfer'))
+    (t.type === 'Expense' || t.type === 'Debt Payment' || (t.type === 'Savings' && !plannedFunds[t.fundId]) || t.type === 'Transfer'))
     .map(t => ({ t, used: false }))
     .sort((a, b) => a.t.date - b.t.date);
   const pairKey = (c, s) => String(c || '') + '|' + String(s || '');
@@ -286,6 +291,76 @@ function calendarMonth_(y, m, src, today, checks) {
     }
   });
 
+  /* -- Savings transfers from checking (Savings & Reserves: a fund with a Planned Monthly) -- */
+  // The owner (2026-11-19): the Roth IRA's $50 a week comes out of checking, not out of a paycheck, so it is money
+  // going out to plan for; it is counted with the bills and shown as savings. The schedule is learnt carefully:
+  //  - the usual transfer is the most common amount of the last 5 (a one-off extra deposit is not the schedule);
+  //  - with two or more usual transfers, the middle gap between them gives weekly, every two weeks or monthly;
+  //    other gaps (every three months, irregular) are not projected;
+  //  - with one transfer, Planned Monthly ÷ the amount decides (about 1: monthly, 2.2: every two weeks, 4.3: weekly);
+  //  - dates before the first usual transfer are never shown, and once the transfers stop (none for two steps)
+  //    nothing more is projected; a fund that is Funded, or whose projection is far above its Planned Monthly,
+  //    is not projected either. Every real transfer in the month is shown (an extra one as paid).
+  (src.funds || []).filter(f => f.id && calNum_(f.plannedMonthly) > 0 && f.status !== 'Funded').forEach(f => {
+    const planned = calNum_(f.plannedMonthly);
+    const own = fundTx.filter(x => x.t.fundId === f.id);   // newest first
+    if (!own.length) { notShown.push(f.name + ': no transfers yet to learn its schedule from (Savings transactions with this Fund ID)'); return; }
+    const recent = own.slice(0, 5), count = {};
+    recent.forEach(x => { const k = calRound_(Number(x.t.amount)).toFixed(2); count[k] = (count[k] || 0) + 1; });
+    // the newest amount once two transfers in a row agree (a raised amount is picked up at once), else the most common
+    const k0 = calRound_(Number(own[0].t.amount)).toFixed(2), k1 = own[1] ? calRound_(Number(own[1].t.amount)).toFixed(2) : null;
+    const usualKey = k0 === k1 ? k0 : Object.keys(count).sort((a, b) => count[b] - count[a] || Math.abs(Number(a) - planned) - Math.abs(Number(b) - planned))[0];
+    const usual = Number(usualKey);
+    const reg = own.filter(x => calRound_(Number(x.t.amount)).toFixed(2) === usualKey);
+    let step = null;
+    if (reg.length >= 2) {
+      const gaps = reg.slice(0, 4).map((x, i2, a) => i2 ? calDaysBetween_(x.d, a[i2 - 1].d) : null).filter(g => g !== null).sort((a, b) => a - b);
+      const g = gaps[Math.floor((gaps.length - 1) / 2)];
+      step = g >= 5 && g <= 9 ? 7 : g >= 12 && g <= 17 ? 14 : g >= 26 && g <= 35 ? 0 : null;
+    } else {
+      const ratio = planned / usual;
+      step = ratio >= 0.8 && ratio <= 1.25 ? 0 : ratio >= 1.8 && ratio <= 2.6 ? 14 : ratio >= 3.6 && ratio <= 5 ? 7 : null;
+    }
+    const perMonth = step === 7 ? 52 / 12 : step === 14 ? 26 / 12 : 1;
+    const label = step === 7 ? 'every week' : step === 14 ? 'every two weeks' : 'every month';
+    const short = String(f.name || f.id).replace(/^(Fidelity|Vanguard|Schwab|Independent Bank)\s+/i, '');
+    let dates = [], why = '';
+    if (step === null) why = 'its transfers are not weekly, every two weeks or monthly, so they are not projected';
+    else if (usual * perMonth > planned * 1.5) why = 'its transfers (' + label + ') come to more than its Planned Monthly, so they are not projected';
+    else {
+      const firstReg = reg[reg.length - 1].d, lastReg = reg[0].d;
+      const stopAfter = calAddDays_(lastReg, (step || 31) * 2 + 3);
+      const stopped = stopAfter < t0;
+      if (stopped) why = 'no transfer since ' + (lastReg.getMonth() + 1) + '/' + lastReg.getDate() + ', so nothing more is projected';
+      dates = (step ? calStepDates_(lastReg, step, first, last) : [calDayIn_(y, m, lastReg.getDate())])
+        .filter(d => d >= firstReg && (!stopped || d <= lastReg));
+    }
+    if (why) notShown.push(f.name + ': ' + why);
+    const win = step === 7 ? 3 : step === 14 ? 6 : 10;
+    dates.forEach(d => {
+      // a transfer near the date pays it whatever its amount (the usual amount first, then the nearest date)
+      const isUsual = (x) => calRound_(Number(x.t.amount)).toFixed(2) === usualKey ? 0 : 1;
+      const hit = own.filter(x => !x.used && Math.abs(calDaysBetween_(x.d, d)) <= win)
+        .sort((a, b) => isUsual(a) - isUsual(b) || Math.abs(calDaysBetween_(a.d, d)) - Math.abs(calDaysBetween_(b.d, d)))[0];
+      if (hit) hit.used = true;
+      items.push(calItem_({
+        key: f.id + '|' + calYmd_(d), date: d, kind: 'savings', name: short + ' · savings', chip: short + ' · savings',
+        amount: hit ? calRound_(Number(hit.t.amount)) : usual, paidAmount: hit ? calRound_(Number(hit.t.amount)) : null, share: 0.9,
+        matched: hit ? [hit.t] : [], account: '', inTotals: true,
+        extra: 'a transfer from checking to ' + (f.name || 'savings') + ' (' + label + ', learnt from ' + Math.min(reg.length, 4) + ' transfer' + (reg.length === 1 ? '' : 's') + '), counted with the bills',
+      }, t0, checks));
+    });
+    // any other transfer to the fund this month (an extra deposit) is money that went out too
+    own.filter(x => !x.used && x.d >= first && x.d <= last).forEach(x => {
+      x.used = true;
+      items.push(calItem_({
+        key: f.id + '|tx|' + x.t.id, date: x.d, kind: 'savings', name: short + ' · savings (extra)', chip: short + ' · extra',
+        amount: calRound_(Number(x.t.amount)), forceStatus: 'paid', forceText: 'Transferred', matched: [x.t], account: '', inTotals: true,
+        extra: 'a transfer from checking outside the usual schedule',
+      }, t0, checks));
+    });
+  });
+
   /* -- Debts with a minimum payment that no Recurring Payments row covers -- */
   (src.debts || []).forEach(dbt => {
     const min = calNum_(dbt.minPayment), day = calNum_(dbt.dueDay);
@@ -399,6 +474,7 @@ function calendarMonth_(y, m, src, today, checks) {
     lateCount: items.filter(it => isBill(it) && it.status === 'late').length,
     lateAmount: sum(it => isBill(it) && it.status === 'late'),
     estimates: items.some(it => it.estimate),
+    savings: sum(it => it.kind === 'savings'),
   };
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return { year: y, month: m + 1, label: months[m] + ' ' + y, today: calYmd_(t0), firstWeekday: first.getDay(), daysInMonth: last.getDate(), items, totals, notShown,
@@ -432,6 +508,7 @@ function calWeekTotals_(items, gridStart, gridDays, today) {
       bills: calRound_(its.filter(calIsBill_).reduce((s, it) => s + (it.amount || 0), 0)),
       stillToPay: calRound_(its.reduce((s, it) => s + calStillOwed_(it), 0)),
       pay: calRound_(its.filter(it => it.kind === 'pay').reduce((s, it) => s + (it.amount || 0), 0)),
+      savings: calRound_(its.filter(it => it.kind === 'savings').reduce((s, it) => s + (it.amount || 0), 0)),
     });
   }
   return out;
@@ -510,8 +587,8 @@ function calItem_(o, t0, checks) {
     else if (checked) { status = 'checked'; statusText = 'Paid (ticked; not in the tracker yet)'; }
     else if (o.paidAmount !== null && o.paidAmount > 0) { status = 'partial'; statusText = fmt(o.paidAmount) + ' paid so far'; }
     else if (old) { status = 'past'; statusText = 'No payment found in the tracker'; }
-    else if (past) { status = 'late'; statusText = 'Not seen in the tracker yet'; }
-    else { status = 'due'; statusText = 'Due'; }
+    else if (past) { status = 'late'; statusText = o.kind === 'savings' ? 'Transfer not seen yet' : 'Not seen in the tracker yet'; }
+    else { status = 'due'; statusText = o.kind === 'savings' ? 'Transfer coming up' : 'Due'; }
   }
   }
   const bits = [];
