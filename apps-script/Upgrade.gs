@@ -90,6 +90,8 @@ function upgradeWorkbookLocked_() {
   withRetry_('Groceries', () => { buildGroceries_(); if (grocMonth instanceof Date) ss.getRangeByName('GROC_MONTH').setValue(grocMonth); });
   if (!ss.getSheetByName(SHEETS.GROCHARTS)) report.push('Added tab: ' + SHEETS.GROCHARTS);
   withRetry_('Grocery Charts', () => buildGroceryCharts_());
+  const rcp = withRetry_('Receipts', () => matchReceipts_());
+  if (rcp && describeReceipts_(rcp)) report.push('Receipts: ' + describeReceipts_(rcp));
   const groc = withRetry_('Grocery receipts', () => refreshGroceries_());
   if (groc && describeGroceries_(groc)) report.push('Groceries: ' + describeGroceries_(groc));
   const ub = withRetry_('Utility Bills', () => linkUtilityPayments_());

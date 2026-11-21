@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.20-bill-changes-2026-11-17',
-  BUILD_VERSION: '1.32.1',
+  SCHEMA_VERSION: '3.21-receipts-2026-11-21',
+  BUILD_VERSION: '1.33.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -57,6 +57,7 @@ const SHEETS = {
   GROC: 'Grocery Items',
   GROCNAMES: 'Grocery Item Names',
   BILLCHG: 'Bill Changes',
+  RECEIPTS: 'Receipts',
   LOG: 'Change Log',
   CREDIT: 'Credit Scores',
 };
@@ -70,8 +71,9 @@ const TAB_ORDER = [
   // accounts block the top of Financial Summary. SHEETS.DASH stays so an old tab can be found and hidden.
   // 2026-11-15: Groceries after Utilities, then Grocery Charts (the owner: the graphs on their own tab); its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
   // 2026-11-17: Bill Changes (one-week changes made on the calendar) right after Recurring Payments.
+  // 2026-11-21: Receipts (receipt photos and how each card charge was split by them) after Grocery Item Names.
   SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
-  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.RECEIPTS, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
   SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
@@ -156,6 +158,8 @@ const LISTS = [
   { key: 'CONNECTION_STATUSES', header: 'Connection Statuses', values: ['Active', 'Needs Attention', 'Disconnected', 'Pending'] },
   // 3.17: where a grocery receipt line came from
   { key: 'GROCERY_SOURCES', header: 'Grocery Sources', values: ['Costco export', 'Receipt photo'] },
+  // 3.21: where a receipt stands: waiting for its card charge, matched and split, or needing a look
+  { key: 'RECEIPT_STATUSES', header: 'Receipt Statuses', values: ['Waiting', 'Matched', 'Check'] },
 ];
 
 /**
@@ -378,6 +382,8 @@ TABLES.ACCOUNTS = {
       note: 'Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves.' },
     { key: 'paymentDueDay', h: 'Payment Due Day', w: 95, fmt: C.int,
       note: 'Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The calendar then treats the card as paid off from the paychecks: what is owed on it now (posted balance plus pending charges) is a bill on the next payday, payments already made and bills already charged to it are not counted again, and this day is shown as a reminder.' },
+    { key: 'cardLast4', h: 'Card Last 4 (receipts)', w: 120, fmt: C.text,
+      note: 'Added in 3.21: the last 4 digits printed on receipts for cards that pay from this account (a debit card for checking; several separated by commas). A receipt from a photo names its account by these. Kept only here in the Sheet.' },
   ],
 };
 
@@ -792,6 +798,39 @@ TABLES.BILLCHG = {
   ],
 };
 
+/**
+ * Receipts (3.21): what each receipt photo said and how its card charge was split. One row per Category ·
+ * Subcategory piece of a receipt; a receipt is all the rows with its Trip ID. Written by Paste Import
+ * (an HFT-IMPORT v1 RECEIPT block); every sync matches a Waiting receipt to its charge (Receipts.gs).
+ */
+TABLES.RECEIPTS = {
+  key: 'RECEIPTS', sheet: SHEETS.RECEIPTS, headerRow: 4, firstRow: 5, lastRow: 1004,
+  title: 'Receipts — Card Charges Split by Receipt Photos',
+  note: 'One row per Category and Subcategory on a receipt from a photo (Finance Tracker → Import the Paste Import tab, an HFT-IMPORT v1 RECEIPT block). The receipt waits here until its card charge reaches Import Staging or Transactions (same account, the receipt total, from the day before the receipt to 5 days after; 10 for a return), then the charge is split into these pieces, the sales tax spread over the taxed lines, and Status turns Matched. Grocery receipts also list every item on Grocery Items. Check means the charge was not found after 3 weeks, or more than one charge fits.',
+  idPrefix: 'RCP', idPattern: 'RCP-0001', logChanges: false,
+  columns: [
+    { key: 'id', h: 'Receipt Row ID', w: 105 },
+    { key: 'tripId', h: 'Trip ID', w: 210 },
+    { key: 'date', h: 'Date', w: 130, fmt: C.dt },
+    { key: 'store', h: 'Store', w: 100 },
+    { key: 'location', h: 'Location', w: 120 },
+    { key: 'accountId', h: 'Account ID', w: 95, v: { idsOf: 'ACCOUNTS' } },
+    { key: 'receiptTotal', h: 'Receipt Total', w: 100, fmt: C.cur },
+    { key: 'category', h: 'Category', w: 130, v: { derived: 'ALL_CATEGORIES' } },
+    { key: 'subcategory', h: 'Subcategory', w: 170, v: { derived: 'ALL_SUBCATEGORIES' } },
+    { key: 'amount', h: 'Amount Before Tax', w: 110, fmt: C.cur },
+    { key: 'taxable', h: 'Taxed Part', w: 95, fmt: C.cur },
+    { key: 'itemized', h: 'Items on Grocery Items?', w: 110, v: { checkbox: true } },
+    { key: 'status', h: 'Status', w: 90, v: { list: 'RECEIPT_STATUSES' } },
+    { key: 'txId', h: 'Bank Charge', w: 105 },
+    { key: 'splitAmount', h: 'Charged (with tax)', w: 110, fmt: C.cur },
+    { key: 'notes', h: 'Notes', w: 280 },
+    { key: 'createdAt', h: 'Created At', w: 130, fmt: C.dt },
+    { key: 'isDeleted', h: 'Is Deleted', w: 80, v: { checkbox: true } },
+    { key: 'deletedAt', h: 'Deleted At', w: 130, fmt: C.dt },
+  ],
+};
+
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Import Staging — Raw Bank Imports',
@@ -1045,7 +1084,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

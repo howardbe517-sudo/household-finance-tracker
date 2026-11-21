@@ -644,6 +644,8 @@ function syncAllConnections(opts) {
   // utility payments that reached Transactions become paid bills on Utility Bills (the Utilities tab charts them)
   try { results.utilities = linkUtilityPayments_(); } catch (e) { Logger.log('linkUtilityPayments_: ' + (e && e.message || e)); }
   // Costco receipts (Grocery Items): a trip sent twice counts once, and each trip's card charge is split by its receipt
+  // receipts first: a receipt from a photo splits its charge itself, so the grocery job leaves that trip alone
+  try { results.receipts = matchReceipts_(); } catch (e) { Logger.log('matchReceipts_: ' + (e && e.message || e)); }
   try { results.groceries = refreshGroceries_(); } catch (e) { Logger.log('refreshGroceries_: ' + (e && e.message || e)); }
   // the grocery graphs keep their $100 scale fitted to the tallest bar
   try { drawGroceryCharts_(); } catch (e) { Logger.log('drawGroceryCharts_: ' + (e && e.message || e)); }

@@ -4,7 +4,7 @@
  * into rows of the right table with IDs, formulas, change-log entries and a duplicate check.
  *
  * Block layout (tab-separated, pasted at A5):
- *   HFT-IMPORT  v1  INCOME            ← marker, format version, table key
+ *   HFT-IMPORT  v1  INCOME            ← marker, format version, table key (or RECEIPT: receipt photos, Receipts.gs)
  *   payDate  person  employer  ...    ← column keys or the exact header text
  *   2026-11-07  Ben  ...              ← one row per record; dates yyyy-mm-dd; money as plain numbers
  * Formula columns are ignored. For INCOME an extra column stubTakeHome (the net pay printed on
@@ -83,8 +83,10 @@ function importGrid_(grid, opts) {
   if (head[0] !== PASTE_IMPORT.marker) return { status: 'error', message: 'The block must start with ' + PASTE_IMPORT.marker + '. Paste exactly what Claude produced (the whole code block).' };
   if (head[1] !== PASTE_IMPORT.version) return { status: 'error', message: 'This block is format ' + head[1] + '; the Sheet understands ' + PASTE_IMPORT.version + '. Ask for a current block.' };
   const key = head[2].toUpperCase();
+  // receipt photos: one row per receipt line, matched to the card charge and split by it (Receipts.gs)
+  if (key === RECEIPT.KEY) return importReceiptGrid_(grid, opts);
   const spec = PASTE_IMPORT.tables[key];
-  if (!spec || !TABLES[key]) return { status: 'error', message: 'Unknown table "' + head[2] + '". Tables that accept pasted rows: ' + Object.keys(PASTE_IMPORT.tables).join(', ') + '.' };
+  if (!spec || !TABLES[key]) return { status: 'error', message: 'Unknown table "' + head[2] + '". Tables that accept pasted rows: ' + Object.keys(PASTE_IMPORT.tables).concat([RECEIPT.KEY]).join(', ') + '.' };
   const def = tdef_(key);
   const hash = pasteHash_(grid);
   const props = PropertiesService.getScriptProperties();

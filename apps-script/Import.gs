@@ -345,7 +345,12 @@ function updateImportedTx_(row) {
   const amountCell = sh.getRange(r, colIndex_(txDef, 'amount'));
   const old = amountCell.getValue();
   const nv = Math.abs(Number(row.amount));
-  if (Math.abs(Number(old) - nv) > 0.004) { amountCell.setValue(nv); appendChangeLog_({ table: 'TX', recordId: row.importedTxId, field: 'Amount ($)', oldValue: old, newValue: nv, action: 'Update', user: IMPORT_USER, notes: 'bank posted a different amount' }); }
+  if (Math.abs(Number(old) - nv) > 0.004) {
+    amountCell.setValue(nv);
+    appendChangeLog_({ table: 'TX', recordId: row.importedTxId, field: 'Amount ($)', oldValue: old, newValue: nv, action: 'Update', user: IMPORT_USER, notes: 'bank posted a different amount' });
+    // a charge split by a receipt no longer adds up to its children: undo the split (Receipts.gs)
+    if (sh.getRange(r, colIndex_(txDef, 'splitRole')).getValue() === 'Parent') { try { releaseSplitCharge_(row.importedTxId, 'bank posted a different amount', nv); } catch (e) { Logger.log('releaseSplitCharge_: ' + (e && e.message || e)); } }
+  }
   if (row.date instanceof Date) sh.getRange(r, colIndex_(txDef, 'date')).setValue(row.date);
   sh.getRange(r, colIndex_(txDef, 'status')).setValue(row.pending === true ? 'Pending' : 'Posted');
   sh.getRange(r, colIndex_(txDef, 'updatedAt')).setValue(new Date());
@@ -370,6 +375,8 @@ function removeItems_(externalIds) {
         sh.getRange(txRow, colIndex_(txDef, 'deletedAt')).setValue(new Date());
         sh.getRange(txRow, colIndex_(txDef, 'updatedBy')).setValue(IMPORT_USER);
         appendChangeLog_({ table: 'TX', recordId: r.importedTxId, field: 'Is Deleted', oldValue: false, newValue: true, action: 'Soft Delete', user: IMPORT_USER, notes: 'bank removed ' + id });
+        // its split children (from a receipt or the grocery job) go with it
+        if (sh.getRange(txRow, colIndex_(txDef, 'splitRole')).getValue() === 'Parent') { try { releaseSplitCharge_(r.importedTxId, 'bank removed the charge'); } catch (e) { Logger.log('releaseSplitCharge_: ' + (e && e.message || e)); } }
       }
     }
     r.status = IMPORT_STATUS.REMOVED; r.notes = (r.notes ? r.notes + ' · ' : '') + 'removed by bank';

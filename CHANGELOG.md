@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## 2026-11-21 — Receipt photos split their card charges (RECEIPT blocks)
+- Why (the owner, through the receipt-photo chat): send receipt photos, get
+  one Paste Import block that does everything: grocery receipts itemized on
+  Grocery Items and their charge categorized or split; other receipts just
+  split into Category pieces; returns as refunds in the original category.
+- New `Receipts.gs`; Paste Import accepts `HFT-IMPORT v1 RECEIPT` (one row
+  per receipt line: tripKey, date, time, store, location, account,
+  receiptTotal, itemNo, receiptName, qty, unitPrice, amount, discount,
+  taxCode, category, subcategory, itemize, notes). Each receipt (tripKey) is
+  checked (lines + tax = total, a real Category pair, a known account);
+  one that fails is left out and named (CHECK), the others go on.
+- New tab **Receipts** (schema 3.21): one row per Category piece, Status
+  Waiting / Matched / Check. Accounts gets **Card Last 4 (receipts)**, so a
+  receipt can name its card by the last 4 digits (kept only in the Sheet).
+  Itemized lines go to Grocery Items (Source Receipt photo, Item # STORE-
+  number; Costco as printed) and new item numbers to Grocery Item Names.
+- Matching (`matchReceipts_`, right after the import and with every sync and
+  upgrade): same account, the receipt total, from the day before the receipt
+  to 5 days after (10 for a return), on Import Staging (posted and waiting;
+  a pending copy is never used) or Transactions (not split, not tied to a
+  receipt). One piece: the charge is categorized; several: it becomes a
+  Split Parent with one child per piece, the sales tax spread over the
+  taxed lines in proportion, any rounding cent on the largest piece. A
+  return (negative total) becomes Refund rows. Two equal fits, or no charge
+  after 3 weeks: Check. A Grocery Items trip from a RECEIPT block is left to
+  this job, never split again by the grocery job.
+- After the data review: a pending charge in Transactions is never matched
+  (it can still change amount); staged transfers, card payments and paired
+  rows are never taken for a receipt's charge; two Waiting receipts on one
+  account with the same total wait until each has a charge, then go in date
+  order; a fully discounted itemized line is accepted (Grocery Items only);
+  error messages name the line. `Import.gs`: when the bank removes a split
+  charge, or posts it at another amount, its split children are
+  soft-deleted (`releaseSplitCharge_`, for receipt and grocery splits
+  alike), the charge is one row again, and its receipt goes back to Waiting
+  (removed) or Check (new amount).
+- `BUILD_VERSION` 1.33.0. Files changed in `apps-script/`: `Receipts.gs`
+  (new), `PasteImport.gs`, `Groceries.gs`, `Import.gs`, `Plaid.gs`,
+  `Upgrade.gs`, `Tables.gs`, `Config.gs`. Run **Upgrade workbook** once; then fill in Card
+  Last 4 on Accounts (or Claude does).
+- Tested: Node with fictional data (tax spread, exact sums, accounts by last
+  4, item numbers; the full import on the mock workbook: a staged charge with
+  a pending copy, a three-way split, an itemized grocery trip, a return, a
+  receipt that does not add up, the same block twice). Not yet run in Google.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-19 — Calendar list: day, this week, whole month
 - Why (the owner): the list on the right should show the week he is on or
   the whole month; then: clicking a day is still the only way to see a busy

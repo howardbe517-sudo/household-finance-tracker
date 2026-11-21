@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.20-bill-changes-2026-11-17**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.21-receipts-2026-11-21**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -9,7 +9,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
-| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 18 | yes |
+| ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
 | EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 18 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
@@ -18,6 +18,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | UTIL | Utility Bills | 4 | 5 | 504 | UB-0001 | 16 | yes |
 | GROCNAMES | Grocery Item Names | 4 | 5 | 1004 | GN-0001 | 8 | no |
 | GROC | Grocery Items | 4 | 5 | 3004 | GI-000001 | 22 | no |
+| RECEIPTS | Receipts | 4 | 5 | 1004 | RCP-0001 | 19 | no |
 | FUNDS | Savings & Reserves | 4 | 5 | 54 | FUND-001 | 16 | yes |
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
@@ -77,6 +78,7 @@ Named range `TBL_ACCOUNTS` covers the header row through the last formula row.
 | P | Payroll Deposit per Paycheck | `payrollPerPaycheck` | currency | input | Added in 3.15: the amount each paycheck puts into this account, employer contributions included. Investment gains and withdrawals are not seen: type the real balance now and then and counting starts again from that day. |
 | Q | About This Account | `about` | text | input | Added in 3.16: in plain words, what this account is and how it works. Shown in About your accounts at the bottom of Savings & Reserves. |
 | R | Payment Due Day | `paymentDueDay` | integer | input | Added in 3.19: for a credit card paid from checking, the day of the month its payment is due. The calendar then treats the card as paid off from the paychecks: what is owed on it now (posted balance plus pending charges) is a bill on the next payday, payments already made and bills already charged to it are not counted again, and this day is shown as a reminder. |
+| S | Card Last 4 (receipts) | `cardLast4` | text | input | Added in 3.21: the last 4 digits printed on receipts for cards that pay from this account (a debit card for checking; several separated by commas). A receipt from a photo names its account by these. Kept only here in the Sheet. |
 
 ## Income (`INCOME`)
 
@@ -296,6 +298,34 @@ Named range `TBL_GROC` covers the header row through the last formula row.
 | T | Category | `category` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.category],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Food",c)),"Food"))` |
 | U | Subcategory | `subcategory` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.subcategory],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Groceries",c)),"Groceries"))` |
 | V | Month | `month` | month (1st-of-month date) | calculated | `=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))` |
+
+## Receipts (`RECEIPTS`)
+
+One row per Category and Subcategory on a receipt from a photo (Finance Tracker → Import the Paste Import tab, an HFT-IMPORT v1 RECEIPT block). The receipt waits here until its card charge reaches Import Staging or Transactions (same account, the receipt total, from the day before the receipt to 5 days after; 10 for a return), then the charge is split into these pieces, the sales tax spread over the taxed lines, and Status turns Matched. Grocery receipts also list every item on Grocery Items. Check means the charge was not found after 3 weeks, or more than one charge fits.
+
+Named range `TBL_RECEIPTS` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Receipt Row ID | `id` | text | input |  |
+| B | Trip ID | `tripId` | text | input |  |
+| C | Date | `date` | datetime | input |  |
+| D | Store | `store` | text | input |  |
+| E | Location | `location` | text | input |  |
+| F | Account ID | `accountId` | text | dropdown: Accounts IDs |  |
+| G | Receipt Total | `receiptTotal` | currency | input |  |
+| H | Category | `category` | text | dropdown: LIST_ALL_CATEGORIES |  |
+| I | Subcategory | `subcategory` | text | dropdown: LIST_ALL_SUBCATEGORIES |  |
+| J | Amount Before Tax | `amount` | currency | input |  |
+| K | Taxed Part | `taxable` | currency | input |  |
+| L | Items on Grocery Items? | `itemized` | text | checkbox |  |
+| M | Status | `status` | text | dropdown: LIST_RECEIPT_STATUSES |  |
+| N | Bank Charge | `txId` | text | input |  |
+| O | Charged (with tax) | `splitAmount` | currency | input |  |
+| P | Notes | `notes` | text | input |  |
+| Q | Created At | `createdAt` | datetime | input |  |
+| R | Is Deleted | `isDeleted` | text | checkbox |  |
+| S | Deleted At | `deletedAt` | datetime | input |  |
 
 ## Savings & Reserves (`FUNDS`)
 
@@ -655,6 +685,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | STAGING_STATUSES | Import Statuses | Needs Review, Needs Split, Ready, Imported, Ignored, Superseded, Removed |
 | CONNECTION_STATUSES | Connection Statuses | Active, Needs Attention, Disconnected, Pending |
 | GROCERY_SOURCES | Grocery Sources | Costco export, Receipt photo |
+| RECEIPT_STATUSES | Receipt Statuses | Waiting, Matched, Check |
 
 Derived lists (formula-driven from the taxonomy): `LIST_ALL_CATEGORIES`, `LIST_EXPENSE_CATEGORIES`, `LIST_ALL_SUBCATEGORIES`.
 
