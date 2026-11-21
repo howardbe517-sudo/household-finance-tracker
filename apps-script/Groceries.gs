@@ -2,8 +2,8 @@
  * Household Finance Tracker — Groceries.gs
  * The Groceries tab (the owner, 2026-11-15) and the two jobs that keep its receipt data honest.
  *
- * Data: Grocery Items (TABLES.GROC) holds one row per receipt line. Costco is the only store whose
- * receipts carry items. Lines arrive two ways, both written by Claude: from Costco's purchase export
+ * Data: Grocery Items (TABLES.GROC) holds one row per receipt line, from any store (Costco's export, or a
+ * receipt photo: Meijer, Walmart, Target … since 2026-11-21; a photo's charge is split by Receipts.gs). Lines arrive two ways, both written by Claude: from Costco's purchase export
  * (Source "Costco export") or from a photo of a paper receipt (Source "Receipt photo"). Grocery
  * Item Names (TABLES.GROCNAMES) gives each item number a readable name and a category.
  *

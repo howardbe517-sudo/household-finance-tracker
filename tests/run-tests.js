@@ -981,6 +981,21 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('receipts: a pending charge, a transfer or a paired row is never taken; a fully discounted item is accepted; two same-total receipts wait for two charges and take them in date order; a split charge the bank removes or re-prices takes its children with it and frees its receipt');
   else bad('receipts (review fixes): ' + errs.join(' | '));
 })();
+/* import rules (2026-11-21): a rule for money going out never makes money coming in an expense */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const ctx = { accountsById: { CHK: { accountType: 'Checking' }, CARD: { accountType: 'Credit Card' } },
+      rules: [{ id: 'R-INV', pattern: 'INVESTAPP', matchType: 'Contains', type: 'Expense', category: 'Personal', subcategory: 'Subscriptions', spendingType: 'Fixed', autoImport: true, active: true },
+        { id: 'R-SUB', pattern: 'STREAMCO', matchType: 'Contains', type: 'Expense', category: 'Entertainment', subcategory: 'Streaming Services', spendingType: 'Fixed', autoImport: true, active: true }] };
+    const c = (acct, desc, amt) => classifyRow_({ accountId: acct, rawDescription: desc, merchantName: desc, amount: amt }, ctx);
+    const inChk = c('CHK', 'INVESTAPP TRANSFER', -500), refund = c('CARD', 'STREAMCO', -9.99), buy = c('CHK', 'INVESTAPP TRANSFER', 5);
+    return { inChk: [inChk.suggestedType, inChk.suggestedCategory, inChk.ruleId, inChk.autoImport], refund: [refund.suggestedType, refund.suggestedSubcategory, refund.autoImport],
+      buy: [buy.suggestedType, buy.suggestedCategory, buy.autoImport] };
+  })()`, ctx);
+  if (JSON.stringify(v.inChk) === JSON.stringify(['Income', '', '', false]) && JSON.stringify(v.refund) === JSON.stringify(['Refund', 'Streaming Services', false]) && JSON.stringify(v.buy) === JSON.stringify(['Expense', 'Personal', true]))
+    ok('import rules: money coming into checking that matches a rule for money going out waits for review instead of becoming an expense; on a card it is a refund in the rule\'s category, for review; money going out still follows the rule');
+  else bad('rule direction: ' + JSON.stringify(v));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
