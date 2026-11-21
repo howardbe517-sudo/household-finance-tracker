@@ -91,7 +91,7 @@ function parseReceiptRows_(headers, rows, ctx) {
     let t = byKey[key];
     if (!t) { t = byKey[key] = { tripKey: key, lines: [], problems: [] }; order.push(t); }
     const p = t.problems;
-    if (!/^[A-Za-z0-9-]{3,60}$/.test(key)) p.push('tripKey "' + key + '" may only use letters, digits and dashes');
+    if (!t.lines.length && !/^[A-Za-z0-9-]{3,60}$/.test(key)) p.push('tripKey "' + key + '" must be 3 to 60 letters, digits and dashes');
     const d = day(cell(r, 'date'));
     if (!d) p.push('line ' + line + ': date "' + txt(cell(r, 'date')) + '" is not yyyy-mm-dd');
     const tm = txt(cell(r, 'time'));
@@ -138,7 +138,10 @@ function parseReceiptRows_(headers, rows, ctx) {
     const tax = rcpRound_(t.total - sum);
     const sign = ret ? -1 : 1;
     if (Math.abs(t.total) < 0.01) t.problems.push('the receipt total is $0');
-    else if (pieces.some(pc => pc.amount * sign <= 0)) t.problems.push(ret ? 'a return receipt has an item that is not returned; send purchases and returns as separate receipts' : 'a purchase receipt has a returned item; send the return as its own receipt');
+    else if (pieces.some(pc => Math.abs(pc.amount) >= 0.005 && pc.amount * sign < 0)) {
+      const odd = t.lines.filter(l => l.net * sign < 0).map(l => l.line);
+      t.problems.push((ret ? 'a return receipt has a line that is not a return' : 'a purchase receipt has a returned item') + (odd.length ? ' (line ' + odd.join(', ') + ')' : '') + ' leaving its category below zero; send purchases and returns as separate receipts');
+    }
     else if (tax * sign < -0.01 || tax * sign > Math.abs(taxedSum) * RECEIPT.MAX_TAX + 0.02 || (!taxedSum && Math.abs(tax) > 0.01))
       t.problems.push('the lines add up to ' + rcpMoney_(sum) + (taxedSum ? ' (taxed lines ' + rcpMoney_(taxedSum) + ')' : ', none taxed') + ' but the receipt total is ' + rcpMoney_(t.total));
   });
@@ -159,6 +162,11 @@ function receiptPieces_(lines) {
   });
   order.forEach(p => { p.amount = rcpRound_(p.amount); p.taxable = rcpRound_(p.taxable); });
   return order.filter(p => Math.abs(p.amount) >= 0.005 || p.itemized).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+}
+
+/** The pieces a charge is split into: those with an amount (a fully discounted itemized line is on Grocery Items only). */
+function receiptChargePieces_(pieces) {
+  return (pieces || []).filter(p => Math.abs(Number(p.amount || 0)) >= 0.005);
 }
 
 /**
@@ -204,6 +212,7 @@ function findReceiptCharge_(trip, txRows, staged, taken) {
   const cands = [];
   (txRows || []).forEach(t => {
     if (!t.id || t.isDeleted === true || t.accountId !== trip.accountId || t.splitRole || t.parentTxId || t.receiptRef) return;
+    if (t.status === 'Pending') return;   // a pending charge can still change amount (a tip): wait until it posts
     if ((taken || {})['tx:' + t.id]) return;
     if (ret ? (t.type !== 'Refund' && t.type !== 'Income') : t.type !== 'Expense') return;
     if (!rcpIsDate_(t.date) || Math.abs(Math.abs(Number(t.amount)) - want) > 0.005) return;
@@ -214,6 +223,7 @@ function findReceiptCharge_(trip, txRows, staged, taken) {
   const open = { 'Needs Review': true, 'Needs Split': true, 'Ready': true };
   (staged || []).forEach(s => {
     if (!s.importId || !open[s.status] || s.pending === true || s.importedTxId || s.accountId !== trip.accountId) return;
+    if (s.pairedImportId || ['Transfer', 'Savings', 'Debt Payment'].indexOf(s.suggestedType) >= 0) return;   // a transfer or card payment, not a purchase
     if ((taken || {})['stg:' + s.importId]) return;
     const a = Number(s.amount);
     if (!rcpIsDate_(s.date) || Math.abs(Math.abs(a) - want) > 0.005 || (ret ? a >= 0 : a <= 0)) return;
@@ -335,7 +345,28 @@ function matchReceipts_() {
   const setR = (r, k, v) => rSh.getRange(r.__row, colIndex_(rDef, k)).setValue(v);
   const today = rcpDay_(new Date());
   let ctx = null;
+  // Two Waiting receipts on one account for the same total (two $25 trips a day apart) wait until each has a
+  // charge of its own; then the earliest receipt takes the earliest charge, so charges are not swapped.
+  const twinKey = (t) => t.accountId + '|' + Math.abs(rcpRound_(t.total)).toFixed(2);
+  const twins = {};
+  order.forEach(t => { (twins[twinKey(t)] = twins[twinKey(t)] || []).push(t); });
+  const holdBack = {};
+  Object.keys(twins).forEach(k => {
+    const g = twins[k];
+    if (g.length < 2) return;
+    const probe = {};
+    const allFit = g.slice().sort((a, b) => a.date - b.date).every(t => { const f = findReceiptCharge_(t, tx, staged, probe); if (!f || f.ambiguous) return false; probe[(f.source === 'tx' ? 'tx:' + f.row.id : 'stg:' + f.row.importId)] = true; return true; });
+    if (!allFit) g.forEach(t => { holdBack[t.tripKey] = true; });
+  });
+  order.sort((a, b) => (rcpIsDate_(a.date) ? a.date.getTime() : 0) - (rcpIsDate_(b.date) ? b.date.getTime() : 0));
   order.forEach(t => {
+    if (holdBack[t.tripKey]) {
+      if (rcpIsDate_(t.date) && (today - rcpDay_(t.date)) / 86400000 > RECEIPT.CHECK_AFTER_DAYS) {
+        t.rows.forEach(r => { setR(r, 'status', 'Check'); setR(r, 'notes', String(r.notes || '') + ' · CHECK: another receipt on this card has the same total and their charges could not be told apart; split the right one by hand.'); });
+        out.check++; out.details.push('CHECK ' + t.tripKey + ': same total as another receipt');
+      } else out.waiting++;
+      return;
+    }
     const found = findReceiptCharge_(t, tx, staged, taken);
     if (found && found.ambiguous) {
       t.rows.forEach(r => { setR(r, 'status', 'Check'); setR(r, 'notes', String(r.notes || '') + ' · CHECK: more than one charge fits (' + found.ambiguous.join('; ') + '); split the right one by hand (Split the selected row…).'); });
@@ -374,7 +405,7 @@ function matchReceipts_() {
 function applyReceiptToCharge_(t, found, ctx) {
   const txDef = tdef_('TX');
   const txSh = ss_().getSheetByName(txDef.sheet);
-  const pieces = t.rows.map(r => ({ category: r.category, subcategory: r.subcategory, amount: Number(r.amount || 0), taxable: Number(r.taxable || 0) }));
+  const pieces = receiptChargePieces_(t.rows.map(r => ({ category: r.category, subcategory: r.subcategory, amount: Number(r.amount || 0), taxable: Number(r.taxable || 0) })));
   // the charge's own size wins over the receipt (they match to the cent), and pieces are positive amounts
   const ret = t.total < 0, sign = ret ? -1 : 1;
   const parts = receiptSplit_(pieces.map(p => Object.assign(p, { amount: p.amount * sign, taxable: p.taxable * sign })), Math.abs(t.total));
@@ -435,6 +466,48 @@ function applyReceiptToCharge_(t, found, ctx) {
     appendChangeLog_({ table: 'TX', recordId: parent.id, field: 'Split', newValue: children.length + ' children', action: 'Split', user: RECEIPT.USER, notes: mark + ': ' + children.map(c => c.id + ' ' + c.subcategory + ' ' + c.amount.toFixed(2)).join(', ') });
   }
   return { txId: parent.id, parts };
+}
+
+/**
+ * A split charge the bank removed, or posted at another amount: its split children no longer match it. The
+ * children are soft-deleted, the charge goes back to one row (removed: it stays deleted), and the receipt or
+ * grocery trip that split it is freed: a receipt from a photo goes back to Waiting (or Check when the amount
+ * changed, as it no longer matches the receipt), a grocery trip loses its Bank Charge so the grocery job looks
+ * again. Returns the number of children soft-deleted.
+ */
+function releaseSplitCharge_(parentId, reason, newAmount) {
+  if (!parentId) return 0;
+  const ss = ss_();
+  const txDef = tdef_('TX'), txSh = ss.getSheetByName(txDef.sheet);
+  if (!txSh) return 0;
+  const now = new Date();
+  const tx = readTable_(txDef);
+  const kids = tx.filter(t => t.parentTxId === parentId && t.isDeleted !== true);
+  kids.forEach(k => {
+    txSh.getRange(k.__row, colIndex_(txDef, 'isDeleted')).setValue(true);
+    txSh.getRange(k.__row, colIndex_(txDef, 'deletedAt')).setValue(now);
+    txSh.getRange(k.__row, colIndex_(txDef, 'updatedBy')).setValue(RECEIPT.USER);
+  });
+  const parent = tx.filter(t => t.id === parentId)[0];
+  if (parent && parent.splitRole === 'Parent' && parent.isDeleted !== true) {
+    txSh.getRange(parent.__row, colIndex_(txDef, 'type')).setValue(kids.some(k => k.type === 'Refund') ? 'Refund' : 'Expense');
+    txSh.getRange(parent.__row, colIndex_(txDef, 'splitRole')).setValue('');
+    txSh.getRange(parent.__row, colIndex_(txDef, 'receiptRef')).setValue('');
+  }
+  if (kids.length) appendChangeLog_({ table: 'TX', recordId: parentId, field: 'Split', oldValue: kids.length + ' children', newValue: 'children soft-deleted', action: 'Soft Delete', user: RECEIPT.USER, notes: reason + ': ' + kids.map(k => k.id).join(', ') });
+  if (ss.getSheetByName(SHEETS.RECEIPTS)) {
+    const rDef = tdef_('RECEIPTS'), rSh = ss.getSheetByName(rDef.sheet);
+    readTable_(rDef).filter(r => r.txId === parentId && r.isDeleted !== true).forEach(r => {
+      const changed = newAmount !== undefined && newAmount !== null;
+      rSh.getRange(r.__row, colIndex_(rDef, 'status')).setValue(changed ? 'Check' : 'Waiting');
+      rSh.getRange(r.__row, colIndex_(rDef, 'txId')).setValue('');
+      rSh.getRange(r.__row, colIndex_(rDef, 'splitAmount')).setValue('');
+      rSh.getRange(r.__row, colIndex_(rDef, 'notes')).setValue(String(r.notes || '') + ' · ' + reason + (changed ? ' (now ' + rcpMoney_(newAmount) + '); split it by hand or fix the receipt' : '; waiting for the charge again'));
+    });
+  }
+  const gDef = tdef_('GROC'), gSh = ss.getSheetByName(gDef.sheet);
+  if (gSh) readTable_(gDef).filter(l => String(l.txId) === parentId && l.isDeleted !== true).forEach(l => gSh.getRange(l.__row, colIndex_(gDef, 'txId')).setValue(''));
+  return kids.length;
 }
 
 function describeReceipts_(r) {

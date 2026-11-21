@@ -918,6 +918,69 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('receipts: a RECEIPT block is checked receipt by receipt (one that does not add up is left out), each receipt is matched to its card charge on Import Staging (posted, not the pending copy) or Transactions and split into its Category pieces with the tax on the taxed lines, adding exactly to the charge; grocery items go to Grocery Items with new names; a return becomes a refund; pasting it again adds nothing');
   else bad('receipts: ' + errs.join(' | '));
 })();
+/* receipts: data-review fixes (fictional data) */
+(function () {
+  const errs = [], want = (c, m) => { if (!c) errs.push(m); };
+  const v = vm.runInContext(`(function () {
+    const D = (m, d) => new Date(2031, m - 1, d);
+    const trip = { date: D(5, 1), accountId: 'A', total: 25, store: 'Cafe' };
+    const pendingTx = [{ id: 'T1', date: D(5, 2), accountId: 'A', amount: 25, type: 'Expense', status: 'Pending', description: 'Cafe' }];
+    const postedTx = [{ id: 'T2', date: D(5, 2), accountId: 'A', amount: 25, type: 'Expense', status: 'Posted', description: 'Cafe' }];
+    const transfer = [{ importId: 'S1', status: 'Needs Review', accountId: 'A', date: D(5, 1), amount: 25, suggestedType: 'Transfer', pending: false }];
+    const paired = [{ importId: 'S2', status: 'Needs Review', accountId: 'A', date: D(5, 1), amount: 25, suggestedType: 'Expense', pairedImportId: 'S9', pending: false }];
+    const zero = parseReceiptRows_(['tripKey', 'date', 'store', 'account', 'receiptTotal', 'amount', 'discount', 'category', 'subcategory', 'itemize', 'receiptName'],
+      [['PHOTO-K-1', '2031-05-01', 'Grocer', 'A', '5.00', '5.00', '', 'Food', 'Groceries', 'TRUE', 'BREAD'], ['PHOTO-K-1', '2031-05-01', 'Grocer', 'A', '5.00', '2.00', '-2.00', 'Food', 'Snacks', 'TRUE', 'FREE GUM']],
+      { accounts: [{ id: 'A' }], pairs: { 'Food|Groceries': true, 'Food|Snacks': true } });
+    return { pending: findReceiptCharge_(trip, pendingTx, [], {}), posted: (findReceiptCharge_(trip, postedTx, [], {}) || {}).source,
+      transfer: findReceiptCharge_(trip, [], transfer, {}), paired: findReceiptCharge_(trip, [], paired, {}),
+      zeroProblems: zero.trips[0].problems, zeroCharged: receiptChargePieces_(zero.trips[0].pieces).map(p => p.subcategory) };
+  })()`, ctx);
+  want(v.pending === null && v.posted === 'tx', 'a pending charge is never matched, the posted one is: ' + JSON.stringify([v.pending, v.posted]));
+  want(v.transfer === null && v.paired === null, 'a staged transfer or paired row is never taken for a receipt charge');
+  want(v.zeroProblems.length === 0 && JSON.stringify(v.zeroCharged) === '["Groceries"]', 'a fully discounted itemized line is accepted and left out of the split: ' + JSON.stringify(v));
+
+  // on the mock workbook: two same-total receipts wait for two charges; a removed charge takes its children; a new amount undoes the split
+  const w = vm.runInContext(`(function () {
+    const acc = readTable_(tdef_('ACCOUNTS')).filter(a => a.accountType === 'Checking')[0];
+    const D = (m, d) => new Date(2031, m - 1, d);
+    const stg = (id, d, desc, amt) => ({ importId: id, provider: 'Plaid', externalTxId: id + 'x', accountId: acc.id, date: d, rawDescription: desc, merchantName: desc, amount: amt,
+      pending: false, status: 'Needs Review', suggestedType: 'Expense', suggestedCategory: 'Food', suggestedSubcategory: 'Groceries', suggestedSpendingType: 'Flexible', reviewed: false });
+    const H = 'HFT-IMPORT\\tv1\\tRECEIPT\\ntripKey\\tdate\\tstore\\taccount\\treceiptTotal\\tamount\\ttaxCode\\tcategory\\tsubcategory\\titemize\\n';
+    const row = (k, d, store, total, amt, cat, sub) => [k, d, store, acc.id, total, amt, 'N', cat, sub, 'FALSE'].join('\\t');
+    writeRows_(tdef_('STAGING'), [stg('IMP-TW1', D(6, 2), 'Cafe', 18.00)]);
+    importPastedText(H + [row('PHOTO-CAFE-2031-06-01-0900', '2031-06-01', 'Cafe', 18, 18, 'Food', 'Coffee Shops'), row('PHOTO-CAFE-2031-06-02-0900', '2031-06-02', 'Cafe', 18, 18, 'Food', 'Coffee Shops')].join('\\n'));
+    const st1 = readTable_(tdef_('RECEIPTS')).filter(r => /PHOTO-CAFE-2031/.test(r.tripId)).map(r => r.status);
+    writeRows_(tdef_('STAGING'), [stg('IMP-TW2', D(6, 3), 'Cafe', 18.00)]);
+    matchReceipts_();
+    const rc = readTable_(tdef_('RECEIPTS')).filter(r => /PHOTO-CAFE-2031/.test(r.tripId));
+    const tx = readTable_(tdef_('TX'));
+    const chargeOf = (k) => { const id = (rc.filter(r => r.tripId === k)[0] || {}).txId; return (tx.filter(t => t.id === id)[0] || {}).date; };
+    // a split charge removed by the bank, and one posted at another amount
+    writeRows_(tdef_('STAGING'), [stg('IMP-SP1', D(7, 2), 'Store', 30.00), stg('IMP-SP2', D(7, 3), 'Store', 40.00)]);
+    importPastedText(H + [row('PHOTO-STORE-2031-07-01-1000', '2031-07-01', 'Store', 30, 20, 'Food', 'Groceries'), row('PHOTO-STORE-2031-07-01-1000', '2031-07-01', 'Store', 30, 10, 'Personal', 'Clothing'),
+      row('PHOTO-STORE-2031-07-02-1000', '2031-07-02', 'Store', 40, 25, 'Food', 'Groceries'), row('PHOTO-STORE-2031-07-02-1000', '2031-07-02', 'Store', 40, 15, 'Personal', 'Clothing')].join('\\n'));
+    const r1 = readTable_(tdef_('RECEIPTS')).filter(r => r.tripId === 'PHOTO-STORE-2031-07-01-1000')[0];
+    const r2 = readTable_(tdef_('RECEIPTS')).filter(r => r.tripId === 'PHOTO-STORE-2031-07-02-1000')[0];
+    const p1 = r1.txId, p2 = r2.txId;
+    removeItems_(['IMP-SP1x']);
+    const s2 = readTable_(tdef_('STAGING')).filter(s => s.importId === 'IMP-SP2')[0];
+    s2.amount = 45; updateImportedTx_(s2);
+    const tx2 = readTable_(tdef_('TX'));
+    const kidsLive = (id) => tx2.filter(t => t.parentTxId === id && t.isDeleted !== true).length;
+    const par2 = tx2.filter(t => t.id === p2)[0];
+    const rAfter = readTable_(tdef_('RECEIPTS'));
+    return { st1, firstDate: chargeOf('PHOTO-CAFE-2031-06-01-0900'), secondDate: chargeOf('PHOTO-CAFE-2031-06-02-0900'),
+      kids1: kidsLive(p1), kids2: kidsLive(p2), par2: [par2.type, par2.splitRole, par2.amount],
+      r1: rAfter.filter(r => r.tripId === 'PHOTO-STORE-2031-07-01-1000').map(r => r.status + ':' + r.txId), r2: rAfter.filter(r => r.tripId === 'PHOTO-STORE-2031-07-02-1000').map(r => r.status) };
+  })()`, ctx);
+  const day = (d) => d && new Date(d).getDate();
+  want(w.st1.every(s => s === 'Waiting'), 'two same-total receipts wait while only one charge fits: ' + w.st1);
+  want(day(w.firstDate) === 2 && day(w.secondDate) === 3, 'then the earlier receipt takes the earlier charge: ' + JSON.stringify([w.firstDate, w.secondDate]));
+  want(w.kids1 === 0 && w.r1.every(x => x === 'Waiting:'), 'a split charge the bank removed takes its children with it and the receipt waits again: ' + JSON.stringify([w.kids1, w.r1]));
+  want(w.kids2 === 0 && JSON.stringify(w.par2) === JSON.stringify(['Expense', '', 45]) && w.r2.every(x => x === 'Check'), 'a split charge posted at another amount is one row again and its receipt turns Check: ' + JSON.stringify([w.kids2, w.par2, w.r2]));
+  if (!errs.length) ok('receipts: a pending charge, a transfer or a paired row is never taken; a fully discounted item is accepted; two same-total receipts wait for two charges and take them in date order; a split charge the bank removes or re-prices takes its children with it and frees its receipt');
+  else bad('receipts (review fixes): ' + errs.join(' | '));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
