@@ -1,0 +1,41 @@
+{
+  "title": "Receipt Photos Split Charges",
+  "key": "household-finance-tracker-2026-11-21-receipts",
+  "subtitle": "Paste one block from the receipt-photo chat and the tracker splits each card charge by its receipt, lists grocery items, and books returns as refunds.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade adds a **Receipts** tab (after Grocery Item Names) and a **Card Last 4 (receipts)** column at the end of Accounts.",
+    "**What does not change:** nothing already in Transactions, Import Staging or Grocery Items is touched until you paste a receipt block. A receipt only splits the one charge it matches."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before receipts 2026-11-21`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.33.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report includes \"Added tab: Receipts\". The Receipts tab is empty." },
+        { "text": "Tell Claude the upgrade is done.", "done": "Claude fills in **Card Last 4 (receipts)** on Accounts for your debit card and the Elan card, so receipts can name a card by its last 4 digits." }
+      ]
+    },
+    {
+      "heading": "Your first receipts",
+      "steps": [
+        { "text": "In the receipt-photo chat, send the photos. Copy the block it gives you (it starts with `HFT-IMPORT v1 RECEIPT`)." },
+        { "text": "Open **Finance Tracker → Import from Claude (paste)…**, paste the block, and check the preview. (Or paste it at A5 of the **Paste Import** tab and run **Finance Tracker → Import the Paste Import tab**.)", "done": "The preview lists each receipt with its pieces. A receipt marked CHECK did not add up and will be left out; the others go in." },
+        { "text": "Import it. Then open the **Receipts** tab.", "done": "Each receipt shows **Matched** with its Bank Charge once its card charge was found (on Import Staging or Transactions), or **Waiting** until the charge posts. The next sync matches the waiting ones." },
+        { "text": "Open **Transactions** and find a matched charge.", "done": "A receipt with one category just sets that category. One with several is a **Split Parent** with one row per category, adding up exactly to the charge. A return is a Refund in its category." },
+        { "text": "For a grocery receipt, open **Grocery Items**.", "done": "Every line is there with Source **Receipt photo** and the Bank Charge filled in." }
+      ]
+    },
+    {
+      "heading": "If something needs a look",
+      "steps": [
+        { "text": "On **Receipts**, a red **Check** means no charge was found within 3 weeks, or two charges fit equally well. The Notes say which; split the right charge by hand (**Finance Tracker → Split the selected row…**) or tell Claude." }
+      ]
+    }
+  ]
+}
