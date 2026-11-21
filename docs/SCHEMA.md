@@ -270,7 +270,7 @@ Named range `TBL_GROCNAMES` covers the header row through the last formula row.
 
 ## Grocery Items (`GROC`)
 
-Every item on a Costco receipt, from Costco's purchase export or a receipt photo. Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.
+Every item on a grocery receipt from any store: Costco's purchase export, or a receipt photo (Costco, Meijer, Walmart, Target). Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.
 
 Named range `TBL_GROC` covers the header row through the last formula row.
 
