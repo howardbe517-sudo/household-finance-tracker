@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.21-receipts-2026-11-21',
-  BUILD_VERSION: '1.33.0',
+  BUILD_VERSION: '1.33.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -719,8 +719,8 @@ const UTILITY_FROM_SUBCATEGORY = { 'Natural Gas': 'Gas', 'Electric': 'Electric',
 const UTILITY_TRACKED = ['Gas', 'Electric', 'Water & Sewer'];
 
 /**
- * Grocery receipts, one row per item line (the owner, 2026-11-15). Costco is the only store whose
- * receipts carry items; the other stores' charges stay single grocery transactions. Lines come from
+ * Grocery receipts, one row per item line (the owner, 2026-11-15; any store since 2026-11-21). Costco was the first store whose
+ * receipts carried items; since 2026-11-21 a photo from any store also splits its charge (Receipts.gs). Lines come from
  * Costco's purchase export or from a receipt photo, read by Claude and written here. A trip that
  * arrives both ways is counted once: the export copy is kept and the photo copy soft-deleted
  * (reconcileGroceryTrips_, matched on location, day and item subtotal). Each trip's card charge is
@@ -730,7 +730,7 @@ const UTILITY_TRACKED = ['Gas', 'Electric', 'Water & Sewer'];
 TABLES.GROC = {
   key: 'GROC', sheet: SHEETS.GROC, headerRow: 4, firstRow: 5, lastRow: 3004,
   title: 'Grocery Items — One Row per Receipt Line',
-  note: 'Every item on a Costco receipt, from Costco\'s purchase export or a receipt photo. Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.',
+  note: 'Every item on a grocery receipt from any store: Costco\'s purchase export, or a receipt photo (Costco, Meijer, Walmart, Target). Item, Category and Subcategory come from Grocery Item Names by Item #: change a name or a category there and every line follows. A coupon is in Discount on the item it applies to; Net = Amount + Discount. A trip that came in twice (photo, then export) keeps the export copy; the photo copy is marked deleted. Bank Charge is the card charge the trip was matched to and split by.',
   idPrefix: 'GI', idPattern: 'GI-000001', logChanges: false,
   columns: [
     { key: 'id', h: 'Line ID', w: 95 },

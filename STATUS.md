@@ -1,5 +1,14 @@
 # STATUS
 
+2026-11-21 (builds 1.33.0–1.33.1, schema 3.21): receipt photos split card
+charges (Receipts tab, RECEIPT Paste Import block; Claude can also enter
+receipts straight onto Receipts and the next sync splits them). The first
+real receipts were entered and wait for a sync. Rules for money going out no
+longer turn money coming in into an expense. The Target → groceries rule is
+off. Open: whether to add the past purchases from a household member's old,
+unconnected checking account (asked); a pending return will come as its own
+receipt.
+
 2026-11-16 (builds 1.26.1–1.28.0, schema 3.19): card amounts owed include
 charges still pending at the bank (live; the owner ran the upgrade and QA,
 the card figure checked against Import Staging). Bills & paychecks calendar

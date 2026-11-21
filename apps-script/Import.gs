@@ -71,7 +71,17 @@ function classifyRow_(row, ctx) {
     out.suggestedType = 'Transfer';
     return out;
   }
-  if (rule) {
+  // A rule for money going out (an expense, a savings transfer, a debt payment) never makes money coming in an expense
+  // (2026-11-21: money moved back from an investment app matched its subscription rule and was counted as spending).
+  // On a card, money back from a shop with an expense rule is a Refund in the rule's category, left for review; on any
+  // other account the rule is not used and the row waits for review as money coming in.
+  const outRule = rule && ['Expense', 'Savings', 'Debt Payment'].indexOf(rule.type) >= 0 && amount < 0;
+  if (outRule && isCard && rule.type === 'Expense') {
+    Object.assign(out, { suggestedType: 'Refund', suggestedCategory: rule.category || '', suggestedSubcategory: rule.subcategory || '', suggestedSpendingType: rule.spendingType || '',
+      suggestedPerson: rule.person || '', ruleId: rule.id });
+    return out;
+  }
+  if (rule && !outRule) {
     out.suggestedType = rule.type || (amount < 0 ? (isCard ? 'Refund' : 'Income') : 'Expense');
     out.suggestedCategory = rule.category || '';
     out.suggestedSubcategory = rule.subcategory || '';

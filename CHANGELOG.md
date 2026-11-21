@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-11-21 — Rules never make money coming in an expense; wording; first receipts
+- Why (the owner): money moved back into checking from an investment app
+  matched that app's subscription rule (an Expense rule) and was imported as
+  spending.
+- `Import.gs` (`classifyRow_`): a rule for money going out (Expense, Savings,
+  Debt Payment) is not used for money coming in on a bank account (the row
+  waits for review); on a card, money back from a shop with an Expense rule
+  is a Refund in the rule's category, for review.
+- Wording (the owner agreed): Grocery Items, Start Here and the Groceries
+  description no longer say Costco only; Start Here gains a Receipts line.
+  `Reference.gs`, `Config.gs` (Grocery Items note), `Groceries.gs` (comment).
+- In the Sheet (done by Claude, details there, not here): the wrongly
+  imported row changed to a Transfer; the Target → groceries rule turned
+  off, so Target charges wait for a receipt or review; Card Last 4 filled
+  in; the first receipts from photos entered on Receipts (and their grocery
+  items on Grocery Items), waiting for the next sync to split their
+  charges; the Grocery Items description updated on the tab.
+- `BUILD_VERSION` 1.33.1. Files changed in `apps-script/`: `Import.gs`,
+  `Reference.gs`, `Config.gs`, `Groceries.gs`. Run Upgrade workbook (redraws
+  Start Here) whenever convenient.
+- Tested: Node with fictional rows (rule direction on checking and a card;
+  full suite). Imports and wording only, so no data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-21 — Receipt photos split their card charges (RECEIPT blocks)
 - Why (the owner, through the receipt-photo chat): send receipt photos, get
   one Paste Import block that does everything: grocery receipts itemized on
