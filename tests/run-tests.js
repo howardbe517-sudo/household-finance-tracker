@@ -39,10 +39,10 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 34 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('34 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
+if (names.length === 35 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('35 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Receipts after Grocery Item Names; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 18, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -846,6 +846,78 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('calendar savings: the schedule comes from the usual transfer amount (an extra deposit shows as paid but does not move it), one transfer is read against Planned Monthly, nothing is projected before the first transfer, after transfers stop, for irregular deposits or for a Funded fund');
   else bad('calendar savings schedule: ' + errs.join(' || '));
 })();
+/* receipts (2026-11-21): an HFT-IMPORT v1 RECEIPT block splits each card charge by its receipt (fictional data) */
+(function () {
+  const errs = [], want = (c, m) => { if (!c) errs.push(m); };
+  const pure = vm.runInContext(`(function () {
+    const sp = receiptSplit_([{ category: 'A', subcategory: 'a', amount: 100, taxable: 100 }, { category: 'B', subcategory: 'b', amount: 50, taxable: 0 }], 156);
+    const odd = receiptSplit_([{ category: 'A', subcategory: 'a', amount: 10, taxable: 10 }, { category: 'B', subcategory: 'b', amount: 10, taxable: 10 }, { category: 'C', subcategory: 'c', amount: 10, taxable: 10 }], 31.81);
+    const accts = [{ id: 'ACC-1', name: 'Checking', cardLast4: '1111' }, { id: 'ACC-2', name: 'Card', cardLast4: '2222, 3333' }];
+    return { sp: sp.map(p => p.charged), oddSum: Math.round(odd.reduce((s, p) => s + p.charged, 0) * 100) / 100,
+      acc: [receiptAccount_('ACC-2', accts), receiptAccount_('3333', accts), receiptAccount_('x1111', accts), receiptAccount_('9999', accts)],
+      item: [receiptItemNo_('Meijer', '4065'), receiptItemNo_('Costco', '57554'), receiptItemNo_('Meijer', 'MEIJER-4065'), receiptItemNo_('Home Goods', '12')] };
+  })()`, ctx);
+  want(JSON.stringify(pure.sp) === '[106,50]', 'tax goes to the taxed piece: ' + pure.sp);
+  want(pure.oddSum === 31.81, 'pieces add up exactly to the charge: ' + pure.oddSum);
+  want(JSON.stringify(pure.acc) === JSON.stringify(['ACC-2', 'ACC-2', 'ACC-1', null]), 'accounts by ID or card last 4: ' + pure.acc);
+  want(JSON.stringify(pure.item) === JSON.stringify(['MEIJER-4065', '57554', 'MEIJER-4065', 'HOMEGOODS-12']), 'item numbers: ' + pure.item);
+
+  const H = 'HFT-IMPORT\tv1\tRECEIPT\ntripKey\tdate\ttime\tstore\tlocation\taccount\treceiptTotal\titemNo\treceiptName\tqty\tunitPrice\tamount\tdiscount\ttaxCode\tcategory\tsubcategory\titemize\tnotes\n';
+  const L = (trip, date, time, store, total, item, name, amt, tax, cat, sub, itemize) => [trip, date, time, store, 'Sample St', '1111', total, item, name, 1, amt, amt, 0, tax, cat, sub, itemize, ''].join('\t');
+  const block = H + [
+    L('PHOTO-SHOPA-2030-03-04-1405', '2030-03-04', '14:05', 'ShopA', 106.00, '1', 'SHIRT', 60.00, 'T', 'Personal', 'Clothing', 'FALSE'),
+    L('PHOTO-SHOPA-2030-03-04-1405', '2030-03-04', '14:05', 'ShopA', 106.00, '2', 'SOAP', 40.00, 'T', 'Personal', 'Personal Care', 'FALSE'),
+    L('PHOTO-SHOPB-2030-03-02-1200', '2030-03-02', '12:00', 'ShopB', 31.81, '1', 'CARDS', 20.00, 'T', 'Gifts & Giving', 'Cards & Wrapping', 'FALSE'),
+    L('PHOTO-SHOPB-2030-03-02-1200', '2030-03-02', '12:00', 'ShopB', 31.81, '2', 'TOY', 10.00, 'T', 'Pets', 'Pet Food & Supplies', 'FALSE'),
+    L('PHOTO-SHOPB-2030-03-02-1200', '2030-03-02', '12:00', 'ShopB', 31.81, '3', 'ROUND UP', 0.01, 'N', 'Gifts & Giving', 'Charitable Giving', 'FALSE'),
+    L('PHOTO-GROCER-2030-03-03-1010', '2030-03-03', '10:10', 'Grocer', 25.00, '4065', 'PEPPER', 10.00, 'N', 'Food', 'Groceries', 'TRUE'),
+    L('PHOTO-GROCER-2030-03-03-1010', '2030-03-03', '10:10', 'Grocer', 25.00, '4082', 'ONION', 15.00, 'N', 'Food', 'Groceries', 'TRUE'),
+    L('PHOTO-BAD-2030-03-03-0900', '2030-03-03', '09:00', 'Grocer', 99.00, '1', 'X', 10, 'N', 'Food', 'Groceries', 'TRUE'),
+    L('PHOTO-SHOPA-2030-03-08-1100', '2030-03-08', '11:00', 'ShopA', -31.80, '1', 'SHIRT', -30.00, 'T', 'Personal', 'Clothing', 'FALSE'),
+  ].join('\n');
+  vm.runInContext(`(function () {
+    const accDef = tdef_('ACCOUNTS'), sh = ss_().getSheetByName(accDef.sheet);
+    const chk = readTable_(accDef).filter(a => a.accountType === 'Checking')[0];
+    sh.getRange(chk.__row, colIndex_(accDef, 'cardLast4')).setValue('1111');
+    const D = (m, d) => new Date(2030, m - 1, d);
+    const stg = (id, d, desc, amt, pending, status) => ({ importId: id, provider: 'Plaid', externalTxId: id + 'x', accountId: chk.id, date: d, rawDescription: desc, merchantName: desc, amount: amt,
+      pending: pending, status: status, suggestedType: amt < 0 ? 'Income' : 'Expense', suggestedCategory: 'Food', suggestedSubcategory: 'Groceries', suggestedSpendingType: 'Flexible', reviewed: false });
+    writeRows_(tdef_('STAGING'), [stg('IMP-RA1', D(3, 4), 'ShopA', 106.00, true, 'Removed'), stg('IMP-RA2', D(3, 5), 'ShopA', 106.00, false, 'Needs Review'),
+      stg('IMP-RB1', D(3, 3), 'ShopB', 31.81, false, 'Needs Review'), stg('IMP-RC1', D(3, 3), 'Grocer', 25.00, false, 'Needs Review'),
+      stg('IMP-RD1', D(3, 10), 'ShopA', -31.80, false, 'Needs Review')]);
+  })()`, ctx);
+  ctx.__block = block;
+  const first = vm.runInContext('importPastedText(__block)', ctx);
+  want(first && first.status === 'imported', 'import ran: ' + JSON.stringify(first && first.message));
+  const after = vm.runInContext(`(function () {
+    const r = readTable_(tdef_('RECEIPTS'));
+    const tx = readTable_(tdef_('TX'));
+    const st = readTable_(tdef_('STAGING')).filter(s => /^IMP-R[A-D]/.test(s.importId));
+    const by = (k) => r.filter(x => x.tripId === k);
+    const kids = (id) => tx.filter(t => t.parentTxId === id).map(t => [t.subcategory, t.amount, t.type]);
+    const a = by('PHOTO-SHOPA-2030-03-04-1405'), b = by('PHOTO-SHOPB-2030-03-02-1200'), c = by('PHOTO-GROCER-2030-03-03-1010'), d = by('PHOTO-SHOPA-2030-03-08-1100');
+    const one = (id) => tx.filter(t => t.id === id)[0] || {};
+    const aP = one((a[0] || {}).txId), cT = one((c[0] || {}).txId), dT = one((d[0] || {}).txId);
+    const groc = readTable_(tdef_('GROC')).filter(l => l.tripId === 'PHOTO-GROCER-2030-03-03-1010');
+    const names = readTable_(tdef_('GROCNAMES')).filter(n => n.itemNo === 'GROCER-4065' || n.itemNo === 'GROCER-4082');
+    return { status: r.filter(x => /^PHOTO-/.test(x.tripId)).map(x => x.tripId + ':' + x.status), bad: by('PHOTO-BAD-2030-03-03-0900').length,
+      aP: [aP.type, aP.splitRole, aP.receiptRef, aP.amount], aKids: kids(aP.id), bKids: kids((b[0] || {}).txId),
+      cT: [cT.type, cT.category, cT.subcategory, cT.receiptRef], dT: [dT.type, dT.category, dT.subcategory, dT.amount],
+      staging: st.map(s => s.importId + ':' + s.status), groc: groc.map(l => [l.itemNo, l.txId === cT.id, l.source]), names: names.length };
+  })()`, ctx);
+  want(after.bad === 0, 'a receipt that does not add up is left out');
+  want(after.status.length === 7 && after.status.every(x => /:Matched$/.test(x)), 'every receipt matched: ' + after.status.join(', '));
+  want(JSON.stringify(after.aP) === JSON.stringify(['Split Parent', 'Parent', 'PHOTO-SHOPA-2030-03-04-1405', 106]), 'the ShopA charge became a split parent from Import Staging: ' + after.aP);
+  want(after.aKids.length === 2 && after.aKids.some(k => k[0] === 'Clothing' && k[1] === 63.6) && after.aKids.some(k => k[0] === 'Personal Care' && k[1] === 42.4), 'ShopA split with the tax on both: ' + JSON.stringify(after.aKids));
+  want(after.bKids.length === 3 && Math.abs(after.bKids.reduce((s, k) => s + k[1], 0) - 31.81) < 0.001 && after.bKids.some(k => k[0] === 'Charitable Giving' && k[1] === 0.01), 'ShopB split in three, adding to the charge, the round-up untaxed: ' + JSON.stringify(after.bKids));
+  want(JSON.stringify(after.cT) === JSON.stringify(['Expense', 'Food', 'Groceries', 'PHOTO-GROCER-2030-03-03-1010']) && after.groc.length === 2 && after.groc.every(g => g[1] && g[2] === 'Receipt photo') && after.names === 2, 'the grocery charge categorized, its items on Grocery Items pointing at it, names added: ' + JSON.stringify([after.cT, after.groc, after.names]));
+  want(JSON.stringify(after.dT) === JSON.stringify(['Refund', 'Personal', 'Clothing', 31.8]), 'the return became a Clothing refund: ' + after.dT);
+  want(after.staging.indexOf('IMP-RA1:Removed') >= 0 && after.staging.filter(x => x.indexOf('IMP-RA1') < 0).every(x => /:Imported$/.test(x)), 'staged charges imported, the removed pending copy left alone: ' + after.staging);
+  const again = vm.runInContext('importPastedText(__block)', ctx);
+  want((again.status === 'error' || again.status === 'nothing') && /Already imported/.test(again.message) && /CHECK PHOTO-BAD/.test(again.message), 'pasting the block again adds nothing and says so: ' + again.status + ' ' + again.message);
+  if (!errs.length) ok('receipts: a RECEIPT block is checked receipt by receipt (one that does not add up is left out), each receipt is matched to its card charge on Import Staging (posted, not the pending copy) or Transactions and split into its Category pieces with the tax on the taxed lines, adding exactly to the charge; grocery items go to Grocery Items with new names; a return becomes a refund; pasting it again adds nothing');
+  else bad('receipts: ' + errs.join(' | '));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
@@ -1454,7 +1526,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 8); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 9); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');

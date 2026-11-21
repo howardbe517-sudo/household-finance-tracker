@@ -220,7 +220,10 @@ function splitGroceryCharges_() {
   const ss = ss_();
   if (!ss.getSheetByName(gDef.sheet) || !ss.getSheetByName(txDef.sheet)) return out;
   const lines = readTable_(gDef);
-  const trips = groceryTrips_(lines).filter(t => !t.txId && t.subtotal > 0);
+  // a receipt imported as a RECEIPT block splits its own charge (Receipts.gs): its trip is left alone here
+  const ownSplit = {};
+  if (ss.getSheetByName(SHEETS.RECEIPTS)) readTable_(tdef_('RECEIPTS')).forEach(r => { if (r.tripId && r.isDeleted !== true) ownSplit[String(r.tripId)] = true; });
+  const trips = groceryTrips_(lines).filter(t => !t.txId && t.subtotal > 0 && !ownSplit[t.tripId]);
   if (!trips.length) return out;
   const gSh = ss.getSheetByName(gDef.sheet), txSh = ss.getSheetByName(txDef.sheet);
   const tx = readTable_(txDef);
