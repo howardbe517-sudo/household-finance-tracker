@@ -283,8 +283,23 @@ function ingestItems_(provider, items, ctx) {
     };
     const cls = classifyRow_(row, ctx);
     Object.assign(row, cls);
+    // a posted charge whose bank does not say which pending charge it replaces (Elan removes the pending copy and
+    // sends the posted one as new): the pending copy already imported, same account and amount, up to a week before,
+    // is the same purchase. The posted charge takes over that transaction, so the owner's edits (category, notes,
+    // a receipt or grocery split) carry over; a pending copy already soft-deleted is restored (the owner, 2026-11-21).
+    const linked = it.pendingTxId && byExternal[it.pendingTxId];
+    const twin = !linked && row.pending !== true ? findReplacedPending_(row, existing.concat(newRows)) : null;
+    if (twin) {
+      row.status = IMPORT_STATUS.IMPORTED; row.importedTxId = twin.importedTxId; row.importedAt = new Date(); row.reviewed = true; row.pendingTxId = twin.externalTxId;
+      ['suggestedType', 'suggestedCategory', 'suggestedSubcategory', 'suggestedSpendingType', 'suggestedPerson', 'suggestedFundId', 'suggestedDebtId', 'ruleId'].forEach(k => { row[k] = twin[k]; });
+      restoreImportedTx_(twin.importedTxId, 'the posted charge ' + row.externalTxId + ' replaced its pending copy');
+      updateImportedTx_(row);
+      twin.notes = (twin.notes ? twin.notes + ' · ' : '') + 'replaced by ' + row.externalTxId + ' (same account and amount)';
+      if (twin.status !== IMPORT_STATUS.REMOVED) { twin.status = IMPORT_STATUS.SUPERSEDED; counts.superseded++; }
+      writeStagingRow_(twin);
+    }
     // posted version of a pending charge we already hold
-    if (it.pendingTxId && byExternal[it.pendingTxId]) {
+    if (linked) {
       const old = byExternal[it.pendingTxId];
       if (old.status === IMPORT_STATUS.IMPORTED && old.importedTxId) {
         row.status = IMPORT_STATUS.IMPORTED; row.importedTxId = old.importedTxId; row.importedAt = new Date(); row.reviewed = true;
@@ -368,6 +383,57 @@ function updateImportedTx_(row) {
 }
 
 /** The bank withdrew these transactions: retire staged rows and soft-delete imported ones. */
+/**
+ * The pending row a posted charge replaces when the bank does not link them. Pure. A candidate is a pending row
+ * already imported to Transactions (status Imported, or Removed after the bank dropped it), on the same account, for
+ * the same amount to the cent, dated from 7 days before the posted charge to 1 day after, whose transaction no
+ * posted row holds yet. The closest in date wins; two equally close: none (the owner reviews it as usual).
+ */
+function findReplacedPending_(row, stagingRows) {
+  if (!row || row.pending === true || !row.accountId) return null;
+  const amt = Math.abs(Number(row.amount));
+  const d = row.date instanceof Date ? new Date(row.date.getFullYear(), row.date.getMonth(), row.date.getDate()) : null;
+  if (!d || !isFinite(amt)) return null;
+  const held = {};
+  (stagingRows || []).forEach(s => { if (s.pending !== true && s.importedTxId) held[s.importedTxId] = true; });
+  const cands = (stagingRows || []).filter(s => s.pending === true && s.importedTxId && !held[s.importedTxId] && s.accountId === row.accountId &&
+    (s.status === IMPORT_STATUS.IMPORTED || s.status === IMPORT_STATUS.REMOVED) && s.date instanceof Date &&
+    Math.abs(Math.abs(Number(s.amount)) - amt) <= 0.005)
+    .map(s => ({ s, days: Math.round((d - new Date(s.date.getFullYear(), s.date.getMonth(), s.date.getDate())) / 86400000) }))
+    .filter(c => c.days >= -1 && c.days <= 7)
+    .sort((a, b) => Math.abs(a.days) - Math.abs(b.days));
+  if (!cands.length || (cands.length > 1 && Math.abs(cands[0].days) === Math.abs(cands[1].days))) return null;
+  return cands[0].s;
+}
+
+/**
+ * Brings back a transaction soft-deleted when the bank removed its pending copy, now that the posted charge has
+ * arrived. A split parent whose children were removed with it is one row again (type Expense or Refund, receipt link
+ * cleared), so its receipt or grocery trip splits it again at the next match.
+ */
+function restoreImportedTx_(txId, reason) {
+  const txDef = tdef_('TX');
+  const r = findRowById_(txDef, txId);
+  if (r < 0) return false;
+  const sh = getOrCreateSheet_(txDef.sheet);
+  if (sh.getRange(r, colIndex_(txDef, 'isDeleted')).getValue() !== true) return false;
+  sh.getRange(r, colIndex_(txDef, 'isDeleted')).setValue(false);
+  sh.getRange(r, colIndex_(txDef, 'deletedAt')).setValue('');
+  sh.getRange(r, colIndex_(txDef, 'updatedAt')).setValue(new Date());
+  sh.getRange(r, colIndex_(txDef, 'updatedBy')).setValue(IMPORT_USER);
+  if (sh.getRange(r, colIndex_(txDef, 'splitRole')).getValue() === 'Parent') {
+    const live = readTable_(txDef).filter(t => t.parentTxId === txId && t.isDeleted !== true);
+    if (!live.length) {
+      const wasRefund = readTable_(txDef).some(t => t.parentTxId === txId && t.type === 'Refund');
+      sh.getRange(r, colIndex_(txDef, 'type')).setValue(wasRefund ? 'Refund' : 'Expense');
+      sh.getRange(r, colIndex_(txDef, 'splitRole')).setValue('');
+      sh.getRange(r, colIndex_(txDef, 'receiptRef')).setValue('');
+    }
+  }
+  appendChangeLog_({ table: 'TX', recordId: txId, field: 'Is Deleted', oldValue: true, newValue: false, action: 'Restore', user: IMPORT_USER, notes: reason });
+  return true;
+}
+
 function removeItems_(externalIds) {
   if (!externalIds || !externalIds.length) return 0;
   const def = tdef_('STAGING');
