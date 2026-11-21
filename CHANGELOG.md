@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-11-21 — Edits carry over when a pending charge posts
+- Why (the owner): when a bank replaced an edited pending charge with its
+  posted copy, the edits (a category, a receipt link) were lost, because
+  some banks remove the pending copy and send the posted one as new without
+  saying which pending charge it replaces.
+- `Import.gs` (`ingestItems_`, new `findReplacedPending_` and
+  `restoreImportedTx_`): a posted charge with no link takes over the pending
+  copy already imported on the same account, for the same amount to the
+  cent, from 7 days before to 1 day after (closest date; two equally close:
+  none). The posted charge updates that transaction (date, status, amount),
+  so its category, notes, split and receipt link stay; a pending copy the
+  bank had already removed is restored (a split parent whose children went
+  with it is one row again, so its receipt splits it again). A different
+  amount is still a new charge.
+- In the Sheet (done by Claude): the edits lost this way on two earlier
+  charges were put back by hand; purchases from an old, unconnected
+  checking account were entered from their receipts under a new account
+  so they count in monthly spending.
+- `BUILD_VERSION` 1.33.2. Files changed in `apps-script/`: `Import.gs`,
+  `Config.gs`. Nothing to run.
+- Tested: Node with fictional charges (posted before and after the pending
+  copy is removed; a different amount). Bank-feed import logic only, so no
+  data review.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-21 — Rules never make money coming in an expense; wording; first receipts
 - Why (the owner): money moved back into checking from an investment app
   matched that app's subscription rule (an Expense rule) and was imported as

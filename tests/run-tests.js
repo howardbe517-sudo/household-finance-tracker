@@ -996,6 +996,49 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     ok('import rules: money coming into checking that matches a rule for money going out waits for review instead of becoming an expense; on a card it is a refund in the rule\'s category, for review; money going out still follows the rule');
   else bad('rule direction: ' + JSON.stringify(v));
 })();
+/* bank feed (2026-11-21): a posted charge the bank does not link to its pending copy takes over that transaction, so edits carry over (fictional data) */
+(function () {
+  const v = vm.runInContext(`(function () {
+    const acc = readTable_(tdef_('ACCOUNTS')).filter(a => a.accountType === 'Checking')[0].id;
+    const day = (n) => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate() - n); };
+    const sDef = tdef_('STAGING'), txDef = tdef_('TX');
+    const importPending = (ext, desc, amt) => {
+      ingestItems_('Plaid', [{ externalTxId: ext, accountId: acc, date: day(4), rawDescription: desc, amount: amt, pending: true }], importContext_());
+      const s = readTable_(sDef).filter(r => r.externalTxId === ext)[0];
+      Object.assign(s, { suggestedType: 'Expense', suggestedCategory: 'Food', suggestedSubcategory: 'Groceries', suggestedSpendingType: 'Flexible', reviewed: true, status: 'Ready' });
+      writeStagingRow_(s);
+      importReviewedRows_();
+      const imp = readTable_(sDef).filter(r => r.externalTxId === ext)[0].importedTxId;
+      // the owner's edit on Transactions
+      const sh = ss_().getSheetByName(txDef.sheet), r = findRowById_(txDef, imp);
+      sh.getRange(r, colIndex_(txDef, 'subcategory')).setValue('Dining Out');
+      return imp;
+    };
+    const live = (desc) => readTable_(txDef).filter(t => t.description === desc && t.isDeleted !== true);
+    // A: the posted copy arrives first, then the bank removes the pending one
+    const a = importPending('pcA', 'SAMPLE SHOP A', 12.34);
+    ingestItems_('Plaid', [{ externalTxId: 'pcA-posted', accountId: acc, date: day(2), rawDescription: 'SAMPLE SHOP A', amount: 12.34, pending: false }], importContext_());
+    removeItems_(['pcA']);
+    const aLive = live('SAMPLE SHOP A');
+    // B: the bank removes the pending one first, then sends the posted copy
+    const b = importPending('pcB', 'SAMPLE SHOP B', 45.67);
+    removeItems_(['pcB']);
+    const bGone = live('SAMPLE SHOP B').length;
+    ingestItems_('Plaid', [{ externalTxId: 'pcB-posted', accountId: acc, date: day(1), rawDescription: 'SAMPLE SHOP B', amount: 45.67, pending: false }], importContext_());
+    const bLive = live('SAMPLE SHOP B');
+    // C: a different amount is a different purchase
+    ingestItems_('Plaid', [{ externalTxId: 'pcC-posted', accountId: acc, date: day(1), rawDescription: 'SAMPLE SHOP A', amount: 99.99, pending: false }], importContext_());
+    const cRow = readTable_(sDef).filter(r => r.externalTxId === 'pcC-posted')[0];
+    const pA = readTable_(sDef).filter(r => r.externalTxId === 'pcA-posted')[0];
+    return { a, aLive: aLive.map(t => [t.id, t.subcategory, t.status]), pA: [pA.status, pA.importedTxId],
+      b, bGone, bLive: bLive.map(t => [t.id, t.subcategory, t.status]), c: [cRow.status, cRow.importedTxId] };
+  })()`, ctx);
+  if (v.aLive.length === 1 && v.aLive[0][0] === v.a && v.aLive[0][1] === 'Dining Out' && v.aLive[0][2] === 'Posted' && v.pA[0] === 'Imported' && v.pA[1] === v.a
+    && v.bGone === 0 && v.bLive.length === 1 && v.bLive[0][0] === v.b && v.bLive[0][1] === 'Dining Out' && v.bLive[0][2] === 'Posted'
+    && v.c[0] !== 'Imported' && !v.c[1])
+    ok('bank feed: a posted charge whose bank does not link it to its pending copy takes over that transaction (same account and amount, within a week), so the owner\'s edits carry over, whether the pending copy was removed before or after; a different amount stays a new charge');
+  else bad('posted replaces pending: ' + JSON.stringify(v));
+})();
 /* funds: a backed fund is its account's balance; no Parked for Bills (removed 2026-11-15: bills are paid from checking) */
 (function () {
   const fundsDef = vm.runInContext('TABLES.FUNDS', ctx);
