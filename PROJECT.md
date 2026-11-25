@@ -252,6 +252,11 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
 - Nothing reaches Transactions from the bank feed without either a rule that
   says Auto-import, a detected transfer/card-payment pair (setting), or the
   owner ticking Reviewed?.
+- Bottle and can returns on a receipt (the owner, 2026-11-25) are negative
+  lines in Food → Groceries on the same receipt, so they lower groceries;
+  they are not money coming in. The 10-cent deposits were paid as part of
+  grocery and alcohol trips. Grocery Item Names holds the Meijer line as
+  `MEIJER-110` "Bottle return (deposit refund)".
 
 ## Manual setup steps in Google
 1. Create a blank Google Sheet (sheets.new).
