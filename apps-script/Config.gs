@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.21-receipts-2026-11-21',
-  BUILD_VERSION: '1.33.2',
+  SCHEMA_VERSION: '3.22-paydays-2026-11-25',
+  BUILD_VERSION: '1.34.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -449,6 +449,8 @@ TABLES.EXPECT = {
       note: 'Added in 3.14 for one account per paycheck. Since 3.15 the setting lives on Accounts (Payroll Deposit From), where several accounts can draw on one paycheck; a value here still works.' },
     { key: 'payrollDepositAmount', h: 'Payroll Deposit per Paycheck', w: 130, fmt: C.cur,
       note: 'Added in 3.14: the amount each paycheck puts into Payroll Deposit To. Withdrawals are not seen: type the account\'s balance on Accounts after one and counting starts again from that day.' },
+    { key: 'payDays', h: 'Paydays (days of month)', w: 120, fmt: C.text,
+      note: 'Added in 3.22, for Semimonthly pay: the two days of the month the paycheck lands, for example 1, 15. Blank means the 15th and the last day. A payday on a Saturday or Sunday is shown on the Friday before on the bills calendar; bank holidays are not moved, but a paycheck paid a day or two early still counts for its payday.' },
   ],
 };
 

@@ -40,7 +40,7 @@ function showBillsCalendar() {
 const CAL_COLUMNS = {
   recur: ['id', 'name', 'group', 'category', 'subcategory', 'amount', 'frequency', 'dueDay', 'nextPayment', 'accountId', 'autoPay', 'active', 'notes'],
   billChanges: ['id', 'recurId', 'date', 'usualAmount', 'newAmount', 'notes', 'isDeleted'],
-  expect: ['id', 'person', 'employer', 'frequency', 'typicalTakeHome', 'active', 'lastPayDate'],
+  expect: ['id', 'person', 'employer', 'frequency', 'typicalTakeHome', 'active', 'lastPayDate', 'payDays'],
   income: ['id', 'person', 'employer', 'payDate', 'takeHome'],
   util: ['id', 'utility', 'provider', 'dueDate', 'amount', 'status', 'paidDate'],
   debts: ['id', 'name', 'minPayment', 'dueDay', 'latestBalance', 'linkedAccount'],

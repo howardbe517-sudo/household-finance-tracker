@@ -1,5 +1,10 @@
 # STATUS
 
+2026-11-25 (build 1.34.0, schema 3.22): Expected Income gains Paydays (days
+of month); twice-a-month paychecks land on them on the calendar, weekend
+paydays on the Friday before. Waiting for the owner to run the upgrade;
+then Claude sets the second earner's paycheck to Semimonthly, `1, 15`.
+
 2026-11-25 (no code change): more receipt photos entered through Paste
 Import; all matched and split, or wait for their charge to post. Bottle
 returns on a receipt lower groceries (PROJECT.md, Rules). A partly finished

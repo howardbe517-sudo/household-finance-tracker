@@ -1,0 +1,32 @@
+{
+  "title": "Paychecks on the 1st and 15th",
+  "key": "household-finance-tracker-2026-11-25-semimonthly-paydays",
+  "subtitle": "Valerie's paycheck shows on the calendar on the 1st and the 15th, and on the Friday before when either day falls on a weekend.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade adds one column, **Paydays (days of month)**, at the far right of the **Expected Income** tab.",
+    "**What does not change:** your transactions, the Income tab, and the Monthly Plan. The plan still counts two paychecks a month for Valerie. Only the calendar moves her paydays to the days the money actually lands."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before paydays 2026-11-25`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.34.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors. On **Expected Income**, the last column is **Paydays (days of month)**, and it is empty." },
+        { "text": "Tell Claude the upgrade is done.", "done": "Claude sets Valerie's paycheck to **Semimonthly** with Paydays `1, 15`." }
+      ]
+    },
+    {
+      "heading": "Check the calendar",
+      "steps": [
+        { "text": "Open **Finance Tracker → 📅 Calendar** and click **Whole month** for December.", "done": "Valerie's paycheck shows on **Tuesday, December 1** and **Tuesday, December 15**." },
+        { "text": "Go back to November.", "done": "Valerie's paycheck shows on **Friday, November 13** (the 15th is a Sunday). Her November 1st paycheck came on Friday, October 30, so it is in October, not November." }
+      ]
+    }
+  ]
+}

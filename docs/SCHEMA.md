@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.21-receipts-2026-11-21**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.22-paydays-2026-11-25**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -11,7 +11,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
-| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 18 | yes |
+| EXPECT | Expected Income | 4 | 5 | 54 | EXP-001 | 19 | yes |
 | TX | Transactions | 4 | 5 | 1004 | TX-000001 | 32 | yes |
 | RECUR | Recurring Payments | 40 | 41 | 240 | REC-001 | 20 | yes |
 | BILLCHG | Bill Changes | 4 | 5 | 304 | BCH-0001 | 12 | no |
@@ -134,6 +134,7 @@ Named range `TBL_EXPECT` covers the header row through the last formula row.
 | P | Notes | `notes` | text | input |  |
 | Q | Payroll Deposit To (Account ID) | `payrollDepositAccount` | text | dropdown: Accounts IDs | Added in 3.14 for one account per paycheck. Since 3.15 the setting lives on Accounts (Payroll Deposit From), where several accounts can draw on one paycheck; a value here still works. |
 | R | Payroll Deposit per Paycheck | `payrollDepositAmount` | currency | input | Added in 3.14: the amount each paycheck puts into Payroll Deposit To. Withdrawals are not seen: type the account's balance on Accounts after one and counting starts again from that day. |
+| S | Paydays (days of month) | `payDays` | text | input | Added in 3.22, for Semimonthly pay: the two days of the month the paycheck lands, for example 1, 15. Blank means the 15th and the last day. A payday on a Saturday or Sunday is shown on the Friday before on the bills calendar; bank holidays are not moved, but a paycheck paid a day or two early still counts for its payday. |
 
 ## Transactions (`TX`)
 

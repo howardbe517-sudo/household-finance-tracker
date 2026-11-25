@@ -42,7 +42,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 35 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('35 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Receipts after Grocery Item Names; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 18, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 19, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -659,6 +659,39 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (!errs.length) ok('calendar: a card paid off from the paychecks puts what is owed now on the next payday (moving on until it is paid), shows payments already made as faded notes and the due date as a reminder, counts bills already charged to it only inside the balance, does not repeat its Debts minimum, and a late Venmo childcare payment counts for the Friday before it');
   else bad('calendar cards: ' + errs.join(' | '));
 })();
+
+/* calendar (2026-11-25): a Semimonthly paycheck lands on the Paydays given on Expected Income (1, 15), a weekend payday
+   on the Friday before, even when that is the month before; blank Paydays keep the 15th and the last day (fictional data) */
+(function () {
+  const r = vm.runInContext(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const base = { accounts: [], recur: [], debts: [], staging: [], tx: [] };
+    const src = Object.assign({}, base, {
+      expect: [{ id: 'E2', person: 'Valerie', employer: 'Farm', frequency: 'Semimonthly', typicalTakeHome: 1000, active: true, payDays: '1, 15' }],
+      income: [{ id: 'I9', person: 'Valerie', employer: 'Farm', payDate: D(2030, 5, 31), takeHome: 990 }],
+    });
+    const plain = Object.assign({}, base, {
+      expect: [{ id: 'E3', person: 'Ben', employer: 'Shop', frequency: 'Semimonthly', typicalTakeHome: 500, active: true, payDays: '' }], income: [],
+    });
+    const pays = (res) => res.items.filter(i => i.kind === 'pay').map(i => i.date + ':' + i.amount + ':' + (i.estimate ? 'est' : 'got'));
+    const today = D(2030, 6, 2);
+    return { may: pays(calendarMonth_(2030, 4, src, today, {})), jun: pays(calendarMonth_(2030, 5, src, today, {})),
+      sep: pays(calendarMonth_(2030, 8, src, today, {})), aug: pays(calendarMonth_(2030, 7, src, today, {})),
+      plain: pays(calendarMonth_(2030, 5, plain, today, {})),
+      feb: calSemiPaydays_({ payDays: '30, 31' }, 2027, 1).map(calYmd_),
+      next: calYmd_(calNextPayday_(src, today)), days: [calSemiDays_({ payDays: '15,1' }), calSemiDays_({ payDays: '1' }), calSemiDays_({})] };
+  })()`, ctx);
+  const errs = [], want = (c, m) => { if (!c) errs.push(m); };
+  want(JSON.stringify(r.may) === JSON.stringify(['2030-05-01:1000:est', '2030-05-15:1000:est', '2030-05-31:990:got']), 'May: the 1st, the 15th, and June 1st (a Saturday) paid Friday May 31: ' + r.may);
+  want(JSON.stringify(r.jun) === JSON.stringify(['2030-06-14:1000:est']), 'June: the 15th (a Saturday) on Friday the 14th, the 1st already paid in May: ' + r.jun);
+  want(JSON.stringify(r.aug) === JSON.stringify(['2030-08-01:1000:est', '2030-08-15:1000:est', '2030-08-30:1000:est']) && JSON.stringify(r.sep) === JSON.stringify(['2030-09-13:1000:est']), 'a Sunday payday moves back two days, into August for September 1st: ' + [r.aug, r.sep]);
+  want(JSON.stringify(r.plain) === JSON.stringify(['2030-06-14:500:est', '2030-06-28:500:est']), 'blank Paydays: the 15th and the last day, weekends moved to Friday: ' + r.plain);
+  want(r.next === '2030-06-14', 'the next payday follows the same days: ' + r.next);
+  want(JSON.stringify(r.feb) === JSON.stringify(['2027-02-26']), 'two paydays that fall together in a short month are one: ' + r.feb);
+  want(JSON.stringify(r.days) === JSON.stringify([[1, 15], [15, 31], [15, 31]]), 'Paydays read in any order; anything but two days keeps the default: ' + JSON.stringify(r.days));
+  if (!errs.length) ok('calendar: a Semimonthly paycheck lands on the Paydays on Expected Income (1, 15), a Saturday or Sunday payday on the Friday before (even in the month before), counted once; blank Paydays keep the 15th and the last day');
+  else bad('calendar semimonthly paydays: ' + errs.join(' | '));
+})();
 /* calendar: the grid shows the neighbouring months' days, and always the week after today (2026-11-16) */
 (function () {
   const v = vm.runInContext(`(function () {
@@ -1207,7 +1240,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     })();
     const def = vm.runInContext('TABLES.EXPECT', ctx);
     const keys = def.columns.map(c => c.key);
-    if (keys.slice(-3).join() === 'notes,payrollDepositAccount,payrollDepositAmount' && def.columns[keys.length - 2].v.idsOf === 'ACCOUNTS') ok('Payroll Deposit To and Payroll Deposit per Paycheck are appended to Expected Income (delivered by the upgrade)'); else bad('expect columns: ' + keys.slice(-3));
+    if (keys.slice(-4).join() === 'notes,payrollDepositAccount,payrollDepositAmount,payDays' && def.columns[keys.length - 3].v.idsOf === 'ACCOUNTS') ok('Payroll Deposit To, Payroll Deposit per Paycheck and Paydays are appended to Expected Income in that order (delivered by the upgrade)'); else bad('expect columns: ' + keys.slice(-4));
   })();
   // coffee shops tracked on their own (1.16.1)
   (function () {
