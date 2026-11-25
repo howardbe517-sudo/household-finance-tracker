@@ -1,5 +1,11 @@
 # STATUS
 
+2026-11-25 (no code change): more receipt photos entered through Paste
+Import; all matched and split, or wait for their charge to post. Bottle
+returns on a receipt lower groceries (PROJECT.md, Rules). A partly finished
+split seen mid-import turned out to be the import still running; it is slow
+because it writes cell by cell.
+
 2026-11-21 (builds 1.33.0–1.33.1, schema 3.21): receipt photos split card
 charges (Receipts tab, RECEIPT Paste Import block; Claude can also enter
 receipts straight onto Receipts and the next sync splits them). The first
