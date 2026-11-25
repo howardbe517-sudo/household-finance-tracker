@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 2026-11-25 — Twice-a-month paychecks on the days they land
+- Why (the owner): a household member's paycheck always lands on the 1st and
+  the 15th; Expected Income had it as Biweekly, and the calendar put every
+  Semimonthly paycheck on the 15th and the last day.
+- `Config.gs`: Expected Income gains **Paydays (days of month)** at the end
+  (text, e.g. `1, 15`; blank = the 15th and the last day). Schema 3.22,
+  `BUILD_VERSION` 1.34.0. Delivered by `upgradeWorkbook` (appends the column).
+- `CalendarMath.html` (`calSemiDays_`, `calSemiPaydays_`, the paycheck block
+  of `calendarMonth_`, `calNextPayday_`) and `Calendar.gs` (CAL_COLUMNS): a
+  Semimonthly paycheck lands on its Paydays; one on a Saturday or Sunday on
+  the Friday before, also when that is the month before (a Sunday 1st is
+  paid on the Friday before it). This now also applies to blank Paydays (the
+  15th and the last day used to stay on a weekend). Two days that fall
+  together in a short month are one payday. Bank holidays are not moved; a
+  paycheck paid a day or two early still matches within 3 days.
+- Unchanged on purpose: the Monthly Plan, Spending tab and Expected Income
+  keep counting a Semimonthly paycheck as 2 a month (a typical month); the
+  calendar shows when the money arrives, so a month whose 1st falls on a
+  weekend shows 3 paychecks and the next one 1.
+- In the Sheet: the owner runs Upgrade workbook; Claude then sets the
+  paycheck to Semimonthly with Paydays `1, 15`.
+- Files changed in `apps-script/`: `Config.gs`, `Calendar.gs`,
+  `CalendarMath.html`. Run Finance Tracker → Upgrade workbook (keeps data).
+- Tested: Node with fictional paychecks (weekend 1st and 15th, Sunday 1st
+  paid in the month before, blank Paydays, two days in February, next
+  payday). Data review: no Must fix; its two Should fix items (same-day
+  paydays; holidays) are fixed or noted.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-21 — Edits carry over when a pending charge posts
 - Why (the owner): when a bank replaced an edited pending charge with its
   posted copy, the edits (a category, a receipt link) were lost, because
