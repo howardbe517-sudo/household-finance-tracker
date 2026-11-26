@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.22-paydays-2026-11-25',
-  BUILD_VERSION: '1.35.0',
+  BUILD_VERSION: '1.35.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',

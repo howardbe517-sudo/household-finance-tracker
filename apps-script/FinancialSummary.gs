@@ -182,7 +182,11 @@ function buildFinancialSummary_() {
   header('A' + FINSUM.DEBT_LIST_HEADER + ':F' + FINSUM.DEBT_LIST_HEADER, ['Debt', 'Balance', 'Rate', 'Minimum', 'Est. Interest / mo', 'Next Due']);
   // every debt that has a balance or a payment, largest first (a blank cell is text and would pass ">0", so each test checks for a number)
   const has = (col) => '(ISNUMBER([DEBTS.' + col + '])*([DEBTS.' + col + ']>0))';
-  put('A' + dlFirst, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[DEBTS.name],[DEBTS.latestBalance],[DEBTS.apr],[DEBTS.minPayment],[DEBTS.estMonthlyInterest],[DEBTS.nextDue]},[DEBTS.id]<>"",(' + has('latestBalance') + '+' + has('minPayment') + ')>0),2,FALSE),' + FINSUM.DEBT_LIST_ROWS + ',6),"No debt with a balance")'));
+  // Next Due: the date the bank feed gives (cards, connected loans) while it is still ahead; otherwise the next time the Due Day comes
+  // round (the owner, 2026-11-26: the car payment is due on the same day every month), moved to the month's last day in a short month
+  const DD = '[DEBTS.dueDay]', EOM0 = 'DAY(EOMONTH(TODAY(),0))', EOM1 = 'DAY(EOMONTH(TODAY(),1))';
+  const NEXT_DUE = 'ARRAYFORMULA(IF(N(+[DEBTS.nextDue])>=TODAY(),[DEBTS.nextDue],IF(N(+' + DD + ')>0,IF(DAY(TODAY())<=' + DD + ',DATE(YEAR(TODAY()),MONTH(TODAY()),IF(' + DD + '>' + EOM0 + ',' + EOM0 + ',' + DD + ')),DATE(YEAR(TODAY()),MONTH(TODAY())+1,IF(' + DD + '>' + EOM1 + ',' + EOM1 + ',' + DD + '))),"")))';
+  put('A' + dlFirst, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[DEBTS.name],[DEBTS.latestBalance],[DEBTS.apr],[DEBTS.minPayment],[DEBTS.estMonthlyInterest],' + NEXT_DUE + '},[DEBTS.id]<>"",(' + has('latestBalance') + '+' + has('minPayment') + ')>0),2,FALSE),' + FINSUM.DEBT_LIST_ROWS + ',6),"No debt with a balance")'));
   sh.getRange('B' + dlFirst + ':B' + dlLast).setNumberFormat(FORMATS.currency);
   sh.getRange('C' + dlFirst + ':C' + dlLast).setNumberFormat(FORMATS.percent);
   sh.getRange('D' + dlFirst + ':E' + dlLast).setNumberFormat(FORMATS.currency);
