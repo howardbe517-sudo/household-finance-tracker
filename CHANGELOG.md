@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-11-26 — One-off pay never becomes a regular paycheck
+- Why (the owner): a one-off side job entered on Income (Income Type Side
+  Income) made `ensureExpectedIncome_` create an active Expected Income row,
+  guessed biweekly, which raised Coming In and the month's expected
+  take-home. "That's just random."
+- `ExpectedIncome.gs` (new `isRegularIncomeType_`, `ONE_OFF_INCOME_TYPES`):
+  Side Income, Bonus, Reimbursement and Other (any capitals) no longer start
+  an Expected Income row; Salary, Hourly Wages, Commission, a blank type or a
+  hand-typed type still do. The pay still counts on Income as money that
+  landed. Skipped sources are named in the Upgrade report (`Upgrade.gs`) and
+  after an Income paste (`PasteImport.gs`), so a regular one can be added by
+  hand.
+- In the Sheet (done by Claude, with the owner's say-so): the row already
+  created for the side job was switched off and kept, so it is not made again.
+- `BUILD_VERSION` 1.34.2. Files changed in `apps-script/`: `ExpectedIncome.gs`,
+  `Upgrade.gs`, `PasteImport.gs`, `Config.gs`. Nothing to run.
+- Tested: Node with fictional one-off rows (none created, both named). Data
+  review: no Must fix; both Should fix items (capitals; say what was skipped)
+  done. Recommendation for the owner: keep Commission as regular.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — Bigger summary boxes; Fixed vs flexible says what it counts
 - Why (the owner): the boxes were hard to read, and the Spending tab's
   "Fixed vs flexible" (spent so far this month) was easy to mix up with the

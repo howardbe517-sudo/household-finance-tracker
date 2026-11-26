@@ -417,6 +417,24 @@ const expRows = R(`readTable_(TABLES.EXPECT)`);
 const expBen = expRows.filter(x => x.person === 'Ben' && x.employer === 'Sample Employer A')[0], expVal = expRows.filter(x => x.person === 'Valerie')[0];
 if (expRows.length === 2 && expBen && expVal && expBen.frequency === 'Semimonthly' && expVal.frequency === 'Semimonthly' && expBen.active === true && near(expBen.typicalGross, 3200) && near(expBen.typicalTakeHome, 3200 - (352 + 136 + 244.8 + 185 + 192 + 20)) && /SAMPLE/.test(expBen.notes)) ok('Expected Income rows created from the sample paychecks: semimonthly recognised from the 1st/15th and 5th/20th pay dates, typical amounts from the last three'); else bad('expected income rows: ' + JSON.stringify(expRows));
 if (R(`ensureExpectedIncome_().created`) === 0) ok('ensureExpectedIncome_ adds nothing when every employer already has a row'); else bad('expected income duplicated');
+/* 2026-11-26: one-off pay (Side Income, Bonus, Reimbursement, Other) on Income never starts a regular paycheck on Expected Income (fictional rows) */
+(function () {
+  const v = R(`(function () {
+    const real = readTable_;
+    readTable_ = function (def) {
+      const rows = real.apply(this, arguments);
+      if (def && def.key === 'INCOME') return rows.concat([
+        { id: 'INC-T1', payDate: new Date(2030, 0, 10), person: 'Valerie', employer: 'Sample Gig', incomeType: 'Side Income', gross: 300, takeHome: 300, notes: '' },
+        { id: 'INC-T2', payDate: new Date(2030, 0, 12), person: 'Ben', employer: 'Sample Bonus Co', incomeType: 'Bonus', gross: 500, takeHome: 400, notes: '' }]);
+      return rows;
+    };
+    let res;
+    try { res = ensureExpectedIncome_(); } finally { readTable_ = real; }
+    return { made: res.created, skipped: res.skipped.map(x => x.employer), types: ['Salary', 'Hourly Wages', 'Commission', '', null, 'Side Income', 'Bonus', 'Reimbursement', 'Other', 'side income', 'salary', 'Freelance'].map(isRegularIncomeType_) };
+  })()`);
+  if (v.made === 0 && JSON.stringify(v.skipped) === JSON.stringify(['Sample Gig', 'Sample Bonus Co']) && JSON.stringify(v.types) === JSON.stringify([true, true, true, true, true, false, false, false, false, false, true, true])) ok('one-off pay (Side Income, Bonus, Reimbursement, Other, in any capitals) on Income does not start a regular paycheck on Expected Income and is named as skipped; Salary, Hourly Wages, Commission, a blank type or a type typed by hand do');
+  else bad('one-off income made expected rows: ' + JSON.stringify(v));
+})();
 const fundRows = R(`readTable_(TABLES.FUNDS)`);
 const backedFunds = fundRows.filter(f => f.backingAccount);
 if (backedFunds.length >= 6 && backedFunds.some(f => f.backingAccount === 'ACC-008' && f.fundType === 'Emergency Fund') && backedFunds.some(f => f.backingAccount === 'ACC-012' && f.fundType === 'Retirement') && !backedFunds.some(f => f.backingAccount === 'ACC-007' || f.backingAccount === 'ACC-010') && R(`ensureFunds_().created`) === 0) ok('a Savings & Reserves row is created for every savings, investment, retirement and HSA account, backed by it, once'); else bad('ensureFunds_: ' + JSON.stringify(backedFunds.map(f => [f.name, f.fundType, f.backingAccount])));
