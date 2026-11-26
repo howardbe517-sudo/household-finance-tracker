@@ -64,7 +64,7 @@ class Range {
   getNote() { return this.sheet._get(this.row, this.col).note || ''; }
   clearNote() { this._each((r, c) => { const cell = this.sheet.grid.get(r + ',' + c); if (cell) cell.note = ''; }); return this; }
 }
-['setBackground', 'setFontColor', 'setFontWeight', 'setFontSize', 'setFontStyle', 'setWrap', 'setVerticalAlignment', 'setHorizontalAlignment', 'setBorder', 'setStrikethrough', 'setFontLine', 'setFontFamily', 'setBackgrounds', 'setFontColors', 'setTextStyle', 'activate'].forEach(m => { Range.prototype[m] = function () { return this; }; });
+['setBackground', 'setFontColor', 'setFontWeight', 'setFontSize', 'setFontStyle', 'setWrap', 'setWrapStrategy', 'setVerticalAlignment', 'setHorizontalAlignment', 'setBorder', 'setStrikethrough', 'setFontLine', 'setFontFamily', 'setBackgrounds', 'setFontColors', 'setTextStyle', 'activate'].forEach(m => { Range.prototype[m] = function () { return this; }; });
 
 class Protection {
   constructor(sheet) { this.sheet = sheet; this.warningOnly = false; this.unprotected = []; }
@@ -222,7 +222,7 @@ function makeGlobals() {
       getUi: () => ui,
       newDataValidation: dvBuilder,
       newConditionalFormatRule: cfBuilder,
-      BorderStyle: { SOLID: 'SOLID', SOLID_MEDIUM: 'SOLID_MEDIUM' },
+      BorderStyle: { SOLID: 'SOLID', SOLID_MEDIUM: 'SOLID_MEDIUM' }, WrapStrategy: { WRAP: 'WRAP', CLIP: 'CLIP', OVERFLOW: 'OVERFLOW' },
       ProtectionType: { SHEET: 'SHEET', RANGE: 'RANGE' },
       CopyPasteType: { PASTE_FORMULA: 'PASTE_FORMULA' },
       flush() {},

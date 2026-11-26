@@ -79,7 +79,7 @@ function buildSpending_() {
   /* --- title, month, compare with --- */
   mergePut('A1:I1', 'Spending').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'How this month is going: what is coming in, what has been spent, this week\'s flexible money, each category beside a typical month, the regular bills, and the averages. Spending is expenses minus refunds; debt payments, savings and transfers are not spending. Account balances and the long view are on the Financial Summary tab.')
+  mergePut('A2:I2', 'How this month is going: what is coming in, what has been spent, this week\'s flexible money, each category beside a typical month, the regular bills, and the averages. Spending is expenses minus refunds; debt payments, savings and transfers are not spending. Under each box, what makes it up is listed one item per line, each rounded to the dollar. Account balances and the long view are on the Financial Summary tab.')
     .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
   put('A3', 'Month').setFontWeight('bold');
   put('B3', monthStart_(new Date())).setNumberFormat('mmmm yyyy').setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
@@ -105,67 +105,90 @@ function buildSpending_() {
   const paydaysSel = 'LET(ms,' + M + ',me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.{col}])*' + PD + '))';
   const countsSel = 'IFERROR(TEXTJOIN(", ",TRUE,LET(ms,' + M + ',me,EOMONTH(ms,0),ARRAYFORMULA(IF([EXPECT.active]=TRUE,[EXPECT.person]&" "&LET(pc,' + PD + ',IF(pc=INT(pc),TEXT(pc,"0"),TEXT(pc,"0.0")))&" paycheck"&IF(' + PD + '=1,"","s"),"")))),"")';
   const spentCell = '$E$' + SPEND.CARD_VALUE;
+  // Option A (the owner, 2026-11-26): the number, then what makes it up, one item per line: names on the left, amounts on the right
+  const adjE = 'IFERROR(N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),0)';
+  const landedE = 'SUMIFS([INCOME.takeHome],[INCOME.month],' + M + ')';
+  const payLines = (each) => 'LET(ms,' + M + ',me,EOMONTH(ms,0),pc,ARRAYFORMULA(' + PD + '),TEXTJOIN(CHAR(10),TRUE,ARRAYFORMULA(IF(([EXPECT.active]=TRUE)*(pc>0),' + each + ',""))))';
   const cards = [
-    { cols: ['A', 'D'], label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
+    { cols: ['A', 'D'], names: 'A:C', amounts: 'D:D', label: 'Expected Take-Home', color: COLORS.CARD_TAKEHOME,
       f: F('=IFERROR(INDEX([PLAN.expectedIncome],' + selMatch + ')+N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),' + paydaysSel.replace('{col}', 'typicalTakeHome') + ')'),
-      sub: F('="landed so far "&TEXT(SUMIFS([INCOME.takeHome],[INCOME.month],' + M + '),"$#,##0")&IFERROR(IF(N(INDEX([PLAN.incomeAdjustment],' + selMatch + '))<>0," · incl. "&TEXT(INDEX([PLAN.incomeAdjustment],' + selMatch + '),"+$#,##0;-$#,##0")&" adjustment",""),"")&IFERROR(" · "&' + countsSel + ',"")') },
-    { cols: ['E', 'I'], label: 'Spent So Far', color: COLORS.CARD_SPENDING,
+      // the paychecks (and any adjustment) add up to the number; "landed so far" is progress toward it, so it says so
+      namesF: F('=IFERROR(' + payLines('[EXPECT.person]&" · "&[EXPECT.employer]&" ("&IF(pc=INT(pc),TEXT(pc,"0"),TEXT(pc,"0.0"))&" paycheck"&IF(pc=1,"","s")&")"') + '&CHAR(10),"")&IF(' + adjE + '<>0,"Adjustment"&CHAR(10),"")&"Landed so far (part of the total)"'),
+      amountsF: F('=IFERROR(' + payLines('TEXT(N(+[EXPECT.typicalTakeHome])*pc,"$#,##0")') + '&CHAR(10),"")&IF(' + adjE + '<>0,TEXT(' + adjE + ',"+$#,##0;-$#,##0")&CHAR(10),"")&TEXT(' + landedE + ',"$#,##0")') },
+    { cols: ['E', 'I'], names: 'E:H', amounts: 'I:I', label: 'Spent So Far', color: COLORS.CARD_SPENDING,
       f: F('=IFERROR(INDEX([SUMMARY.spending],MATCH(' + M + ',[SUMMARY.month],0)),0)'),
-      sub: F('="typical month "&IF(' + K + '=0,"— (after the first full month)",TEXT(' + typ(winAll) + ',"$#,##0")&" · "&IFERROR(TEXT(N(' + spentCell + ')/' + typ(winAll) + ',"0%"),"—")&" of it used")&" · last month "&TEXT(' + spendAll(LM) + ',"$#,##0")') },
+      namesF: F('="Last month"&CHAR(10)&IF(' + K + '=0,"Typical month (after the first full month)","Typical month")&CHAR(10)&"Used of a typical month"'),
+      amountsF: F('=TEXT(' + spendAll(LM) + ',"$#,##0")&CHAR(10)&IF(' + K + '=0,"—",TEXT(' + typ(winAll) + ',"$#,##0"))&CHAR(10)&IF(' + K + '=0,"—",IFERROR(TEXT(N(' + spentCell + ')/' + typ(winAll) + ',"0%"),"—"))') },
   ];
+  let earners = 1;
+  try { earners = readTable_(tdef_('EXPECT')).filter(x => x.id && x.active === true).length; } catch (e) { /* a new workbook */ }
   cards.forEach(card => {
     const [c1, c2] = card.cols;
-    mergePut(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_LABEL, card.label).setBackground(card.color).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(c1 + SPEND.CARD_VALUE + ':' + c2 + SPEND.CARD_VALUE, card.f).setBackground(card.color).setFontSize(26).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
-    mergePut(c1 + SPEND.CARD_SUB + ':' + c2 + SPEND.CARD_SUB, card.sub).setBackground(card.color).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    mergePut(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_LABEL, card.label).setBackground(card.color).setFontSize(11).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(c1 + SPEND.CARD_VALUE + ':' + c2 + SPEND.CARD_VALUE, card.f).setBackground(card.color).setFontSize(20).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    putBoxLines_(sh, SPEND.CARD_SUB, card.names, card.amounts, card.namesF, card.amountsF, card.color);
     sh.getRange(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
-  // bigger boxes, easier to read (the owner, 2026-11-26)
-  sh.setRowHeight(SPEND.CARD_LABEL, 26); sh.setRowHeight(SPEND.CARD_VALUE, 56); sh.setRowHeight(SPEND.CARD_SUB, 44);
+  sh.setRowHeight(SPEND.CARD_LABEL, 24); sh.setRowHeight(SPEND.CARD_VALUE, 40); sh.setRowHeight(SPEND.CARD_SUB, boxLinesHeight_(Math.max(4, earners + 3)));
   // how the flexible figure is reached
   mergePut('A' + SPEND.EXPECT_LINE + ':I' + SPEND.EXPECT_LINE, F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
     '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&IF(ROUND(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),2)<>0," (incl. "&TEXT(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),"+$#,##0;−$#,##0")&" of one-week bill changes)","")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
-    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    .setFontSize(10).setFontColor(COLORS.BOX_LINES).setHorizontalAlignment('center').setWrap(true);
   sh.setRowHeight(SPEND.EXPECT_LINE, 34);
 
   /* --- three tiles --- */
   const recLastRow = SPEND.REC_FIRST + SPEND.REC_ROWS - 1;
+  const soFar = '"spent so far in "&TEXT(' + M + ',"mmmm")';
+  const money0 = (e) => 'TEXT(' + e + ',"$#,##0")';
+  // the regular bills by group, largest first: the same list (and order) in both cells
+  const recGroups = (each) => 'IFERROR(LET(g,UNIQUE(FILTER([RECUR.group],[RECUR.active]=TRUE,[RECUR.group]<>"")),m,MAP(g,LAMBDA(x,SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],x))),s,SORT(FILTER({g,m},m>0),2,FALSE),TEXTJOIN(CHAR(10),TRUE,' + each + ')&CHAR(10)),"")';
+  const recNoGroup = 'SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"")';
   const tiles = [
-    { cols: ['A', 'B'], label: 'Fixed vs flexible', f: F('=TEXT(' + spendBy('spendingType', 'Fixed', M) + ',"$#,##0")&" / "&TEXT(' + spendBy('spendingType', 'Flexible', M) + ',"$#,##0")'), fmt: '@',
+    { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Fixed vs flexible', f: F('=TEXT(' + spendBy('spendingType', 'Fixed', M) + ',"$#,##0")&" / "&TEXT(' + spendBy('spendingType', 'Flexible', M) + ',"$#,##0")'), fmt: '@',
       // says what it adds up (the owner, 2026-11-26: easy to mix up with Fixed Costs on the Financial Summary, a typical month)
-      sub: F('="spent so far in "&TEXT(' + M + ',"mmmm")&": fixed = bills and subscriptions, flexible = everyday spending · also planned irregular "&TEXT(' + spendBy('spendingType', 'Planned Irregular', M) + ',"$#,##0")&", unexpected "&TEXT(' + spendBy('spendingType', 'Unexpected', M) + ',"$#,##0")&" · typical "&IF(' + K + '=0,"—",TEXT(' + typ(winBy('spendingType', '"Fixed"')) + ',"$#,##0")&" / "&TEXT(' + typ(winBy('spendingType', '"Flexible"')) + ',"$#,##0"))') },
-    { cols: ['C', 'E'], label: 'Needs vs wants', f: F('=IFERROR(TEXT(' + spendBy('needWant', 'Need', M) + '/' + spendAll(M) + ',"0%")&" / "&TEXT(' + spendBy('needWant', 'Want', M) + '/' + spendAll(M) + ',"0%"),"—")'), fmt: '@',
-      sub: F('=TEXT(' + spendBy('needWant', 'Need', M) + ',"$#,##0")&" needs · "&TEXT(' + spendBy('needWant', 'Want', M) + ',"$#,##0")&" wants · typical "&IF(' + K + '=0,"—",IFERROR(TEXT(' + winBy('needWant', '"Need"') + '/' + winAll + ',"0%")&" / "&TEXT(' + winBy('needWant', '"Want"') + '/' + winAll + ',"0%"),"—"))') },
-    { cols: ['F', 'I'], label: 'Recurring bills', f: F('=SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE)'), fmt: '$#,##0" / mo"',
-      sub: F('="subscriptions "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Subscriptions"),"$#,##0")&" · memberships "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Memberships"),"$#,##0")&" · "&COUNTIFS([RECUR.active],TRUE)&" active, "&COUNTIF($E$' + SPEND.REC_FIRST + ':$E$' + recLastRow + ',"yes")&" paid this month"') },
+      namesF: F('="Fixed (bills, subscriptions)"&CHAR(10)&"Flexible (everyday)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Typical fixed / flexible"&CHAR(10)&' + soFar),
+      amountsF: F('=' + money0(spendBy('spendingType', 'Fixed', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Flexible', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Planned Irregular', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Unexpected', M)) +
+        '&CHAR(10)&' + money0(spendAll(M) + '-' + spendBy('spendingType', 'Fixed', M) + '-' + spendBy('spendingType', 'Flexible', M) + '-' + spendBy('spendingType', 'Planned Irregular', M) + '-' + spendBy('spendingType', 'Unexpected', M)) +
+        '&CHAR(10)&IF(' + K + '=0,"—",' + money0(typ(winBy('spendingType', '"Fixed"'))) + '&" / "&' + money0(typ(winBy('spendingType', '"Flexible"'))) + ')&CHAR(10)&""') },
+    { cols: ['C', 'E'], names: 'C:D', amounts: 'E:E', label: 'Needs vs wants', f: F('=IFERROR(TEXT(' + spendBy('needWant', 'Need', M) + '/' + spendAll(M) + ',"0%")&" / "&TEXT(' + spendBy('needWant', 'Want', M) + '/' + spendAll(M) + ',"0%"),"—")'), fmt: '@',
+      namesF: F('="Needs"&CHAR(10)&"Wants"&CHAR(10)&"Not marked yet"&CHAR(10)&"Typical needs / wants"&CHAR(10)&' + soFar),
+      amountsF: F('=' + money0(spendBy('needWant', 'Need', M)) + '&CHAR(10)&' + money0(spendBy('needWant', 'Want', M)) + '&CHAR(10)&' + money0(spendAll(M) + '-' + spendBy('needWant', 'Need', M) + '-' + spendBy('needWant', 'Want', M)) + '&CHAR(10)&IF(' + K + '=0,"—",IFERROR(TEXT(' + winBy('needWant', '"Need"') + '/' + winAll + ',"0%")&" / "&TEXT(' + winBy('needWant', '"Want"') + '/' + winAll + ',"0%"),"—"))&CHAR(10)&""') },
+    { cols: ['F', 'I'], names: 'F:H', amounts: 'I:I', label: 'Recurring bills', f: F('=SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE)'), fmt: '$#,##0" / mo"',
+      // a bill with no group is in the number too, so it gets its own line when there is one
+      namesF: F('=' + recGroups('INDEX(s,0,1)') + '&IF(ROUND(' + recNoGroup + ',2)<>0,"No group"&CHAR(10),"")&"Active bills"&CHAR(10)&"Paid this month"'),
+      amountsF: F('=' + recGroups('ARRAYFORMULA(TEXT(INDEX(s,0,2),"$#,##0"))') + '&IF(ROUND(' + recNoGroup + ',2)<>0,TEXT(' + recNoGroup + ',"$#,##0")&CHAR(10),"")&COUNTIFS([RECUR.active],TRUE)&CHAR(10)&COUNTIF($E$' + SPEND.REC_FIRST + ':$E$' + recLastRow + ',"yes")') },
   ];
+  let groups = 6;
+  try { const rr = readTable_(tdef_('RECUR')).filter(r => r.active === true && r.group && Number(r.monthlyEq) > 0); groups = rr.map(r => r.group).filter((g, i, a) => a.indexOf(g) === i).length; } catch (e) { /* a new workbook */ }
   tiles.forEach(t => {
-    mergePut(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_LABEL, t.label).setBackground(COLORS.PALE_BLUE).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(t.cols[0] + SPEND.TILE_VALUE + ':' + t.cols[1] + SPEND.TILE_VALUE, t.f).setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat(t.fmt);
-    mergePut(t.cols[0] + SPEND.TILE_SUB + ':' + t.cols[1] + SPEND.TILE_SUB, t.sub).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
+    mergePut(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_LABEL, t.label).setBackground(COLORS.PALE_BLUE).setFontSize(11).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(t.cols[0] + SPEND.TILE_VALUE + ':' + t.cols[1] + SPEND.TILE_VALUE, t.f).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat(t.fmt);
+    putBoxLines_(sh, SPEND.TILE_SUB, t.names, t.amounts, t.namesF, t.amountsF, null);
     sh.getRange(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  sh.setRowHeight(SPEND.TILE_LABEL, 26); sh.setRowHeight(SPEND.TILE_VALUE, 50); sh.setRowHeight(SPEND.TILE_SUB, 84);
+  sh.setRowHeight(SPEND.TILE_LABEL, 24); sh.setRowHeight(SPEND.TILE_VALUE, 36); sh.setRowHeight(SPEND.TILE_SUB, boxLinesHeight_(Math.max(7, groups + 4)));
 
   /* --- Current Flexible Spending (follows TODAY, not the Selected Month) --- */
   styleSectionBar_(sh.getRange('A' + SPEND.FLEX_BAR + ':I' + SPEND.FLEX_BAR), '');
   sh.getRange('A' + SPEND.FLEX_BAR).setFormula('="Current Flexible Spending — "&TEXT(TODAY(),"mmmm yyyy")');
   const planMatch = 'MATCH(' + CUR_MONTH + ',[PLAN.month],0)';
+  const monday = 'TODAY()-WEEKDAY(TODAY(),2)+1', weekEnd = 'MIN(TODAY()-WEEKDAY(TODAY(),2)+7,EOMONTH(TODAY(),0))';
   const flex = [
-    { cols: ['A', 'B'], label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
-      sub: F('=IFERROR("Target "&TEXT(INDEX([PLAN.effectiveTarget],' + planMatch + '),"$#,##0")&IF(N(INDEX([PLAN.target],' + planMatch + '))>0," (set by hand)"," (automatic)")&" · Flexible spent "&TEXT(INDEX([PLAN.flexSpent],' + planMatch + '),"$#,##0"),"Add a row for this month on the Monthly Plan tab")') },
-    { cols: ['C', 'E'], label: 'Suggested This Week', f: F('=IFERROR(INDEX([PLAN.suggestedWeek],' + planMatch + '),"No plan row")'),
-      sub: '="Week of "&TEXT(TODAY()-WEEKDAY(TODAY(),2)+1,"ddd mmm d")&" – "&TEXT(MIN(TODAY()-WEEKDAY(TODAY(),2)+7,EOMONTH(TODAY(),0)),"ddd mmm d")&" · Flexible only"' },
-    { cols: ['F', 'I'], label: 'Spent This Week', f: F('=IFERROR(INDEX([PLAN.spentWeek],' + planMatch + '),"No plan row")'),
-      sub: 'Monday through today · Spending Type = Flexible' },
+    { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
+      namesF: F('=IFERROR("Flexible target"&IF(N(INDEX([PLAN.target],' + planMatch + '))>0," (set by hand)"," (automatic)")&CHAR(10)&"Flexible spent so far","Add a row for this month on Monthly Plan")'),
+      amountsF: F('=IFERROR(TEXT(INDEX([PLAN.effectiveTarget],' + planMatch + '),"$#,##0")&CHAR(10)&TEXT(INDEX([PLAN.flexSpent],' + planMatch + '),"$#,##0"),"")') },
+    { cols: ['C', 'E'], names: 'C:D', amounts: 'E:E', label: 'Suggested This Week', f: F('=IFERROR(INDEX([PLAN.suggestedWeek],' + planMatch + '),"No plan row")'),
+      namesF: '="Week"&CHAR(10)&"Counts"', amountsF: '=TEXT(' + monday + ',"mmm d")&" – "&TEXT(' + weekEnd + ',"mmm d")&CHAR(10)&"Flexible only"' },
+    { cols: ['F', 'I'], names: 'F:H', amounts: 'I:I', label: 'Spent This Week', f: F('=IFERROR(INDEX([PLAN.spentWeek],' + planMatch + '),"No plan row")'),
+      namesF: '="Week so far, from"&CHAR(10)&"Counts"', amountsF: '=TEXT(' + monday + ',"ddd mmm d")&CHAR(10)&"Flexible only"' },
   ];
   flex.forEach(b => {
-    mergePut(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_LABEL, b.label).setBackground(COLORS.PALE_BLUE).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(b.cols[0] + SPEND.FLEX_VALUE + ':' + b.cols[1] + SPEND.FLEX_VALUE, b.f).setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
-    mergePut(b.cols[0] + SPEND.FLEX_SUB + ':' + b.cols[1] + SPEND.FLEX_SUB, b.sub).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
+    mergePut(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_LABEL, b.label).setBackground(COLORS.PALE_BLUE).setFontSize(11).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(b.cols[0] + SPEND.FLEX_VALUE + ':' + b.cols[1] + SPEND.FLEX_VALUE, b.f).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    putBoxLines_(sh, SPEND.FLEX_SUB, b.names, b.amounts, b.namesF, b.amountsF, null);
     sh.getRange(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  sh.setRowHeight(SPEND.FLEX_LABEL, 26); sh.setRowHeight(SPEND.FLEX_VALUE, 50); sh.setRowHeight(SPEND.FLEX_SUB, 44);
+  sh.setRowHeight(SPEND.FLEX_LABEL, 24); sh.setRowHeight(SPEND.FLEX_VALUE, 36); sh.setRowHeight(SPEND.FLEX_SUB, boxLinesHeight_(2));
 
   /* --- by category, sorted by this month; Childcare + Child Expenses shown together as "Children" --- */
   styleSectionBar_(sh.getRange('A' + SPEND.CAT_BAR + ':I' + SPEND.CAT_BAR), 'By category — this month beside a typical month, largest first');

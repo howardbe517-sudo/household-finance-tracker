@@ -36,7 +36,7 @@ function buildFinancialSummary_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, FINSUM.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
-  [190, 100, 70, 110, 120, 130, 120, 120, 120].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  [190, 100, 100, 90, 120, 130, 120, 120, 120].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, FINSUM.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
@@ -92,27 +92,40 @@ function buildFinancialSummary_() {
   const UTILAVG = 'IFERROR(LET(us,EDATE(' + CUR + ',-12),uf,MINIFS([UTIL.month],[UTIL.month],">="&us,[UTIL.month],"<"&' + CUR + '),IF(uf=0,0,SUMIFS([UTIL.amount],[UTIL.month],">="&us,[UTIL.month],"<"&' + CUR + ')/MAX(1,DATEDIF(uf,' + CUR + ',"M")))),0)';
   const FLEXAVG = 'IF(' + FLEXK + '=0,' + notFixed('[TX.month],' + CUR) + ',' + notFixed('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE) + '/' + FLEXK + ')';
   const V = FINSUM.CARD_VALUE;
+  // Option A (the owner, 2026-11-26): the number, then what makes it up, one item per line: names on the left, amounts on the right
+  const byType = (crit, type) => '(SUMIFS([TX.amount],' + crit + ',[TX.spendingType],"' + type + '"' + TXE + '-SUMIFS([TX.amount],' + crit + ',[TX.spendingType],"' + type + '"' + TXR + ')';
+  const typeAvg = (type) => 'IF(' + FLEXK + '=0,' + byType('[TX.month],' + CUR, type) + ',' + byType('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE, type) + '/' + FLEXK + ')';
+  const people = 'UNIQUE(FILTER([EXPECT.person],[EXPECT.active]=TRUE,[EXPECT.person]<>""))';
+  const m0 = (e) => 'TEXT(' + e + ',"$#,##0;-$#,##0")';
   const cards = [
-    { cols: ['A', 'B'], label: 'Coming In (typical month)', color: COLORS.CARD_TAKEHOME, f: F('=' + TAKE),
-      sub: F('=IFERROR("take-home · "&TEXTJOIN(" · ",TRUE,MAP(UNIQUE(FILTER([EXPECT.person],[EXPECT.active]=TRUE,[EXPECT.person]<>"")),LAMBDA(p,p&" "&TEXT(SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.person],p),"$#,##0")))),"take-home, from Expected Income")') },
-    { cols: ['C', 'D'], label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG),
-      sub: F('="bills "&TEXT(' + BILLS + ',"$#,##0")&" · debt payments "&TEXT(' + DEBTPAY + ',"$#,##0")&" · utilities avg "&TEXT(' + UTILAVG + ',"$#,##0")') },
-    { cols: ['E', 'F'], label: 'Flexible Spending (average)', color: COLORS.CARD_SPENDING, f: F('=' + FLEXAVG),
-      sub: '=IF(' + FLEXK + '=0,"this month so far · becomes an average after the first full month","average of "&' + FLEXK + '&" month"&IF(' + FLEXK + '=1,"","s")&" · everything not marked Fixed")' },
-    { cols: ['G', 'I'], label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: '=N($A$' + V + ')-N($C$' + V + ')-N($E$' + V + ')',
-      sub: F('="coming in − fixed − flexible"&IF(SUM([FUNDS.plannedMonthly])>0," · "&TEXT(SUM([FUNDS.plannedMonthly]),"$#,##0")&" of it is planned savings","")&IF(' + FLEXK + '=0," · provisional","")') },
+    { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Coming In (typical month)', color: COLORS.CARD_TAKEHOME, f: F('=' + TAKE),
+      namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"from Expected Income")'),
+      amountsF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,TEXT(SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.person],p),"$#,##0")))),"")') },
+    { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG),
+      namesF: '="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&"Utilities (avg)"',
+      amountsF: F('=' + m0(BILLS) + '&CHAR(10)&' + m0(DEBTPAY) + '&CHAR(10)&' + m0(UTILAVG)) },
+    { cols: ['E', 'F'], names: 'E:E', amounts: 'F:F', label: 'Flexible Spending (average)', color: COLORS.CARD_SPENDING, f: F('=' + FLEXAVG),
+      // everything not marked Fixed: Flexible as marked, the two named kinds, and spending not marked yet (the rest), so the lines add up to the number
+      namesF: '="Everyday (Flexible)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Averaged over"',
+      amountsF: F('=' + m0(typeAvg('Flexible')) + '&CHAR(10)&' + m0(typeAvg('Planned Irregular')) + '&CHAR(10)&' + m0(typeAvg('Unexpected')) + '&CHAR(10)&' + m0('(' + FLEXAVG + ')-(' + typeAvg('Flexible') + ')-(' + typeAvg('Planned Irregular') + ')-(' + typeAvg('Unexpected') + ')') +
+        '&CHAR(10)&IF(' + FLEXK + '=0,"this month so far",' + FLEXK + '&" month"&IF(' + FLEXK + '=1,"","s"))') },
+    { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: '=N($A$' + V + ')-N($C$' + V + ')-N($E$' + V + ')',
+      // "provisional" while the flexible figure is only this month so far (no full month yet); planned savings are part of what is left, not taken from it
+      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (this month so far: provisional)","− Flexible (average)")&CHAR(10)&"Includes planned savings of"',
+      amountsF: F('=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0('N($E$' + V + ')') + '&CHAR(10)&' + m0('SUM([FUNDS.plannedMonthly])')) },
   ];
+  let earners = 2;
+  try { earners = readTable_(tdef_('EXPECT')).filter(x => x.id && x.active === true).map(x => x.person).filter((p, i, a) => p && a.indexOf(p) === i).length; } catch (e) { /* a new workbook */ }
   cards.forEach(card => {
     const [c1, c2] = card.cols;
-    mergePut(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_LABEL, card.label).setBackground(card.color).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(c1 + FINSUM.CARD_VALUE + ':' + c2 + FINSUM.CARD_VALUE, card.f).setBackground(card.color).setFontSize(24).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0;-$#,##0');
-    mergePut(c1 + FINSUM.CARD_SUB + ':' + c2 + FINSUM.CARD_SUB, card.sub).setBackground(card.color).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
+    mergePut(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_LABEL, card.label).setBackground(card.color).setFontSize(11).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(c1 + FINSUM.CARD_VALUE + ':' + c2 + FINSUM.CARD_VALUE, card.f).setBackground(card.color).setFontSize(20).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0;-$#,##0');
+    putBoxLines_(sh, FINSUM.CARD_SUB, card.names, card.amounts, card.namesF, card.amountsF, card.color);
     sh.getRange(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
-  // bigger boxes, easier to read (the owner, 2026-11-26)
-  sh.setRowHeight(FINSUM.CARD_LABEL, 26); sh.setRowHeight(FINSUM.CARD_VALUE, 54); sh.setRowHeight(FINSUM.CARD_SUB, 58);
-  mergePut('A' + FINSUM.FLOW_LINE + ':I' + FINSUM.FLOW_LINE, 'Coming in is a typical month of paychecks (Expected Income). Fixed costs are every active bill on Recurring Payments, the debt payments, and the average gas, electric and water bill. Flexible is the average of everything else that was spent. The Spending tab has the breakdown.')
-    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true);
+  sh.setRowHeight(FINSUM.CARD_LABEL, 24); sh.setRowHeight(FINSUM.CARD_VALUE, 40); sh.setRowHeight(FINSUM.CARD_SUB, boxLinesHeight_(Math.max(5, earners + 2)));
+  mergePut('A' + FINSUM.FLOW_LINE + ':I' + FINSUM.FLOW_LINE, 'Coming in is a typical month of paychecks (Expected Income). Fixed costs are every active bill on Recurring Payments, the debt payments, and the average gas, electric and water bill. Flexible is the average of everything else that was spent. Each line is rounded to the dollar, so a list can be $1 off its total. The Spending tab has the breakdown.')
+    .setFontSize(10).setFontColor(COLORS.BOX_LINES).setFontStyle('italic').setWrap(true);
   sh.setRowHeight(FINSUM.FLOW_LINE, 34);
 
   /* --- month by month --- */
