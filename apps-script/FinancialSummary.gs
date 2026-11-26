@@ -36,7 +36,8 @@ function buildFinancialSummary_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, FINSUM.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
-  [190, 100, 100, 90, 120, 130, 120, 120, 120].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  // wider, to use more of the screen (the owner, 2026-11-26)
+  [240, 130, 130, 120, 150, 160, 150, 150, 150].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, FINSUM.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };

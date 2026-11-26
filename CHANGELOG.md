@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-11-26 — Wider Financial Summary and Spending tabs
+- Why (the owner): some text in the boxes was cut off, and the tabs used
+  only part of the screen.
+- `FinancialSummary.gs` and `Spending.gs`: the nine columns are about 30%
+  wider (about 1,380 px in all, from about 1,080). Layout only.
+  `BUILD_VERSION` 1.36.1. Files changed in `apps-script/`:
+  `FinancialSummary.gs`, `Spending.gs`, `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock. The look needs checking in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — Explanations become hover notes; left over takes out planned savings
 - Why (the owner): as little to read on each tab as possible now that the
   boxes list their parts; and left over should be money that is truly free.

@@ -52,7 +52,8 @@ function buildSpending_() {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   ensureSheetSize_(sh, SPEND.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
-  [210, 105, 105, 105, 105, 80, 150, 110, 110].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  // wider, to use more of the screen (the owner, 2026-11-26)
+  [270, 135, 135, 135, 135, 105, 190, 140, 140].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, SPEND.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
