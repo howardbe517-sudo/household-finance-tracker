@@ -136,6 +136,15 @@ function putBoxLines_(sh, row, names, amounts, namesValue, amountsValue, bg) {
   set(amounts, amountsValue, 'right');
 }
 
+/**
+ * An explanation kept as a hover note instead of a line on the tab (the owner, 2026-11-26: as little to read on each tab as
+ * possible). The note goes on anchorA1 (a section title); rowToQuiet, if given, is the row that held the line: left empty and short.
+ */
+function hoverNote_(sh, anchorA1, text, rowToQuiet) {
+  sh.getRange(anchorA1).setNote(text);
+  if (rowToQuiet) sh.setRowHeight(rowToQuiet, 6);
+}
+
 /** Row height for a box's breakdown of n lines at 10 pt. Pure. */
 function boxLinesHeight_(n) { return Math.max(1, n) * 17 + 8; }
 

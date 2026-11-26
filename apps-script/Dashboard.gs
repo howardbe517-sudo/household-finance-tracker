@@ -121,8 +121,7 @@ function buildAccountsBlock_(sh, R) {
   sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
   sh.getRange('A' + R.header + ':D' + (R.first + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('F' + R.header + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + R.note + ':I' + R.note, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. Checking and savings are the available balances, with pending items already taken out; what a card shows as owed includes its charges still pending at the bank (they post in a day or two). Net worth and Debts use posted balances.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
+  hoverNote_(sh, 'A' + R.header, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. Checking and savings are the available balances, with pending items already taken out; what a card shows as owed includes its charges still pending at the bank (they post in a day or two). Net worth and Debts use posted balances.', R.note);
 }
 
 /**

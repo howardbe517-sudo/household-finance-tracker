@@ -56,8 +56,7 @@ function buildFinancialSummary_() {
   /* --- title, period input --- */
   mergePut('A1:I1', 'Financial Summary').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'Where you stand: tonight\'s balances, then what comes in, what goes out and what is likely left over in a typical month, the month-by-month history, savings funds, debts, income by person, payroll deductions, credit scores and net worth. Averages settle as full months accumulate; a month still in progress counts as it stands.')
-    .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
+  hoverNote_(sh, 'A1', 'Where you stand: tonight\'s balances, then what comes in, what goes out and what is likely left over in a typical month, the month-by-month history, savings funds, debts, income by person, payroll deductions, credit scores and net worth. Averages settle as full months accumulate; a month still in progress counts as it stands. Section titles with a small corner mark have a note: hover over them to read how the numbers are worked out.', 2);
   /* --- accounts right now (moved from the Dashboard) --- */
   buildAccountsBlock_(sh, { header: FINSUM.ACCT_HEADER, first: FINSUM.ACCT_FIRST, note: FINSUM.ACCT_NOTE });
 
@@ -70,6 +69,7 @@ function buildFinancialSummary_() {
   put('B' + W, F('=IFERROR(LET(e,MAX([INCOME.month]),IF(e=0,EDATE(' + CUR + ',-1),e)),EDATE(' + CUR + ',-1))')).setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
   put('C' + W, '=EDATE(' + PEND + ',-(' + N + '-1))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
   put('D' + W, F('=MAX(1,IFERROR(ROWS(UNIQUE(FILTER([INCOME.month],[INCOME.month]>=' + PSTART + ',[INCOME.month]<=' + PEND + '))),1))')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  sh.hideRows(W); // calculated helpers, out of sight (the owner, 2026-11-26)
   setNamedRange_('FINSUM_WINDOW_END', sh.getRange('B' + W));
   setNamedRange_('FINSUM_WINDOW_START', sh.getRange('C' + W));
   setNamedRange_('FINSUM_MONTHS_COUNTED', sh.getRange('D' + W));
@@ -97,6 +97,7 @@ function buildFinancialSummary_() {
   const typeAvg = (type) => 'IF(' + FLEXK + '=0,' + byType('[TX.month],' + CUR, type) + ',' + byType('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE, type) + '/' + FLEXK + ')';
   const people = 'UNIQUE(FILTER([EXPECT.person],[EXPECT.active]=TRUE,[EXPECT.person]<>""))';
   const m0 = (e) => 'TEXT(' + e + ',"$#,##0;-$#,##0")';
+  const SAVE = 'SUM([FUNDS.plannedMonthly])';
   const cards = [
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Coming In (typical month)', color: COLORS.CARD_TAKEHOME, f: F('=' + TAKE),
       namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"from Expected Income")'),
@@ -109,10 +110,11 @@ function buildFinancialSummary_() {
       namesF: '="Everyday (Flexible)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Averaged over"',
       amountsF: F('=' + m0(typeAvg('Flexible')) + '&CHAR(10)&' + m0(typeAvg('Planned Irregular')) + '&CHAR(10)&' + m0(typeAvg('Unexpected')) + '&CHAR(10)&' + m0('ROUND((' + FLEXAVG + ')-(' + typeAvg('Flexible') + ')-(' + typeAvg('Planned Irregular') + ')-(' + typeAvg('Unexpected') + '),2)') +
         '&CHAR(10)&IF(' + FLEXK + '=0,"this month so far",' + FLEXK + '&" month"&IF(' + FLEXK + '=1,"","s"))') },
-    { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: '=N($A$' + V + ')-N($C$' + V + ')-N($E$' + V + ')',
-      // "provisional" while the flexible figure is only this month so far (no full month yet); planned savings are part of what is left, not taken from it
-      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (so far, provisional)","− Flexible (average)")&CHAR(10)&"Includes planned savings of"',
-      amountsF: F('=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0('N($E$' + V + ')') + '&CHAR(10)&' + m0('SUM([FUNDS.plannedMonthly])')) },
+    { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: F('=N($A$' + V + ')-N($C$' + V + ')-' + SAVE + '-N($E$' + V + ')'),
+      // planned savings are taken out, as the Monthly Plan does (the owner, 2026-11-26: left over is money that is truly free);
+      // "provisional" while the flexible figure is only this month so far (no full month yet)
+      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&"− Planned savings"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (so far, provisional)","− Flexible (average)")',
+      amountsF: F('=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0(SAVE) + '&CHAR(10)&' + m0('N($E$' + V + ')')) },
   ];
   let earners = 2;
   try { earners = readTable_(tdef_('EXPECT')).filter(x => x.id && x.active === true).map(x => x.person).filter((p, i, a) => p && a.indexOf(p) === i).length; } catch (e) { /* a new workbook */ }
@@ -124,9 +126,13 @@ function buildFinancialSummary_() {
     sh.getRange(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
   sh.setRowHeight(FINSUM.CARD_LABEL, 24); sh.setRowHeight(FINSUM.CARD_VALUE, 40); sh.setRowHeight(FINSUM.CARD_SUB, boxLinesHeight_(Math.max(5, earners + 2)));
-  mergePut('A' + FINSUM.FLOW_LINE + ':I' + FINSUM.FLOW_LINE, 'Coming in is a typical month of paychecks (Expected Income). Fixed costs are every active bill on Recurring Payments, the debt payments, and the average gas, electric and water bill. Flexible is the average of everything else that was spent. Each line is rounded to the dollar, so a list can be $1 off its total. The Spending tab has the breakdown.')
-    .setFontSize(10).setFontColor(COLORS.BOX_LINES).setFontStyle('italic').setWrap(true);
-  sh.setRowHeight(FINSUM.FLOW_LINE, 34);
+  // what each box adds up, as hover notes on the box titles (the owner, 2026-11-26: the breakdown under each box says it already)
+  const rounded = ' Each line under the box is rounded to the dollar, so a list can be $1 off its total.';
+  hoverNote_(sh, 'A' + FINSUM.CARD_LABEL, 'A typical month of take-home pay: each active paycheck on Expected Income × its paychecks per month on average.' + rounded);
+  hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), and the average gas, electric and water bill over the last 12 months.' + rounded);
+  hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one).' + rounded);
+  hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs − planned savings − flexible spending. Planned savings are the Planned Monthly amounts on Savings & Reserves; they are taken out because that money is spoken for. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
+
 
   /* --- month by month --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.HIST_BAR + ':I' + FINSUM.HIST_BAR), 'Month by month — most recent first');
@@ -145,8 +151,7 @@ function buildFinancialSummary_() {
   }
   const histLast = FINSUM.HIST_FIRST + FINSUM.HIST_COUNT - 1;
   sh.getRange('A' + FINSUM.HIST_HEADER + ':G' + histLast).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('H' + FINSUM.HIST_HEADER + ':I' + histLast, 'Left Over = take-home − spending − cash savings − debt payments, from Monthly Summary. A month with no paychecks or transactions shows zeros.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  hoverNote_(sh, 'A' + FINSUM.HIST_BAR, 'Left Over = take-home − spending − cash savings − debt payments, from Monthly Summary. A month with no paychecks or transactions shows zeros.');
 
   /* --- Savings & Reserves --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.FUNDS_BAR + ':I' + FINSUM.FUNDS_BAR), 'Savings & Reserves');
@@ -163,8 +168,7 @@ function buildFinancialSummary_() {
   }
   const fundsLast = FINSUM.FUNDS_FIRST + FINSUM.FUNDS_COUNT - 1;
   sh.getRange('A' + FINSUM.FUNDS_HEADER + ':G' + fundsLast).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('H' + FINSUM.FUNDS_HEADER + ':I' + fundsLast, F('="Planned savings per month: "&TEXT(SUM([FUNDS.plannedMonthly]),"$#,##0")&". Raise or lower Planned Monthly on the Savings & Reserves tab; the Monthly Plan\'s flexible target moves the other way."'))
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  hoverNote_(sh, 'A' + FINSUM.FUNDS_BAR, 'Raise or lower Planned Monthly on the Savings & Reserves tab; the Monthly Plan\'s flexible target and Likely Left Over move the other way.');
 
   /* --- Debts: one household total, the two monthly figures, then each debt underneath --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.DEBT_BAR + ':I' + FINSUM.DEBT_BAR), 'Debts');
@@ -192,8 +196,10 @@ function buildFinancialSummary_() {
   sh.getRange('D' + dlFirst + ':E' + dlLast).setNumberFormat(FORMATS.currency);
   sh.getRange('F' + dlFirst + ':F' + dlLast).setNumberFormat('mmm d');
   sh.getRange('A' + FINSUM.DEBT_LIST_HEADER + ':F' + dlLast).setBorder(true, true, true, true, true, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + FINSUM.DEBT_NOTE + ':I' + FINSUM.DEBT_NOTE, F('="Household debt is every debt entered on the Debts tab; a loan left without a balance there is not counted"&IFERROR(" · PSLF (lowest loan) "&TEXTJOIN(", ",TRUE,MAP(UNIQUE(FILTER([DEBTS.owner],([DEBTS.group]="Student Loans")*([DEBTS.pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([DEBTS.pslfEstimated],[DEBTS.owner],o,[DEBTS.group],"Student Loans")&"/120"))),"")&". Balances are live where a lender is connected; otherwise the latest Quarterly Debt Review. Details on the Debts tab."'))
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
+  // the explanation is a hover note; the row shows only the PSLF counts, once there are any
+  hoverNote_(sh, 'A' + FINSUM.DEBT_BAR, 'Household debt is every debt entered on the Debts tab; a loan left without a balance there is not counted. Balances are live where a lender is connected; otherwise the latest Quarterly Debt Review. Next Due comes from the lender where it is connected, otherwise from the Due Day. Details on the Debts tab.');
+  mergePut('A' + FINSUM.DEBT_NOTE + ':I' + FINSUM.DEBT_NOTE, F('=IFERROR("PSLF (lowest loan): "&TEXTJOIN(", ",TRUE,MAP(UNIQUE(FILTER([DEBTS.owner],([DEBTS.group]="Student Loans")*([DEBTS.pslfEstimated]<>""))),LAMBDA(o,o&" "&MINIFS([DEBTS.pslfEstimated],[DEBTS.owner],o,[DEBTS.group],"Student Loans")&"/120"))),"")'))
+    .setFontSize(9).setFontColor(COLORS.BOX_LINES);
 
   /* --- Income by Person: average per month over the period, and last month --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.INCOME_BAR + ':I' + FINSUM.INCOME_BAR), 'Income by Person — average per month over the period');
@@ -266,8 +272,7 @@ function buildFinancialSummary_() {
     sh.getRange('A' + r + ':E' + r).setBackground(p.color);
   });
   sh.getRange('A' + FINSUM.CREDIT_HEADER + ':E' + FINSUM.CREDIT_VAL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + FINSUM.CREDIT_NOTE + ':I' + FINSUM.CREDIT_NOTE, 'Enter scores on the Credit Scores tab. Scale: 300–579 Poor · 580–669 Fair · 670–739 Good · 740–799 Very Good · 800–850 Exceptional. The Reminders tab flags a score that is getting old.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
+  hoverNote_(sh, 'A' + FINSUM.CREDIT_BAR, 'Enter scores on the Credit Scores tab. Scale: 300–579 Poor · 580–669 Fair · 670–739 Good · 740–799 Very Good · 800–850 Exceptional. The Reminders tab flags a score that is getting old.', FINSUM.CREDIT_NOTE);
 
   /* --- Children: childcare apart from the other child costs, and the two combined --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.CHILD_BAR + ':I' + FINSUM.CHILD_BAR), 'Children — childcare and other child costs');
@@ -288,8 +293,7 @@ function buildFinancialSummary_() {
   sh.getRange('D' + FINSUM.CHILD_CARE + ':D' + FINSUM.CHILD_ALL).setNumberFormat(FORMATS.percent);
   sh.getRange('A' + FINSUM.CHILD_ALL + ':D' + FINSUM.CHILD_ALL).setBackground(COLORS.PALE_BLUE).setFontWeight('bold');
   sh.getRange('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_ALL).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('E' + FINSUM.CHILD_CARE + ':I' + FINSUM.CHILD_ALL, 'Childcare is what you pay someone to watch the children (the nanny). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  hoverNote_(sh, 'A' + FINSUM.CHILD_BAR, 'Childcare is what you pay someone to watch the children (the nanny). Child Expenses is everything else for them (Clothing, Medical, Activities, Education, Supplies, Toys). Each has its own line on the Monthly Budget; this block shows both and the total. Share of Spending compares the average with average monthly spending over the same months.');
 
   /* --- Fees: what paying costs (card processing fees, late fees, bank fees), this year and the last 12 months --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.FEES_BAR + ':I' + FINSUM.FEES_BAR), 'Fees — what paying costs');
@@ -314,8 +318,7 @@ function buildFinancialSummary_() {
   mergePut('B' + FINSUM.FEES_INTEREST + ':C' + FINSUM.FEES_INTEREST, F('=SUM([DEBTS.estAnnualInterest])')).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
   sh.getRange('B' + FINSUM.FEES_CARD + ':C' + FINSUM.FEES_INTEREST).setNumberFormat(FORMATS.currency);
   sh.getRange('A' + FINSUM.FEES_HEADER + ':C' + FINSUM.FEES_INTEREST).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('D' + FINSUM.FEES_CARD + ':I' + FINSUM.FEES_INTEREST, 'Card and processing fees: what a payment ran over its bill when paid by card (Card Fee on Utility Bills, filled in by the sync) plus any transaction categorized Miscellaneous / Card & Processing Fees. Late fees: Late Fee on Utility Bills plus transactions categorized Miscellaneous / Late Fees. A fee hidden inside another payment can be split off with Finance Tracker → Split the selected row. Interest is a year at today\'s balances and rates from the Debts tab, not added into All fees.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
+  hoverNote_(sh, 'A' + FINSUM.FEES_BAR, 'Card and processing fees: what a payment ran over its bill when paid by card (Card Fee on Utility Bills, filled in by the sync) plus any transaction categorized Miscellaneous / Card & Processing Fees. Late fees: Late Fee on Utility Bills plus transactions categorized Miscellaneous / Late Fees. A fee hidden inside another payment can be split off with Finance Tracker → Split the selected row. Interest is a year at today\'s balances and rates from the Debts tab, not added into All fees.');
 
   /* --- Net worth --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.NW_BAR + ':I' + FINSUM.NW_BAR), 'Net worth');
@@ -332,9 +335,7 @@ function buildFinancialSummary_() {
     mergePut(d[0] + FINSUM.NW_VALUE + ':' + d[1] + FINSUM.NW_VALUE, d[3]).setNumberFormat(FORMATS.currency).setFontSize(14).setFontWeight('bold').setHorizontalAlignment('center')
       .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  mergePut('A' + FINSUM.NW_NOTE + ':I' + FINSUM.NW_NOTE, 'Assets are Accounts with Include in Net Worth = Yes (cards, loans and pensions excluded); cards linked to a Debts row are counted once, through Debts. Finance Tracker → Record net worth snapshot saves a monthly point on Net Worth Snapshots. Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true);
-  sh.setRowHeight(FINSUM.NW_NOTE, 30);
+  hoverNote_(sh, 'A' + FINSUM.NW_BAR, 'Assets are Accounts with Include in Net Worth = Yes (cards, loans and pensions excluded); cards linked to a Debts row are counted once, through Debts. Finance Tracker → Record net worth snapshot saves a monthly point on Net Worth Snapshots. Debt is reviewed quarterly (Mar · Jun · Sep · Dec) on the Quarterly Debt Review tab.', FINSUM.NW_NOTE);
 
   sh.setConditionalFormatRules([
     cfRule_(sh.getRange('G' + FINSUM.FUNDS_FIRST + ':G' + fundsLast), '=G' + FINSUM.FUNDS_FIRST + '="Funded"', COLORS.UNDER_FILL, COLORS.UNDER_FONT, { bold: true }),

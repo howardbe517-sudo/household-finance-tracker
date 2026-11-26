@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## 2026-11-26 — Explanations become hover notes; left over takes out planned savings
+- Why (the owner): as little to read on each tab as possible now that the
+  boxes list their parts; and left over should be money that is truly free.
+- Hover notes (`Helpers.gs` `hoverNote_`): every explanation line on the
+  Financial Summary and the Spending tab is now a note on its section title
+  (the tab title, each box title, Month by month, Savings & Reserves, Debts,
+  Credit Scores, Children, Fees, Net worth, Average spending, the accounts
+  block in `Dashboard.gs`). Their rows are left empty and short; the debt
+  row shows only PSLF counts once there are any. The calculated helper rows
+  (Financial Summary window, Spending Compare with window) are hidden.
+- `FinancialSummary.gs`: Likely Left Over = coming in − fixed − planned
+  savings (Planned Monthly on Savings & Reserves) − flexible, with its own
+  line, as the Monthly Plan already does. `QA.gs` and the AI snapshot
+  (`Export.gs`) follow.
+- `Spending.gs`: the line showing how the flexible figure is reached moves
+  into the Amount Available box, one step per line.
+- `BUILD_VERSION` 1.36.0. Files changed in `apps-script/`: `Helpers.gs`,
+  `FinancialSummary.gs`, `Spending.gs`, `Dashboard.gs`, `QA.gs`, `Export.gs`,
+  `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock. Data review: see the pull request.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — Debt list: Next Due from the Due Day
 - Why (the owner): Next Due on the Financial Summary's debt list was blank
   for the car loan and the tax debt; only cards get the date from the bank

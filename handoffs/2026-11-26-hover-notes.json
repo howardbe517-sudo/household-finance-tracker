@@ -1,0 +1,33 @@
+{
+  "title": "Cleaner Summary Tabs",
+  "key": "household-finance-tracker-2026-11-26-hover-notes",
+  "subtitle": "The explanation lines on the Financial Summary and the Spending tab become hover notes, and Likely Left Over takes out planned savings.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade redraws the Financial Summary and the Spending tab; your Month, Compare with and months settings stay as they are.",
+    "**What changes in the numbers:** Likely Left Over drops by your planned savings (the Planned Monthly amounts on Savings & Reserves), because that money is spoken for. Every other number stays the same."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before hover notes 2026-11-26`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.36.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors." }
+      ]
+    },
+    {
+      "heading": "Check the tabs",
+      "steps": [
+        { "text": "Open the **Financial Summary** tab.", "done": "The long italic explanation lines are gone. **Likely Left Over** lists Coming in, − Fixed costs, − Planned savings and − Flexible." },
+        { "text": "Hover over a section title such as **Fixed Costs** or **Debts**.", "done": "A note opens explaining how that number is worked out. Titles with a note show a small mark in the corner." },
+        { "text": "Open the **Spending** tab.", "done": "The explanation lines are gone. **Amount Available This Month** lists how the flexible money is reached: take-home, − bills, − debt payments, − planned savings, the flexible target, − flexible spent so far." },
+        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "The Financial Summary cards line now mentions planned savings and passes." }
+      ]
+    }
+  ]
+}

@@ -319,8 +319,9 @@ function qaReport_() {
     if (!near(shown.take, expTake)) fsProblems.push('coming in ' + money(shown.take) + ' ≠ ' + money(expTake) + ' from Expected Income');
     if (!near(shown.fixed, bills + debtPay + utilAvg, 0.02)) fsProblems.push('fixed costs ' + money(shown.fixed) + ' ≠ ' + money(bills + debtPay + utilAvg) + ' (bills ' + money(bills) + ', debt payments ' + money(debtPay) + ', utilities ' + money(utilAvg) + ')');
     if (!near(shown.flex, flexT.average, 0.02)) fsProblems.push('flexible ' + money(shown.flex) + ' ≠ ' + money(flexT.average) + ' recomputed from Transactions (' + (flexT.months ? flexT.months + ' month(s)' : 'this month so far') + ')');
-    if (!near(shown.left, Number(shown.take || 0) - Number(shown.fixed || 0) - Number(shown.flex || 0), 0.02)) fsProblems.push('left over ' + money(shown.left) + ' is not coming in − fixed − flexible');
-    if (fsProblems.length) fail('Financial Summary cards: ' + fsProblems.join('; ')); else pass('Financial Summary cards: coming in ' + money(shown.take) + ' − fixed ' + money(shown.fixed) + ' − flexible ' + money(shown.flex) + ' = left over ' + money(shown.left) + ', each matching its tables');
+    const plannedSave = readTable_(tdef_('FUNDS')).reduce((s, f) => s + (typeof f.plannedMonthly === 'number' ? f.plannedMonthly : 0), 0);
+    if (!near(shown.left, Number(shown.take || 0) - Number(shown.fixed || 0) - plannedSave - Number(shown.flex || 0), 0.02)) fsProblems.push('left over ' + money(shown.left) + ' is not coming in − fixed − planned savings ' + money(plannedSave) + ' − flexible');
+    if (fsProblems.length) fail('Financial Summary cards: ' + fsProblems.join('; ')); else pass('Financial Summary cards: coming in ' + money(shown.take) + ' − fixed ' + money(shown.fixed) + ' − planned savings ' + money(plannedSave) + ' − flexible ' + money(shown.flex) + ' = left over ' + money(shown.left) + ', each matching its tables');
     // payroll deductions: each job's latest real pay stub, per paycheck
     const jobs = readTable_(tdef_('EXPECT')).filter(x => x.active === true && x.id)
       .sort((a, b) => String(a.person).localeCompare(String(b.person)) || Number(b.typicalGross || 0) - Number(a.typicalGross || 0)).slice(0, 3);
