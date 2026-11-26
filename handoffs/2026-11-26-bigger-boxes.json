@@ -1,0 +1,31 @@
+{
+  "title": "Bigger Summary Boxes",
+  "key": "household-finance-tracker-2026-11-26-bigger-boxes",
+  "subtitle": "The boxes at the top of the Spending tab and the Financial Summary get bigger numbers and easier-to-read lines underneath, and Fixed vs flexible says what it adds up.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
+    "**What does not change:** every number. Only the size of the boxes and the wording under Fixed vs flexible change."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before bigger boxes 2026-11-26`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.34.1`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors." }
+      ]
+    },
+    {
+      "heading": "Check the boxes",
+      "steps": [
+        { "text": "Open the **Spending** tab.", "done": "The boxes at the top have bigger numbers and larger lines underneath. Under **Fixed vs flexible** it now says \"spent so far in November: fixed = bills and subscriptions, flexible = everyday spending\". The numbers are the same as before." },
+        { "text": "Open the **Financial Summary** tab.", "done": "The four cards (Coming In, Fixed Costs, Flexible Spending, Likely Left Over) are bigger, with the same numbers. If any line underneath is cut off, tell Claude which one." }
+      ]
+    }
+  ]
+}

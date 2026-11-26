@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-26 — Bigger summary boxes; Fixed vs flexible says what it counts
+- Why (the owner): the boxes were hard to read, and the Spending tab's
+  "Fixed vs flexible" (spent so far this month) was easy to mix up with the
+  Financial Summary's Fixed Costs (a typical month).
+- `Spending.gs`: Expected Take-Home, Spent So Far, the three tiles and the
+  three Current Flexible Spending boxes get bigger numbers (22–26 pt), bigger
+  labels (12 pt) and description lines (10 pt), and taller rows. The Fixed vs
+  flexible line now reads "spent so far in <month>: fixed = bills and
+  subscriptions, flexible = everyday spending · also planned irregular …,
+  unexpected … · typical …". The line under the cards is 10 pt.
+- `FinancialSummary.gs`: the four cards get the same larger sizes; the line
+  under them is 10 pt.
+- No number changes (layout and wording only, so no data review).
+  `BUILD_VERSION` 1.34.1. Files changed in `apps-script/`: `Spending.gs`,
+  `FinancialSummary.gs`, `Config.gs`. Run Upgrade workbook (it rebuilds both
+  tabs and keeps the Month, Compare with and months settings).
+- Tested: Node mock (structure and formulas). The look needs checking in
+  the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-25 — Twice-a-month paychecks on the days they land
 - Why (the owner): a household member's paycheck always lands on the 1st and
   the 15th; Expected Income had it as Biweekly, and the calendar put every

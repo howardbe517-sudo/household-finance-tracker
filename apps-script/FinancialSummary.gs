@@ -104,15 +104,16 @@ function buildFinancialSummary_() {
   ];
   cards.forEach(card => {
     const [c1, c2] = card.cols;
-    mergePut(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_LABEL, card.label).setBackground(card.color).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(c1 + FINSUM.CARD_VALUE + ':' + c2 + FINSUM.CARD_VALUE, card.f).setBackground(card.color).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0;-$#,##0');
-    mergePut(c1 + FINSUM.CARD_SUB + ':' + c2 + FINSUM.CARD_SUB, card.sub).setBackground(card.color).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    mergePut(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_LABEL, card.label).setBackground(card.color).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(c1 + FINSUM.CARD_VALUE + ':' + c2 + FINSUM.CARD_VALUE, card.f).setBackground(card.color).setFontSize(24).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0;-$#,##0');
+    mergePut(c1 + FINSUM.CARD_SUB + ':' + c2 + FINSUM.CARD_SUB, card.sub).setBackground(card.color).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
     sh.getRange(c1 + FINSUM.CARD_LABEL + ':' + c2 + FINSUM.CARD_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
-  sh.setRowHeight(FINSUM.CARD_VALUE, 42); sh.setRowHeight(FINSUM.CARD_SUB, 30);
+  // bigger boxes, easier to read (the owner, 2026-11-26)
+  sh.setRowHeight(FINSUM.CARD_LABEL, 26); sh.setRowHeight(FINSUM.CARD_VALUE, 54); sh.setRowHeight(FINSUM.CARD_SUB, 58);
   mergePut('A' + FINSUM.FLOW_LINE + ':I' + FINSUM.FLOW_LINE, 'Coming in is a typical month of paychecks (Expected Income). Fixed costs are every active bill on Recurring Payments, the debt payments, and the average gas, electric and water bill. Flexible is the average of everything else that was spent. The Spending tab has the breakdown.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true);
-  sh.setRowHeight(FINSUM.FLOW_LINE, 26);
+    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true);
+  sh.setRowHeight(FINSUM.FLOW_LINE, 34);
 
   /* --- month by month --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.HIST_BAR + ':I' + FINSUM.HIST_BAR), 'Month by month — most recent first');
