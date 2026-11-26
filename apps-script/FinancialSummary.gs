@@ -107,11 +107,11 @@ function buildFinancialSummary_() {
     { cols: ['E', 'F'], names: 'E:E', amounts: 'F:F', label: 'Flexible Spending (average)', color: COLORS.CARD_SPENDING, f: F('=' + FLEXAVG),
       // everything not marked Fixed: Flexible as marked, the two named kinds, and spending not marked yet (the rest), so the lines add up to the number
       namesF: '="Everyday (Flexible)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Averaged over"',
-      amountsF: F('=' + m0(typeAvg('Flexible')) + '&CHAR(10)&' + m0(typeAvg('Planned Irregular')) + '&CHAR(10)&' + m0(typeAvg('Unexpected')) + '&CHAR(10)&' + m0('(' + FLEXAVG + ')-(' + typeAvg('Flexible') + ')-(' + typeAvg('Planned Irregular') + ')-(' + typeAvg('Unexpected') + ')') +
+      amountsF: F('=' + m0(typeAvg('Flexible')) + '&CHAR(10)&' + m0(typeAvg('Planned Irregular')) + '&CHAR(10)&' + m0(typeAvg('Unexpected')) + '&CHAR(10)&' + m0('ROUND((' + FLEXAVG + ')-(' + typeAvg('Flexible') + ')-(' + typeAvg('Planned Irregular') + ')-(' + typeAvg('Unexpected') + '),2)') +
         '&CHAR(10)&IF(' + FLEXK + '=0,"this month so far",' + FLEXK + '&" month"&IF(' + FLEXK + '=1,"","s"))') },
     { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: '=N($A$' + V + ')-N($C$' + V + ')-N($E$' + V + ')',
       // "provisional" while the flexible figure is only this month so far (no full month yet); planned savings are part of what is left, not taken from it
-      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (this month so far: provisional)","− Flexible (average)")&CHAR(10)&"Includes planned savings of"',
+      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (so far, provisional)","− Flexible (average)")&CHAR(10)&"Includes planned savings of"',
       amountsF: F('=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0('N($E$' + V + ')') + '&CHAR(10)&' + m0('SUM([FUNDS.plannedMonthly])')) },
   ];
   let earners = 2;
