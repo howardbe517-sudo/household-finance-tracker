@@ -218,7 +218,7 @@ function importGrid_(grid, opts) {
     + (fresh.length ? ' · IDs ' + fresh[0].id + (fresh.length > 1 ? '–' + fresh[fresh.length - 1].id : '') : '');
   const st = ss_().getRangeByName('PASTE_STATUS'); if (st) st.setValue(status);
   return { status: 'imported', table: key, imported: fresh.length, replaced: replace.length, skipped: dupes.length, warnings, ids: fresh.map(r => r.id).concat(replace.map(x => x.row.id)),
-    message: status + (warnings.length ? '\n\nPlease check:\n' + warnings.slice(0, 8).join('\n') : '') + (linked ? '\n\nPaycheck deposits: ' + linked.linked + ' linked to these paychecks.' : '') + (expected && expected.created ? '\n\nExpected Income: ' + expected.created + ' new regular paycheck row(s) created (' + expected.rows.map(r => r.person + ' · ' + r.employer + ' · ' + r.frequency).join('; ') + '). Check the frequency and typical amounts there.' : '') };
+    message: status + (warnings.length ? '\n\nPlease check:\n' + warnings.slice(0, 8).join('\n') : '') + (linked ? '\n\nPaycheck deposits: ' + linked.linked + ' linked to these paychecks.' : '') + (expected && expected.created ? '\n\nExpected Income: ' + expected.created + ' new regular paycheck row(s) created (' + expected.rows.map(r => r.person + ' · ' + r.employer + ' · ' + r.frequency).join('; ') + '). Check the frequency and typical amounts there.' : '') + (expected && expected.skipped && expected.skipped.length ? '\n\nNot counted as a regular paycheck (one-off pay): ' + expected.skipped.map(x => x.person + ' · ' + x.employer + ' (' + x.incomeType + ')').join('; ') + '. If one is regular, add its row on Expected Income by hand.' : '') };
 }
 
 function pasteHash_(grid) {

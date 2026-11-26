@@ -74,6 +74,7 @@ function upgradeWorkbookLocked_() {
   const fnd = withRetry_('Savings & Reserves rows', () => ensureFunds_());
   if (fnd && fnd.created) report.push('Savings & Reserves: ' + fnd.created + ' fund row(s) created from savings, investment, retirement and HSA accounts');
   if (exp && exp.created) report.push('Expected Income: ' + exp.created + ' row(s) created from the paychecks on Income');
+  if (exp && exp.skipped && exp.skipped.length) report.push('Expected Income: one-off pay not counted as a regular paycheck: ' + exp.skipped.map(x => x.person + ' · ' + x.employer + ' (' + x.incomeType + ')').join('; ') + '. If one of these is regular, add its row on Expected Income by hand.');
   const fsMonths = (ss.getRangeByName('FINSUM_MONTHS') || { getValue: () => '' }).getValue();
   withRetry_('Financial Summary', () => { buildFinancialSummary_(); if (Number(fsMonths) >= 1) ss.getRangeByName('FINSUM_MONTHS').setValue(Number(fsMonths)); });
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });

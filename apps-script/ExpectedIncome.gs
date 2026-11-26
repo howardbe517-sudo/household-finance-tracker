@@ -6,17 +6,32 @@
  * to type an Income Adjustment / target override on Monthly Plan for an unusual month.
  */
 
+/** Income Types that are one-off pay, never a regular paycheck (compared without regard to capitals). */
+const ONE_OFF_INCOME_TYPES = ['side income', 'bonus', 'reimbursement', 'other'];
+
+/** Whether an Income Type can start a regular paycheck: anything but the one-off types (blank, Salary, Hourly Wages,
+ * Commission, or a type typed by hand that is not on the list). Pure. */
+function isRegularIncomeType_(type) {
+  return ONE_OFF_INCOME_TYPES.indexOf(String(type === null || type === undefined ? '' : type).trim().toLowerCase()) < 0;
+}
+
 /** Creates an Expected Income row for every person + employer seen on Income that has none yet. Returns { created, rows }. */
 function ensureExpectedIncome_() {
   const incDef = tdef_('INCOME'), expDef = tdef_('EXPECT');
   if (!ss_().getSheetByName(expDef.sheet)) return { created: 0, rows: [] };
-  // rows made from a bank deposit are not evidence of a regular paycheck: a one-off deposit must never raise the expected income
-  const income = readTable_(incDef).filter(r => r.payDate instanceof Date && r.person && r.employer && !isDepositIncomeRow_(r));
-  if (!income.length) return { created: 0, rows: [] };
+  // rows made from a bank deposit are not evidence of a regular paycheck: a one-off deposit must never raise the expected income.
+  // Nor is one-off pay (the owner, 2026-11-26: a modeling job is random): Side Income, Bonus, Reimbursement and Other count on
+  // Income but never start a regular paycheck; the ones skipped are named in `skipped` so the owner can add a row by hand if one is regular.
+  const all = readTable_(incDef).filter(r => r.payDate instanceof Date && r.person && r.employer && !isDepositIncomeRow_(r));
+  const income = all.filter(r => isRegularIncomeType_(r.incomeType));
+  const skipped = [];
+  if (!income.length) return { created: 0, rows: [], skipped };
   syncLastRow_(expDef);
   const existing = readTable_(expDef);
   const keyOf = (p, e) => String(p).trim().toLowerCase() + '|' + String(e).trim().toLowerCase();
   const have = {}; existing.forEach(x => { have[keyOf(x.person, x.employer)] = true; });
+  const regular = {}; income.forEach(r => { regular[keyOf(r.person, r.employer)] = true; });
+  all.forEach(r => { const k = keyOf(r.person, r.employer); if (!have[k] && !regular[k] && !skipped.some(x => x.key === k)) skipped.push({ key: k, person: r.person, employer: r.employer, incomeType: r.incomeType }); });
   const groups = {};
   income.forEach(r => { const k = keyOf(r.person, r.employer); (groups[k] = groups[k] || []).push(r); });
   const fresh = [];
@@ -41,7 +56,7 @@ function ensureExpectedIncome_() {
     writeRows_(expDef, fresh);
     fresh.forEach(r => appendChangeLog_({ table: 'EXPECT', recordId: r.id, field: '(row)', newValue: r.person + ' · ' + r.employer, action: 'Insert', user: 'expected-income' }));
   }
-  return { created: fresh.length, rows: fresh };
+  return { created: fresh.length, rows: fresh, skipped };
 }
 
 /** Pay frequency from the gaps between pay dates. One date → Biweekly with a note to check. */
