@@ -1,0 +1,32 @@
+{
+  "title": "Summary Boxes, Option A",
+  "key": "household-finance-tracker-2026-11-26-option-a-boxes",
+  "subtitle": "Under each number on the Financial Summary and the Spending tab, what makes it up is listed one item per line, with the amounts lined up on the right.",
+  "intro": [
+    "The code is already in your Sheet. The upgrade redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
+    "**What does not change:** the big numbers. Only the lines underneath and the box sizes change."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before option A boxes 2026-11-26`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.35.0`. If it shows an older number, wait a minute and reload again." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors." }
+      ]
+    },
+    {
+      "heading": "Check the boxes",
+      "steps": [
+        { "text": "Open the **Financial Summary** tab.", "done": "Each of the four boxes has its number, then a short list: for example **Fixed Costs** shows Bills, Debt payments and Utilities (avg), each with its amount on the right." },
+        { "text": "Open the **Spending** tab.", "done": "**Expected Take-Home** lists each paycheck, then Landed so far. **Recurring bills** lists the bill groups largest first, then Active bills and Paid this month." },
+        { "text": "Look for any line that is cut off or sits beside the wrong amount.", "done": "If you see one, tell Claude which box." }
+      ]
+    }
+  ]
+}

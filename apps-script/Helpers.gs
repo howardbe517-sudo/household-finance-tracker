@@ -116,6 +116,32 @@ function styleNoteRow_(sh, row, text, numCols) {
   sh.getRange(row, 1, 1, numCols).setBackground(COLORS.WHITE);
 }
 
+/**
+ * The breakdown under a summary box, one item per line (the owner, 2026-11-26): the names in one merged cell on the left and the
+ * amounts in one on the right, each a formula or text whose lines are joined with CHAR(10), so every amount sits beside its name.
+ * Both must give the same number of lines. sh: the sheet; row: the row; names/amounts: A1 column ranges such as 'A:C' and 'D:D';
+ * bg: the box's fill (null for none). Returns nothing; the caller sets the row height (boxLinesHeight_).
+ */
+function putBoxLines_(sh, row, names, amounts, namesValue, amountsValue, bg) {
+  const set = (cols, v, align) => {
+    const [c1, c2] = cols.split(':');
+    const r = sh.getRange(c1 + row + ':' + c2 + row);
+    if (c1 !== c2) r.merge();
+    if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v);
+    r.setFontSize(10).setFontColor(COLORS.BOX_LINES).setFontStyle('normal').setHorizontalAlignment(align).setVerticalAlignment('top')
+      .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    if (bg) r.setBackground(bg);
+  };
+  set(names, namesValue, 'left');
+  set(amounts, amountsValue, 'right');
+}
+
+/** Row height for a box's breakdown of n lines at 10 pt. Pure. */
+function boxLinesHeight_(n) { return Math.max(1, n) * 17 + 8; }
+
+/** Lines of text joined for a breakdown cell: a formula piece per line, or plain text when every piece is a quoted string. */
+function boxJoin_(pieces) { return '=' + pieces.join('&CHAR(10)&'); }
+
 function styleHeader_(range) {
   range.setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold')
     .setWrap(true).setVerticalAlignment('middle').setFontSize(10);

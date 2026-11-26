@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 2026-11-26 — Summary boxes list what makes up each number (option A)
+- Why (the owner): pick from three mockups; option A, a little smaller than
+  1.34.1, with what makes up each number listed one item per line instead
+  of one long line, and darker text underneath.
+- `Helpers.gs` (`putBoxLines_`, `boxLinesHeight_`): under a box, two cells
+  side by side, the names (left) and the amounts (right), each one line per
+  item, so every amount sits beside its name. No rows move.
+- `FinancialSummary.gs`: Coming In by person; Fixed Costs as bills, debt
+  payments, utilities; Flexible as Everyday (Flexible), Planned irregular,
+  Unexpected, Not marked yet, and the months averaged; Likely Left Over as
+  coming in − fixed − flexible (marked provisional before the first full
+  month) and the planned savings it includes. Columns C/D widened a little.
+- `Spending.gs`: Expected Take-Home by paycheck (then any adjustment, then
+  what has landed so far); Spent So Far with last month and the typical
+  month; Fixed vs flexible and Needs vs wants with a Not marked yet line;
+  Recurring bills by group, largest first (a No group line when needed),
+  active and paid counts; the three weekly boxes likewise.
+- `Config.gs`: `COLORS.BOX_LINES` (darker line text); numbers 18–20 pt,
+  labels 11 pt, lines 10 pt. `BUILD_VERSION` 1.35.0.
+- Files changed in `apps-script/`: `Helpers.gs`, `FinancialSummary.gs`,
+  `Spending.gs`, `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock (names and amounts have the same lines in every box);
+  every new formula was also run in scratch cells on the live Sheet and read
+  back (then cleared): all calculated and lined up. Data review: Must fix
+  items (landed vs total, room for new lines, Everyday wording and the
+  provisional mark) and Should fix items done; re-reviewed.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — One-off pay never becomes a regular paycheck
 - Why (the owner): a one-off side job entered on Income (Income Type Side
   Income) made `ensureExpectedIncome_` create an active Expected Income row,

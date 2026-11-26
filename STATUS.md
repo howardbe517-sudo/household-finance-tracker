@@ -1,5 +1,11 @@
 # STATUS
 
+2026-11-26 (build 1.35.0): summary boxes on Financial Summary and Spending
+list what makes up each number, one item per line (option A from the
+mockups). One-off pay (Side Income etc.) no longer becomes a regular
+paycheck (1.34.2); the modeling row on Expected Income is switched off.
+Waiting for the owner's upgrade.
+
 2026-11-26 (build 1.34.1): bigger boxes on Spending and Financial Summary;
 Fixed vs flexible says it counts what was spent so far this month. Waiting
 for the owner's upgrade. The second earner's paycheck is set to
