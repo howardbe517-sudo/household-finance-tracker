@@ -79,8 +79,8 @@ function buildSpending_() {
   /* --- title, month, compare with --- */
   mergePut('A1:I1', 'Spending').setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(16).setFontWeight('bold');
   sh.setRowHeight(1, 40);
-  mergePut('A2:I2', 'How this month is going: what is coming in, what has been spent, this week\'s flexible money, each category beside a typical month, the regular bills, and the averages. Spending is expenses minus refunds; debt payments, savings and transfers are not spending. Under each box, what makes it up is listed one item per line, each rounded to the dollar. Account balances and the long view are on the Financial Summary tab.')
-    .setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
+  // explanations as a hover note on the title (the owner, 2026-11-26: as little to read on the tab as possible)
+  hoverNote_(sh, 'A1', 'How this month is going: what is coming in, what has been spent, this week\'s flexible money, each category beside a typical month, the regular bills, and the averages. Spending is expenses minus refunds; debt payments, savings and transfers are not spending. Under each box, what makes it up is listed one item per line, each rounded to the dollar. Account balances and the long view are on the Financial Summary tab.' + '\n\n' + 'Spending Type: Fixed = the same every month and already committed (rent, insurance, the nanny, subscriptions); Flexible = day-to-day spending you steer week by week (groceries, dining out, fuel); Planned Irregular = expected but not monthly (property tax, registration, travel); Unexpected = could not be planned (doctor visits, repairs). Need/Want: could it be cut if it had to be? Both come from the subcategory\'s defaults on the Categories tab and can be changed on any transaction. Budget is the Monthly Budget row for the month; a blank means none set. Typical Month is the average of the months chosen by Compare with; months with no spending recorded are left out. Full definitions on the Start Here tab.', 2);
   put('A3', 'Month').setFontWeight('bold');
   put('B3', monthStart_(new Date())).setNumberFormat('mmmm yyyy').setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
     .setBorder(true, true, true, true, false, false, COLORS.NAVY, SpreadsheetApp.BorderStyle.SOLID)
@@ -131,10 +131,7 @@ function buildSpending_() {
   });
   sh.setRowHeight(SPEND.CARD_LABEL, 24); sh.setRowHeight(SPEND.CARD_VALUE, 40); sh.setRowHeight(SPEND.CARD_SUB, boxLinesHeight_(Math.max(4, earners + 3)));
   // how the flexible figure is reached
-  mergePut('A' + SPEND.EXPECT_LINE + ':I' + SPEND.EXPECT_LINE, F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
-    '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&IF(ROUND(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),2)<>0," (incl. "&TEXT(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),"+$#,##0;−$#,##0")&" of one-week bill changes)","")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
-    .setFontSize(10).setFontColor(COLORS.BOX_LINES).setHorizontalAlignment('center').setWrap(true);
-  sh.setRowHeight(SPEND.EXPECT_LINE, 34);
+  sh.setRowHeight(SPEND.EXPECT_LINE, 6); // how the flexible figure is reached is listed in the Amount Available box
 
   /* --- three tiles --- */
   const recLastRow = SPEND.REC_FIRST + SPEND.REC_ROWS - 1;
@@ -175,8 +172,10 @@ function buildSpending_() {
   const monday = 'TODAY()-WEEKDAY(TODAY(),2)+1', weekEnd = 'MIN(TODAY()-WEEKDAY(TODAY(),2)+7,EOMONTH(TODAY(),0))';
   const flex = [
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
-      namesF: F('=IFERROR("Flexible target"&IF(N(INDEX([PLAN.target],' + planMatch + '))>0," (set by hand)"," (automatic)")&CHAR(10)&"Flexible spent so far","Add a row for this month on Monthly Plan")'),
-      amountsF: F('=IFERROR(TEXT(INDEX([PLAN.effectiveTarget],' + planMatch + '),"$#,##0")&CHAR(10)&TEXT(INDEX([PLAN.flexSpent],' + planMatch + '),"$#,##0"),"")') },
+      // how the flexible figure is reached, one step per line (it was a line of its own under the cards); when the target is set by
+      // hand, the automatic one the steps give is shown first, then the hand-set target, so the lines still add up
+      namesF: F('=IFERROR(LET(pm,' + planMatch + ',adj,N(INDEX([PLAN.incomeAdjustment],pm)),hand,N(INDEX([PLAN.target],pm))>0,"Take-home (expected"&IF(adj<>0,", incl. adjustment","")&")"&CHAR(10)&"− Bills"&CHAR(10)&"− Debt payments"&CHAR(10)&"− Planned savings"&CHAR(10)&IF(hand,"= Automatic target"&CHAR(10)&"Target set by hand instead","= Flexible target")&CHAR(10)&"− Flexible spent so far"),"Add a row for this month on Monthly Plan")'),
+      amountsF: F('=IFERROR(LET(pm,' + planMatch + ',ei,INDEX([PLAN.expectedIncome],pm)+N(INDEX([PLAN.incomeAdjustment],pm)),b,INDEX([PLAN.bills],pm),dp,INDEX([PLAN.debtPayments],pm),ps,INDEX([PLAN.plannedSavings],pm),hand,N(INDEX([PLAN.target],pm))>0,TEXT(ei,"$#,##0")&CHAR(10)&TEXT(b,"$#,##0")&CHAR(10)&TEXT(dp,"$#,##0")&CHAR(10)&TEXT(ps,"$#,##0")&CHAR(10)&IF(hand,TEXT(ei-b-dp-ps,"$#,##0")&CHAR(10),"")&TEXT(INDEX([PLAN.effectiveTarget],pm),"$#,##0")&CHAR(10)&TEXT(INDEX([PLAN.flexSpent],pm),"$#,##0")),"")') },
     { cols: ['C', 'E'], names: 'C:D', amounts: 'E:E', label: 'Suggested This Week', f: F('=IFERROR(INDEX([PLAN.suggestedWeek],' + planMatch + '),"No plan row")'),
       namesF: '="Week"&CHAR(10)&"Counts"', amountsF: '=TEXT(' + monday + ',"mmm d")&" – "&TEXT(' + weekEnd + ',"mmm d")&CHAR(10)&"Flexible only"' },
     { cols: ['F', 'I'], names: 'F:H', amounts: 'I:I', label: 'Spent This Week', f: F('=IFERROR(INDEX([PLAN.spentWeek],' + planMatch + '),"No plan row")'),
@@ -188,7 +187,7 @@ function buildSpending_() {
     putBoxLines_(sh, SPEND.FLEX_SUB, b.names, b.amounts, b.namesF, b.amountsF, null);
     sh.getRange(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  sh.setRowHeight(SPEND.FLEX_LABEL, 24); sh.setRowHeight(SPEND.FLEX_VALUE, 36); sh.setRowHeight(SPEND.FLEX_SUB, boxLinesHeight_(2));
+  sh.setRowHeight(SPEND.FLEX_LABEL, 24); sh.setRowHeight(SPEND.FLEX_VALUE, 36); sh.setRowHeight(SPEND.FLEX_SUB, boxLinesHeight_(7));
 
   /* --- by category, sorted by this month; Childcare + Child Expenses shown together as "Children" --- */
   styleSectionBar_(sh.getRange('A' + SPEND.CAT_BAR + ':I' + SPEND.CAT_BAR), 'By category — this month beside a typical month, largest first');
@@ -280,8 +279,7 @@ function buildSpending_() {
   }
   sh.getRange('B' + avgFirst + ':B' + avgLast).setNumberFormat(FORMATS.currency).setFontWeight('bold');
   sh.getRange('A' + SPEND.AVG_HEADER + ':I' + avgLast).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  mergePut('A' + SPEND.AVG_NOTE + ':I' + SPEND.AVG_NOTE, '=IF(' + K + '=0,"Averages appear here after the first full month of transactions. Compare with (top of this tab) chooses which months are averaged.","Average per month over "&' + K + '&" month"&IF(' + K + '=1,"","s")&" with spending, "&TEXT(' + WS + ',"mmm yyyy")&" – "&TEXT(' + WE + ',"mmm yyyy")&". Change Compare with at the top of this tab to average other months.")')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic');
+  hoverNote_(sh, 'A' + SPEND.AVG_BAR, 'Average per month over the months chosen by Compare with (top of this tab), counting only months with spending. Nothing shows until the first full month of transactions.', SPEND.AVG_NOTE);
 
   /* --- Monthly Review Checklist (moved from the Dashboard; the ticks are inputs) --- */
   styleSectionBar_(sh.getRange('A' + SPEND.CHECK_BAR + ':I' + SPEND.CHECK_BAR), 'Monthly Review Checklist');
@@ -306,9 +304,7 @@ function buildSpending_() {
   const checkLast = SPEND.CHECK_FIRST + SPEND.CHECK_COUNT - 1;
   sh.getRange('A' + SPEND.CHECK_HEADER + ':I' + checkLast).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
 
-  mergePut('A' + SPEND.NOTE_ROW + ':I' + SPEND.NOTE_ROW, 'Spending Type: Fixed = the same every month and already committed (rent, insurance, the nanny, subscriptions); Flexible = day-to-day spending you steer week by week (groceries, dining out, fuel); Planned Irregular = expected but not monthly (property tax, registration, travel); Unexpected = could not be planned (doctor visits, repairs). Need/Want: could it be cut if it had to be? Both come from the subcategory\'s defaults on the Categories tab and can be changed on any transaction. Budget is the Monthly Budget row for the month; a blank means none set. Typical Month is the average of the months chosen by Compare with; months with no spending recorded are left out. Full definitions on the Start Here tab.')
-    .setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setFontStyle('italic').setWrap(true).setVerticalAlignment('top');
-  sh.setRowHeight(SPEND.NOTE_ROW, 64);
+  sh.setRowHeight(SPEND.NOTE_ROW, 6); // its explanation is in the title's hover note
 
   /* --- the Compare with window (calculated; every "typical" figure above reads these three cells) --- */
   const help = SPEND.HELP_ROW;
@@ -318,6 +314,7 @@ function buildSpending_() {
   // ROWS(UNIQUE(FILTER())) and not COUNTUNIQUE: COUNTUNIQUE counts FILTER's "nothing found" error as one month (fixed 2026-11-13)
   put('D' + help, F('=IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.month]>=' + WS + ',[TX.month]<=' + WE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0))),0)')).setNumberFormat('0');
   sh.getRange('A' + help + ':D' + help).setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  sh.hideRows(help); // calculated helpers, out of sight (the owner, 2026-11-26)
 
   const av = 'A' + SPEND.FLEX_VALUE;
   sh.setConditionalFormatRules([
