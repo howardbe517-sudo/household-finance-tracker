@@ -115,34 +115,37 @@ function buildSpending_() {
   ];
   cards.forEach(card => {
     const [c1, c2] = card.cols;
-    mergePut(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_LABEL, card.label).setBackground(card.color).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(c1 + SPEND.CARD_VALUE + ':' + c2 + SPEND.CARD_VALUE, card.f).setBackground(card.color).setFontSize(20).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
-    mergePut(c1 + SPEND.CARD_SUB + ':' + c2 + SPEND.CARD_SUB, card.sub).setBackground(card.color).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    mergePut(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_LABEL, card.label).setBackground(card.color).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(c1 + SPEND.CARD_VALUE + ':' + c2 + SPEND.CARD_VALUE, card.f).setBackground(card.color).setFontSize(26).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    mergePut(c1 + SPEND.CARD_SUB + ':' + c2 + SPEND.CARD_SUB, card.sub).setBackground(card.color).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
     sh.getRange(c1 + SPEND.CARD_LABEL + ':' + c2 + SPEND.CARD_SUB).setBorder(true, true, true, true, false, false, COLORS.WHITE, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
-  sh.setRowHeight(SPEND.CARD_VALUE, 44); sh.setRowHeight(SPEND.CARD_SUB, 30);
+  // bigger boxes, easier to read (the owner, 2026-11-26)
+  sh.setRowHeight(SPEND.CARD_LABEL, 26); sh.setRowHeight(SPEND.CARD_VALUE, 56); sh.setRowHeight(SPEND.CARD_SUB, 44);
   // how the flexible figure is reached
   mergePut('A' + SPEND.EXPECT_LINE + ':I' + SPEND.EXPECT_LINE, F('=IFERROR(LET(ei,INDEX([PLAN.expectedIncome],' + selMatch + '),adj,N(INDEX([PLAN.incomeAdjustment],' + selMatch + ')),b,INDEX([PLAN.bills],' + selMatch + '),dp,INDEX([PLAN.debtPayments],' + selMatch + '),ps,INDEX([PLAN.plannedSavings],' + selMatch + '),tu,INDEX([PLAN.effectiveTarget],' + selMatch + '),ov,N(INDEX([PLAN.target],' + selMatch + ')),' +
     '"Take-home "&TEXT(ei+adj,"$#,##0")&" − bills "&TEXT(b,"$#,##0")&IF(ROUND(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),2)<>0," (incl. "&TEXT(b-SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"<>Loans"),"+$#,##0;−$#,##0")&" of one-week bill changes)","")&" − debt payments "&TEXT(dp,"$#,##0")&" − planned savings "&TEXT(ps,"$#,##0")&" = flexible "&TEXT(tu,"$#,##0")&" this month"&IF(ov>0," (target set by hand on Monthly Plan)"," (automatic)")),"The flexible figure appears once this month has a Monthly Plan row (the nightly sync adds one).")'))
-    .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center');
+    .setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+  sh.setRowHeight(SPEND.EXPECT_LINE, 34);
 
   /* --- three tiles --- */
   const recLastRow = SPEND.REC_FIRST + SPEND.REC_ROWS - 1;
   const tiles = [
     { cols: ['A', 'B'], label: 'Fixed vs flexible', f: F('=TEXT(' + spendBy('spendingType', 'Fixed', M) + ',"$#,##0")&" / "&TEXT(' + spendBy('spendingType', 'Flexible', M) + ',"$#,##0")'), fmt: '@',
-      sub: F('="typical "&IF(' + K + '=0,"—",TEXT(' + typ(winBy('spendingType', '"Fixed"')) + ',"$#,##0")&" / "&TEXT(' + typ(winBy('spendingType', '"Flexible"')) + ',"$#,##0"))&" · planned irregular "&TEXT(' + spendBy('spendingType', 'Planned Irregular', M) + ',"$#,##0")&" · unexpected "&TEXT(' + spendBy('spendingType', 'Unexpected', M) + ',"$#,##0")') },
+      // says what it adds up (the owner, 2026-11-26: easy to mix up with Fixed Costs on the Financial Summary, a typical month)
+      sub: F('="spent so far in "&TEXT(' + M + ',"mmmm")&": fixed = bills and subscriptions, flexible = everyday spending · also planned irregular "&TEXT(' + spendBy('spendingType', 'Planned Irregular', M) + ',"$#,##0")&", unexpected "&TEXT(' + spendBy('spendingType', 'Unexpected', M) + ',"$#,##0")&" · typical "&IF(' + K + '=0,"—",TEXT(' + typ(winBy('spendingType', '"Fixed"')) + ',"$#,##0")&" / "&TEXT(' + typ(winBy('spendingType', '"Flexible"')) + ',"$#,##0"))') },
     { cols: ['C', 'E'], label: 'Needs vs wants', f: F('=IFERROR(TEXT(' + spendBy('needWant', 'Need', M) + '/' + spendAll(M) + ',"0%")&" / "&TEXT(' + spendBy('needWant', 'Want', M) + '/' + spendAll(M) + ',"0%"),"—")'), fmt: '@',
       sub: F('=TEXT(' + spendBy('needWant', 'Need', M) + ',"$#,##0")&" needs · "&TEXT(' + spendBy('needWant', 'Want', M) + ',"$#,##0")&" wants · typical "&IF(' + K + '=0,"—",IFERROR(TEXT(' + winBy('needWant', '"Need"') + '/' + winAll + ',"0%")&" / "&TEXT(' + winBy('needWant', '"Want"') + '/' + winAll + ',"0%"),"—"))') },
     { cols: ['F', 'I'], label: 'Recurring bills', f: F('=SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE)'), fmt: '$#,##0" / mo"',
       sub: F('="subscriptions "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Subscriptions"),"$#,##0")&" · memberships "&TEXT(SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Memberships"),"$#,##0")&" · "&COUNTIFS([RECUR.active],TRUE)&" active, "&COUNTIF($E$' + SPEND.REC_FIRST + ':$E$' + recLastRow + ',"yes")&" paid this month"') },
   ];
   tiles.forEach(t => {
-    mergePut(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_LABEL, t.label).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(t.cols[0] + SPEND.TILE_VALUE + ':' + t.cols[1] + SPEND.TILE_VALUE, t.f).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat(t.fmt);
-    mergePut(t.cols[0] + SPEND.TILE_SUB + ':' + t.cols[1] + SPEND.TILE_SUB, t.sub).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    mergePut(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_LABEL, t.label).setBackground(COLORS.PALE_BLUE).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(t.cols[0] + SPEND.TILE_VALUE + ':' + t.cols[1] + SPEND.TILE_VALUE, t.f).setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat(t.fmt);
+    mergePut(t.cols[0] + SPEND.TILE_SUB + ':' + t.cols[1] + SPEND.TILE_SUB, t.sub).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
     sh.getRange(t.cols[0] + SPEND.TILE_LABEL + ':' + t.cols[1] + SPEND.TILE_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  sh.setRowHeight(SPEND.TILE_VALUE, 40); sh.setRowHeight(SPEND.TILE_SUB, 30);
+  sh.setRowHeight(SPEND.TILE_LABEL, 26); sh.setRowHeight(SPEND.TILE_VALUE, 50); sh.setRowHeight(SPEND.TILE_SUB, 84);
 
   /* --- Current Flexible Spending (follows TODAY, not the Selected Month) --- */
   styleSectionBar_(sh.getRange('A' + SPEND.FLEX_BAR + ':I' + SPEND.FLEX_BAR), '');
@@ -157,12 +160,12 @@ function buildSpending_() {
       sub: 'Monday through today · Spending Type = Flexible' },
   ];
   flex.forEach(b => {
-    mergePut(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_LABEL, b.label).setBackground(COLORS.PALE_BLUE).setFontWeight('bold').setHorizontalAlignment('center');
-    mergePut(b.cols[0] + SPEND.FLEX_VALUE + ':' + b.cols[1] + SPEND.FLEX_VALUE, b.f).setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
-    mergePut(b.cols[0] + SPEND.FLEX_SUB + ':' + b.cols[1] + SPEND.FLEX_SUB, b.sub).setFontSize(8).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setWrap(true);
+    mergePut(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_LABEL, b.label).setBackground(COLORS.PALE_BLUE).setFontSize(12).setFontWeight('bold').setHorizontalAlignment('center');
+    mergePut(b.cols[0] + SPEND.FLEX_VALUE + ':' + b.cols[1] + SPEND.FLEX_VALUE, b.f).setFontSize(22).setFontWeight('bold').setHorizontalAlignment('center').setNumberFormat('$#,##0');
+    mergePut(b.cols[0] + SPEND.FLEX_SUB + ':' + b.cols[1] + SPEND.FLEX_SUB, b.sub).setFontSize(10).setFontColor(COLORS.MUTED_TEXT).setHorizontalAlignment('center').setVerticalAlignment('top').setWrap(true);
     sh.getRange(b.cols[0] + SPEND.FLEX_LABEL + ':' + b.cols[1] + SPEND.FLEX_SUB).setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   });
-  sh.setRowHeight(SPEND.FLEX_VALUE, 42); sh.setRowHeight(SPEND.FLEX_SUB, 26);
+  sh.setRowHeight(SPEND.FLEX_LABEL, 26); sh.setRowHeight(SPEND.FLEX_VALUE, 50); sh.setRowHeight(SPEND.FLEX_SUB, 44);
 
   /* --- by category, sorted by this month; Childcare + Child Expenses shown together as "Children" --- */
   styleSectionBar_(sh.getRange('A' + SPEND.CAT_BAR + ':I' + SPEND.CAT_BAR), 'By category — this month beside a typical month, largest first');

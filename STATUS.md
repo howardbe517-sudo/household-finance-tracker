@@ -1,5 +1,12 @@
 # STATUS
 
+2026-11-26 (build 1.34.1): bigger boxes on Spending and Financial Summary;
+Fixed vs flexible says it counts what was spent so far this month. Waiting
+for the owner's upgrade. The second earner's paycheck is set to
+Semimonthly, Paydays 1, 15; her modeling pay (Income, paid through Venmo)
+and the meat bought with it are entered on checking; the Venmo deposit to
+checking is to be marked a Transfer when it arrives.
+
 2026-11-25 (build 1.34.0, schema 3.22): Expected Income gains Paydays (days
 of month); twice-a-month paychecks land on them on the calendar, weekend
 paydays on the Friday before. Waiting for the owner to run the upgrade;
