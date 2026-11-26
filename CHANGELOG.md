@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-26 — Debt list: Next Due from the Due Day
+- Why (the owner): Next Due on the Financial Summary's debt list was blank
+  for the car loan and the tax debt; only cards get the date from the bank
+  feed. The car payment is due on the same day every month.
+- `FinancialSummary.gs` (debt list): the feed's Next Payment Due while it is
+  today or later; otherwise the next time the Due Day comes round (this
+  month if not yet past, else next month; the last day in a short month).
+  Display only. `BUILD_VERSION` 1.35.1. Files changed in `apps-script/`:
+  `FinancialSummary.gs`, `Config.gs`. Run Upgrade workbook (it rebuilds the
+  Financial Summary).
+- Tested: Node mock; the formula run on the live Sheet in a scratch cell
+  (then cleared): car loan Dec 2, card Dec 14 from the feed, tax debt
+  Dec 15, rows without a due day blank.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — Summary boxes list what makes up each number (option A)
 - Why (the owner): pick from three mockups; option A, a little smaller than
   1.34.1, with what makes up each number listed one item per line instead
