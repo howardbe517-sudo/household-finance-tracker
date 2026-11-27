@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.26-goals-2026-11-27',
-  BUILD_VERSION: '1.41.0',
+  BUILD_VERSION: '1.41.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -791,7 +791,7 @@ TABLES.GROCNAMES = {
 TABLES.TODO = {
   key: 'TODO', sheet: SHEETS.TODO, headerRow: 4, firstRow: 5, lastRow: 204, extraCols: 8,
   title: 'To-Do & Reminders',
-  note: 'Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. The automatic reminders on the right clear themselves when you update the value they ask for.',
+  note: 'Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. To change the order, drag a row by its number on the left. The automatic reminders are in the strip just below.',
   idPrefix: '', idPattern: '(none)', logChanges: false,
   columns: [
     { key: 'task', h: 'To-Do', w: 340, note: 'Added in 3.25 (the owner, 2026-11-27).' },
