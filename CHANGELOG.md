@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 2026-11-27 — A second check on every change to the money records
+- Why (the owner): whenever something about money coming in or going out
+  changes, an independent agent should double-check it: miscategorized
+  rows, charges recorded twice, and so on.
+- New `.claude/agents/ledger-checker.md` (runs on Sonnet). It reads the live
+  Sheet only, checks the rows that changed and their neighbours against the
+  owner's decisions, and reports Problems / Worth a look / Checked and fine /
+  Could not check. `AGENTS.md` section 3 now requires it after every change
+  to the money records; code changes still go to `data-reviewer`.
+- No change in `apps-script/`; nothing to run in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — One row per grocery item, whatever its capitals
 - Why (the owner): "Blackberries" and "BLACKBERRIES" were two rows on the
   Groceries tab, each showing both together (UNIQUE tells capitals apart,

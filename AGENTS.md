@@ -75,6 +75,17 @@ jargon, and ask clarifying questions when something is unclear.
   do not act on recommendations without asking. Changes that touch only
   wording, the bank connection, or imports with no effect on a displayed
   number do not need this review.
+- After any change to the household's money records in the Sheet (the
+  owner, 2026-11-27), have the `ledger-checker` agent
+  (`.claude/agents/ledger-checker.md`, runs on Sonnet) check it before
+  telling the owner it is done. That covers categorizing or entering
+  transactions; reviewing Import Staging; adding or changing Import Rules or
+  Recurring Payments; recording income; editing Debts, Accounts or Savings &
+  Reserves; and moving rows. Give it the spreadsheet ID (from the session,
+  never from a file), the tabs and rows that changed, and the owner's
+  decisions. Fix everything under "Problems". Give the owner "Worth a look"
+  in plain words. A batch of small edits can be checked once at the end.
+  Code changes still go to `data-reviewer`.
 - Read the existing code and trace what calls a function before changing it.
   Prefer a targeted fix over a rewrite. Do not remove code that looks unused
   without finding out why it exists.
