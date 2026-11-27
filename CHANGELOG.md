@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-27 — A monthly money review outside the Sheet
+- Why (the owner): the monthly review should not be a tab. It should be the
+  tracker's snapshot taken into a Claude project: a slide deck to review
+  first, then questions back and forth as with a financial advisor.
+- New `skills/monthly-money-review/` (SKILL.md and two reference files): from
+  the AI snapshot it builds a deck of about ten slides, then answers
+  questions from the household's own numbers, with limits on tax, legal,
+  insurance and investment specifics. `skills/monthly-money-review-project-instructions.txt`
+  is the text for the project's instructions. No household data in either.
+- No change in `apps-script/`; nothing to run in the Sheet. Setup steps are
+  in `handoffs/2026-11-27-monthly-review-project.json`.
+- Tested: one run on the tracker's fictional sample data produced a
+  ten-slide deck and an advisor answer; the skill was tightened from what
+  that run found unclear. Not yet run on the owner's real snapshot.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — The reminders box on the To-Do tab stays filled
 - Why: after the owner's upgrade the Automatic reminders box on To-Do &
   Reminders was empty. It read the reminders through the name
