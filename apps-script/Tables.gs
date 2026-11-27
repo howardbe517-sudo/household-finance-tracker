@@ -237,33 +237,30 @@ CF_BUILDERS.REVIEW = (sh, def) => {
 
 /* ---------- presentation sections ---------- */
 
-/* To-Do & Reminders: beside the checklist (columns A:E), the automatic reminders from the hidden Reminders tab (its box, by cell reference),
-   so everything to do is on the first tab (the owner, 2026-11-27). Holds no entered data: redrawn by build and upgrade. */
-const TODO_SIDE = { FIRST_COL: 7, WIDTH: 6, BOX_ROWS: 16 };
+/* To-Do & Reminders: above the checklist (row 3), the automatic reminders from the hidden Reminders tab, so everything to do is on
+   the first tab (the owner, 2026-11-27). The strip sits above the header and is merged across only, so the to-do rows below can be
+   dragged into any order (rows that pass through a box merged down several rows cannot be moved). Holds no entered data: redrawn
+   by build and upgrade. */
+const TODO_SIDE = { FIRST_COL: 7, WIDTH: 6, STRIP_ROW: 3, STRIP_HEIGHT: 120 }; // FIRST_COL/WIDTH: where the box sat before, cleared on upgrade
 function buildTodoTop_(sh, def) {
   const n = def.columns.length, c1 = TODO_SIDE.FIRST_COL, w = TODO_SIDE.WIDTH, all = c1 + w - 1;
   ensureSheetSize_(sh, def.lastRow + 5, all);
   sh.getRange(1, 1, 1, all).setBackground(COLORS.NAVY);
   sh.getRange(2, 1, 1, all).setBackground(COLORS.WHITE);
-  sh.setColumnWidth(n + 1, 24);
-  for (let c = c1; c <= all; c++) sh.setColumnWidth(c, 110);
-  const side = sh.getRange(1, c1, def.lastRow, w);
+  // the side panel of the first layout (a box merged down the rows beside the checklist): emptied, so rows can be moved
+  const side = sh.getRange(TODO_SIDE.STRIP_ROW, c1, def.lastRow - TODO_SIDE.STRIP_ROW + 1, w);
   side.breakApart();
-  side.clearContent(); // SAFETY-APPROVED: the side panel is calculated (one formula box and its labels); no entered data is kept there
+  side.clear(); // SAFETY-APPROVED: the old side panel was calculated (one formula box and its labels); no entered data is kept there
   side.clearDataValidations();
-  const head = sh.getRange(def.headerRow, c1, 1, w).merge();
-  head.setValue('Automatic reminders');
-  styleHeader_(head);
-  const box = sh.getRange(def.firstRow, c1, TODO_SIDE.BOX_ROWS, w).merge();
+  const strip = sh.getRange(TODO_SIDE.STRIP_ROW, 1, 1, n);
+  strip.breakApart();
+  strip.merge();
   // the cell itself, not the REMINDERS_BOX name: the name is removed and set again each time the Reminders tab is rebuilt, and a
   // formula that used it was left with #REF! (an empty box) after the first upgrade (fixed 2026-11-27)
-  box.setFormula('=IFERROR(\'' + SHEETS.REMINDERS + '\'!$A$' + REMINDERS.BOX_FIRST + ',"")');
-  box.setWrap(true).setVerticalAlignment('top').setFontSize(11).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
+  strip.setFormula('="Automatic reminders (each clears itself when you update what it asks for)"&CHAR(10)&IFERROR(\'' + SHEETS.REMINDERS + '\'!$A$' + REMINDERS.BOX_FIRST + ',"")');
+  strip.setWrap(true).setVerticalAlignment('top').setHorizontalAlignment('left').setFontSize(10).setFontStyle('normal').setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
     .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange(def.firstRow + TODO_SIDE.BOX_ROWS, c1, 1, w).merge()
-    .setValue('These clear themselves when you update the value they ask for. PSLF counts on Debts, credit scores on the Credit Scores tab, pay stubs through Finance Tracker → Import from Claude, balances typed by hand on Accounts. The same list is emailed at most once a month (App Setup).')
-    .setWrap(true).setVerticalAlignment('top').setFontSize(9).setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT);
-  sh.setRowHeight(def.firstRow + TODO_SIDE.BOX_ROWS, 48);
+  sh.setRowHeight(TODO_SIDE.STRIP_ROW, TODO_SIDE.STRIP_HEIGHT);
 }
 
 /** Recurring Payments rows 1–38: KPIs, group summary, upcoming lists. */

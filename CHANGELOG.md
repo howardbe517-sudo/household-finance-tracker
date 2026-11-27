@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-27 — To-do rows can be dragged into any order
+- Why (the owner): to put the checklist in priority order by moving rows.
+  The reminders box beside the checklist was merged down many rows, and
+  Google Sheets does not move rows that pass through such a box.
+- `Tables.gs` (`buildTodoTop_`): the reminders are now a strip in row 3,
+  above the header and merged across only; the old side panel is emptied on
+  upgrade. `Config.gs`: the tab's note says how to reorder. The owner's
+  Sheet was changed directly the same day; nothing to run.
+- `BUILD_VERSION` 1.41.1. Files changed in `apps-script/`: `Tables.gs`,
+  `Config.gs`, `Reference.gs`. Layout only, no data review.
+- Tested: Node mock (the strip's formula, the empty side columns). Dragging
+  rows needs trying in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — The monthly review looks at last month itself
 - Why (the owner): the review deck read like averages; it should review the
   last month every time it is made.

@@ -1,5 +1,13 @@
 # STATUS
 
+2026-11-27 (build 1.41.1): the AI snapshot opens with the last full month
+in detail and the review skill reports that month; the owner has the
+updated skill file to save. A college savings (529) account was added by
+hand (not on the bank feed): its balance, owner and contributions are still
+to come from the owner. The funds on Savings & Reserves were moved together
+(no blank rows). The To-Do tab's reminders moved to a strip above the
+checklist so rows can be dragged.
+
 2026-11-27 (build 1.40.1, no schema change): the owner ran the upgrade; the
 goals and first to-dos are entered. The To-Do tab's reminders box was empty
 after the upgrade (a broken name reference) and is fixed in the Sheet and in

@@ -349,7 +349,7 @@ function buildStartHere_(withSample) {
     ['Recurring Payments', 'Expected bills, subscriptions and loan payments with their day of the month; they feed the monthly plan and the Spending tab.'],
     ['Monthly Budget · Monthly Plan · Monthly Summary · Monthly Review', 'Planned vs actual by category; the flexible target and weekly guidance (automatic unless you set one); calculated monthly results; your month-end notes.'],
     ['Quarterly Debt Review · Net Worth Snapshots · Credit Scores', 'Debt balances by quarter where no lender is connected; net worth history; credit scores typed in by hand.'],
-    ['To-Do & Reminders', 'First tab: your own to-do checklist (tick Done? when finished), and beside it the automatic reminders, the few things only you can do (PSLF counts, credit scores, balances typed by hand), also emailed monthly.'],
+    ['To-Do & Reminders', 'First tab: your own to-do checklist (tick Done? when finished; drag a row by its number to reorder), and above it the automatic reminders, the few things only you can do (PSLF counts, credit scores, balances typed by hand), also emailed monthly.'],
     ['Categories · App Setup · Sources · Import Rules · Connections · Paste Import · Accounts · Change Log', 'The machinery: the category list and dropdowns, settings, design sources, the rules that classify bank rows, the bank logins, the paste-import landing area, the account list, and the audit log.'],
   ].forEach(([tab, what]) => line(tab + ' — ' + what));
   r++;
