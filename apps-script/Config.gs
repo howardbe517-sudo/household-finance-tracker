@@ -817,7 +817,7 @@ TABLES.TODO = {
 TABLES.STRAT = {
   key: 'STRAT', sheet: SHEETS.TODO, headerRow: 22, firstRow: 23, lastRow: 32, fixedRows: true, sharesSheet: true,
   title: 'Our Money-Saving Strategies',
-  note: 'The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in.',
+  note: 'The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in. (Leave ? * and ~ out of the names: the Sheet reads them as wildcards.)',
   idPrefix: '', idPattern: '(none)', logChanges: false,
   columns: [
     { key: 'strategy', h: 'Strategy', note: 'Added in 3.27 (the owner, 2026-11-27).' },
@@ -830,6 +830,9 @@ TABLES.STRAT = {
     { key: 'monthly', h: 'Saved per Month', fmt: C.cur,
       f: '=IF([@strategy]="","",[@yearly]/12)' },
     { key: 'how', h: 'How We Do It' },
+    { key: 'once', h: 'Saved Once', w: 115, fmt: C.cur,
+      f: '=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"One time"))',
+      note: 'One-time savings of this strategy\'s journal entries (a discount for a few months, a one-off purchase avoided), kept apart from the yearly figure.' },
   ],
 };
 
@@ -850,10 +853,10 @@ TABLES.SAVEJ = {
     { key: 'newCost', h: 'New Cost', fmt: C.cur, note: 'What it costs each time now; 0 when it was cancelled.' },
     { key: 'often', h: 'How Often', v: { list: 'SAVING_FREQ' }, note: 'How often that cost comes round. One time: a saving that happens once (counted once, not every year).' },
     { key: 'strategy', h: 'Strategy', v: { idsOf: 'STRAT' }, note: 'Which of our money-saving strategies this belongs to (the list above the journal).' },
-    { key: 'yearly', h: 'Saved per Year', w: 115, fmt: C.cur,
+    { key: 'yearly', h: 'Saving (per Year, or Once)', w: 115, fmt: C.cur,
       f: '=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*' +
         'SWITCH([@often],' + Object.keys(SAVING_TIMES_A_YEAR).map(k => '"' + k + '",' + SAVING_TIMES_A_YEAR[k]).join(',') + ',0)))',
-      note: '(Old Cost − New Cost) × how many times a year. Blank until Old Cost, New Cost and How Often are filled in.' },
+      note: '(Old Cost − New Cost) × how many times a year; for One time, the saving once. Blank until Old Cost, New Cost and How Often are filled in. Shown in red when negative: the change costs more now.' },
     { key: 'date', h: 'Date', w: 100, fmt: C.date, v: { date: true }, note: 'When the change started.' },
     { key: 'notes', h: 'Notes', w: 300 },
   ],

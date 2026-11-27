@@ -9,7 +9,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | TODO | To-Do & Reminders | 4 | 5 | 19 | (none) | 5 | no |
-| STRAT | To-Do & Reminders | 22 | 23 | 32 | (none) | 5 | no |
+| STRAT | To-Do & Reminders | 22 | 23 | 32 | (none) | 6 | no |
 | SAVEJ | To-Do & Reminders | 36 | 37 | 136 | (none) | 8 | no |
 | GOALPLAN | Goals & Progress | 4 | 5 | 34 | (none) | 14 | no |
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
@@ -55,7 +55,7 @@ Named range `TBL_TODO` covers the header row through the last formula row.
 
 ## To-Do & Reminders (`STRAT`)
 
-The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in.
+The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in. (Leave ? * and ~ out of the names: the Sheet reads them as wildcards.)
 
 Named range `TBL_STRAT` covers the header row through the last formula row.
 
@@ -66,6 +66,7 @@ Named range `TBL_STRAT` covers the header row through the last formula row.
 | C | Saved per Year | `yearly` | currency | calculated | `=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"<>One time"))` — The Saved per Year of this strategy's journal entries. One-time savings are left out (they are not repeated each year). |
 | D | Saved per Month | `monthly` | currency | calculated | `=IF([@strategy]="","",[@yearly]/12)` |
 | E | How We Do It | `how` | text | input |  |
+| F | Saved Once | `once` | currency | calculated | `=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"One time"))` — One-time savings of this strategy's journal entries (a discount for a few months, a one-off purchase avoided), kept apart from the yearly figure. |
 
 ## To-Do & Reminders (`SAVEJ`)
 
@@ -80,7 +81,7 @@ Named range `TBL_SAVEJ` covers the header row through the last formula row.
 | C | New Cost | `newCost` | currency | input | What it costs each time now; 0 when it was cancelled. |
 | D | How Often | `often` | text | dropdown: LIST_SAVING_FREQ | How often that cost comes round. One time: a saving that happens once (counted once, not every year). |
 | E | Strategy | `strategy` | text | dropdown: To-Do & Reminders IDs | Which of our money-saving strategies this belongs to (the list above the journal). |
-| F | Saved per Year | `yearly` | currency | calculated | `=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*SWITCH([@often],"Daily",365,"Weekly",52,"Every 2 weeks",2…` — (Old Cost − New Cost) × how many times a year. Blank until Old Cost, New Cost and How Often are filled in. |
+| F | Saving (per Year, or Once) | `yearly` | currency | calculated | `=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*SWITCH([@often],"Daily",365,"Weekly",52,"Every 2 weeks",2…` — (Old Cost − New Cost) × how many times a year; for One time, the saving once. Blank until Old Cost, New Cost and How Often are filled in. Shown in red when negative: the change costs more now. |
 | G | Date | `date` | date | input (date) | When the change started. |
 | H | Notes | `notes` | text | input |  |
 

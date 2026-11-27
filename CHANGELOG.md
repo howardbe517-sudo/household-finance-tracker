@@ -1,5 +1,49 @@
 # CHANGELOG
 
+## 2026-11-27 — Savings Journal and money-saving strategies (schema 3.27)
+- Why (the owner): a place on the To-Do tab (not a new tab) to keep a
+  journal of money-saving changes with their estimated savings, and a list of
+  the household's main strategies for saving money. The checklist "should
+  never have more than 15 things on there".
+- `Config.gs`: the checklist (`TABLES.TODO`) is now rows 5–19 (`fixedRows`,
+  no frozen rows). New `TABLES.STRAT` (Our Money-Saving Strategies, rows
+  23–32: Strategy, Changes, Saved per Year, Saved per Month, How We Do It,
+  Saved Once) and `TABLES.SAVEJ` (Savings Journal, from row 37: What We
+  Changed, Old Cost, New Cost, How Often, Strategy, Saving (per Year, or
+  Once), Date, Notes). New list Saving Frequencies. Done? and For are a
+  little wider so the journal headers fit.
+- `Tables.gs`: `buildSavingsSection_` (section bars and a summary line:
+  yearly and monthly savings, one-time savings, changes logged, and any
+  yearly saving under no strategy); `savingsPerYear_`, `savingsTotals_`,
+  `savingsUnassigned_`; a negative saving shows in red; the checklist's
+  formats keep the other tables'. `emptyOldTodoRows_` empties the old
+  unticked rows 20–204 once.
+- `Helpers.gs`: tables that share a tab (`buildSharedTable_`,
+  `tableReadEnd_`, `rulesOutsideRows_`, `growSheet_`). Fixed: the To-Do
+  tab's redraw trimmed the tab to just below the checklist, which would
+  have removed the new tables on every upgrade. Row shading now replaces a
+  table's older shading rule after the table grew (every table).
+- `Upgrade.gs`: builds the two tables on the existing tab; stops before any
+  change if a to-do sits below row 19 (`todoOverflowConflict_`).
+  `Main.gs`: fixed-row tables are not extended.
+- `QA.gs` 6c: each journal row and each strategy against the JavaScript;
+  information lines for entries under no strategy and repeated names.
+  `Export.gs`: a Money-saving changes section in the AI snapshot; the review
+  skill mentions it on the Goals slide.
+- `BUILD_VERSION` 1.42.0, `SCHEMA_VERSION` 3.27. Files changed in
+  `apps-script/`: `Config.gs`, `Tables.gs`, `Helpers.gs`, `Upgrade.gs`,
+  `Main.gs`, `QA.gs`, `Export.gs`. **Run Upgrade workbook.** Handoff:
+  `handoffs/2026-11-27-savings-journal.json`.
+- Data review: no must-fix; four should-fix items done (savings under a
+  blank or mistyped strategy are shown, one-time savings get their own
+  strategy column and a clearer journal header, negative savings in red,
+  wildcard characters noted for strategy names).
+- Tested: Node mock (layout, separate reads, upgrade from the 200-row
+  checklist, the stop for a to-do below row 19, arithmetic, snapshot). In
+  Google: the Saving formula and the summary line in scratch cells. The
+  upgrade and Run QA still need running in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — To-do rows can be dragged into any order
 - Why (the owner): to put the checklist in priority order by moving rows.
   The reminders box beside the checklist was merged down many rows, and

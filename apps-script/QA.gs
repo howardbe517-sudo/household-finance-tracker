@@ -202,11 +202,13 @@ function qaReport_() {
     else if (jr.length) pass('Savings Journal: ' + jr.length + ' entr' + (jr.length === 1 ? 'y' : 'ies') + '; Saved per Year matches on every row');
     else info('Savings Journal has no entries yet');
     const tot = savingsTotals_(jr, strats);
-    const sBad = strats.filter(st => { const e = tot.byStrategy.filter(b => b.strategy === st.strategy)[0]; return !e || Number(st.changes) !== e.changes || !near(Number(st.yearly), e.perYear, 0.011); });
-    if (sBad.length) fail('Our Money-Saving Strategies: Changes or Saved per Year differs from the journal for ' + sBad.slice(0, 3).map(st => st.strategy).join('; '));
-    else if (strats.length) pass('Our Money-Saving Strategies: ' + strats.length + ' strateg' + (strats.length === 1 ? 'y' : 'ies') + '; Changes and Saved per Year match the journal');
-    const orphan = jr.filter(r => r.strategy && !strats.some(st => String(st.strategy).toLowerCase() === String(r.strategy).toLowerCase())).length;
-    if (orphan) info('Savings Journal: ' + orphan + ' entr' + (orphan === 1 ? 'y names a strategy' : 'ies name a strategy') + ' that is not on the strategies list, so ' + (orphan === 1 ? 'it is' : 'they are') + ' in the total but under no strategy');
+    const sBad = strats.filter(st => { const e = tot.byStrategy.filter(b => b.strategy === st.strategy)[0]; return !e || Number(st.changes) !== e.changes || !near(Number(st.yearly), e.perYear, 0.011) || !near(Number(st.once), e.once, 0.011); });
+    if (sBad.length) fail('Our Money-Saving Strategies: Changes, Saved per Year or Saved Once differs from the journal for ' + sBad.slice(0, 3).map(st => st.strategy).join('; '));
+    else if (strats.length) pass('Our Money-Saving Strategies: ' + strats.length + ' strateg' + (strats.length === 1 ? 'y' : 'ies') + '; Changes, Saved per Year and Saved Once match the journal');
+    const orphan = jr.filter(r => !strats.some(st => String(st.strategy).toLowerCase() === String(r.strategy).toLowerCase()));
+    if (orphan.length) info('Savings Journal: ' + orphan.length + ' entr' + (orphan.length === 1 ? 'y has' : 'ies have') + ' a blank Strategy or one not on the strategies list (' + orphan.slice(0, 3).map(r => 'row ' + r.__row).join(', ') + '); ' + money(savingsUnassigned_(tot)) + ' a year is in the total but under no strategy');
+    const names = strats.map(st => String(st.strategy).toLowerCase()), dup = names.filter((nm, i) => names.indexOf(nm) !== i);
+    if (dup.length) info('Our Money-Saving Strategies: a name appears more than once (' + dup.slice(0, 3).join('; ') + '), so its journal entries count in each of those rows');
   }
 
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */

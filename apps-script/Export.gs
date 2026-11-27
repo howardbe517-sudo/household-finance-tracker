@@ -247,7 +247,10 @@ function buildSnapshotText_(d) {
     const st = savingsTotals_(saveRows, arr(d.strategies));
     L.push('## Money-saving changes (from the Savings Journal)');
     L.push('- Saving about ' + money(st.perYear) + ' a year (' + money(st.perYear / 12) + ' a month) from ' + st.count + ' change(s)' + (st.oneTime ? '; plus ' + money(st.oneTime) + ' saved once' : '') + '.');
-    st.byStrategy.forEach(b => L.push('- Strategy: ' + cell(b.strategy) + ' — ' + b.changes + ' change(s), ' + money(b.perYear) + ' a year'));
+    st.byStrategy.forEach(b => L.push('- Strategy: ' + cell(b.strategy) + ' — ' + b.changes + ' change(s), ' + money(b.perYear) + ' a year' + (b.once ? ' and ' + money(b.once) + ' once' : '')));
+    const unassigned = savingsUnassigned_(st);
+    if (Math.abs(unassigned) >= 0.005) L.push('- Not under any strategy: ' + money(unassigned) + ' a year (a blank or unlisted Strategy).');
+    L.push('- These are the household\'s own estimates (old cost against new cost), not measured from spending.');
     saveRows.forEach(r => {
       const y = savingsPerYear_(r);
       L.push('- ' + cell(r.change) + (y === '' ? ' — saving not worked out yet (costs or how often missing)' : ' — ' + money(y) + (r.often === 'One time' ? ' once' : ' a year')) + (isDate(r.date) ? ' · since ' + dateStr(r.date) : ''));

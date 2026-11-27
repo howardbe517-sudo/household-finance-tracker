@@ -196,6 +196,14 @@ CF_BUILDERS.TODO = (sh, def) => {
   ]));
 };
 
+// Savings Journal: a change that costs more now shows its (negative) saving in red. The checklist and the strategies keep their formats.
+CF_BUILDERS.SAVEJ = (sh, def) => {
+  const y = cellRef_(def, 'yearly');
+  sh.setConditionalFormatRules(rulesOutsideRows_(sh, def.firstRow, def.lastRow).concat([
+    cfRule_(colRange_(sh, def, 'yearly'), '=AND(ISNUMBER(' + y + '),' + y + '<0)', null, COLORS.OVER_FONT),
+  ]));
+};
+
 /**
  * A Savings Journal row's Saved per Year, as its formula works it out (TABLES.SAVEJ.yearly). Pure.
  * (Old Cost − New Cost) × times a year; '' (shown blank) until What We Changed, Old Cost, New Cost and How Often are all filled in.
@@ -224,9 +232,14 @@ function savingsTotals_(journal, strategies) {
     count: rows.length,
     byStrategy: (strategies || []).filter(st => st.strategy !== '' && st.strategy !== null && st.strategy !== undefined).map(st => {
       const mine = rows.filter(r => String(r.strategy).toLowerCase() === String(st.strategy).toLowerCase());
-      return { strategy: st.strategy, changes: mine.length, perYear: mine.filter(recurring).reduce((s, r) => s + yearlyOf(r), 0) };
+      return { strategy: st.strategy, changes: mine.length, perYear: mine.filter(recurring).reduce((s, r) => s + yearlyOf(r), 0), once: mine.filter(r => !recurring(r)).reduce((s, r) => s + yearlyOf(r), 0) };
     }),
   };
+}
+
+/** Yearly savings that no strategy row picks up (a blank or mistyped Strategy), as the journal's summary line shows them: total minus the strategies' Saved per Year. Pure. */
+function savingsUnassigned_(totals) {
+  return totals.perYear - totals.byStrategy.reduce((s, b) => s + b.perYear, 0);
 }
 
 // a finished goal turns green
@@ -338,10 +351,12 @@ function buildSavingsSection_(sh) {
   bar(strat.headerRow - 1, strat);
   bar(jr.headerRow - 2, jr);
   const yr = colRef_('SAVEJ', 'yearly'), often = colRef_('SAVEJ', 'often'), what = colRef_('SAVEJ', 'change');
+  // the strategies' Saved per Year, bounded to their own rows (an open column would run on into the journal below)
+  const stYr = q_(strat.sheet) + '!$' + colLetterOf_(strat, 'yearly') + '$' + strat.firstRow + ':$' + colLetterOf_(strat, 'yearly') + '$' + strat.lastRow;
   const sum = sh.getRange(jr.headerRow - 1, 1, 1, W);
   sum.setValues([Array(W).fill('')]);
   sum.setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT).setFontSize(11).setFontWeight('bold').setWrap(false).setVerticalAlignment('middle');
-  sh.getRange(jr.headerRow - 1, 1).setFormula('="Saving about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time"),"$#,##0")&" a year (about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time")/12,"$#,##0")&" a month)   ·   one-time savings "&TEXT(SUMIFS(' + yr + ',' + often + ',"One time"),"$#,##0")&"   ·   "&COUNTIF(' + what + ',"<>")&" change(s) logged"');
+  sh.getRange(jr.headerRow - 1, 1).setFormula('="Saving about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time"),"$#,##0")&" a year (about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time")/12,"$#,##0")&" a month)   ·   one-time savings "&TEXT(SUMIFS(' + yr + ',' + often + ',"One time"),"$#,##0")&"   ·   "&COUNTIF(' + what + ',"<>")&" change(s) logged"&IF(ROUND(SUMIFS(' + yr + ',' + often + ',"<>One time")-SUM(' + stYr + '),2)=0,"","   ·   "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time")-SUM(' + stYr + '),"$#,##0")&" a year not under any strategy above")');
   sh.setRowHeight(jr.headerRow - 1, 28);
 }
 

@@ -5,7 +5,7 @@
   "intro": [
     "The code reaches your Sheet on its own once it is merged. One upgrade adds two new sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab.",
     "**Our Money-Saving Strategies** is a short list (10 rows) of the main ways you save, such as cutting subscriptions or cheaper swaps. Each strategy counts its journal entries and adds up what they save.",
-    "The **Savings Journal** has one row for each change you made. You type what you changed, the old cost, the new cost and how often you pay it. **Saved per Year** works itself out. A line above the journal shows the total saved a year and a month.",
+    "The **Savings Journal** has one row for each change you made. You type what you changed, the old cost, the new cost and how often you pay it. The **Saving** column works itself out (per year, or once for a one-time saving). A line above the journal shows the total saved a year and a month.",
     "**The checklist now holds 15 to-dos** (rows 5 to 19), so the new sections can sit below it. Your current to-dos are all inside those rows. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
     "**What does not change:** your to-dos, the reminders strip, dragging rows to reorder, and every other tab. Rows on this tab are no longer frozen at the top, so you can scroll down to the journal."
   ],
@@ -39,7 +39,7 @@
         },
         {
           "text": "Scroll down past the strategies.",
-          "done": "A second dark bar titled **Savings Journal**, a green line that reads **Saving about $0 a year**, and the journal's columns: What We Changed, Old Cost, New Cost, How Often, Strategy, Saved per Year, Date, Notes."
+          "done": "A second dark bar titled **Savings Journal**, a green line that reads **Saving about $0 a year**, and the journal's columns: What We Changed, Old Cost, New Cost, How Often, Strategy, Saving (per Year, or Once), Date, Notes."
         },
         {
           "text": "Tell Claude the upgrade is done.",
@@ -52,11 +52,11 @@
       "steps": [
         {
           "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it. For something you cancelled, the new cost is 0. Pick **How Often** and a **Strategy** from the dropdowns.",
-          "done": "**Saved per Year** fills itself in, and the green total line and the strategy's row go up."
+          "done": "**Saving** fills itself in, and the green total line and the strategy's row go up. A change that costs more now shows in red."
         },
         {
           "text": "For a saving that happens only once, such as a discount for a few months, pick **One time** under How Often and type the total before and after.",
-          "done": "It shows in the green line as a one-time saving, kept apart from the yearly total."
+          "done": "It shows in the green line as a one-time saving, kept apart from the yearly total, and in the strategy's **Saved Once** column."
         }
       ]
     }
