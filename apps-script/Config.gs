@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.25-todo-2026-11-27',
-  BUILD_VERSION: '1.39.0',
+  SCHEMA_VERSION: '3.26-goals-2026-11-27',
+  BUILD_VERSION: '1.40.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -30,6 +30,7 @@ const SHEETS = {
   GOALS: 'Goals',
   REMINDERS: 'Reminders',
   TODO: 'To-Do & Reminders',
+  GOALPLAN: 'Goals & Progress',
   INCOME: 'Income',
   EXPECT: 'Expected Income',
   TX: 'Transactions',
@@ -73,9 +74,11 @@ const TAB_ORDER = [
   // 2026-11-15: Groceries after Utilities, then Grocery Charts (the owner: the graphs on their own tab); its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
   // 2026-11-17: Bill Changes (one-week changes made on the calendar) right after Recurring Payments.
   // 2026-11-21: Receipts (receipt photos and how each card charge was split by them) after Grocery Item Names.
+  // 2026-11-27: Goals & Progress (goals as rows with amounts, dates and progress) takes the place of the Goals tab's five text
+  // boxes; the Goals tab stays, hidden, with whatever was written in it.
   // 2026-11-27 (the owner): the to-do checklist first, since it is where he looks for what needs doing; the automatic
   // reminders show beside it, and the Reminders tab itself is hidden (it still feeds the monthly email and Show reminders).
-  SHEETS.TODO, SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  SHEETS.TODO, SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALPLAN,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.RECEIPTS, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
@@ -139,6 +142,7 @@ const LISTS = [
   { key: 'HOUSEHOLD_PERSONAL', header: 'Household/Personal', values: ['Household', 'Personal'] },
   { key: 'PERSONS', header: 'Persons', values: ['Ben', 'Valerie'] },
   { key: 'OWNERS', header: 'Owners', values: ['Ben', 'Valerie', 'Household'] },
+  { key: 'GOAL_KINDS', header: 'Goal Kinds', values: ['Pay off debt', 'Save up'] },
   { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other', 'Pension'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
   { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
@@ -798,6 +802,55 @@ TABLES.TODO = {
   ],
 };
 
+/**
+ * Goals & Progress (the owner, 2026-11-27): one row per goal, in priority order. A goal that names a debt (Debt ID) reads
+ * that debt's Latest Balance; one that names a fund (Fund ID) reads that fund's Current Amount; progress is worked out
+ * from there. goalProgress_ (Tables.gs) is the same arithmetic in JavaScript, for the QA checks and the AI snapshot.
+ */
+TABLES.GOALPLAN = {
+  key: 'GOALPLAN', sheet: SHEETS.GOALPLAN, headerRow: 4, firstRow: 5, lastRow: 34,
+  title: 'Goals & Progress',
+  note: 'One row per goal, most important first. Pick the Kind, then the debt it pays off (Debt ID) or the fund it fills (Fund ID); the amounts on the right fill themselves in. Starting Amount is the balance on the day you set the goal, so progress can be measured. Dates and amounts are yours to set.',
+  idPrefix: '', idPattern: '(none)', logChanges: false,
+  columns: [
+    { key: 'goal', h: 'Goal', w: 250 },
+    { key: 'priority', h: 'Priority', w: 70, fmt: '0' },
+    { key: 'kind', h: 'Kind', w: 110, v: { list: 'GOAL_KINDS' } },
+    { key: 'debtId', h: 'Debt ID', w: 95, v: { idsOf: 'DEBTS' } },
+    { key: 'fundId', h: 'Fund ID', w: 95, v: { idsOf: 'FUNDS' } },
+    { key: 'target', h: 'Target Amount', w: 115, fmt: C.cur,
+      note: 'Save up: the amount to reach. Pay off debt: the balance to get down to; leave blank to pay it off completely.' },
+    { key: 'start', h: 'Starting Amount', w: 115, fmt: C.cur,
+      note: 'Pay off debt: the balance when you set the goal (needed to show progress). Save up: what was already saved then; leave blank to count everything in the fund.' },
+    { key: 'targetDate', h: 'Target Date', w: 100, fmt: C.date, v: { date: true } },
+    { key: 'current', h: 'Now', w: 110, fmt: C.cur,
+      f: '=IF([@goal]="","",IF([@debtId]<>"",IFERROR(LET(i,MATCH([@debtId],[DEBTS.id],0),b,INDEX([DEBTS.latestBalance],i),a,INDEX([DEBTS.balanceAsOf],i),IF(OR(b="",AND(N(b)=0,NOT(ISNUMBER(a)))),"",N(b))),""),IF([@fundId]<>"",IFERROR(LET(c,INDEX([FUNDS.current],MATCH([@fundId],[FUNDS.id],0)),IF(c="","",N(c))),""),"")))',
+      note: 'The debt\'s Latest Balance, or the fund\'s Current Amount. Blank until the goal names a debt or a fund, and for a debt whose balance has not been entered yet.' },
+    { key: 'left', h: 'Left to Go', w: 110, fmt: C.cur,
+      f: '=IF(OR([@goal]="",[@current]=""),"",IF([@kind]="Pay off debt",MAX(0,[@current]-N([@target])),IF([@kind]="Save up",IF(N([@target])<=0,"",MAX(0,[@target]-[@current])),"")))',
+      note: 'Blank until a Kind is chosen.' },
+    { key: 'progress', h: '% Done', w: 75, fmt: C.pct,
+      f: '=IF(OR([@goal]="",[@current]=""),"",IF([@kind]="Pay off debt",IF(N([@start])-N([@target])<=0,"",MIN(1,MAX(0,(N([@start])-[@current])/(N([@start])-N([@target]))))),IF([@kind]="Save up",IF(N([@target])-N([@start])<=0,"",MIN(1,MAX(0,([@current]-N([@start]))/(N([@target])-N([@start]))))),"")))',
+      note: 'Pay off debt: how much of the way from the Starting Amount down to the target. Save up: how much of the way from the Starting Amount (or zero) up to the target.' },
+    { key: 'bar', h: 'Progress', w: 150,
+      f: '=IF([@progress]="","",SPARKLINE([@progress],{"charttype","bar";"max",1;"color1","#17324D"}))' },
+    { key: 'monthly', h: 'Needed per Month', w: 120, fmt: C.cur,
+      f: '=IF(OR([@left]="",[@targetDate]=""),"",IF([@left]=0,0,IF([@targetDate]<TODAY(),"Past due",[@left]/(DATEDIF(TODAY(),[@targetDate],"M")+1))))',
+      note: 'Left to Go spread evenly over the payments still to come: one this month and one in each whole month until the Target Date. "Past due" once the date has gone by. For a debt this leaves out the interest that will be added along the way, so the real payment needs to be somewhat higher; the Payoff planner works that out.' },
+    { key: 'notes', h: 'Notes', w: 300 },
+  ],
+};
+
+/**
+ * Tabs kept out of sight (the owner, 2026-11-27: fewer tabs to look at): raw tables the feed and the receipts fill, calculated
+ * tables the summary tabs read, and setup. Nothing is removed; Finance Tracker → Show all tabs brings them back, and the
+ * choice is remembered (Script Property TABS_SHOW_ALL). applyTabVisibility_ (Main.gs) hides or shows them.
+ */
+const BACKGROUND_TABS = [
+  SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.RECEIPTS, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
+  SHEETS.NW, SHEETS.REVIEW, SHEETS.CATS, SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN, SHEETS.LOG,
+];
+
 TABLES.BILLCHG = {
   key: 'BILLCHG', sheet: SHEETS.BILLCHG, headerRow: 4, firstRow: 5, lastRow: 304,
   title: 'Bill Changes — One-Week Changes from the Calendar',
@@ -1135,7 +1188,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['TODO', 'CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['TODO', 'GOALPLAN', 'CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

@@ -53,6 +53,8 @@ function buildGoals_() {
     for (let r = top + 1; r <= top + GOALS.BOX_ROWS; r++) sh.setRowHeight(r, GOALS.ROW_HEIGHT);
     setNamedRange_('GOAL_' + n, box);
   }
+  // Goals & Progress (rows with amounts, dates and progress) took its place on 2026-11-27; this tab stays, hidden, with its text
+  sh.hideSheet();
 }
 
 /**

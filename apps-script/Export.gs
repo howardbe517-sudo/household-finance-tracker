@@ -38,6 +38,7 @@ function collectSnapshotData_() {
     tx: readTable_(tdef_('TX')),
     accounts: readTable_(tdef_('ACCOUNTS')),
     debts: readTable_(tdef_('DEBTS')),
+    goals: readTable_(tdef_('GOALPLAN')),
     qdr: readTable_(tdef_('QDR')),
     funds: readTable_(tdef_('FUNDS')),
     budgets: readTable_(tdef_('BUDGET')),
@@ -148,7 +149,7 @@ function buildSnapshotText_(d) {
     return ks.length ? Math.max(1, cur - Math.min.apply(null, ks)) : 0;
   })();
   const utilLabel = utilN ? 'over the ' + utilN + ' full month(s) since the first bill (up to 12)' : 'no bills in the last 12 full months';
-  const flex = typicalFlexible_(tx, today, waitTx);
+  const flex = typicalFlexible_(tx, today, waitTx, summaryWindow_(income, tx, today, 1).firstFull);
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
   const plannedSavings = sum(funds, f => f.plannedMonthly);
@@ -161,6 +162,24 @@ function buildSnapshotText_(d) {
   L.push('- Flexible spending (average): ' + money(flex.average) + ' — everything not marked Fixed, ' + (flex.provisional ? 'this month so far (no full month of spending yet, so provisional)' : 'averaged over ' + flex.months + ' month(s) with spending among the last ' + FINSUM.FLEX_MONTHS + ' full months') + '.');
   L.push('- Likely left over: ' + money(comingIn - fixed - flex.average) + ' = coming in − fixed (with planned savings) − flexible' + (flex.provisional ? ' (provisional)' : '') + '.');
   L.push('');
+
+  /* Goals, in the owner's priority order */
+  const goalRows = arr(d.goals).filter(g => g.goal).slice().sort((a, b) => (num(a.priority) || 999) - (num(b.priority) || 999));
+  if (goalRows.length) {
+    L.push('## Goals (in priority order, from Goals & Progress)');
+    goalRows.forEach((g, i) => {
+      const debt = g.debtId ? debts.filter(x => x.id === g.debtId)[0] : null, fund = g.fundId ? funds.filter(x => x.id === g.fundId)[0] : null;
+      const p = goalProgress_(g, debt ? goalDebtBalance_(debt) : null, fund ? fund.current : null);
+      const parts = [g.kind || 'kind not set'];
+      if (p.current !== '') parts.push(g.kind === 'Pay off debt' ? 'balance now ' + money(p.current) + (isNum(g.start) && num(g.start) > 0 ? ' (started at ' + money(g.start) + ')' : '') : 'saved so far ' + money(p.current) + (num(g.target) > 0 ? ' of ' + money(g.target) : ''));
+      else parts.push('no debt or fund named yet, so no progress figure');
+      if (p.progress !== '') parts.push(pct(p.progress) + ' done');
+      if (p.left !== '' && p.left > 0) parts.push(money(p.left) + ' to go');
+      if (isDate(g.targetDate)) parts.push('target date ' + dateStr(g.targetDate));
+      L.push((i + 1) + '. ' + cell(g.goal) + ' — ' + parts.join(' · ') + (g.notes ? ' · ' + cell(g.notes) : ''));
+    });
+    L.push('');
+  }
 
   /* Income */
   L.push('## Income (paychecks)');

@@ -52,6 +52,7 @@ function buildWorkbook(options) {
 
   // Tab order, cleanup
   TAB_ORDER.forEach((name, i) => { ss.setActiveSheet(ss.getSheetByName(name)); ss.moveActiveSheet(i + 1); });
+  applyTabVisibility_();
   ss.deleteSheet(ss.getSheetByName('_build')); // SAFETY-APPROVED: removes the temporary _build scratch sheet only
   if (ss.getName().indexOf('Untitled') === 0) ss.rename(HFT.TITLE);
   ss.setActiveSheet(ss.getSheetByName(SHEETS.SPEND));
@@ -68,6 +69,39 @@ function buildWorkbook(options) {
   Logger.log(summary + '\n' + qa.lines.join('\n'));
   toast_(summary, 'Finance Tracker');
   return { seconds: secs, qa };
+}
+
+/* ---------- fewer tabs (the owner, 2026-11-27) ---------- */
+
+/** Hide the BACKGROUND_TABS (Config.gs), or show them when the owner chose Show all tabs. Changes visibility only. Returns the number hidden. */
+function applyTabVisibility_() {
+  const ss = ss_();
+  const showAll = PropertiesService.getScriptProperties().getProperty('TABS_SHOW_ALL') === 'true';
+  let hidden = 0;
+  BACKGROUND_TABS.forEach(name => {
+    const sh = ss.getSheetByName(name);
+    if (!sh) return;
+    if (showAll) { if (sh.isSheetHidden()) sh.showSheet(); }
+    else { if (!sh.isSheetHidden()) sh.hideSheet(); hidden++; }
+  });
+  return hidden;
+}
+
+/** Finance Tracker → Show all tabs. */
+function showAllTabs() {
+  PropertiesService.getScriptProperties().setProperty('TABS_SHOW_ALL', 'true');
+  applyTabVisibility_();
+  toast_('All tabs are showing. Finance Tracker → Show everyday tabs only hides the background ones again.', 'Finance Tracker');
+}
+
+/** Finance Tracker → Show everyday tabs only. */
+function showEverydayTabs() {
+  PropertiesService.getScriptProperties().setProperty('TABS_SHOW_ALL', 'false');
+  const ss = ss_();
+  const active = ss.getActiveSheet();
+  if (active && BACKGROUND_TABS.indexOf(active.getName()) >= 0) { const sp = ss.getSheetByName(SHEETS.SPEND); if (sp) ss.setActiveSheet(sp); } // the tab being looked at cannot be hidden
+  const n = applyTabVisibility_();
+  toast_(n + ' background tabs are hidden. Nothing is removed: Finance Tracker → Show all tabs brings them back.', 'Finance Tracker');
 }
 
 /* ---------- menu ---------- */
@@ -101,6 +135,9 @@ function onOpen() {
     .addItem('Run QA checks', 'runQA')
     .addItem('Link income deposits to paychecks', 'linkIncomeDeposits')
     .addItem('Record net worth snapshot', 'recordNetWorthSnapshot')
+    .addSeparator()
+    .addItem('Show all tabs', 'showAllTabs')
+    .addItem('Show everyday tabs only', 'showEverydayTabs')
     .addSeparator()
     .addItem('Upgrade workbook (keeps data)', 'upgradeWorkbook')
     .addItem('Extend formula rows (+500 per table)', 'extendFormulaRows')

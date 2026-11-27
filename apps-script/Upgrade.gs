@@ -109,8 +109,11 @@ function upgradeWorkbookLocked_() {
   report.push('Refreshed App Setup, Financial Summary, Spending, Utilities, Groceries, Grocery Charts, Start Here and Sources (settings and inputs kept).');
 
   // 5. tab order
-  TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });
+  // a hidden tab is shown while it is moved into place; the background tabs are hidden again right after (unless Show all tabs is on)
+  TAB_ORDER.forEach((name, i) => { const sh = ss.getSheetByName(name); if (sh) { if (sh.isSheetHidden()) sh.showSheet(); ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } });
   ss.setActiveSheet(ss.getSheetByName(SHEETS.SPEND));
+  const hid = applyTabVisibility_();
+  if (hid) report.push(hid + ' background tabs are hidden (raw tables, calculated tables, setup). Nothing is removed: Finance Tracker → Show all tabs brings them back.');
   SpreadsheetApp.flush();
   report.unshift('Schema ' + HFT.SCHEMA_VERSION + ' · script ' + HFT.BUILD_VERSION);
   return report;

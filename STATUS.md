@@ -1,5 +1,18 @@
 # STATUS
 
+2026-11-27 (build 1.40.0, schema 3.26): after a review of the whole tracker
+the owner chose: 16 background tabs hidden (menu to show them), Financial
+Summary averages over full months only, Month by month without empty or
+part months, and a Goals & Progress tab (goals as rows with progress).
+Waiting for the owner's upgrade; then Claude adds the goals (pay off the
+card, then the other debts, the emergency fund, a house down payment) and
+the first to-dos. The emergency fund has a provisional three-month target;
+the owner and his wife still want to discuss its size. Next: a monthly
+review done outside the Sheet (the AI snapshot in a Claude project, with a
+skill that walks through the month and can make slides); the Monthly Review
+tab is hidden meanwhile. Not built yet: an automatic monthly net worth
+snapshot; collapsing the lower sections of the Financial Summary.
+
 2026-11-27 (records, no code): the November Apple charges were identified
 from the owner's Apple Purchase History. Four monthly subscriptions are on
 Recurring Payments (one renamed, three added); a combined charge was split

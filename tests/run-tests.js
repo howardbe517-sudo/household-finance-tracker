@@ -39,9 +39,26 @@ const SHEETS = vm.runInContext('SHEETS', ctx);
 
 /* 1. tabs */
 const names = ss.getSheets().map(s => s.getName());
-if (names.length === 36 && JSON.stringify(names.filter(n => n !== 'Reminders')) === JSON.stringify(TAB_ORDER) && names[35] === 'Reminders' && g.__ss.getSheetByName('Reminders').isSheetHidden() && names.indexOf('Dashboard') < 0) ok('35 tabs in the owner\'s order (To-Do & Reminders first, then Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Receipts after Grocery Item Names), plus the hidden Reminders tab at the end'); else bad('tab order/count: ' + names.join(' | '));
+const BACKGROUND_TABS = vm.runInContext('BACKGROUND_TABS', ctx);
+const hiddenNow = () => g.__ss.getSheets().filter(sh => sh.isSheetHidden()).map(sh => sh.getName()).sort().join('|');
+if (names.length === 37 && JSON.stringify(names.filter(n => n !== 'Reminders' && n !== 'Goals')) === JSON.stringify(TAB_ORDER) && names.slice(35).sort().join('|') === 'Goals|Reminders' && g.__ss.getSheetByName('Reminders').isSheetHidden() && g.__ss.getSheetByName('Goals').isSheetHidden() && names.indexOf('Dashboard') < 0) ok('35 tabs in the owner\'s order (To-Do & Reminders first, then Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts; Goals & Progress after Debts; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Receipts after Grocery Item Names), plus the hidden Reminders and old Goals tabs at the end'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
+// fewer tabs: the background tabs are hidden after a build; the menu shows them all or hides them again, and the choice is kept
+(function () {
+  const want = BACKGROUND_TABS.concat(['Goals', 'Reminders']).sort().join('|');
+  const after = hiddenNow();
+  vm.runInContext('showAllTabs()', ctx);
+  const shown = hiddenNow(), prop1 = g.__props.TABS_SHOW_ALL;
+  vm.runInContext('applyTabVisibility_()', ctx);
+  const still = hiddenNow();
+  vm.runInContext('showEverydayTabs()', ctx);
+  const again = hiddenNow();
+  if (BACKGROUND_TABS.length === 16 && after === want && shown === 'Goals|Reminders' && prop1 === 'true' && still === 'Goals|Reminders' && again === want && g.__props.TABS_SHOW_ALL === 'false'
+    && ['To-Do & Reminders', 'Financial Summary', 'Spending', 'Transactions', 'Import Staging', 'Recurring Payments', 'Accounts', 'Credit Scores', 'Quarterly Debt Review', 'Paste Import'].every(n => BACKGROUND_TABS.indexOf(n) < 0))
+    ok('16 background tabs (raw, calculated and setup tables) are hidden after a build; Show all tabs brings them back and is remembered; Show everyday tabs only hides them again; the tabs the owner works in stay visible');
+  else bad('tab visibility: ' + JSON.stringify([after, shown, prop1, still, again]));
+})();
 const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 28, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 19, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
@@ -137,7 +154,7 @@ if (fsSh.getRange('E' + FINSUM.CREDIT_BEN).getFormula().indexOf('SPARKLINE(($B' 
 const takeCardF = spSh0.getRange('A' + SPEND.CARD_VALUE).getFormula(), takeSubF = spSh0.getRange('A' + SPEND.CARD_SUB).getFormula(), spentCardF = spSh0.getRange('E' + SPEND.CARD_VALUE).getFormula(), spentSubF = spSh0.getRange('E' + SPEND.CARD_SUB).getFormula();
 if (/'Monthly Plan'/.test(takeCardF) && /\$B\$3/.test(takeCardF) && /paycheck/.test(takeSubF) && /'Monthly Summary'/.test(spentCardF) && /Typical month/.test(spentSubF) && /Used of a typical month/.test(spentSubF) && !/pace/i.test(spentSubF)) ok('Spending tab cards: expected take-home from Monthly Plan for the Selected Month (paycheck counts in its sub line), spent so far from Monthly Summary beside the typical month; no pace figure'); else bad('month cards: ' + [takeCardF, takeSubF, spentCardF, spentSubF].join(' | '));
 if (spSh0.getRange('A' + SPEND.CARD_LABEL).getValue() === 'Expected Take-Home' && spSh0.getRange('E' + SPEND.CARD_LABEL).getValue() === 'Spent So Far' && !/Gross/.test(spSh0.getRange('A1:I' + SPEND.CARD_SUB).getValues().join('|'))) ok('Spending tab has two cards: Expected Take-Home and Spent So Far; no gross card'); else bad('card labels: ' + [spSh0.getRange('A' + SPEND.CARD_LABEL).getValue(), spSh0.getRange('E' + SPEND.CARD_LABEL).getValue()].join(' | '));
-if (fsSh.getRange('A1').getValue() === 'Financial Summary' && fsSh.getRange('A' + FINSUM.CARD_LABEL).getValue() === 'Coming In (typical month)' && /'Expected Income'/.test(fsSh.getRange('A' + FINSUM.CARD_VALUE).getFormula()) && fsSh.getRange('A' + FINSUM.FUNDS_BAR).getValue() === 'Savings & Reserves' && fsSh.getRange('A' + FINSUM.DEBT_BAR).getValue() === 'Debts' && /Income by Person/.test(fsSh.getRange('A' + FINSUM.INCOME_BAR).getValue()) && /Payroll Deductions/.test(fsSh.getRange('A' + FINSUM.PAYROLL_BAR).getValue()) && fsSh.getRange('A' + FINSUM.NW_BAR).getValue() === 'Net worth' && ss.namedRanges.has('FINSUM_MONTHS') && TAB_ORDER[2] === SHEETS.FINSUM) ok('Financial Summary is the third tab (after To-Do & Reminders and Start Here): the typical month at a glance, month by month, Savings & Reserves, Debts, Income by Person, Payroll Deductions, Credit Scores, Net worth'); else bad('summary layout: ' + [fsSh.getRange('A' + FINSUM.FUNDS_BAR).getValue(), fsSh.getRange('A' + FINSUM.DEBT_BAR).getValue(), fsSh.getRange('A' + FINSUM.NW_BAR).getValue()].join(' | '));
+if (fsSh.getRange('A1').getValue() === 'Financial Summary' && fsSh.getRange('A' + FINSUM.CARD_LABEL).getValue() === 'Coming In (typical month)' && /'Expected Income'/.test(fsSh.getRange('A' + FINSUM.CARD_VALUE).getFormula()) && fsSh.getRange('A' + FINSUM.FUNDS_BAR).getValue() === 'Savings & Reserves' && fsSh.getRange('A' + FINSUM.DEBT_BAR).getValue() === 'Debts' && /Income by Person/.test(fsSh.getRange('A' + FINSUM.INCOME_BAR).getFormula()) && /Payroll Deductions/.test(fsSh.getRange('A' + FINSUM.PAYROLL_BAR).getValue()) && fsSh.getRange('A' + FINSUM.NW_BAR).getValue() === 'Net worth' && ss.namedRanges.has('FINSUM_MONTHS') && TAB_ORDER[2] === SHEETS.FINSUM) ok('Financial Summary is the third tab (after To-Do & Reminders and Start Here): the typical month at a glance, month by month, Savings & Reserves, Debts, Income by Person, Payroll Deductions, Credit Scores, Net worth'); else bad('summary layout: ' + [fsSh.getRange('A' + FINSUM.FUNDS_BAR).getValue(), fsSh.getRange('A' + FINSUM.DEBT_BAR).getValue(), fsSh.getRange('A' + FINSUM.NW_BAR).getValue()].join(' | '));
 
 /* 6. sample data landed */
 const txRows = vm.runInContext("readTable_(TABLES.TX)", ctx);
@@ -408,7 +425,7 @@ const mr2 = R(`ensureMonthRows_()`);
 if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice'); else bad('ensureMonthRows_ repeated: ' + JSON.stringify(mr2));
 // goals panel and reminders on the Dashboard
 const goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
-if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[9] === SHEETS.GOALS) ok('Goals tab (tenth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
+if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER.indexOf(SHEETS.GOALS) < 0 && goalsSh.isSheetHidden() && TAB_ORDER[9] === SHEETS.GOALPLAN) ok('the old Goals tab (hidden, kept) has five large goal boxes named GOAL_1…GOAL_5; Goals & Progress is the tenth tab'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
 const dSh = g.__ss.getSheetByName(SHEETS.FINSUM); // the accounts block opens the Financial Summary
 const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('F4').getFormula(), dH4 = dSh.getRange('G4').getFormula();
 if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('E4').getValue() === 'Independent Bank' && dSh.getRange('E6').getValue() === 'Capital One' && dSh.getRange('E7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Financial Summary opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
@@ -447,7 +464,19 @@ const fundCurF = g.__ss.getSheetByName(SHEETS.FUNDS).getRange(TABLES.FUNDS.first
 if (/Accounts/.test(fundCurF) && /MATCH\(/.test(fundCurF)) ok('a backed fund shows its account\'s live balance'); else bad('fund current formula: ' + fundCurF);
 const fsAvgF = g.__ss.getSheetByName(SHEETS.FINSUM).getRange('B' + FINSUM.INCOME_BEN).getFormula();
 const fsB4 = g.__ss.getSheetByName(SHEETS.FINSUM).getRange('B' + FINSUM.WINDOW_ROW).getFormula(), fsD4 = g.__ss.getSheetByName(SHEETS.FINSUM).getRange('D' + FINSUM.WINDOW_ROW).getFormula();
-if (/\$B\$15/.test(fsAvgF) && /\/\$D\$15/.test(fsAvgF) && /MAX\('Income'!\$C\$5:\$C\)/.test(fsB4) && /UNIQUE\(FILTER\('Income'!\$C\$5:\$C/.test(fsD4)) ok('Financial Summary averages end with the latest paycheck month and divide by the months that have paychecks (window cells on row 15, under the four cards)'); else bad('summary average formula: ' + [fsAvgF.slice(0, 120), fsB4.slice(0, 80), fsD4.slice(0, 80)].join(' | '));
+const fsH4 = g.__ss.getSheetByName(SHEETS.FINSUM).getRange('H' + FINSUM.WINDOW_ROW).getFormula(), fsHist = g.__ss.getSheetByName(SHEETS.FINSUM).getRange('A' + FINSUM.HIST_FIRST).getFormula();
+if (/\$B\$15/.test(fsAvgF) && /\/\$D\$15/.test(fsAvgF) && /<\$H\$15\)/.test(fsB4) && /^=DATEDIF\(\$C\$15,\$B\$15,"M"\)\+1$/.test(fsD4) && /MINIFS\('Income'!\$B\$5:\$B/.test(fsH4) && /MINIFS\('Transactions'!\$B\$5:\$B/.test(fsH4) && /DAY\(di\)<=3/.test(fsH4)
+    && /SORT\(FILTER\('Monthly Summary'!/.test(fsHist) && />=\$H\$15/.test(fsHist) && /No full month on record yet/.test(fsHist)) ok('Financial Summary averages cover full months only (window cells on row 15: last and first month, months in it, the first full month from the earliest paycheck and transaction); Month by month lists only full months with something recorded'); else bad('summary average formula: ' + [fsAvgF.slice(0, 120), fsB4.slice(0, 80), fsD4.slice(0, 80)].join(' | '));
+(function () {
+  const inc = `[{ payDate: new Date(2026, 9, 30), takeHome: 100 }, { payDate: new Date(2026, 10, 6), takeHome: 900 }]`;
+  const txr = `[{ date: new Date(2026, 10, 2), amount: 5, type: 'Expense' }, { date: new Date(2026, 8, 1), amount: 5, type: 'Expense', isDeleted: true }]`;
+  const mk2 = (d) => d.getFullYear() + '-' + (d.getMonth() + 1);
+  const w = (y, m, d, n) => { const r = R(`summaryWindow_(${inc}, ${txr}, new Date(${y}, ${m}, ${d}), ${n})`); return [mk2(r.start), mk2(r.end), r.months, r.provisional, r.firstFull ? mk2(r.firstFull) : null].join(' '); };
+  const none = R(`summaryWindow_([], [], new Date(2026, 10, 27), 3)`);
+  if (w(2026, 10, 27, 3) === '2026-11 2026-11 1 true 2026-11' && w(2026, 11, 5, 3) === '2026-11 2026-11 1 false 2026-11' && w(2027, 1, 10, 3) === '2026-11 2027-1 3 false 2026-11' && w(2027, 5, 10, 3) === '2027-3 2027-5 3 false 2026-11' && w(2027, 5, 10, 1) === '2027-5 2027-5 1 false 2026-11'
+    && none.provisional === true && none.months === 1 && none.firstFull === null) ok('the averages window: paychecks from Oct 30 and transactions from Nov 2 make November the first full month; during November it is the month so far (provisional), in December it is November alone, later the last N full months, never before the first full month; deleted rows ignored; with nothing recorded it is the month so far');
+  else bad('summaryWindow_: ' + JSON.stringify([w(2026, 10, 27, 3), w(2026, 11, 5, 3), w(2027, 1, 10, 3), w(2027, 5, 10, 3), w(2027, 5, 10, 1), none]));
+})();
 const gf = (ds) => R(`guessPayFrequency_(${JSON.stringify(ds)}.map(function(s){ return new Date(s + 'T00:00:00'); })).frequency`);
 if (gf(['2026-01-02','2026-01-16','2026-01-30','2026-02-13']) === 'Biweekly' && gf(['2026-01-15','2026-01-31','2026-02-13','2026-02-27','2026-03-13','2026-03-31']) === 'Semimonthly' && gf(['2026-01-30','2026-02-27','2026-03-31']) === 'Monthly' && gf(['2026-01-02','2026-01-09','2026-01-16']) === 'Weekly' && gf(['2026-01-02']) === 'Biweekly') ok('pay frequency guessed from pay-date gaps (weekly, biweekly, semimonthly, monthly; one date → biweekly)'); else bad('guessPayFrequency_: ' + [gf(['2026-01-02','2026-01-16','2026-01-30','2026-02-13']), gf(['2026-01-15','2026-01-31','2026-02-13','2026-02-27','2026-03-13','2026-03-31']), gf(['2026-01-30','2026-02-27','2026-03-31']), gf(['2026-01-02','2026-01-09','2026-01-16'])].join(','));
 const planSh = g.__ss.getSheetByName(SHEETS.PLAN), planDef = TABLES.PLAN;
@@ -1192,7 +1221,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     const dl = fsSh.getRange('A' + FINSUM.DEBT_LIST_FIRST).getFormula();
     const dLabels = ['A', 'D', 'G'].map(c => fsSh.getRange(c + FINSUM.DEBT_LABEL).getValue());
     const dHdr = fsSh.getRange('A' + FINSUM.DEBT_LIST_HEADER + ':F' + FINSUM.DEBT_LIST_HEADER).getValues()[0];
-    if (dLabels.join('|') === 'Household Debt|Estimated Monthly Interest|Total Minimum Payments' && /^=SUM\('Debts'!/.test(fsSh.getRange('A' + FINSUM.DEBT_VALUE).getFormula()) && !/Student Loans"|excl\./.test(fsSh.getRange('A' + FINSUM.DEBT_VALUE).getFormula() + dLabels.join()) && dHdr.join('|') === 'Debt|Balance|Rate|Minimum|Est. Interest / mo|Next Due' && /SORT\(FILTER\(\{'Debts'!/.test(dl) && /ISNUMBER\('Debts'!/.test(dl) && /,2,FALSE\)/.test(dl) && /PSLF/.test(fsSh.getRange('A' + FINSUM.DEBT_NOTE).getFormula()) && /Income by Person/.test(fsSh.getRange('A' + FINSUM.INCOME_BAR).getValue())) ok('the debt section is one household total, monthly interest and minimum payments, with every debt that has a balance or a payment listed underneath (largest first); no student-loan split'); else bad('debt section: ' + JSON.stringify([dLabels, dHdr, dl.slice(0, 160)]));
+    if (dLabels.join('|') === 'Household Debt|Estimated Monthly Interest|Total Minimum Payments' && /^=SUM\('Debts'!/.test(fsSh.getRange('A' + FINSUM.DEBT_VALUE).getFormula()) && !/Student Loans"|excl\./.test(fsSh.getRange('A' + FINSUM.DEBT_VALUE).getFormula() + dLabels.join()) && dHdr.join('|') === 'Debt|Balance|Rate|Minimum|Est. Interest / mo|Next Due' && /SORT\(FILTER\(\{'Debts'!/.test(dl) && /ISNUMBER\('Debts'!/.test(dl) && /,2,FALSE\)/.test(dl) && /PSLF/.test(fsSh.getRange('A' + FINSUM.DEBT_NOTE).getFormula()) && /Income by Person/.test(fsSh.getRange('A' + FINSUM.INCOME_BAR).getFormula())) ok('the debt section is one household total, monthly interest and minimum payments, with every debt that has a balance or a payment listed underneath (largest first); no student-loan split'); else bad('debt section: ' + JSON.stringify([dLabels, dHdr, dl.slice(0, 160)]));
     const dsh = ss.getSheetByName(SHEETS.DEBTS);
     const band = [1, 3, 5, 7, 9, 11].map(c => dsh.getRange(4, c).getValue());
     if (band.join('|') === 'Household Debt|Estimated Monthly Interest|Total Minimum Payments|PSLF Progress (of 120)||' && /^=SUM\(/.test(dsh.getRange(5, 1).getFormula()) && !ss.allFormulas.some(x => x.sheet === SHEETS.DEBTS && /CEILING\(MONTH\(TODAY\(\)\)\/3\)/.test(x.f))) ok('the Debts tab opens with four boxes: household debt, estimated monthly interest, total minimum payments and PSLF progress; Current Quarter Ends is gone'); else bad('debts band: ' + band.join('|'));
@@ -1812,7 +1841,9 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const debtTypes = ssx.getRangeByName('LIST_DEBT_TYPES').getValues().map(r => r[0]);
   if (debtTypes.indexOf('Tax Debt') >= 0) ok('existing list gained the new value Tax Debt'); else bad('Tax Debt not appended: ' + debtTypes.join(','));
   const namesAfter = ssx.getSheets().map(s => s.getName());
-  if (JSON.stringify(namesAfter.filter(n => n !== 'Dashboard' && n !== 'Reminders')) === JSON.stringify(TAB_ORDER) && namesAfter[namesAfter.length - 1] === 'Dashboard') ok('tab order restored after upgrade (the hidden Reminders and retired Dashboard tabs sit after the last tab)'); else bad('tab order after upgrade: ' + namesAfter.join(' | '));
+  const hidAfter = ssx.getSheets().filter(sh => sh.isSheetHidden()).map(sh => sh.getName()).sort().join('|');
+  if (JSON.stringify(namesAfter.filter(n => n !== 'Dashboard' && n !== 'Reminders' && n !== 'Goals')) === JSON.stringify(TAB_ORDER) && namesAfter.slice(-3).sort().join('|') === 'Dashboard|Goals|Reminders'
+    && hidAfter === BACKGROUND_TABS.concat(['Dashboard', 'Goals', 'Reminders']).sort().join('|') && rep.some(l => /background tabs are hidden/.test(l))) ok('tab order restored after upgrade (the hidden Reminders, old Goals and retired Dashboard tabs sit after the last tab); the background tabs are hidden again and the report says so'); else bad('tab order after upgrade: ' + namesAfter.join(' | '));
   (function () { const nr = ssx.getRangeByName('LIST_ALL_SUBCATEGORIES'); const f = nr.getSheet().getRange(nr.getRow(), nr.getColumn()).getFormula(); if (/\$G\$5:\$G=TRUE/.test(f) && /All Subcategories \(auto\): formula updated/.test(repText)) ok('upgrade rewrites a derived dropdown formula that changed (Active? filter)'); else bad('derived formula not refreshed: ' + f + ' | ' + repText.slice(0, 200)); })();
   const catsAfter = R(`readTable_(TABLES.CATS)`);
   const oldPair = catsAfter.filter(c => c.category === 'Child Expenses' && c.subcategory === 'Child Care')[0];
@@ -1931,6 +1962,33 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
     tx:[{ id:'TX-1', date:${day(-1, 10)}, type:'Expense', amount:300, category:'Housing', subcategory:'Mortgage or Rent', spendingType:'Fixed' }] })`);
   if (/the average of the 1 month\(s\) among the last 3 full months/.test(ds) && /\| Housing \| \$0\.00 \| \$300\.00 \| \$300\.00 \| 100\.0% \|/.test(ds) && /\| \$1,000\.00 \| no transactions recorded \|/.test(ds) && /Fixed \$300\.00/.test(ds)) ok('snapshot typical month divides by the months that have spending ($300, not $100) and marks a month with paychecks but no transactions');
   else bad('typical-month divisor: ' + ds.split('\n').filter(l => /Housing|average of|no transactions|Fixed \$/.test(l)).join(' | '));
+})();
+
+// Goals & Progress (1.40.0)
+(function () {
+  const gp = (g, d, f) => R(`goalProgress_(${JSON.stringify(g)}, ${JSON.stringify(d)}, ${JSON.stringify(f)})`);
+  const debt = gp({ goal: 'Card', kind: 'Pay off debt', debtId: 'DEBT-1', start: 2000 }, 500, null);
+  const debtNoStart = gp({ goal: 'Card', kind: 'Pay off debt', debtId: 'DEBT-1' }, 500, null);
+  const debtDown = gp({ goal: 'Loan', kind: 'Pay off debt', debtId: 'DEBT-1', start: 9000, target: 5000 }, 6000, null);
+  const save = gp({ goal: 'Fund', kind: 'Save up', fundId: 'FUND-1', target: 18000 }, null, 12000);
+  const saveStart = gp({ goal: 'Fund', kind: 'Save up', fundId: 'FUND-1', target: 18000, start: 10000 }, null, 12000);
+  const over = gp({ goal: 'Fund', kind: 'Save up', fundId: 'FUND-1', target: 1000 }, null, 1500);
+  const unlinked = gp({ goal: 'House', kind: 'Save up', target: 40000 }, null, null);
+  const noKind = gp({ goal: 'Card', debtId: 'DEBT-1', start: 2000 }, 500, null);
+  const gdb = (d) => R(`goalDebtBalance_(${d})`);
+  const tfPart = R(`typicalFlexible_([{ date: new Date(2026, 9, 20), amount: 400, type: 'Expense', spendingType: 'Flexible' }, { date: new Date(2026, 10, 5), amount: 90, type: 'Expense', spendingType: 'Flexible' }], new Date(2026, 10, 12), [], new Date(2026, 10, 1))`);
+  if (!(noKind.current === 500 && noKind.left === '' && noKind.progress === '' && gdb(`{ latestBalance: '' }`) === null && gdb(`{ latestBalance: 0, balanceAsOf: 'No review yet' }`) === null && gdb(`{ latestBalance: 0, balanceAsOf: new Date(2026, 10, 1) }`) === 0 && gdb(`{ latestBalance: 3150.35, balanceAsOf: 'No review yet' }`) === 3150.35
+    && tfPart.months === 0 && tfPart.provisional === true && near(tfPart.average, 90))) bad('goal blanks / part-month flexible: ' + JSON.stringify([noKind, tfPart]));
+  else ok('a goal with no Kind shows no progress; a debt with no balance entered yet reads blank, not paid off; the flexible average leaves out a month the records began partway through');
+  if (debt.left === 500 && near(debt.progress, 0.75) && debtNoStart.left === 500 && debtNoStart.progress === '' && debtDown.left === 1000 && near(debtDown.progress, 0.75)
+    && save.left === 6000 && near(save.progress, 2 / 3) && near(saveStart.progress, 0.25) && over.left === 0 && over.progress === 1 && unlinked.current === '' && unlinked.progress === '')
+    ok('goal progress: a debt from its starting balance down to the target (no starting balance, no percentage), a fund up to its target (from the starting amount when given), never past 100%, blank with no debt or fund named');
+  else bad('goalProgress_: ' + JSON.stringify([debt, debtNoStart, debtDown, save, saveStart, over, unlinked]));
+  const gSh = g.__ss.getSheetByName(SHEETS.GOALPLAN), gd = TABLES.GOALPLAN;
+  const gf = (k) => gSh.getRange(gd.firstRow, gd.columns.findIndex(c => c.key === k) + 1).getFormula();
+  if (gSh && gSh.getRange('A4').getValue() === 'Goal' && /'Debts'!\$J\$8:\$J/.test(gf('current')) && /'Savings & Reserves'!/.test(gf('current')) && /"Pay off debt"/.test(gf('left')) && /MIN\(1,MAX\(0/.test(gf('progress')) && /SPARKLINE/.test(gf('bar')) && /DATEDIF\(TODAY\(\)/.test(gf('monthly'))
+    && g.__ss.namedRanges.has('LIST_GOAL_KINDS') && gSh.cfRules.some(r => />=1/.test(r.formula || JSON.stringify(r)))) ok('Goals & Progress: one row per goal; Now reads the debt or the fund named, then Left to Go, % Done with a bar, and Needed per Month; a finished goal turns green');
+  else bad('goals table: ' + JSON.stringify([gSh && gSh.getRange('A4').getValue(), gf('current').slice(0, 200)]));
 })();
 
 // bank charges still waiting on Import Staging count as flexible spending (1.38.0)

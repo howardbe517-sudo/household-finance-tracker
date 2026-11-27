@@ -195,6 +195,38 @@ CF_BUILDERS.TODO = (sh, def) => {
   ]);
 };
 
+// a finished goal turns green
+CF_BUILDERS.GOALPLAN = (sh, def) => {
+  sh.setConditionalFormatRules([
+    cfRule_(rowRange_(sh, def), '=AND(ISNUMBER(' + cellRef_(def, 'progress') + '),' + cellRef_(def, 'progress') + '>=1)', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
+  ]);
+};
+
+/**
+ * One goal's figures, as the Goals & Progress formulas work them out. Pure.
+ *   g            a Goals & Progress row ({ goal, kind, debtId, fundId, target, start })
+ *   debtBalance  that debt's balance (goalDebtBalance_), or null when the goal names no debt, the debt is not found or it has no balance yet
+ *   fundCurrent  that fund's Current Amount, or null likewise
+ * Returns { current, left, progress }: each '' where the Sheet shows a blank.
+ */
+/** The balance a goal reads from its debt: null (shown blank) when the debt has no balance yet, i.e. Latest Balance is blank, or zero with no "as of" date. Pure. */
+function goalDebtBalance_(d) {
+  if (!d || d.latestBalance === '' || d.latestBalance === null || d.latestBalance === undefined) return null;
+  if (Number(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date)) return null;
+  return Number(d.latestBalance);
+}
+
+function goalProgress_(g, debtBalance, fundCurrent) {
+  const num = (v) => { const x = Number(v); return (v === '' || v === null || v === undefined || isNaN(x)) ? 0 : x; };
+  const current = g.debtId ? (debtBalance === null || debtBalance === undefined ? '' : num(debtBalance)) : g.fundId ? (fundCurrent === null || fundCurrent === undefined ? '' : num(fundCurrent)) : '';
+  if (!g.goal || current === '') return { current: '', left: '', progress: '' };
+  if (g.kind !== 'Pay off debt' && g.kind !== 'Save up') return { current, left: '', progress: '' }; // no Kind chosen yet: nothing to measure against
+  const target = num(g.target), start = num(g.start);
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  if (g.kind === 'Pay off debt') return { current, left: Math.max(0, current - target), progress: start - target <= 0 ? '' : clamp((start - current) / (start - target)) };
+  return { current, left: target <= 0 ? '' : Math.max(0, target - current), progress: target - start <= 0 ? '' : clamp((current - start) / (target - start)) };
+}
+
 CF_BUILDERS.REVIEW = (sh, def) => {
   const s = cellRef_(def, 'status');
   sh.setConditionalFormatRules([
@@ -390,7 +422,7 @@ function applyTableFormats_(sh, def) {
 }
 
 function buildCoreTables_() {
-  ['TODO', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
+  ['TODO', 'GOALPLAN', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);

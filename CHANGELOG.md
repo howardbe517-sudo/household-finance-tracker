@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## 2026-11-27 — After the review: fewer tabs, full-month averages, goals with progress
+- Why (the owner, after a review of the whole tracker): fewer tabs to look
+  at; averages that were pulled down by a part month; no rows of zeros; goals
+  as a plan with amounts and progress.
+- **Fewer tabs.** `BACKGROUND_TABS` (`Config.gs`, 16 raw, calculated and setup
+  tabs) are hidden after a build or upgrade (`applyTabVisibility_`, `Main.gs`).
+  Finance Tracker → Show all tabs / Show everyday tabs only; the choice is
+  kept (Script Property `TABS_SHOW_ALL`). Nothing is removed or renamed.
+- **Financial Summary averages count full months only** (`FinancialSummary.gs`).
+  The first full month is the month of the earliest paycheck and of the
+  earliest transaction when that falls in the month's first three days,
+  otherwise the month after, whichever is later (window row, H). The window
+  is the last N full months before this one; the divisor is the months in
+  it. Until one full month exists the figures are this month so far, and the
+  titles say so. `summaryWindow_` mirrors it; QA checks the window and each
+  person's average take-home. Income by Person and Children use it.
+- **Month by month** lists only full months that have something recorded.
+- **Goals & Progress** (schema 3.26, new table `GOALPLAN`, new list Goal
+  Kinds): one row per goal (pay off a debt, or save up), naming a debt or a
+  fund; Now, Left to Go, % Done with a bar, and Needed per Month are
+  calculated. `goalProgress_` (`Tables.gs`) mirrors it for QA and the AI
+  snapshot, which gains a Goals section. The old Goals tab is kept, hidden.
+- `BUILD_VERSION` 1.40.0. Files changed in `apps-script/`: `Config.gs`,
+  `Main.gs`, `Upgrade.gs`, `FinancialSummary.gs`, `Tables.gs`,
+  `Dashboard.gs`, `QA.gs`, `Export.gs`, `Reference.gs`. Run Upgrade workbook.
+- Data review: no must-fix; five should-fix items done: an empty workbook
+  reads "no full month yet"; the flexible average also starts at the first
+  full month; Needed per Month counts the payments still to come and says
+  Past due after the date; a goal with no Kind shows no progress; a debt
+  with no balance entered reads blank rather than paid off.
+- Tested: Node mock (new tests for the window, goal progress, the formulas
+  and tab visibility); on the live Sheet in scratch cells (then cleared):
+  the first full month, the month list, and the debt and fund lookups.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — To-Do & Reminders, the first tab
 - Why (the owner): a checklist of to-dos on the first tab, the place he goes
   to see what needs doing, with the automatic reminders on the same tab.
