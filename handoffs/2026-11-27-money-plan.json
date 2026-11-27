@@ -1,0 +1,37 @@
+{
+  "title": "House & Money Plan",
+  "key": "household-finance-tracker-2026-11-27-money-plan",
+  "subtitle": "The plan month by month: the credit cards, student loans, car, emergency fund (through a leave without pay), then the house, with some wiggle room kept back.",
+  "intro": [
+    "The code reaches your Sheet on its own. One **Upgrade workbook** adds the plan's settings to the House Plan tab and widens the headers on the To-Do tab; then Claude fills in the leave for you.",
+    "**How the plan works:** each month starts from Likely Left Over on the Financial Summary, which already takes out every bill, the regular debt payments and planned savings. The wiggle room you choose stays unassigned; the rest goes, in your order, to the credit cards, the student loans, any extra on the car, the emergency fund and then the house. Interest is included. When a debt is paid off, its regular payment joins the plan the next month.",
+    "**A leave without pay:** for the months you set, that person's take-home stops and the costs you name pause. A month that comes out short is taken from the emergency fund, and the plan refills it afterward.",
+    "**Student loans** are skipped until their balance, rate and payment are on Debts, so the dates after them are a little early until then.",
+    "**Also in this upgrade:** on the To-Do tab every header runs the full width, and How We Do It in the strategies list is one wide text box per row. The menu item is now **Finance Tracker → 🏠 House & money plan**. **What does not change:** your data."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before money plan 2026-11-27`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Check that **Build Script Version** on the **App Setup** tab reads `1.46.0` (or later)." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors. The **House Plan** tab's yellow cells now end with **Wiggle room**, **Extra on the car** and four rows for a **leave without pay**." },
+        { "text": "Open **To-Do & Reminders** and scroll to **Our Money-Saving Strategies**.", "done": "The headers run the full width, and **How We Do It** is a wide box that wraps." },
+        { "text": "Tell Claude the upgrade is done.", "done": "Claude fills in the leave and checks the plan." }
+      ]
+    },
+    {
+      "heading": "Look at the plan",
+      "steps": [
+        { "text": "Open **Finance Tracker → 🏠 House & money plan**.", "done": "**The plan, step by step** shows the month each step is done, a yellow box explains the leave, and a chart shows where each month's money goes (the leave months are shaded)." },
+        { "text": "Try the **Wiggle room** and **Extra on the car** boxes, and type a house price. When you like the numbers, click **Save these to the tracker**.", "done": "The dates move as you change them, and the page says **Saved to the House Plan tab**." },
+        { "text": "Once the student loan details are on Debts, open the page again.", "done": "Step 2 shows its balance and payoff month, and the later dates move." }
+      ]
+    }
+  ]
+}

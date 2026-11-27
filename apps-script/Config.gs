@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.28-savings-categories-2026-11-27',
-  BUILD_VERSION: '1.45.1',
+  BUILD_VERSION: '1.46.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -820,6 +820,7 @@ TABLES.TODO = {
 /** Our Money-Saving Strategies (the owner, 2026-11-27): the household's main ways of saving, as a short list to keep in mind. */
 TABLES.STRAT = {
   key: 'STRAT', sheet: SHEETS.TODO, headerRow: 22, firstRow: 23, lastRow: 30, fixedRows: true, sharesSheet: true,
+  mergeAcross: { col: 2, toCol: 9 }, // How We Do It is one wide text cell per row, B:I, merged across only (rows can still be dragged)
   title: 'Our Money-Saving Strategies',
   note: 'The main ways we save money, in a few words each, with how we do it. A reminder list: the figures are in the category table and the journal below.',
   idPrefix: '', idPattern: '(none)', logChanges: false,

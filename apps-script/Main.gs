@@ -130,7 +130,7 @@ function onOpen() {
       .addItem('Turn nightly sync off', 'disableNightlySync'))
     .addSeparator()
     .addItem('📅 Calendar', 'showBillsCalendar')
-    .addItem('🏠 House plan summary', 'showHousePlan')
+    .addItem('🏠 House & money plan', 'showHousePlan')
     .addItem('Copy financial snapshot for AI…', 'exportSnapshot')
     .addItem('Show reminders', 'showReminders')
     .addItem('Payoff planner…', 'showPayoffPlanner')

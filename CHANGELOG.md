@@ -1,5 +1,44 @@
 # CHANGELOG
 
+## 2026-11-27 — House & money plan, month by month; To-Do headers
+- Why (the owner): correct timelines for the credit cards, student loans,
+  the car and the emergency fund, with a parental leave without pay and
+  wiggle room, so not all of the left-over goes to goals. The order is the
+  owner's: cards, student loans, car extra, emergency fund, house. Also: on
+  the To-Do tab the headers did not run the full width, and How We Do It
+  was too narrow.
+- `HousePlan.gs`: `moneyPlan_` (pure) works the plan out month by month
+  from Likely Left Over: regular payments (minimum plus planned extra)
+  with interest (paused interest restarts at Paused Until), wiggle room
+  kept back, then cards, loans, car extra, emergency fund and house in
+  order. A paid-off debt's payment joins the plan; debt money budgeted in
+  Fixed Costs but paying no modeled debt goes back to the plan; a fund's
+  own Planned Monthly is added to it; a short month during a leave is taken
+  from the emergency fund and refilled afterward. `housePlan_` now covers
+  the house costs and cash only. New House Plan inputs: wiggle room, extra
+  on the car, leave start, months, whose pay stops, costs that pause (the
+  old monthly-amount input is retired). The tab points to the page for the
+  plan.
+- `HouseDialog.html`: "House & Money Plan" with steps and done months, a
+  leave box, a chart of where each month's money goes, a month-by-month
+  table, and what-ifs. Menu renamed Finance Tracker → 🏠 House & money plan.
+  `QA.gs` 6d checks the cost and cash lines.
+- `Tables.gs` / `Config.gs`: To-Do tab headers run the full width; the
+  strategies' How We Do It is one wide cell per row (B:I, merged across
+  only, so rows can still be dragged; `mergeAcross`).
+- `BUILD_VERSION` 1.46.0. Files changed in `apps-script/`: `HousePlan.gs`,
+  `HouseDialog.html`, `QA.gs`, `Tables.gs`, `Main.gs`, `Config.gs`. **Run
+  Upgrade workbook.** Handoff: `handoffs/2026-11-27-money-plan.json`.
+- Data review: two must-fix items (planned extra debt payments were left
+  out; paused interest never restarted) and five should-fix items done;
+  second review: see the pull request.
+- Tested: Node mock (the plan on fictional figures: interest, spill-over,
+  freed payments, a leave draw and refill, car extra, a fund that runs out,
+  loans after cards, paused interest, a fund's own savings); the page
+  rendered in Chromium with fictional figures (no errors). Opening it in
+  the Sheet still needs trying.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Savings & Reserves: Current before Target
 - Why (the owner): read what is saved first, then the target, then what is
   still needed; the HSA right under the savings account and the Roth IRA
