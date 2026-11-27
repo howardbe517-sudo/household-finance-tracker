@@ -70,11 +70,16 @@ function qaReport_() {
 
   // bank charges still waiting on Import Staging count as (flexible) spending, as in the Sheet (the owner, 2026-11-27)
   const stagedW = readTable_(tdef_('STAGING'));
-  const waitIn = (from, to) => waitingSpend_(stagedW, from, to);
+  const waitCtx = waitingContext_(tx, readTable_(tdef_('RECUR')));
+  const waitIn = (from, to) => waitingSpend_(stagedW, from, to, waitCtx);
   const monthEnd = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  const waitTx = waitingAsTransactions_(stagedW);
-  const waitNow = waitTx.length ? waitTx.reduce((s, t) => s + t.amount, 0) : 0;
+  const waitTx = waitingAsTransactions_(stagedW, waitCtx);
+  const waitNow = waitTx.reduce((s, t) => s + t.amount, 0);
   if (waitTx.length) info(waitTx.length + ' bank charge(s) still waiting on Import Staging, ' + money(waitNow) + ', counted as flexible spending (' + WAITING_LABEL + ') until reviewed');
+  // the Counts as Spending? column against the same test done here
+  const cntBad = stagedW.filter(r => r.importId && (r.countsAsSpending === true) !== isWaitingCharge_(r, waitCtx));
+  if (cntBad.length) fail('Import Staging: Counts as Spending? differs from the recomputed test on ' + cntBad.length + ' row(s) (' + cntBad.slice(0, 5).map(r => r.importId).join(', ') + ')');
+  else if (stagedW.some(r => r.importId)) pass('Import Staging: Counts as Spending? matches the recomputed test on every row');
   const summary = readTable_(tdef_('SUMMARY')).filter(r => r.month instanceof Date);
   if (!summary.length) { if (!live.length && !inc.length) info('Monthly Summary has no month rows yet: it fills in as soon as Income or Transactions have rows.'); else fail('Monthly Summary has no month rows'); } else pass('Monthly Summary lists ' + summary.length + ' month(s)');
   summary.forEach(s => {
@@ -321,7 +326,7 @@ function qaReport_() {
     const extraAll = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL');
     const debtPay = Math.max(debtRows.reduce((s, d) => s + Number(d.minPayment || 0), 0), loans) + debtRows.reduce((s, d) => s + Number(d.plannedExtra || 0), 0) + (extraAll ? Number(extraAll.getValue()) || 0 : 0);
     const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? utilitiesFixed_(readTable_(tdef_('UTIL')), today).amount : 0; // same month last year, else the 12-month average
-    const flexT = typicalFlexible_(tx, today, stagedW);
+    const flexT = typicalFlexible_(tx, today, waitTx);
     const fsProblems = [];
     const plannedSave = readTable_(tdef_('FUNDS')).reduce((s, f) => s + (typeof f.plannedMonthly === 'number' ? f.plannedMonthly : 0), 0);
     if (!near(shown.take, expTake)) fsProblems.push('coming in ' + money(shown.take) + ' ≠ ' + money(expTake) + ' from Expected Income');

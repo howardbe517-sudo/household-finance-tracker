@@ -517,26 +517,37 @@ function cardPending_(stagingRows, accountIds, today) {
 
 /* ---------- bank charges still waiting on Import Staging (the owner, 2026-11-27) ---------- */
 // A charge that has not been reviewed and imported yet still counts as spending, as flexible spending under
-// WAITING_LABEL, until its review moves it into its real category. Counted: money going out (amount above zero),
-// on a row still open (Needs Review, Needs Split, or Ready but not imported yet), not marked Duplicate?, with no
-// Imported Transaction ID, suggested as an expense or with no type yet. Left out: money coming in, $0 and $1
-// holds (a pump or a shop checking the card), and rows the bank removed or replaced (their status says so).
+// WAITING_LABEL, until its review moves it into its real category. Import Staging's Counts as Spending? column decides in
+// the Sheet; isWaitingCharge_ is the same test here. WAITING_LABEL, WAITING_STATUSES, WAITING_NOT_SPENDING_BANK and the
+// sum (WAITING_SUM_TPL) live in Config.gs.
 
-// WAITING_LABEL, WAITING_STATUSES and the formula (WAITING_SUM_TPL) live in Config.gs.
+/** What the test needs from the other tables: live Transactions (account, day, amount) and the bills that record themselves. Pure. */
+function waitingContext_(txRows, recurRows) {
+  const day = (d) => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  const tx = {}, auto = {};
+  (txRows || []).forEach(t => { if (t.isDeleted !== true && t.date instanceof Date && t.amount !== '') tx[t.accountId + '|' + day(t.date) + '|' + Number(t.amount).toFixed(2)] = true; });
+  (recurRows || []).forEach(r => { if (r.autoRecord === true && r.active === true) auto[r.category + '|' + r.subcategory] = true; });
+  return { tx, auto, day };
+}
 
-/** Is this Import Staging row a charge that counts as spending while it waits? Pure. */
-function isWaitingCharge_(r) {
+/** Is this Import Staging row a charge that counts as spending while it waits? Mirrors the Counts as Spending? formula. Pure. */
+function isWaitingCharge_(r, ctx) {
   const a = Number(r && r.amount);
-  return !!r && r.date instanceof Date && WAITING_STATUSES.indexOf(r.status) >= 0 && r.duplicate !== true && !r.importedTxId
-    && (r.suggestedType === 'Expense' || !r.suggestedType) && r.amount !== '' && isFinite(a) && a > 0 && Math.round(a * 100) !== 100;
+  if (!r || !(r.date instanceof Date) || WAITING_STATUSES.indexOf(r.status) < 0 || r.importedTxId) return false;
+  if (!(r.suggestedType === 'Expense' || !r.suggestedType) || r.amount === '' || !isFinite(a) || !(a > 0) || Math.round(a * 100) === 100) return false;
+  if (new RegExp(WAITING_NOT_SPENDING_BANK).test(String(r.bankCategory || ''))) return false;
+  const c = ctx || waitingContext_([], []);
+  if (c.tx[r.accountId + '|' + c.day(r.date) + '|' + a.toFixed(2)]) return false; // already on Transactions
+  if (r.suggestedCategory && c.auto[r.suggestedCategory + '|' + r.suggestedSubcategory]) return false; // a bill that records itself
+  return true;
 }
 
 /** Waiting charges dated from `from` to `to` (both included, whole days), added up. Pure. */
-function waitingSpend_(stagingRows, from, to) {
+function waitingSpend_(stagingRows, from, to, ctx) {
   const lo = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
   const hi = new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime();
   return Math.round((stagingRows || []).reduce((s, r) => {
-    if (!isWaitingCharge_(r)) return s;
+    if (!isWaitingCharge_(r, ctx)) return s;
     const t = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
     return t >= lo && t <= hi ? s + Number(r.amount) : s;
   }, 0) * 100) / 100;
@@ -547,8 +558,8 @@ function waitingSpend_(stagingRows, from, to) {
  * flexible expenses in WAITING_LABEL, marked _waiting so a month is never counted as "a month with spending" because of them
  * (the Sheet counts those months from Transactions only). Pure.
  */
-function waitingAsTransactions_(stagingRows) {
-  return (stagingRows || []).filter(isWaitingCharge_).map(r => ({
+function waitingAsTransactions_(stagingRows, ctx) {
+  return (stagingRows || []).filter(r => isWaitingCharge_(r, ctx)).map(r => ({
     id: r.importId, date: r.date, month: new Date(r.date.getFullYear(), r.date.getMonth(), 1), description: r.rawDescription,
     amount: Number(r.amount), type: 'Expense', category: WAITING_LABEL, subcategory: '', spendingType: 'Flexible', needWant: '',
     accountId: r.accountId, isDeleted: false, _waiting: true,

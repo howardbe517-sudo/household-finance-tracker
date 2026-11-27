@@ -23,7 +23,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | DEBTS | Debts | 7 | 8 | 57 | DEBT-001 | 29 | yes |
 | QDR | Quarterly Debt Review | 4 | 5 | 404 | QDR-2026Q3-DEBT-001 | 11 | yes |
 | CREDIT | Credit Scores | 4 | 5 | 304 | CS-20261107-B-001 | 8 | yes |
-| STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 27 | no |
+| STAGING | Import Staging | 4 | 5 | 1004 | IMP-000001 | 28 | no |
 | RULES | Import Rules | 4 | 5 | 204 | RULE-001 | 17 | yes |
 | CONN | Connections | 4 | 5 | 54 | CONN-001 | 13 | yes |
 | LOG | Change Log | 4 | 5 | 1004 | CHG-20261107-153000-a1b2 | 10 | no |
@@ -463,6 +463,7 @@ Named range `TBL_STAGING` covers the header row through the last formula row.
 | Y | Pending Transaction ID | `pendingTxId` | text | input | Added in 3.1: for a posted charge, the ID of the pending charge it replaces. |
 | Z | Paired Import ID | `pairedImportId` | text | input | Added in 3.1: the other side of a detected transfer or card payment. |
 | AA | Imported At | `importedAt` | datetime | input | Added in 3.1. |
+| AB | Counts as Spending? | `countsAsSpending` | text | calculated | `=IF([@importId]="","",AND(ISNUMBER([@date]),OR([@status]="Needs Review",[@status]="Needs Split",[@status]="Ready"),[@importedTxId]="",OR([@suggestedType]="Ex…` — Added in 3.23: TRUE while this bank charge counts as flexible spending ("Not categorized yet") before it is reviewed and imported: an open row (Needs Review, Needs Split, Ready) not imported yet, an expense or no type yet, money going out other than a $0 or $1 hold, not already on Transactions (same account, date and amount), not a card or loan payment or a move between your own accounts (by the bank's category), and not a bill that records itself automatically. |
 
 ## Import Rules (`RULES`)
 

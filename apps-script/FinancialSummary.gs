@@ -373,17 +373,17 @@ function buildFinancialSummary_() {
  * The flexible figure on the Financial Summary, recomputed in plain JavaScript. Pure.
  * Average monthly spending that is not marked Fixed over the last FINSUM.FLEX_MONTHS full months,
  * counting only months that have spending; with no such month, this month so far. Charges still waiting on Import
- * Staging (stagingRows, optional) count as flexible spending in their month.
+ * Staging (waitTx, the stand-ins from waitingAsTransactions_, optional) count as flexible spending in their month.
  * Returns { months, average, provisional }.
  */
-function typicalFlexible_(txRows, today, stagingRows) {
+function typicalFlexible_(txRows, today, waitTx) {
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
   const key = (d) => d.getFullYear() * 12 + d.getMonth();
   const lo = key(cur) - FINSUM.FLEX_MONTHS, hi = key(cur) - 1;
   const seen = {};
   let win = 0, now = 0;
-  // bank charges still waiting on Import Staging (stagingRows, optional) are flexible spending, but never make a month "a month with spending"
-  (txRows || []).concat(waitingAsTransactions_(stagingRows)).forEach(t => {
+  // bank charges still waiting on Import Staging (waitTx: waitingAsTransactions_, optional) are flexible spending, but never make a month "a month with spending"
+  (txRows || []).concat(waitTx || []).forEach(t => {
     if (t.isDeleted === true || !(t.date instanceof Date) || (t.type !== 'Expense' && t.type !== 'Refund')) return;
     const k = key(t.date), amt = (t.type === 'Expense' ? 1 : -1) * Number(t.amount || 0), flex = t.spendingType !== 'Fixed';
     if (k >= lo && k <= hi) { if (!t._waiting) seen[k] = true; if (flex) win += amt; }

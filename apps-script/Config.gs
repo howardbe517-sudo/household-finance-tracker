@@ -835,6 +835,19 @@ TABLES.RECEIPTS = {
   ],
 };
 
+/**
+ * Bank charges still waiting on Import Staging count as spending (the owner, 2026-11-27): flexible spending under
+ * WAITING_LABEL until the review moves each into its real category. Import Staging's Counts as Spending? column decides
+ * row by row (its formula is in TABLES.STAGING); WAITING_SUM_TPL adds up the TRUE rows dated {from} to {to} (both
+ * included); waitingSpendExpr_ fills it in. isWaitingCharge_ (Helpers.gs) is the same test in JavaScript, for the QA
+ * checks and the AI snapshot. WAITING_NOT_SPENDING_BANK: the bank's own categories for a card or loan payment and for
+ * a move between your own accounts, which are never spending (a Venmo, PayPal or Zelle payment is left in: it often is).
+ */
+const WAITING_LABEL = 'Not categorized yet';
+const WAITING_STATUSES = ['Needs Review', 'Needs Split', 'Ready'];
+const WAITING_NOT_SPENDING_BANK = '^LOAN_PAYMENTS|TRANSFER_OUT_(ACCOUNT_TRANSFER|SAVINGS|INVESTMENT_AND_RETIREMENT_FUNDS)';
+const WAITING_SUM_TPL = 'SUMIFS([STAGING.amount],[STAGING.countsAsSpending],TRUE,[STAGING.date],">="&{from},[STAGING.date],"<="&{to})';
+
 TABLES.STAGING = {
   key: 'STAGING', sheet: SHEETS.STAGING, headerRow: 4, firstRow: 5, lastRow: 1004,
   title: 'Import Staging — Raw Bank Imports',
@@ -871,6 +884,14 @@ TABLES.STAGING = {
     { key: 'pendingTxId', h: 'Pending Transaction ID', w: 170, note: 'Added in 3.1: for a posted charge, the ID of the pending charge it replaces.' },
     { key: 'pairedImportId', h: 'Paired Import ID', w: 120, note: 'Added in 3.1: the other side of a detected transfer or card payment.' },
     { key: 'importedAt', h: 'Imported At', w: 130, fmt: C.dt, note: 'Added in 3.1.' },
+    // the one place that decides which waiting charges count as spending (the owner, 2026-11-27); WAITING_SUM_TPL adds up the TRUE rows
+    { key: 'countsAsSpending', h: 'Counts as Spending?', w: 120,
+      f: '=IF([@importId]="","",AND(ISNUMBER([@date]),OR([@status]="Needs Review",[@status]="Needs Split",[@status]="Ready"),[@importedTxId]="",' +
+         'OR([@suggestedType]="Expense",[@suggestedType]=""),N([@amount])>0,ROUND(N([@amount]),2)<>1,' +
+         'COUNTIFS([TX.accountId],[@accountId],[TX.date],[@date],[TX.amount],[@amount],[TX.isDeleted],"<>TRUE")=0,' +
+         'NOT(REGEXMATCH([@bankCategory]&"","' + WAITING_NOT_SPENDING_BANK + '")),' +
+         'OR([@suggestedCategory]="",COUNTIFS([RECUR.category],[@suggestedCategory],[RECUR.subcategory],[@suggestedSubcategory],[RECUR.autoRecord],TRUE,[RECUR.active],TRUE)=0)))',
+      note: 'Added in 3.23: TRUE while this bank charge counts as flexible spending ("Not categorized yet") before it is reviewed and imported: an open row (Needs Review, Needs Split, Ready) not imported yet, an expense or no type yet, money going out other than a $0 or $1 hold, not already on Transactions (same account, date and amount), not a card or loan payment or a move between your own accounts (by the bank\'s category), and not a bill that records itself automatically.' },
   ],
 };
 
@@ -959,19 +980,6 @@ TABLES.BUDGET = {
     { key: 'notes', h: 'Notes', w: 240 },
   ],
 };
-
-/**
- * Bank charges still waiting on Import Staging count as spending (the owner, 2026-11-27): flexible spending under
- * WAITING_LABEL until the review moves each into its real category. A row counts when its status is one of
- * WAITING_STATUSES, it is not marked Duplicate?, has no Imported Transaction ID, is suggested as an expense (or has no
- * type yet), and is money going out other than a $0 or $1 hold. WAITING_SUM_TPL adds them up for dates {from} to {to}
- * (both included); waitingSpendExpr_ fills it in, and isWaitingCharge_ / waitingSpend_ (Helpers.gs) do the same in
- * JavaScript for the QA checks and the AI snapshot.
- */
-const WAITING_LABEL = 'Not categorized yet';
-const WAITING_STATUSES = ['Needs Review', 'Needs Split', 'Ready'];
-const WAITING_SUM_TPL = 'SUMPRODUCT(([STAGING.date]>={from})*([STAGING.date]<={to})*((([STAGING.status]="Needs Review")+([STAGING.status]="Needs Split")+([STAGING.status]="Ready"))>0)' +
-  '*([STAGING.duplicate]<>TRUE)*([STAGING.importedTxId]="")*((([STAGING.suggestedType]="Expense")+([STAGING.suggestedType]=""))>0)*([STAGING.amount]>0)*(ROUND([STAGING.amount],2)<>1),[STAGING.amount])';
 
 TABLES.PLAN = {
   key: 'PLAN', sheet: SHEETS.PLAN, headerRow: 4, firstRow: 5, lastRow: 124,

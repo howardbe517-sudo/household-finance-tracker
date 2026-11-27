@@ -1,5 +1,13 @@
 # STATUS
 
+2026-11-27 (build 1.38.0, schema 3.23): bank charges waiting for review on
+Import Staging count as flexible spending ("Not categorized yet") until
+reviewed; Import Staging gains Counts as Spending?. Waiting for the owner's
+upgrade (the sync pauses until then). Open for the owner: whether a waiting
+charge with a suggested spending type (a bill marked Fixed by its rule)
+should count under that type instead of flexible; the reviewer's other
+recommendations are in the pull request.
+
 2026-11-27 (build 1.37.2): a charge under $20 at a gas station (a station
 whose Import Rule files it as Fuel) now comes in as Food / Snacks; the $1
 hold a pump places stays Fuel. The owner went through every uncategorized

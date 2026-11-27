@@ -101,7 +101,7 @@ function buildSnapshotText_(d) {
   const inMonth = (rows, key) => rows.filter(r => r._month === key);
   // bank charges still waiting on Import Staging count as flexible spending, as in the Sheet (the owner, 2026-11-27); they never
   // make a month count as "a month with spending" (typMonths below looks at Transactions only)
-  const waitTx = waitingAsTransactions_(staging);
+  const waitTx = waitingAsTransactions_(staging, waitingContext_(tx, recurring));
   waitTx.forEach(t => { t._month = mk(t.date); });
   const spendTx = live.filter(t => t.type === 'Expense' || t.type === 'Refund');
   const spendRows = spendTx.concat(waitTx);
@@ -122,7 +122,7 @@ function buildSnapshotText_(d) {
   L.push('## How to read this');
   L.push('- Months are calendar months; "to date" means the current month so far. ' + (firstTx ? 'Bank transactions on record start ' + dateStr(firstTx) + '; there is no spending on record before that.' : 'No transactions are on record yet.'));
   L.push('- Spending = expenses − refunds, deleted rows left out. Transfers, savings, debt payments and the parent row of a split purchase are not spending; the pieces of a split are (a Costco charge is split by its receipt into groceries, household supplies, gas and so on).');
-  L.push('- Bank charges not reviewed yet (still on Import Staging) count as flexible spending under "' + WAITING_LABEL + '" until they are reviewed and imported' + (waitTx.length ? ': ' + waitTx.length + ' now, ' + money(sum(waitTx, t => t.amount)) : ': none now') + '. Money coming in and $0 or $1 card holds are left out.');
+  L.push('- Bank charges not reviewed yet (still on Import Staging) count as flexible spending under "' + WAITING_LABEL + '" until they are reviewed and imported' + (waitTx.length ? ': ' + waitTx.length + ' now, ' + money(sum(waitTx, t => t.amount)) : ': none now') + '. Left out: money coming in, $0 or $1 card holds, card and loan payments and moves between own accounts (by the bank\'s category), charges already on Transactions, and bills that record themselves.');
   L.push('- A typical month is the average of the months that have spending recorded; an empty month is never counted as zero.');
   L.push('- "Flexible" means two things in the workbook: Spending Type = Flexible (the Monthly Plan\'s target and weekly guidance), and everything not marked Fixed (the Financial Summary\'s flexible average). Each figure below says which.');
   L.push('- Income is take-home pay from the Income tab. A paycheck marked "from deposit" came from a bank deposit with no pay stub: its take-home is the real deposit; its gross pay and deductions are estimates.');
@@ -148,7 +148,7 @@ function buildSnapshotText_(d) {
     return ks.length ? Math.max(1, cur - Math.min.apply(null, ks)) : 0;
   })();
   const utilLabel = utilN ? 'over the ' + utilN + ' full month(s) since the first bill (up to 12)' : 'no bills in the last 12 full months';
-  const flex = typicalFlexible_(tx, today, staging);
+  const flex = typicalFlexible_(tx, today, waitTx);
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
   const plannedSavings = sum(funds, f => f.plannedMonthly);

@@ -3,30 +3,51 @@
   "key": "household-finance-tracker-2026-11-27-waiting-charges",
   "subtitle": "Bank charges you haven't reviewed yet now count toward spending at once, as flexible spending under \"Not categorized yet\".",
   "intro": [
-    "The code is already in your Sheet. The upgrade rewrites a few formulas and redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
-    "**What changes in the numbers:** spending, flexible spent, Amount Available, Spent This Week and the Financial Summary's flexible figure now include the charges still waiting on Import Staging. When you review a charge and the next sync imports it, it moves from \"Not categorized yet\" into its real category; the total stays the same.",
-    "**What does not change:** your transactions, Import Staging and how you review. Money coming in and $0 or $1 card holds are never counted."
+    "The code is already in your Sheet. The upgrade adds one column at the far right of **Import Staging**, **Counts as Spending?**, rewrites a few formulas, and redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
+    "**Run the upgrade today.** Until it runs, the nightly bank sync pauses (it checks that Import Staging has the columns the code expects) and nothing is lost; the upgrade lets it continue.",
+    "**What changes in the numbers:** spending, flexible spent, Amount Available, Spent This Week and the Financial Summary's flexible figure now include the charges still waiting on Import Staging, as flexible spending under \"Not categorized yet\". When you review a charge and the next sync imports it, it moves into its real category; the total stays the same.",
+    "**Never counted:** money coming in, $0 or $1 card holds, card and loan payments, moves between your own accounts, a charge already on Transactions, and a bill that records itself. **What does not change:** your transactions and how you review."
   ],
   "sections": [
     {
       "heading": "Restore point",
       "steps": [
-        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before waiting charges 2026-11-27`." }
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before waiting charges 2026-11-27`."
+        }
       ]
     },
     {
       "heading": "Run the upgrade",
       "steps": [
-        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.38.0`. If it shows an older number, wait a minute and reload again." },
-        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors and lists updated formulas on Monthly Summary and Monthly Plan." }
+        {
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.38.0`. If it shows an older number, wait a minute and reload again."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report finishes without errors and lists updated formulas on Monthly Summary and Monthly Plan."
+        }
       ]
     },
     {
       "heading": "Check the tabs",
       "steps": [
-        { "text": "Open the **Spending** tab with the month set to November.", "done": "The category table has a **Not categorized yet** row with the charges still waiting on Import Staging, and the **Spent So Far** box ends with **Includes not categorized yet** and the same amount." },
-        { "text": "Look at the **Amount Available This Month** box.", "done": "Under **− Flexible spent so far** a small line reads **incl. $… not categorized yet**." },
-        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "All checks pass, and one information line says how many bank charges are waiting and that they are counted as flexible spending." }
+        {
+          "text": "Open the **Import Staging** tab and scroll to the last column, **Counts as Spending?**.",
+          "done": "Rows still waiting for your review read **TRUE**; imported, ignored and removed rows read **FALSE**."
+        },
+        {
+          "text": "Open the **Spending** tab with the month set to November.",
+          "done": "The category table has a **Not categorized yet** row with the charges still waiting on Import Staging, and the **Spent So Far** box ends with **Includes not categorized yet** and the same amount."
+        },
+        {
+          "text": "Look at the **Amount Available This Month** box.",
+          "done": "Under **− Flexible spent so far** a small line reads **incl. $… not categorized yet**."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "All checks pass, and one information line says how many bank charges are waiting and that they are counted as flexible spending."
+        }
       ]
     }
   ]
