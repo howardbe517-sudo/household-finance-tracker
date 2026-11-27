@@ -13,6 +13,7 @@ This file explains the parts that are most often misread.
 | This month so far | The same detail for the month in progress (partial) | Only when there is no full month yet; otherwise for questions about the current month |
 | Typical month | Coming in, fixed costs, flexible spending (average), likely left over | Slide 3, advice about spare money |
 | Goals | The household's goals in priority order, with progress | Slide 6, all advice |
+| Money-saving changes | The Savings Journal: changes the household made to save money, what each saves a year, and the totals by strategy | Slide 6 (a line on what the changes add up to), advice on where else to save |
 | Income (paychecks) | Paychecks by person and employer | Slide 1 |
 | Monthly cash flow | Per month: take-home, spending, savings, debt payments, cash remaining | Trends over several months; a cross-check for slide 1 |
 | Spending by category | This month to date, last full month, typical month | The "typical month" comparison on slide 2 |

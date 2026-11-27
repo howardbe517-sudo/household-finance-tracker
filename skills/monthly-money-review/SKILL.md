@@ -84,7 +84,9 @@ tells them nothing about the month they just had.
    Balances are "as of" the snapshot date; say so. Change since last month's
    snapshot if one is on file.
 6. **Goals.** Each goal in the household's priority order with its progress.
-   Say plainly which goal is the current focus.
+   Say plainly which goal is the current focus. If the snapshot has a
+   Money-saving changes section, add one line on what those changes save a
+   year and any change logged since last month.
 7. **Savings and safety.** What was saved in the month; the emergency fund
    against its target and in months of costs; net worth and its change. Other funds only if they matter this
    month (one that is due soon, or behind).

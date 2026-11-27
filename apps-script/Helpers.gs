@@ -95,6 +95,13 @@ function ensureSheetSize_(sh, rows, cols) {
   else if (maxC > cols) sh.deleteColumns(cols + 1, maxC - cols); // SAFETY-APPROVED: trims empty columns on a sheet being (re)built by buildWorkbook
 }
 
+/** Make a tab at least rows × cols, never smaller: for a tab that holds more than one table (To-Do & Reminders), where trimming would cut off the tables below. */
+function growSheet_(sh, rows, cols) {
+  const maxR = sh.getMaxRows(), maxC = sh.getMaxColumns();
+  if (maxR < rows) sh.insertRowsAfter(maxR, rows - maxR);
+  if (maxC < cols) sh.insertColumnsAfter(maxC, cols - maxC);
+}
+
 function setNamedRange_(name, range) {
   const ss = ss_();
   const existing = ss.getNamedRanges().filter(nr => nr.getName() === name);
@@ -230,6 +237,7 @@ function buildTableSheet_(def) {
   const sh = getOrCreateSheet_(def.sheet);
   const n = def.columns.length;
   const totalCols = Math.max(n + 1, n + (def.extraCols || 0));
+  if (def.sharesSheet) { growSheet_(sh, def.lastRow + 5, n); return buildSharedTable_(sh, def); }
   ensureSheetSize_(sh, def.lastRow + 5, totalCols);
   sh.clearConditionalFormatRules();
   if (def.keepExtras) {
@@ -252,7 +260,7 @@ function buildTableSheet_(def) {
   sh.setRowHeight(def.headerRow, 42);
   def.columns.forEach((c, i) => { if (c.w) sh.setColumnWidth(i + 1, c.w); });
   applyColumnRules_(def, def.firstRow, def.lastRow);
-  sh.setFrozenRows(def.headerRow);
+  sh.setFrozenRows(def.frozenRows !== undefined ? def.frozenRows : def.headerRow);
   if (def.freezeCols) sh.setFrozenColumns(def.freezeCols);
   setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, n));
   if (def.readOnly) {
@@ -262,12 +270,48 @@ function buildTableSheet_(def) {
   return sh;
 }
 
+/**
+ * A table on a tab another table built (sharesSheet in Config.gs, e.g. the Savings Journal under the To-Do checklist): writes
+ * only its header and its own rows, and leaves the rest of the tab (the other tables, their formats and frozen rows) alone.
+ * Its title and note are drawn by the tab's own presentation builder.
+ */
+function buildSharedTable_(sh, def) {
+  const n = def.columns.length;
+  const header = sh.getRange(def.headerRow, 1, 1, n);
+  header.setValues([def.columns.map(c => c.h)]);
+  styleHeader_(header);
+  sh.setRowHeight(def.headerRow, 42);
+  def.columns.forEach((c, i) => { if (c.w) sh.setColumnWidth(i + 1, c.w); });
+  applyColumnRules_(def, def.firstRow, def.lastRow);
+  setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, n));
+  return sh;
+}
+
+/** The last row to read for a table: the sheet's last row, or for a fixedRows table (another table sits below it) its own lastRow. */
+function tableReadEnd_(def, sh) {
+  const last = sh.getLastRow();
+  return def.fixedRows ? Math.min(last, def.lastRow) : last;
+}
+
 /* ---------- conditional formatting helpers ---------- */
+
+/**
+ * The conditional formats already on a tab that lie wholly outside rows fromRow..toRow. A tab holding more than one table
+ * (To-Do & Reminders) keeps the other tables' formats when one table redraws its own.
+ */
+function rulesOutsideRows_(sh, fromRow, toRow) {
+  return sh.getConditionalFormatRules().filter(r => {
+    let rs;
+    try { rs = r.getRanges ? r.getRanges() : (r.ranges || []); } catch (e) { return false; }
+    return rs.length > 0 && rs.every(x => x.getRow() + x.getNumRows() - 1 < fromRow || x.getRow() > toRow);
+  });
+}
 
 /**
  * Every other row a shade darker (the owner, 2026-11-27: easier to tell rows apart), as the last conditional format on the sheet so
  * a rule that colors a row for a reason (over budget, deleted, needs review) still wins. Rows with nothing in the range's first
- * column stay plain. A band rule already there for the same range is replaced, so running it again adds nothing.
+ * column stay plain. A band rule already there for the same table (same top-left cell, whatever its length) is replaced, so running
+ * it again, or after the table grew, adds nothing.
  */
 function addBandRule_(sh, range) {
   const top = range.getRow(), col = colLetter_(range.getColumn()), a1 = range.getA1Notation();
@@ -276,7 +320,7 @@ function addBandRule_(sh, range) {
       const c = r.getBooleanCondition ? r.getBooleanCondition() : null;
       const f = c ? String(c.getCriteriaValues()[0]) : String(r.formula || '');
       const rs = r.getRanges ? r.getRanges().map(x => x.getA1Notation()) : (r.ranges || []).map(x => x.getA1Notation ? x.getA1Notation() : String(x));
-      return /ISEVEN\(ROW\(\)\)/.test(f) && rs.indexOf(a1) >= 0;
+      return /ISEVEN\(ROW\(\)\)/.test(f) && rs.some(x => x.split(':')[0] === a1.split(':')[0]); // same top-left cell: the same table, even after it grew
     } catch (e) { return false; }
   };
   const rules = sh.getConditionalFormatRules().filter(r => !isBand(r));
@@ -327,7 +371,7 @@ function anchorCol_(def) {
 function readTable_(def) {
   const sh = ss_().getSheetByName(def.sheet);
   if (!sh) return [];
-  const last = Math.max(sh.getLastRow(), def.firstRow);
+  const last = Math.max(tableReadEnd_(def, sh), def.firstRow);
   // A column added to the schema exists on the tab only after Upgrade workbook. Until then read what is
   // there and treat the new columns as blank, so the new code never stops a sync on an older tab.
   const n = Math.min(def.columns.length, sh.getMaxColumns());
@@ -390,7 +434,7 @@ function fundStatus_(fund, current, today) {
 function findRowById_(def, id) {
   const sh = ss_().getSheetByName(def.sheet);
   if (!sh) return -1;
-  const last = sh.getLastRow();
+  const last = tableReadEnd_(def, sh);
   if (last < def.firstRow) return -1;
   const ids = sh.getRange(def.firstRow, 1, last - def.firstRow + 1, 1).getValues();
   for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) return def.firstRow + i;
@@ -401,10 +445,11 @@ function findRowById_(def, id) {
 function nextEmptyRow_(def) {
   const sh = getOrCreateSheet_(def.sheet);
   const anchor = anchorCol_(def);
-  const last = sh.getLastRow();
+  const last = tableReadEnd_(def, sh);
   if (last < def.firstRow) return def.firstRow;
   const vals = sh.getRange(def.firstRow, anchor, last - def.firstRow + 1, 1).getValues();
   for (let i = 0; i < vals.length; i++) if (vals[i][0] === '' || vals[i][0] === null) return def.firstRow + i;
+  if (def.fixedRows && last >= def.lastRow) throw new Error(def.title + ' is full (' + (def.lastRow - def.firstRow + 1) + ' rows). Clear a finished row first.');
   return last + 1;
 }
 

@@ -1,5 +1,11 @@
 # STATUS
 
+2026-11-27 (build 1.42.0, schema 3.27): the To-Do tab gains Our
+Money-Saving Strategies and a Savings Journal below a 15-row checklist.
+Waiting for the owner's upgrade; then Claude enters the first strategies
+and the subscription changes already made, and asks the owner what the
+Tide Pods and Ziploc changes cost before and after.
+
 2026-11-27 (build 1.41.1): the AI snapshot opens with the last full month
 in detail and the review skill reports that month; the owner has the
 updated skill file to save. A college savings (529) account was added by

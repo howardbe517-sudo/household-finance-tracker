@@ -24,6 +24,7 @@ the App Setup tab; both are generated from `Config.gs`.
 
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
+| To-Do & Reminders | First tab. Three tables, one under the other: the checklist (rows 4–19, 15 rows), Our Money-Saving Strategies (rows 22–32), the Savings Journal (from row 36, the only one that can grow); the automatic reminders strip in row 3 | 4, 22, 36 | `fixedRows` / `sharesSheet` in `Config.gs`; `buildTodoTop_`, `buildSavingsSection_` (Tables.gs); nothing merged below row 3 so rows can be dragged |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
 | Financial Summary | Where the household stands: tonight's balances (the accounts block, rows 3–8), then four cards for a typical month (coming in, fixed costs, average flexible spending, likely left over), the months control for the lower sections (B14), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Children, Fees, Net worth | — | Columns A:I; accounts block A:D / F:I; `FinancialSummary.gs`, constants in `FINSUM` |
 | Spending | How this month is going: Month (B3) and Compare with (E3) inputs, review banner, Expected Take-Home and Spent So Far, the flexible line, three tiles, Current Flexible Spending (follows today), categories beside a typical month, recurring payments, flexible subcategories, six months, average spending by category (bars), Monthly Review Checklist | — | Columns A:I; `Spending.gs`, constants in `SPEND`. The Dashboard tab was retired on 2026-11-12 (build 1.13.0); an existing one is emptied and hidden by the upgrade |
@@ -165,6 +166,16 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   its start (`summaryWindow_`); until there is one, this month so far.
 - Goals & Progress reads each goal's debt (Latest Balance) or fund (Current
   Amount); `goalProgress_` is the same arithmetic for QA and the AI snapshot.
+- A tab may hold more than one table (To-Do & Reminders). A table with
+  another below it is `fixedRows`: reads stop at its lastRow and it never
+  grows. A table built onto an existing tab is `sharesSheet`: building it
+  touches only its own rows, never clears or trims the tab, and its
+  conditional formats keep the other tables' (`rulesOutsideRows_`). Never
+  use `ensureSheetSize_` on such a tab (it trims rows); use `growSheet_`.
+- Savings Journal: Saving = (Old Cost − New Cost) × times a year
+  (`SAVING_TIMES_A_YEAR`); One time counts once and is kept out of every
+  yearly figure. `savingsPerYear_` / `savingsTotals_` mirror it for QA and
+  the AI snapshot.
 - Background tabs (`BACKGROUND_TABS`) are hidden, never removed; the menu
   shows them. Reminders and the old Goals tab are hidden and kept.
 - The Spending tab follows the Selected Month (Spending!B3, named
