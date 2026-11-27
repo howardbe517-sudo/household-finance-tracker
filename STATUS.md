@@ -1,5 +1,14 @@
 # STATUS
 
+2026-11-27 (records, no code): the November Apple charges were identified
+from the owner's Apple Purchase History. Four monthly subscriptions are on
+Recurring Payments (one renamed, three added); a combined charge was split
+into a subscription and a one-time movie. The Debts tab's two blank rows
+were closed. The ledger checker (new today) checked every change; it caught
+one row overwritten by mistake earlier in the day, which was restored.
+Open: a PayPal charge the owner is checking, and whether the nanny's
+holiday-week payment came from checking or the Venmo balance.
+
 2026-11-27 (build 1.38.0, schema 3.23): bank charges waiting for review on
 Import Staging count as flexible spending ("Not categorized yet") until
 reviewed; Import Staging gains Counts as Spending?. Waiting for the owner's
@@ -15,9 +24,9 @@ Import Staging row with Claude; the reviewed rows import at the next Sync.
 New rules for Comcast (internet, also a Recurring Payments row), Home Depot
 and several shops. Left for the owner: a Meijer charge, a PayPal charge
 (check PayPal activity) and a Target charge were skipped for now.
-**Reminder for the next conversation:** go over the flagged American Express
-Pay Over Time interest row on Import Staging (how to file it) and whether to
-untick Interest Paused? on the Amex row of the Debts tab.
+Resolved the same day: the Amex Pay Over Time interest is filed as
+Miscellaneous / Card & Processing Fees (an Amex-only rule does it from now
+on), and the owner unticked Interest Paused? on the Amex Debts row.
 
 2026-11-26 (build 1.35.0): summary boxes on Financial Summary and Spending
 list what makes up each number, one item per line (option A from the
