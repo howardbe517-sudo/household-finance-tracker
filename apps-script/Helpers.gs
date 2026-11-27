@@ -123,12 +123,18 @@ function styleNoteRow_(sh, row, text, numCols) {
  * bg: the box's fill (null for none). Returns nothing; the caller sets the row height (boxLinesHeight_).
  */
 function putBoxLines_(sh, row, names, amounts, namesValue, amountsValue, bg) {
+  // a dotted line from each name to its amount (the owner, 2026-11-27): dots after the name run to the edge of the names cell, dots
+  // before the amount run back to the edge of the amounts cell; the cells clip them, so the line meets in the middle. A line that
+  // starts with ~ is a caption: no dots, and the ~ is dropped. A little space keeps the text off the box edges.
+  const body = (v) => String(v).charAt(0) === '=' ? String(v).slice(1) : '"' + String(v).replace(/"/g, '""') + '"';
+  namesValue = '=REGEXREPLACE(REGEXREPLACE(' + body(namesValue) + ',"(?m)^([^~\\n][^\\n]*)$",CHAR(160)&"$1 "&REPT(". ",60)),"(?m)^~",CHAR(160))';
+  amountsValue = '=REGEXREPLACE(' + body(amountsValue) + ',"(?m)^([^\\n]+)$",REPT(" .",40)&" $1"&CHAR(160)&CHAR(160))';
   const set = (cols, v, align) => {
     const [c1, c2] = cols.split(':');
     const r = sh.getRange(c1 + row + ':' + c2 + row);
     if (c1 !== c2) r.merge();
     if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v);
-    r.setFontSize(10).setFontColor(COLORS.BOX_LINES).setFontStyle('normal').setHorizontalAlignment(align).setVerticalAlignment('top')
+    r.setFontSize(11).setFontColor(COLORS.BOX_LINES).setFontStyle('normal').setHorizontalAlignment(align).setVerticalAlignment('top')
       .setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
     if (bg) r.setBackground(bg);
   };
@@ -145,8 +151,8 @@ function hoverNote_(sh, anchorA1, text, rowToQuiet) {
   if (rowToQuiet) sh.setRowHeight(rowToQuiet, 6);
 }
 
-/** Row height for a box's breakdown of n lines at 10 pt. Pure. */
-function boxLinesHeight_(n) { return Math.max(1, n) * 17 + 8; }
+/** Row height for a box's breakdown of n lines at 11 pt. Pure. */
+function boxLinesHeight_(n) { return Math.max(1, n) * 19 + 8; }
 
 /** Lines of text joined for a breakdown cell: a formula piece per line, or plain text when every piece is a quoted string. */
 function boxJoin_(pieces) { return '=' + pieces.join('&CHAR(10)&'); }

@@ -80,7 +80,7 @@ Object.values(TABLES).forEach(def => {
 });
 
 /* 4. formula hygiene across the whole workbook */
-const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK', 'REGEXMATCH', 'TRANSPOSE', 'PROPER', 'HSTACK', 'SEQUENCE']);
+const KNOWN_FUNCS = new Set(['IF', 'IFS', 'IFERROR', 'AND', 'OR', 'NOT', 'SUM', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS', 'MAXIFS', 'MAX', 'MIN', 'N', 'ABS', 'ROUND', 'INDEX', 'MATCH', 'FILTER', 'SORT', 'UNIQUE', 'DATEDIF', 'ARRAY_CONSTRAIN', 'ARRAYFORMULA', 'SUMPRODUCT', 'DATE', 'YEAR', 'MONTH', 'DAY', 'TODAY', 'EOMONTH', 'EDATE', 'WEEKDAY', 'TEXT', 'LEFT', 'UPPER', 'LOWER', 'REGEXREPLACE', 'ISNUMBER', 'ISBLANK', 'ROW', 'LET', 'SWITCH', 'SPARKLINE', 'CEILING', 'TRIM', 'VLOOKUP', 'COUNTA', 'ROWS', 'TEXTJOIN', 'MAP', 'LAMBDA', 'MINIFS', 'CHAR', 'SUBSTITUTE', 'SEARCH', 'INT', 'HYPERLINK', 'REGEXMATCH', 'TRANSPOSE', 'PROPER', 'HSTACK', 'SEQUENCE', 'REPT']);
 const funcRe = /([A-Z_][A-Z0-9_\.]*)\s*\(/g;
 const unknown = new Map();
 let unbalanced = 0, stray = 0, badSheetRef = 0;
@@ -405,8 +405,8 @@ if (mr2.plan === false && mr2.budget === 0) ok('month rows are not added twice')
 const goalsSh = g.__ss.getSheetByName(SHEETS.GOALS);
 if (goalsSh && goalsSh.getRange('A1').getValue() === 'Financial Goals' && goalsSh.getRange('A4').getValue() === 'Goal 1' && g.__ss.namedRanges.has('GOAL_1') && g.__ss.namedRanges.has('GOAL_5') && g.__ss.getRangeByName('GOAL_1').getSheet().getName() === SHEETS.GOALS && TAB_ORDER[8] === SHEETS.GOALS) ok('Goals tab (ninth tab) has five large goal boxes named GOAL_1…GOAL_5'); else bad('goals tab: ' + JSON.stringify([goalsSh && goalsSh.getRange('A1').getValue(), g.__ss.namedRanges.has('GOAL_1')]));
 const dSh = g.__ss.getSheetByName(SHEETS.FINSUM); // the accounts block opens the Financial Summary
-const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('G4').getFormula(), dH4 = dSh.getRange('H4').getFormula();
-if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('F4').getValue() === 'Independent Bank' && dSh.getRange('F6').getValue() === 'Capital One' && dSh.getRange('F7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Financial Summary opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
+const dB4 = dSh.getRange('B4').getFormula(), dG4 = dSh.getRange('F4').getFormula(), dH4 = dSh.getRange('G4').getFormula();
+if (dSh.getRange('A4').getValue() === 'Checking (Independent Bank)' && dSh.getRange('A5').getValue() === 'Savings (Independent Bank)' && dSh.getRange('E4').getValue() === 'Independent Bank' && dSh.getRange('E6').getValue() === 'Capital One' && dSh.getRange('E7').getValue() === 'Total owed on cards' && /SUMPRODUCT\(.*SEARCH\("Independent Bank",'Accounts'.*"Checking"/.test(dB4) && /"Credit Card"/.test(dG4) && /SEARCH\("Elan"/.test(dG4) && /Debts/.test(dH4) && /not connected yet/.test(dH4) && !/SPARKLINE/.test(dSh.getRange('C4').getFormula())) ok('Financial Summary opens with checking, savings and the three cards (owed, due date, total), plain numbers; the Independent Bank card also matches its issuer Elan'); else bad('accounts block: ' + JSON.stringify([dSh.getRange('A4').getValue(), dB4, dG4, dH4]));
 (function () { const sp = g.__ss.getSheetByName(SHEETS.SPEND), nr = g.__ss.getRangeByName('DASH_SELECTED_MONTH'), cmp = g.__ss.getRangeByName('SPEND_COMPARE'), ck = g.__ss.getRangeByName('DASH_CHECKLIST');
   if (!g.__ss.getSheetByName('Dashboard') && sp.getRange('A3').getValue() === 'Month' && typeof sp.getRange('B3').getValue().getTime === 'function' && nr && nr.getSheet().getName() === SHEETS.SPEND && /^B3(:B3)?$/.test(nr.getA1Notation()) && sp.getRange('D3').getValue() === 'Compare with' && cmp && cmp.getSheet().getName() === SHEETS.SPEND && cmp.getValue() === SPEND.COMPARE[0] && SPEND.COMPARE.length === 4 && sp.getRange('A' + SPEND.CHECK_BAR).getValue() === 'Monthly Review Checklist' && ck && ck.getSheet().getName() === SHEETS.SPEND && ck.getNumRows() === 8 && fsSh.getRange('A' + FINSUM.MONTHS_CELL.slice(1)).getValue() === 'Averages below cover the last') ok('a new workbook has no Dashboard tab: the Selected Month (B3), Compare with (E3) and the checklist are inputs on the Spending tab under their named ranges; the Financial Summary\'s own controls sit under the accounts block'); else bad('spending inputs: ' + JSON.stringify([!!g.__ss.getSheetByName('Dashboard'), sp.getRange('A3').getValue(), nr && nr.getA1Notation(), cmp && cmp.getValue(), ck && ck.getNumRows()]));
 })();
@@ -502,7 +502,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
 (function () {
   const fsAcc = ss.getSheetByName(SHEETS.FINSUM);
   const r = vm.runInContext('FINSUM.ACCT_FIRST', ctx);
-  const gF = fsAcc.getRange('G' + r).getFormula(), hF = fsAcc.getRange('H' + r).getFormula();
+  const gF = fsAcc.getRange('F' + r).getFormula(), hF = fsAcc.getRange('G' + r).getFormula();
   const p = vm.runInContext(`(function () { const d = (n) => new Date(2030, 0, 20 - n); return cardPending_([
     { pending: true, status: 'Needs Review', accountId: 'C1', amount: 60, date: d(1) },
     { pending: true, status: 'Imported', accountId: 'C1', amount: 15.99, date: d(2) },
@@ -1126,7 +1126,7 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
   if (dashF.length >= 6 && !bare.length && /ISNUMBER\(SEARCH\("Capital One",'Accounts'!\$C\$5:\$C\)\)\+0\)>0/.test(capF)) ok('accounts-block name tests are forced to numbers (+0) so a line matched by one name does not match every account'); else bad('boolean name test: ' + JSON.stringify([dashF.length, bare.slice(0, 1), capF.slice(0, 140)]));
 })();
 (function () {
-  const cardF = fsAcc.getRange('G' + FINSUM.ACCT_FIRST).getFormula();
+  const cardF = fsAcc.getRange('F' + FINSUM.ACCT_FIRST).getFormula();
   if (/SUMPRODUCT\(\(\(ISNUMBER\(SEARCH\("Independent Bank"/.test(cardF) && /ISNUMBER\(SEARCH\("Elan"/.test(cardF) && !/SUMIFS\('Accounts'/.test(cardF)) ok('a card line matches its issuer names with one OR test, so a card whose bank name contains two of them counts once'); else bad('card line formula: ' + cardF.slice(0, 160));
 })();
 (function () {

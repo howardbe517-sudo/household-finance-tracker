@@ -37,8 +37,8 @@ function buildFinancialSummary_() {
   ensureSheetSize_(sh, FINSUM.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
   // wider, to use more of the screen (the owner, 2026-11-26)
-  [240, 130, 130, 120, 150, 160, 150, 150, 150].forEach((w, i) => sh.setColumnWidth(i + 1, w));
-  sh.getRange(1, 1, FINSUM.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  [215, 115, 115, 105, 135, 145, 135, 135, 135].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  sh.getRange(1, 1, FINSUM.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(11).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const header = (a1, values) => { const r = sh.getRange(a1); r.setValues([values]); styleHeader_(r); r.setHorizontalAlignment('center'); };
@@ -101,7 +101,7 @@ function buildFinancialSummary_() {
   const SAVE = 'SUM([FUNDS.plannedMonthly])';
   const cards = [
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Coming In (typical month)', color: COLORS.CARD_TAKEHOME, f: F('=' + TAKE),
-      namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"from Expected Income")'),
+      namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"~from Expected Income")'),
       amountsF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,TEXT(SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.person],p),"$#,##0")))),"")') },
     { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG),
       namesF: '="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&"Utilities (avg)"',

@@ -273,7 +273,7 @@ function qaReport_() {
       const names = (card.patterns || [card.institution]).map(x => String(x).toLowerCase());
       const ids = accRows.filter(a => a.accountType === 'Credit Card' && a.includeNW === 'Yes' && names.some(n => String(a.institution || '').toLowerCase().indexOf(n) >= 0)).map(a => a.id);
       const pend = cardPending_(stagedAll, ids, today);
-      const shown = fsAcct.getRange('G' + (FINSUM.ACCT_FIRST + i)).getValue();
+      const shown = fsAcct.getRange('F' + (FINSUM.ACCT_FIRST + i)).getValue();
       if (exp.connected && !near(shown, exp.sum + pend)) acctProblems.push(card.label + ' card shows ' + money(shown) + ' but its Accounts rows plus pending charges add up to ' + money(exp.sum + pend));
     });
     DASH_ACCOUNTS.main.filter(l => l.type === 'Checking').forEach(line => {
