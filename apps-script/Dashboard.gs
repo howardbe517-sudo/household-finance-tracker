@@ -147,7 +147,8 @@ function retireDashboard_() {
   return true;
 }
 
-/* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook. */
+/* Reminders tab: the few things only the owner can do, calculated from the tables. Rebuilt by buildWorkbook / upgradeWorkbook.
+   Hidden since 2026-11-27: the To-Do & Reminders tab (first) shows its box beside the checklist; the email and Show reminders read it here. */
 const REMINDERS = { WIDTH: 8, BOX_FIRST: 4, BOX_ROWS: 14 };
 // account types whose balance, when the bank feed cannot reach them, the owner types by hand: retirement plans, HSA, investments
 const BALANCE_REMINDER_TYPES = ['Retirement', 'HSA', 'Investment'];
@@ -187,4 +188,6 @@ function buildReminders_() {
   sh.setRowHeight(note, 36);
   const prot = sh.protect().setDescription('Reminders are calculated. Update the values on their own tabs.');
   prot.setWarningOnly(true);
+  // shown beside the to-do checklist on the first tab (the owner, 2026-11-27); this tab stays, hidden, for the email and Show reminders
+  sh.hideSheet();
 }

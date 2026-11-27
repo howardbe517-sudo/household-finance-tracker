@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.24-grocery-names-2026-11-27',
-  BUILD_VERSION: '1.38.1',
+  SCHEMA_VERSION: '3.25-todo-2026-11-27',
+  BUILD_VERSION: '1.39.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -29,6 +29,7 @@ const SHEETS = {
   FINSUM: 'Financial Summary',
   GOALS: 'Goals',
   REMINDERS: 'Reminders',
+  TODO: 'To-Do & Reminders',
   INCOME: 'Income',
   EXPECT: 'Expected Income',
   TX: 'Transactions',
@@ -72,11 +73,13 @@ const TAB_ORDER = [
   // 2026-11-15: Groceries after Utilities, then Grocery Charts (the owner: the graphs on their own tab); its two tables (Grocery Items, Grocery Item Names) after Utility Bills.
   // 2026-11-17: Bill Changes (one-week changes made on the calendar) right after Recurring Payments.
   // 2026-11-21: Receipts (receipt photos and how each card charge was split by them) after Grocery Item Names.
-  SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
+  // 2026-11-27 (the owner): the to-do checklist first, since it is where he looks for what needs doing; the automatic
+  // reminders show beside it, and the Reminders tab itself is hidden (it still feeds the monthly email and Show reminders).
+  SHEETS.TODO, SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALS,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.RECEIPTS, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
-  SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG, SHEETS.REMINDERS, // Reminders last, as the owner asked
+  SHEETS.PASTE, SHEETS.ACCOUNTS, SHEETS.LOG,
 ];
 
 const COLORS = {
@@ -781,6 +784,20 @@ TABLES.GROCNAMES = {
   ],
 };
 
+TABLES.TODO = {
+  key: 'TODO', sheet: SHEETS.TODO, headerRow: 4, firstRow: 5, lastRow: 204, extraCols: 8,
+  title: 'To-Do & Reminders',
+  note: 'Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. The automatic reminders on the right clear themselves when you update the value they ask for.',
+  idPrefix: '', idPattern: '(none)', logChanges: false,
+  columns: [
+    { key: 'task', h: 'To-Do', w: 340, note: 'Added in 3.25 (the owner, 2026-11-27).' },
+    { key: 'done', h: 'Done?', w: 70, v: { checkbox: true } },
+    { key: 'date', h: 'Date', w: 100, fmt: C.date, v: { date: true } },
+    { key: 'person', h: 'For', w: 95, v: { list: 'OWNERS' } },
+    { key: 'notes', h: 'Notes', w: 300 },
+  ],
+};
+
 TABLES.BILLCHG = {
   key: 'BILLCHG', sheet: SHEETS.BILLCHG, headerRow: 4, firstRow: 5, lastRow: 304,
   title: 'Bill Changes — One-Week Changes from the Calendar',
@@ -1118,7 +1135,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['TODO', 'CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

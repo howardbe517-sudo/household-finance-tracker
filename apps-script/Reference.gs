@@ -348,7 +348,7 @@ function buildStartHere_(withSample) {
     ['Recurring Payments', 'Expected bills, subscriptions and loan payments with their day of the month; they feed the monthly plan and the Spending tab.'],
     ['Monthly Budget · Monthly Plan · Monthly Summary · Monthly Review', 'Planned vs actual by category; the flexible target and weekly guidance (automatic unless you set one); calculated monthly results; your month-end notes.'],
     ['Quarterly Debt Review · Net Worth Snapshots · Credit Scores', 'Debt balances by quarter where no lender is connected; net worth history; credit scores typed in by hand.'],
-    ['Reminders', 'Last tab: the few things only you can do (PSLF counts, credit scores), also emailed monthly.'],
+    ['To-Do & Reminders', 'First tab: your own to-do checklist (tick Done? when finished), and beside it the automatic reminders, the few things only you can do (PSLF counts, credit scores, balances typed by hand), also emailed monthly.'],
     ['Categories · App Setup · Sources · Import Rules · Connections · Paste Import · Accounts · Change Log', 'The machinery: the category list and dropdowns, settings, design sources, the rules that classify bank rows, the bank logins, the paste-import landing area, the account list, and the audit log.'],
   ].forEach(([tab, what]) => line(tab + ' — ' + what));
   r++;
@@ -358,7 +358,7 @@ function buildStartHere_(withSample) {
   line('Rules: an Import Rule matches a bank description ("CAPITAL ONE AUTO" → Debt Payment on the car loan). A rule marked Auto-import sends matching rows straight to Transactions; others pre-fill the row for you. Make one from any staged row with Finance Tracker → Make a rule from the selected row. Every sync re-checks the waiting rows against the rules.');
   line('Review: for a row no rule knows, pick a Category and tick Reviewed?. The next sync imports it. A category with one subcategory (Childcare → Nanny) fills itself in; a wider category uses its "Other" line unless you pick one.');
   line('Paychecks: nothing to do. When the deposit reaches checking and is imported as Income, the next sync adds it to Income at the amount deposited. For a known employer the gross pay and deductions are estimated from the last pay stub you gave; the take-home is always the real deposit. The pay stub is where the gross pay and deductions come from, so Reminders asks for a fresh one per employer every six months (the number is on App Setup): give it to Claude and paste the block into Finance Tracker → Import from Claude. It replaces the estimate for that paycheck.');
-  line('By hand, rarely: PSLF counts from studentaid.gov, credit scores, the HSA balance until it connects. The Reminders tab nags about the first two.');
+  line('By hand, rarely: PSLF counts from studentaid.gov, credit scores, the HSA balance until it connects. The automatic reminders on the To-Do & Reminders tab nag about the first two.');
   r++;
 
   section('Definitions');

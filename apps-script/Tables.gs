@@ -188,6 +188,13 @@ CF_BUILDERS.BILLCHG = (sh, def) => {
   ]);
 };
 
+// a finished to-do goes grey with a line through it (the owner, 2026-11-27: a checklist)
+CF_BUILDERS.TODO = (sh, def) => {
+  sh.setConditionalFormatRules([
+    cfRule_(rowRange_(sh, def), '=' + cellRef_(def, 'done') + '=TRUE', null, COLORS.DELETED_TEXT, { strike: true }),
+  ]);
+};
+
 CF_BUILDERS.REVIEW = (sh, def) => {
   const s = cellRef_(def, 'status');
   sh.setConditionalFormatRules([
@@ -197,6 +204,33 @@ CF_BUILDERS.REVIEW = (sh, def) => {
 };
 
 /* ---------- presentation sections ---------- */
+
+/* To-Do & Reminders: beside the checklist (columns A:E), the automatic reminders from the hidden Reminders tab (REMINDERS_BOX),
+   so everything to do is on the first tab (the owner, 2026-11-27). Holds no entered data: redrawn by build and upgrade. */
+const TODO_SIDE = { FIRST_COL: 7, WIDTH: 6, BOX_ROWS: 16 };
+function buildTodoTop_(sh, def) {
+  const n = def.columns.length, c1 = TODO_SIDE.FIRST_COL, w = TODO_SIDE.WIDTH, all = c1 + w - 1;
+  ensureSheetSize_(sh, def.lastRow + 5, all);
+  sh.getRange(1, 1, 1, all).setBackground(COLORS.NAVY);
+  sh.getRange(2, 1, 1, all).setBackground(COLORS.WHITE);
+  sh.setColumnWidth(n + 1, 24);
+  for (let c = c1; c <= all; c++) sh.setColumnWidth(c, 110);
+  const side = sh.getRange(1, c1, def.lastRow, w);
+  side.breakApart();
+  side.clearContent(); // SAFETY-APPROVED: the side panel is calculated (one formula box and its labels); no entered data is kept there
+  side.clearDataValidations();
+  const head = sh.getRange(def.headerRow, c1, 1, w).merge();
+  head.setValue('Automatic reminders');
+  styleHeader_(head);
+  const box = sh.getRange(def.firstRow, c1, TODO_SIDE.BOX_ROWS, w).merge();
+  box.setFormula('=IFERROR(INDEX(REMINDERS_BOX,1,1),"")');
+  box.setWrap(true).setVerticalAlignment('top').setFontSize(11).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
+    .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange(def.firstRow + TODO_SIDE.BOX_ROWS, c1, 1, w).merge()
+    .setValue('These clear themselves when you update the value they ask for. PSLF counts on Debts, credit scores on the Credit Scores tab, pay stubs through Finance Tracker → Import from Claude, balances typed by hand on Accounts. The same list is emailed at most once a month (App Setup).')
+    .setWrap(true).setVerticalAlignment('top').setFontSize(9).setFontStyle('italic').setFontColor(COLORS.MUTED_TEXT);
+  sh.setRowHeight(def.firstRow + TODO_SIDE.BOX_ROWS, 48);
+}
 
 /** Recurring Payments rows 1–38: KPIs, group summary, upcoming lists. */
 function buildRecurringTop_(sh, def) {
@@ -356,12 +390,13 @@ function applyTableFormats_(sh, def) {
 }
 
 function buildCoreTables_() {
-  ['INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
+  ['TODO', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (key === 'RECUR') buildRecurringTop_(sh, def);
     if (key === 'DEBTS') buildDebtsTop_(sh, def);
     if (key === 'FUNDS') buildFundsGuide_(sh, def);
+    if (key === 'TODO') buildTodoTop_(sh, def);
     applyTableFormats_(sh, def);
   });
 }

@@ -142,6 +142,7 @@ function upgradeTable_(key, report) {
     if (sh && sh.getRange(def.headerRow, 1).getValue() === '' && sh.getLastRow() === 0) { sh = null; }
     if (!sh) {
       sh = buildTableSheet_(def); // getOrCreateSheet_ reuses an existing tab of that name; it never duplicates
+      if (key === 'TODO') buildTodoTop_(sh, def);
       applyTableFormats_(sh, def);
       report.push('Added tab: ' + def.sheet);
       return;
@@ -171,6 +172,7 @@ function upgradeTable_(key, report) {
     if (key === 'RECUR') buildRecurringTop_(sh, def);
     if (key === 'NW') buildNetWorthHelper_(sh, def);
     if (key === 'FUNDS') buildFundsGuide_(sh, def);
+    if (key === 'TODO') buildTodoTop_(sh, def);
   }
 }
 
