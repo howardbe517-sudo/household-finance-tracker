@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.22-paydays-2026-11-25',
-  BUILD_VERSION: '1.37.2',
+  SCHEMA_VERSION: '3.23-waiting-spend-2026-11-27',
+  BUILD_VERSION: '1.38.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -960,6 +960,19 @@ TABLES.BUDGET = {
   ],
 };
 
+/**
+ * Bank charges still waiting on Import Staging count as spending (the owner, 2026-11-27): flexible spending under
+ * WAITING_LABEL until the review moves each into its real category. A row counts when its status is one of
+ * WAITING_STATUSES, it is not marked Duplicate?, has no Imported Transaction ID, is suggested as an expense (or has no
+ * type yet), and is money going out other than a $0 or $1 hold. WAITING_SUM_TPL adds them up for dates {from} to {to}
+ * (both included); waitingSpendExpr_ fills it in, and isWaitingCharge_ / waitingSpend_ (Helpers.gs) do the same in
+ * JavaScript for the QA checks and the AI snapshot.
+ */
+const WAITING_LABEL = 'Not categorized yet';
+const WAITING_STATUSES = ['Needs Review', 'Needs Split', 'Ready'];
+const WAITING_SUM_TPL = 'SUMPRODUCT(([STAGING.date]>={from})*([STAGING.date]<={to})*((([STAGING.status]="Needs Review")+([STAGING.status]="Needs Split")+([STAGING.status]="Ready"))>0)' +
+  '*([STAGING.duplicate]<>TRUE)*([STAGING.importedTxId]="")*((([STAGING.suggestedType]="Expense")+([STAGING.suggestedType]=""))>0)*([STAGING.amount]>0)*(ROUND([STAGING.amount],2)<>1),[STAGING.amount])';
+
 TABLES.PLAN = {
   key: 'PLAN', sheet: SHEETS.PLAN, headerRow: 4, firstRow: 5, lastRow: 124,
   title: 'Monthly Plan — Flexible Spending Target',
@@ -971,19 +984,25 @@ TABLES.PLAN = {
     { key: 'target', h: 'Monthly Flexible Target', w: 130, fmt: C.cur,
       note: 'Changed in 3.4: an override. Leave blank and the month uses Flexible Target (auto): expected take-home + income adjustment − bills − debt payments − planned savings. Type a number here to use it instead.' },
     { key: 'flexSpent', h: 'Flexible Spent', w: 110, fmt: C.cur,
-      f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE"))' },
+      f: '=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE")' +
+         '+' + WAITING_SUM_TPL.replace('{from}', '[@month]').replace('{to}', 'EOMONTH([@month],0)') + ')',
+      note: 'Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated in the month.' },
     { key: 'available', h: 'Amount Available', w: 115, fmt: C.cur, f: '=IF([@id]="","",N([@effectiveTarget])-[@flexSpent])' },
     { key: 'suggestedWeek', h: 'Suggested This Week', w: 125, fmt: C.cur,
       f: '=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",' +
          'LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),' +
          'before,SUMIFS([TX.amount],[TX.date],">="&ms,[TX.date],"<"&ws,[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")' +
-         '-SUMIFS([TX.amount],[TX.date],">="&ms,[TX.date],"<"&ws,[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE"),' +
-         'remaining,MAX(N([@effectiveTarget])-before,0),remaining*(we-ws+1)/(me-ws+1)))' },
+         '-SUMIFS([TX.amount],[TX.date],">="&ms,[TX.date],"<"&ws,[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE")' +
+         '+' + WAITING_SUM_TPL.replace('{from}', 'ms').replace('{to}', '(ws-1)') + ',' +
+         'remaining,MAX(N([@effectiveTarget])-before,0),remaining*(we-ws+1)/(me-ws+1)))',
+      note: 'Changed in 3.23: what was spent before this week includes bank charges still waiting on Import Staging.' },
     { key: 'spentWeek', h: 'Spent This Week', w: 115, fmt: C.cur,
       f: '=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",' +
          'LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),' +
          'SUMIFS([TX.amount],[TX.date],">="&ws,[TX.date],"<="&TODAY(),[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")' +
-         '-SUMIFS([TX.amount],[TX.date],">="&ws,[TX.date],"<="&TODAY(),[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE")))' },
+         '-SUMIFS([TX.amount],[TX.date],">="&ws,[TX.date],"<="&TODAY(),[TX.spendingType],"Flexible",[TX.type],"Refund",[TX.isDeleted],"<>TRUE")' +
+         '+' + WAITING_SUM_TPL.replace('{from}', 'ws').replace('{to}', 'TODAY()') + '))',
+      note: 'Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated this week.' },
     { key: 'notes', h: 'Notes', w: 240 },
     { key: 'expectedIncome', h: 'Expected Take-Home (auto)', w: 130, fmt: C.cur,
       f: '=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*' + 'IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N([EXPECT.lastPayDate])=0,26/12,INT((me-N([EXPECT.lastPayDate]))/14)+INT((N([EXPECT.lastPayDate])-ms)/14)+1),IF([EXPECT.frequency]="Weekly",IF(N([EXPECT.lastPayDate])=0,52/12,INT((me-N([EXPECT.lastPayDate]))/7)+INT((N([EXPECT.lastPayDate])-ms)/7)+1),IF([EXPECT.frequency]="Semimonthly",2,IF([EXPECT.frequency]="Monthly",1,0)))),0)' + ')))',
@@ -1013,7 +1032,9 @@ TABLES.SUMMARY = {
       '=IFERROR(SORT(UNIQUE(FILTER({[INCOME.month];[TX.month];[PLAN.month];[BUDGET.month]},{[INCOME.month];[TX.month];[PLAN.month];[BUDGET.month]}<>""))),"")' },
     { key: 'income', h: 'Income / Take-Home', w: 115, fmt: C.cur, f: '=IF([@month]="","",SUMIFS([INCOME.takeHome],[INCOME.month],[@month]))' },
     { key: 'spending', h: 'Spending', w: 105, fmt: C.cur,
-      f: '=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Refund",[TX.isDeleted],"<>TRUE"))' },
+      f: '=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Refund",[TX.isDeleted],"<>TRUE")' +
+        '+' + WAITING_SUM_TPL.replace('{from}', '[@month]').replace('{to}', 'EOMONTH([@month],0)') + ')',
+      note: 'Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated in the month.' },
     { key: 'cashSavings', h: 'Cash Savings', w: 105, fmt: C.cur,
       f: '=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Savings",[TX.isDeleted],"<>TRUE"))' },
     { key: 'debtPayments', h: 'Debt Payments', w: 105, fmt: C.cur,

@@ -99,12 +99,17 @@ function buildSnapshotText_(d) {
   for (let i = 5; i >= 0; i--) months.push(mk(new Date(today.getFullYear(), today.getMonth() - i, 1)));
   const lastFull = months[months.length - 2];
   const inMonth = (rows, key) => rows.filter(r => r._month === key);
-  const spendRows = live.filter(t => t.type === 'Expense' || t.type === 'Refund');
+  // bank charges still waiting on Import Staging count as flexible spending, as in the Sheet (the owner, 2026-11-27); they never
+  // make a month count as "a month with spending" (typMonths below looks at Transactions only)
+  const waitTx = waitingAsTransactions_(staging);
+  waitTx.forEach(t => { t._month = mk(t.date); });
+  const spendTx = live.filter(t => t.type === 'Expense' || t.type === 'Refund');
+  const spendRows = spendTx.concat(waitTx);
   const net = (rows) => sum(rows.filter(t => t.type === 'Expense'), t => t.amount) - sum(rows.filter(t => t.type === 'Refund'), t => t.amount);
   // the typical month: the last 3 full months that have spending recorded (the Spending tab's "Last 3 full months");
   // a month with nothing recorded is skipped, never counted as zero
   const full3 = months.slice(-4, -1);
-  const typMonths = full3.filter(m => spendRows.some(t => t._month === m));
+  const typMonths = full3.filter(m => spendTx.some(t => t._month === m));
   const K = typMonths.length;
   const txMonths3 = full3.filter(m => live.some(t => t._month === m));
   const txDates = live.filter(t => isDate(t.date)).map(t => t.date.getTime());
@@ -117,6 +122,7 @@ function buildSnapshotText_(d) {
   L.push('## How to read this');
   L.push('- Months are calendar months; "to date" means the current month so far. ' + (firstTx ? 'Bank transactions on record start ' + dateStr(firstTx) + '; there is no spending on record before that.' : 'No transactions are on record yet.'));
   L.push('- Spending = expenses − refunds, deleted rows left out. Transfers, savings, debt payments and the parent row of a split purchase are not spending; the pieces of a split are (a Costco charge is split by its receipt into groceries, household supplies, gas and so on).');
+  L.push('- Bank charges not reviewed yet (still on Import Staging) count as flexible spending under "' + WAITING_LABEL + '" until they are reviewed and imported' + (waitTx.length ? ': ' + waitTx.length + ' now, ' + money(sum(waitTx, t => t.amount)) : ': none now') + '. Money coming in and $0 or $1 card holds are left out.');
   L.push('- A typical month is the average of the months that have spending recorded; an empty month is never counted as zero.');
   L.push('- "Flexible" means two things in the workbook: Spending Type = Flexible (the Monthly Plan\'s target and weekly guidance), and everything not marked Fixed (the Financial Summary\'s flexible average). Each figure below says which.');
   L.push('- Income is take-home pay from the Income tab. A paycheck marked "from deposit" came from a bank deposit with no pay stub: its take-home is the real deposit; its gross pay and deductions are estimates.');
@@ -142,7 +148,7 @@ function buildSnapshotText_(d) {
     return ks.length ? Math.max(1, cur - Math.min.apply(null, ks)) : 0;
   })();
   const utilLabel = utilN ? 'over the ' + utilN + ' full month(s) since the first bill (up to 12)' : 'no bills in the last 12 full months';
-  const flex = typicalFlexible_(tx, today);
+  const flex = typicalFlexible_(tx, today, staging);
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
   const plannedSavings = sum(funds, f => f.plannedMonthly);
@@ -200,7 +206,7 @@ function buildSnapshotText_(d) {
   const cfRows = [];
   months.forEach(m => {
     const inc = sum(inMonth(income, m), r => r._take);
-    const txm = inMonth(live, m);
+    const txm = inMonth(live, m).concat(inMonth(waitTx, m));
     if (!inc && !txm.length) return;
     const label = monthName(m) + (m === curKey ? ' (to date)' : '');
     if (!txm.length) { cfRows.push([label, money(inc), 'no transactions recorded', '—', '—', '—', '—', '—']); return; }
@@ -244,7 +250,7 @@ function buildSnapshotText_(d) {
 
   /* Flexible plan & budget */
   const plan = plans.filter(p => mk(p.month) === curKey)[0];
-  const flexSpent = net(inMonth(live, curKey).filter(t => t.spendingType === 'Flexible'));
+  const flexSpent = net(inMonth(live.concat(waitTx), curKey).filter(t => t.spendingType === 'Flexible'));
   L.push('## This month\'s plan (' + monthName(curKey) + ', to date)');
   const effTarget = plan ? (num(plan.target) > 0 ? num(plan.target) : num(plan.autoTarget)) : 0;
   if (plan) L.push('Flexible-spending target (Spending Type = Flexible) ' + money(effTarget) + (num(plan.target) > 0 ? ' (set by hand)' : ' (automatic: expected take-home ' + money(num(plan.expectedIncome) + num(plan.incomeAdjustment)) + ' − bills ' + money(plan.bills) + ' − debt payments ' + money(plan.debtPayments) + ' − planned savings ' + money(plan.plannedSavings) + ')') + '; spent so far ' + money(flexSpent) + '; available ' + money(effTarget - flexSpent) + '.');

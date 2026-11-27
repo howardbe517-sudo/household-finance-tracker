@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.22-paydays-2026-11-25**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.23-waiting-spend-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -559,10 +559,10 @@ Named range `TBL_PLAN` covers the header row through the last formula row.
 | A | Plan ID | `id` | text | calculated | `=IF([@month]="","","PLAN-"&TEXT([@month],"yyyymm"))` |
 | B | Month | `month` | month (1st-of-month date) | input (date) |  |
 | C | Monthly Flexible Target | `target` | currency | input | Changed in 3.4: an override. Leave blank and the month uses Flexible Target (auto): expected take-home + income adjustment − bills − debt payments − planned savings. Type a number here to use it instead. |
-| D | Flexible Spent | `flexSpent` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month…` |
+| D | Flexible Spent | `flexSpent` | currency | calculated | `=IF([@id]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.spendingType],"Flexible",[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month…` — Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated in the month. |
 | E | Amount Available | `available` | currency | calculated | `=IF([@id]="","",N([@effectiveTarget])-[@flexSpent])` |
-| F | Suggested This Week | `suggestedWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),b…` |
-| G | Spent This Week | `spentWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),SUMIFS([TX.amount],[TX.date],">="&…` |
+| F | Suggested This Week | `suggestedWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],me,EOMONTH(ms,0),ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),we,MIN(ws+6,me),b…` — Changed in 3.23: what was spent before this week includes bank charges still waiting on Import Staging. |
+| G | Spent This Week | `spentWeek` | currency | calculated | `=IF(OR([@id]="",[@month]<>DATE(YEAR(TODAY()),MONTH(TODAY()),1)),"",LET(ms,[@month],ws,MAX(TODAY()-WEEKDAY(TODAY(),2)+1,ms),SUMIFS([TX.amount],[TX.date],">="&…` — Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated this week. |
 | H | Notes | `notes` | text | input |  |
 | I | Expected Take-Home (auto) | `expectedIncome` | currency | calculated | `=IF([@id]="","",LET(ms,[@month],me,EOMONTH(ms,0),SUMPRODUCT(([EXPECT.active]=TRUE)*N(+[EXPECT.typicalTakeHome])*IFERROR(IF([EXPECT.frequency]="Biweekly",IF(N…` — Added in 3.4: every Active Expected Income row times the paydays that fall in this month (biweekly pay gives two months a year with three paychecks; the yearly average is used until a first paycheck exists). |
 | J | Income Adjustment | `incomeAdjustment` | currency | input | Added in 3.4: extra income expected this month (+) or a shortfall such as fewer hours (−). Entered. |
@@ -582,7 +582,7 @@ Named range `TBL_SUMMARY` covers the header row through the last formula row.
 |---|---|---|---|---|---|
 | A | Month | `month` | month (1st-of-month date) | calculated | `=IFERROR(SORT(UNIQUE(FILTER({[INCOME.month];[TX.month];[PLAN.month];[BUDGET.month]},{[INCOME.month];[TX.month];[PLAN.month];[BUDGET.month]}<>""))),"")` |
 | B | Income / Take-Home | `income` | currency | calculated | `=IF([@month]="","",SUMIFS([INCOME.takeHome],[INCOME.month],[@month]))` |
-| C | Spending | `spending` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Refu…` |
+| C | Spending | `spending` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Expense",[TX.isDeleted],"<>TRUE")-SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Refu…` — Changed in 3.23: also counts bank charges still waiting on Import Staging (not categorized yet) dated in the month. |
 | D | Cash Savings | `cashSavings` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Savings",[TX.isDeleted],"<>TRUE"))` |
 | E | Debt Payments | `debtPayments` | currency | calculated | `=IF([@month]="","",SUMIFS([TX.amount],[TX.month],[@month],[TX.type],"Debt Payment",[TX.isDeleted],"<>TRUE"))` |
 | F | Cash Remaining | `cashRemaining` | currency | calculated | `=IF([@month]="","",[@income]-[@spending]-[@cashSavings]-[@debtPayments])` |

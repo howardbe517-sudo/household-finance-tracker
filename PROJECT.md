@@ -147,6 +147,14 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
 - Spending = Expense − Refund, excluding soft-deleted rows. Savings, Debt
   Payment, Transfer and Split Parent rows never count as spending; split
   children do; a split parent's children must sum to its amount.
+- Bank charges still waiting on Import Staging count as spending (the owner,
+  2026-11-27): flexible spending under "Not categorized yet" until the review
+  imports each into its category. Counted: open rows (Needs Review, Needs
+  Split, Ready) with no Imported Transaction ID, not Duplicate?, suggested
+  Expense or no type, money going out other than a $0 or $1 hold. One
+  definition: `WAITING_SUM_TPL` in Config.gs (formulas) and
+  `isWaitingCharge_` in Helpers.gs (QA, AI snapshot). They never make a month
+  count as "a month with spending" for averages.
 - A purchase paid from a sinking or emergency fund is still spending in the
   month it happens, and it reduces the fund.
 - The Spending tab follows the Selected Month (Spending!B3, named

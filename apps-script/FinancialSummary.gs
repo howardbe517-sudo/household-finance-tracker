@@ -100,11 +100,16 @@ function buildFinancialSummary_() {
   const typeAvg12 = (x) => 'LET(f,MINIFS([UTIL.month],[UTIL.utility],' + x + ',[UTIL.month],">="&' + LYM + ',[UTIL.month],"<"&' + CUR + '),SUMIFS([UTIL.amount],[UTIL.utility],' + x + ',[UTIL.month],">="&' + LYM + ',[UTIL.month],"<"&' + CUR + ')/MAX(1,DATEDIF(f,' + CUR + ',"M")))';
   const UTILLY = 'IFERROR(SUM(MAP(' + UTYPES + ',LAMBDA(x,IF(' + hasLY('x') + ',SUMIFS([UTIL.amount],[UTIL.month],' + LYM + ',[UTIL.utility],x),' + typeAvg12('x') + ')))),0)';
   const UTILNAME = '=IFERROR(LET(n,ROWS(' + UTYPES + '),k,SUM(MAP(' + UTYPES + ',LAMBDA(x,IF(' + hasLY('x') + ',1,0)))),IF(k=0,"Utilities (avg)",IF(k=n,"Utilities ("&TEXT(' + LYM + ',"mmm yyyy")&")","Utilities ("&TEXT(' + LYM + ',"mmm yyyy")&" + avg)"))),"Utilities (avg)")';
-  const FLEXAVG = 'IF(' + FLEXK + '=0,' + notFixed('[TX.month],' + CUR) + ',' + notFixed('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE) + '/' + FLEXK + ')';
+  // bank charges still waiting on Import Staging count as flexible spending (the owner, 2026-11-27); the months counted
+  // (FLEXK) stay the months with spending on Transactions
+  const WAITCUR = waitingSpendExpr_(CUR, 'EOMONTH(' + CUR + ',0)'), WAITWIN = waitingSpendExpr_(FWS, 'EOMONTH(' + FWE + ',0)');
+  const FLEXAVG = 'IF(' + FLEXK + '=0,' + notFixed('[TX.month],' + CUR) + '+' + WAITCUR + ',(' + notFixed('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE) + '+' + WAITWIN + ')/' + FLEXK + ')';
   const V = FINSUM.CARD_VALUE;
   // Option A (the owner, 2026-11-26): the number, then what makes it up, one item per line: names on the left, amounts on the right
   const byType = (crit, type) => '(SUMIFS([TX.amount],' + crit + ',[TX.spendingType],"' + type + '"' + TXE + '-SUMIFS([TX.amount],' + crit + ',[TX.spendingType],"' + type + '"' + TXR + ')';
-  const typeAvg = (type) => 'IF(' + FLEXK + '=0,' + byType('[TX.month],' + CUR, type) + ',' + byType('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE, type) + '/' + FLEXK + ')';
+  const typeAvg = (type) => type === 'Flexible'
+    ? 'IF(' + FLEXK + '=0,' + byType('[TX.month],' + CUR, type) + '+' + WAITCUR + ',(' + byType('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE, type) + '+' + WAITWIN + ')/' + FLEXK + ')'
+    : 'IF(' + FLEXK + '=0,' + byType('[TX.month],' + CUR, type) + ',' + byType('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE, type) + '/' + FLEXK + ')';
   const people = 'UNIQUE(FILTER([EXPECT.person],[EXPECT.active]=TRUE,[EXPECT.person]<>""))';
   const m0 = (e) => 'TEXT(' + e + ',"$#,##0;-$#,##0")';
   const SAVE = 'SUM([FUNDS.plannedMonthly])';
@@ -141,7 +146,7 @@ function buildFinancialSummary_() {
   const rounded = ' Each line under the box is rounded to the dollar, so a list can be $1 off its total.';
   hoverNote_(sh, 'A' + FINSUM.CARD_LABEL, 'A typical month of take-home pay: each active paycheck on Expected Income × its paychecks per month on average.' + rounded);
   hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), for each utility (gas, electric, water…), the bill due in the same month last year, or its own 12-month average when it had no bill that month, and planned savings (the Planned Monthly amounts on Savings & Reserves), since that transfer goes out every month like a bill. Not the same as Fixed on the Spending tab, which counts only spending marked Fixed so far this month.' + rounded);
-  hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one).' + rounded);
+  hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one). Bank charges still waiting on Import Staging count here as Everyday (Flexible) until they are reviewed.' + rounded);
   hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs (which include planned savings) − flexible spending: money that is truly free. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
 
 
@@ -367,19 +372,21 @@ function buildFinancialSummary_() {
 /**
  * The flexible figure on the Financial Summary, recomputed in plain JavaScript. Pure.
  * Average monthly spending that is not marked Fixed over the last FINSUM.FLEX_MONTHS full months,
- * counting only months that have spending; with no such month, this month so far.
+ * counting only months that have spending; with no such month, this month so far. Charges still waiting on Import
+ * Staging (stagingRows, optional) count as flexible spending in their month.
  * Returns { months, average, provisional }.
  */
-function typicalFlexible_(txRows, today) {
+function typicalFlexible_(txRows, today, stagingRows) {
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
   const key = (d) => d.getFullYear() * 12 + d.getMonth();
   const lo = key(cur) - FINSUM.FLEX_MONTHS, hi = key(cur) - 1;
   const seen = {};
   let win = 0, now = 0;
-  (txRows || []).forEach(t => {
+  // bank charges still waiting on Import Staging (stagingRows, optional) are flexible spending, but never make a month "a month with spending"
+  (txRows || []).concat(waitingAsTransactions_(stagingRows)).forEach(t => {
     if (t.isDeleted === true || !(t.date instanceof Date) || (t.type !== 'Expense' && t.type !== 'Refund')) return;
     const k = key(t.date), amt = (t.type === 'Expense' ? 1 : -1) * Number(t.amount || 0), flex = t.spendingType !== 'Fixed';
-    if (k >= lo && k <= hi) { seen[k] = true; if (flex) win += amt; }
+    if (k >= lo && k <= hi) { if (!t._waiting) seen[k] = true; if (flex) win += amt; }
     else if (k === key(cur) && flex) now += amt;
   });
   const months = Object.keys(seen).length;

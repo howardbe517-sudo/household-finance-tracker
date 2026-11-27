@@ -1918,6 +1918,45 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
   else bad('typical-month divisor: ' + ds.split('\n').filter(l => /Housing|average of|no transactions|Fixed \$/.test(l)).join(' | '));
 })();
 
+// bank charges still waiting on Import Staging count as flexible spending (1.38.0)
+(function () {
+  const WAITING_LABEL_ = R('WAITING_LABEL');
+  const st = `[
+    { importId:'W1', date:new Date(2026, 10, 3), amount:19.12, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'W2', date:new Date(2026, 10, 4), amount:50.88, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'' },
+    { importId:'W3', date:new Date(2026, 10, 5), amount:8, status:'Ready', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X1', date:new Date(2026, 10, 5), amount:1, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X2', date:new Date(2026, 10, 5), amount:0, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X3', date:new Date(2026, 10, 5), amount:-34.34, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Refund' },
+    { importId:'X4', date:new Date(2026, 10, 5), amount:40, status:'Imported', duplicate:false, importedTxId:'TX-1', suggestedType:'Expense' },
+    { importId:'X5', date:new Date(2026, 10, 5), amount:40, status:'Removed', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X6', date:new Date(2026, 10, 5), amount:40, status:'Needs Review', duplicate:true, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X7', date:new Date(2026, 10, 5), amount:40, status:'Ready', duplicate:false, importedTxId:'', suggestedType:'Transfer' },
+    { importId:'X8', date:new Date(2026, 10, 5), amount:40, status:'Ignored', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'W4', date:new Date(2026, 9, 20), amount:25, status:'Needs Split', duplicate:false, importedTxId:'', suggestedType:'Expense' }]`;
+  const nov = R(`waitingSpend_(${st}, new Date(2026, 10, 1), new Date(2026, 10, 30))`), oct = R(`waitingSpend_(${st}, new Date(2026, 9, 1), new Date(2026, 9, 31))`);
+  const day4 = R(`waitingSpend_(${st}, new Date(2026, 10, 4), new Date(2026, 10, 4))`);
+  const wt = R(`waitingAsTransactions_(${st})`);
+  if (near(nov, 78) && near(oct, 25) && near(day4, 50.88) && wt.length === 4 && wt.every(t => t.type === 'Expense' && t.spendingType === 'Flexible' && t.category === WAITING_LABEL_ && t._waiting === true))
+    ok('waiting charges: money going out on open rows counts (Needs Review, Needs Split, Ready), by date; $0 and $1 holds, money coming in, imported, removed, ignored, duplicate and transfer rows are left out');
+  else bad('waiting charges: ' + JSON.stringify([nov, oct, day4, wt.length]));
+  // the flexible average and the typical month add them in, but a month with only waiting charges is never "a month with spending"
+  const tx = `[{ date:new Date(2026, 9, 3), amount:300, type:'Expense', spendingType:'Flexible' }]`;
+  const tfW = R(`typicalFlexible_(${tx}, new Date(2026, 10, 12), ${st})`), tfN = R(`typicalFlexible_([], new Date(2026, 10, 12), ${st})`);
+  const tmW = R(`typicalMonth_(${tx}.concat(waitingAsTransactions_(${st})), new Date(2026, 11, 1), 'Last 3 full months')`);
+  if (tfW.months === 1 && near(tfW.average, 325) && tfN.months === 0 && tfN.provisional === true && near(tfN.average, 78) && tmW.months === 1 && near(tmW.total, 403))
+    ok('waiting charges join the Financial Summary flexible average and the Spending tab typical month without adding a month to count');
+  else bad('waiting in averages: ' + JSON.stringify([tfW, tfN, tmW]));
+  // the Sheet formulas read Import Staging the same way
+  const sumF = g.__ss.getSheetByName(SHEETS.SUMMARY).getRange(TABLES.SUMMARY.firstRow, TABLES.SUMMARY.columns.findIndex(c => c.key === 'spending') + 1).getFormula();
+  const planF = g.__ss.getSheetByName(SHEETS.PLAN).getRange(TABLES.PLAN.firstRow, TABLES.PLAN.columns.findIndex(c => c.key === 'flexSpent') + 1).getFormula();
+  const spSh = g.__ss.getSheetByName(SHEETS.SPEND), catF = spSh.getRange('A' + SPEND.CAT_FIRST).getFormula();
+  const stagingRef = /SUMPRODUCT\(\('Import Staging'!\$E\$5:\$E(\$1004)?>=/;
+  if (stagingRef.test(sumF) && /"Needs Split"/.test(sumF) && /ROUND\('Import Staging'!\$G\$5:\$G(\$1004)?,2\)<>1/.test(sumF) && stagingRef.test(planF) && catF.indexOf('"' + WAITING_LABEL_ + '"') >= 0 && stagingRef.test(catF))
+    ok('Monthly Summary spending, Monthly Plan flexible spent and the Spending tab categories add the waiting charges from Import Staging');
+  else bad('waiting formulas: ' + JSON.stringify([sumF.slice(0, 200), planF.slice(0, 120), catF.slice(0, 120)]));
+})();
+
 vm.runInContext('clearSampleData()', ctx);
 const left = vm.runInContext("readTable_(TABLES.TX).filter(r => r.createdBy === 'sample-data').length", ctx);
 const realLeft = vm.runInContext("readTable_(TABLES.ACCOUNTS).filter(a => /^ACC-0(0[6-9]|1[0-3])$/.test(a.id)).length", ctx);

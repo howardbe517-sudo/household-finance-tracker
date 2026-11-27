@@ -514,3 +514,48 @@ function cardPending_(stagingRows, accountIds, today) {
     return isFinite(a) ? s + a : s;
   }, 0) * 100) / 100;
 }
+
+/* ---------- bank charges still waiting on Import Staging (the owner, 2026-11-27) ---------- */
+// A charge that has not been reviewed and imported yet still counts as spending, as flexible spending under
+// WAITING_LABEL, until its review moves it into its real category. Counted: money going out (amount above zero),
+// on a row still open (Needs Review, Needs Split, or Ready but not imported yet), not marked Duplicate?, with no
+// Imported Transaction ID, suggested as an expense or with no type yet. Left out: money coming in, $0 and $1
+// holds (a pump or a shop checking the card), and rows the bank removed or replaced (their status says so).
+
+// WAITING_LABEL, WAITING_STATUSES and the formula (WAITING_SUM_TPL) live in Config.gs.
+
+/** Is this Import Staging row a charge that counts as spending while it waits? Pure. */
+function isWaitingCharge_(r) {
+  const a = Number(r && r.amount);
+  return !!r && r.date instanceof Date && WAITING_STATUSES.indexOf(r.status) >= 0 && r.duplicate !== true && !r.importedTxId
+    && (r.suggestedType === 'Expense' || !r.suggestedType) && r.amount !== '' && isFinite(a) && a > 0 && Math.round(a * 100) !== 100;
+}
+
+/** Waiting charges dated from `from` to `to` (both included, whole days), added up. Pure. */
+function waitingSpend_(stagingRows, from, to) {
+  const lo = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
+  const hi = new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime();
+  return Math.round((stagingRows || []).reduce((s, r) => {
+    if (!isWaitingCharge_(r)) return s;
+    const t = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
+    return t >= lo && t <= hi ? s + Number(r.amount) : s;
+  }, 0) * 100) / 100;
+}
+
+/**
+ * The waiting charges as stand-in transactions, for the checks and the AI snapshot that recompute totals from Transactions:
+ * flexible expenses in WAITING_LABEL, marked _waiting so a month is never counted as "a month with spending" because of them
+ * (the Sheet counts those months from Transactions only). Pure.
+ */
+function waitingAsTransactions_(stagingRows) {
+  return (stagingRows || []).filter(isWaitingCharge_).map(r => ({
+    id: r.importId, date: r.date, month: new Date(r.date.getFullYear(), r.date.getMonth(), 1), description: r.rawDescription,
+    amount: Number(r.amount), type: 'Expense', category: WAITING_LABEL, subcategory: '', spendingType: 'Flexible', needWant: '',
+    accountId: r.accountId, isDeleted: false, _waiting: true,
+  }));
+}
+
+/** The same sum as a formula over Import Staging, for dates fromExpr to toExpr (Sheet expressions). Template text: resolve with resolveFormula_. */
+function waitingSpendExpr_(fromExpr, toExpr) {
+  return WAITING_SUM_TPL.replace('{from}', fromExpr).replace('{to}', toExpr);
+}
