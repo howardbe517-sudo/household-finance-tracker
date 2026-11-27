@@ -15,7 +15,7 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.23-waiting-spend-2026-11-27',
+  SCHEMA_VERSION: '3.24-grocery-names-2026-11-27',
   BUILD_VERSION: '1.38.1',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
@@ -755,7 +755,8 @@ TABLES.GROC = {
     { key: 'isDeleted', h: 'Is Deleted', w: 80, v: { checkbox: true } },
     { key: 'deletedAt', h: 'Deleted At', w: 130, fmt: C.dt },
     { key: 'notes', h: 'Notes', w: 220 },
-    { key: 'item', h: 'Item', w: 170, f: '=IF([@id]="","",IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName]))' },
+    { key: 'item', h: 'Item', w: 170, f: '=IF([@id]="","",TRIM(IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName])))',
+      note: 'Changed in 3.24: spaces at either end are dropped, so "Milk" and "Milk " are one item on the Groceries tab.' },
     { key: 'category', h: 'Category', w: 120, f: '=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.category],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Food",c)),"Food"))' },
     { key: 'subcategory', h: 'Subcategory', w: 150, f: '=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.subcategory],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Groceries",c)),"Groceries"))' },
     { key: 'month', h: 'Month', w: 95, fmt: C.month, f: '=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))' },

@@ -1910,6 +1910,18 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
   if (/## Groceries/.test(gs) && /\| [A-Z][a-z]+ \d{4} \(to date\) \| \$20\.49 \| \$12\.49 \| \$8\.00 \| \$8\.00 \|/.test(gs) && /\| Sample Blueberries \| Groceries \| 1 \| \$6\.99 \|/.test(gs) && /\| SMPL BREAD \|/.test(gs) && /Costco food from receipts[^\n]*\$12\.49/.test(gs)
       && !/RCPT|TRIP|Sampletown|SAMPLETOWN|#0123|ELM ST|SAMPLE MARKET/.test(gs)) ok('snapshot groceries: monthly totals (alcohol counted with groceries, Costco apart), Costco food from receipts and the top items by readable name; deleted copies, receipt numbers, trip IDs, locations and bank descriptions left out');
   else bad('groceries section: ' + gs.slice(gs.indexOf('## Groceries'), gs.indexOf('## Utilities')));
+  // one item whatever its capitals (1.38.1): "SMPL KALE" and "Smpl Kale " are one line, named as the one that is not all capitals
+  const gc = R(`buildSnapshotText_({ ${base}, income:[], accounts:[], funds:[], expected:[], tx:[], grocNames:[],
+    groc:[{ id:'GI-1', tripId:'SAMPLE-TRIP-1', date:${day(0, 1)}, store:'Costco', receiptName:'SMPL KALE', qty:1, unitPrice:3, amount:3, discount:0, net:3 },
+          { id:'GI-2', tripId:'SAMPLE-TRIP-2', date:${day(0, 2)}, store:'Meijer', receiptName:'Smpl Kale ', qty:1, unitPrice:4, amount:4, discount:0, net:4 }] })`);
+  if (/\| Smpl Kale \| [^|]*\| 2 \| \$7\.00 \|/.test(gc) && !/\| SMPL KALE \|/.test(gc)) ok('snapshot top items: one line per item whatever its capitals or a trailing space, named as the spelling that is not all capitals');
+  else bad('item spellings: ' + gc.split('\n').filter(l => /Kale/i.test(l)).join(' | '));
+  // the Groceries tab groups the same way: by lower-case name, and the Item column is trimmed
+  const gTab = g.__ss.getSheetByName(SHEETS.GROCERY);
+  const gItem = gTab.getRange('A' + R('GROC.ITEM_FIRST')).getFormula(), gTop = gTab.getRange('A' + R('GROC.TOP_FIRST')).getFormula();
+  const itemCol = TABLES.GROC.columns.find(c => c.key === 'item').f;
+  if (/UNIQUE\(FILTER\(LOWER\(/.test(gItem) && /UNIQUE\(FILTER\(LOWER\(/.test(gTop) && /SORT\(\{nm,/.test(gItem) && /SORT\(\{nm,/.test(gTop) && /^=IF\(\[@id\]="","",TRIM\(/.test(itemCol)) ok('Groceries tab: What you bought and What you buy most show one row per item whatever its capitals; item names are trimmed');
+  else bad('grocery item grouping: ' + JSON.stringify([gItem.slice(0, 200), itemCol]));
   // the typical month divides by the months that have spending, and a month with paychecks but no transactions says so
   const ds = R(`buildSnapshotText_({ ${base}, accounts:[], funds:[], expected:[],
     income:[{ id:'INC-1', payDate:${day(-2, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:1000, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE' }],

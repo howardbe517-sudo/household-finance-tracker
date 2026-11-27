@@ -7,9 +7,12 @@
 - `Groceries.gs`: What you bought and What you buy most group items by
   their lower-case name and show the spelling that is not all capitals when
   there is one. `Export.gs`: the AI snapshot's top items do the same.
+- Schema 3.24: Grocery Items' Item drops spaces at either end, so "Milk" and
+  "Milk " are one item too (data reviewer's suggestion).
 - No number changes except that the doubled rows become one. `BUILD_VERSION`
   1.38.1. Files changed in `apps-script/`: `Groceries.gs`, `Export.gs`,
   `Config.gs`. Run Upgrade workbook (it redraws the Groceries tab).
+- Data review: no must-fix; both should-fix items done (trim, tests).
 - Tested: Node mock; the What you bought formula run on the live Sheet in a
   scratch cell (then cleared): Blackberries and Broccoli once each.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
