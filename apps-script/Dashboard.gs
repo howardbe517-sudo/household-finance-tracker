@@ -57,7 +57,7 @@ function buildGoals_() {
 
 /**
  * The accounts block: checking and savings on the left (columns A:D), the credit cards with what is
- * owed and when it is due on the right (F:I). Lines come from DASH_ACCOUNTS in Config.gs. Drawn on the
+ * owed and when it is due on the right (E:H). Lines come from DASH_ACCOUNTS in Config.gs. Drawn on the
  * Financial Summary; R = { header, first, note } are the rows to use. The sheet needs the
  * column widths [190, 100, 70, 110, 120, 130, 120, 120, 120].
  */
@@ -84,10 +84,11 @@ function buildAccountsBlock_(sh, R) {
   header('A' + R.header + ':B' + R.header, ['Account', 'Balance']);
   sh.getRange('C' + R.header + ':D' + R.header).merge(); styleHeader_(sh.getRange('C' + R.header + ':D' + R.header));
   sh.getRange('C' + R.header).setValue('Updated');
-  header('F' + R.header + ':H' + R.header, ['Credit card', 'Owed', 'Due']);
-  sh.getRange('I' + R.header).setValue('').setBackground(COLORS.PALE_BLUE);
+  // the cards sit right beside the accounts, no empty column between them (the owner, 2026-11-27): E card, F owed, G:H due
+  header('E' + R.header + ':G' + R.header, ['Credit card', 'Owed', 'Due']);
+  sh.getRange('G' + R.header + ':H' + R.header).merge();
   sh.getRange('B' + R.header).setHorizontalAlignment('right');
-  sh.getRange('G' + R.header).setHorizontalAlignment('right');
+  sh.getRange('F' + R.header).setHorizontalAlignment('right');
   // Each line is the bank balance. (Until 2026-11-15 the savings line subtracted money parked in savings for bills;
   // the owner now pays every bill from checking.)
   DASH_ACCOUNTS.main.forEach((line, i) => {
@@ -100,7 +101,7 @@ function buildAccountsBlock_(sh, R) {
   });
   DASH_ACCOUNTS.cards.forEach((card, i) => {
     const r = R.first + i;
-    put('F' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
+    put('E' + r, card.label).setFontWeight('bold').setBackground(COLORS.CARD_SPENDING);
     // what will be owed (the owner, 2026-11-16): the card's posted balance plus its charges still pending at the bank
     const cardIds = 'FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + namesHit(card) + ',[ACCOUNTS.includeNW]="Yes")';
     // pending charges are read from Import Staging, where every bank charge lands first (most wait there for review
@@ -108,19 +109,19 @@ function buildAccountsBlock_(sh, R) {
     // is replaced (Superseded) when its posted version arrives, so nothing counts twice; one older than
     // CARD_PENDING_DAYS is left out (a charge that never posted).
     const pendingOf = 'IFERROR(SUMPRODUCT(([STAGING.pending]=TRUE)*([STAGING.status]<>"Superseded")*([STAGING.status]<>"Removed")*([STAGING.date]>=TODAY()-' + CARD_PENDING_DAYS + ')*ISNUMBER(MATCH([STAGING.accountId],' + cardIds + ',0)),IF(ISNUMBER([STAGING.amount]),[STAGING.amount],0)),0)';
-    put('G' + r, F('=LET(b,' + balanceOf(card, 'Credit Card') + ',IF(ISNUMBER(b),b+' + pendingOf + ',b))')).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
+    put('F' + r, F('=LET(b,' + balanceOf(card, 'Credit Card') + ',IF(ISNUMBER(b),b+' + pendingOf + ',b))')).setNumberFormat(FORMATS.currency).setFontWeight('bold').setFontSize(14).setHorizontalAlignment('right').setBackground(COLORS.CARD_SPENDING);
     const anyPat = namesHit(card);
     const idOf = 'IFERROR(INDEX(FILTER([ACCOUNTS.id],[ACCOUNTS.accountType]="Credit Card",' + anyPat + ',[ACCOUNTS.includeNW]="Yes",[ACCOUNTS.connectionId]<>""),1),"")';
-    mergePut('H' + r + ':I' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($G' + r + '),$G' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))&LET(p,' + pendingOf + ',IF(p=0,"",IF(nd="",""," · ")&"incl. "&TEXT(p,"$#,##0.00")&" pending"))),"")'))
+    mergePut('G' + r + ':H' + r, F('=IFERROR(LET(id,' + idOf + ',nd,IFERROR(INDEX([DEBTS.nextDue],MATCH(id,[DEBTS.linkedAccount],0)),""),IF(id="","not connected yet",IF(AND(ISNUMBER($F' + r + '),$F' + r + '<=0),"paid in full",IF(nd="","","due "&TEXT(nd,"mmm d"))))&LET(p,' + pendingOf + ',IF(p=0,"",IF(nd="",""," · ")&"incl. "&TEXT(p,"$#,##0.00")&" pending"))),"")'))
       .setFontSize(9).setFontColor(COLORS.MUTED_TEXT).setBackground(COLORS.CARD_SPENDING);
     sh.setRowHeight(r, 28);
   });
   const cardTotalRow = R.first + DASH_ACCOUNTS.cards.length;
-  put('F' + cardTotalRow, 'Total owed on cards').setFontWeight('bold').setBackground(COLORS.PALE_BLUE);
-  put('G' + cardTotalRow, '=SUMPRODUCT(N(+G' + R.first + ':G' + (cardTotalRow - 1) + '))').setNumberFormat(FORMATS.currency).setFontWeight('bold').setHorizontalAlignment('right').setBackground(COLORS.PALE_BLUE);
-  sh.getRange('H' + cardTotalRow + ':I' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
+  put('E' + cardTotalRow, 'Total owed on cards').setFontWeight('bold').setBackground(COLORS.PALE_BLUE);
+  put('F' + cardTotalRow, '=SUMPRODUCT(N(+F' + R.first + ':F' + (cardTotalRow - 1) + '))').setNumberFormat(FORMATS.currency).setFontWeight('bold').setHorizontalAlignment('right').setBackground(COLORS.PALE_BLUE);
+  sh.getRange('G' + cardTotalRow + ':H' + cardTotalRow).merge().setBackground(COLORS.PALE_BLUE);
   sh.getRange('A' + R.header + ':D' + (R.first + DASH_ACCOUNTS.main.length - 1)).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange('F' + R.header + ':I' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('E' + R.header + ':H' + cardTotalRow).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   hoverNote_(sh, 'A' + R.header, 'Balances arrive from the bank feed each night; a line shows — and "not connected yet" until its bank is connected. Card due dates come from the lender. Checking and savings are the available balances, with pending items already taken out; what a card shows as owed includes its charges still pending at the bank (they post in a day or two). Net worth and Debts use posted balances.', R.note);
 }
 

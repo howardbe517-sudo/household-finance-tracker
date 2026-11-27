@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-27 — Dotted lines in the boxes; bigger text; cards beside the accounts
+- Why (the owner): match each name to its amount more easily; the amounts
+  sat against the box edge and looked cut off; the tabs had grown a bit too
+  wide; the normal text could be a little bigger; the credit card table sat
+  one empty column away from the accounts.
+- `Helpers.gs` (`putBoxLines_`): a dotted line runs from each name to its
+  amount (dots after the name and before the amount, each clipped at its
+  cell edge); a caption line starts with ~ and gets no dots; a little space
+  keeps text off the box edges; the lines are 11 pt.
+- `FinancialSummary.gs`, `Spending.gs`: columns back to about 1,235 px in all
+  (between 1.36.0 and 1.36.1); normal text 11 pt.
+- `Dashboard.gs` (accounts block): the credit card table moves to E:H, right
+  beside the accounts. `QA.gs` reads the card amounts from the new column.
+- Layout only. `BUILD_VERSION` 1.36.2. Files changed in `apps-script/`:
+  `Helpers.gs`, `FinancialSummary.gs`, `Spending.gs`, `Dashboard.gs`, `QA.gs`,
+  `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock; the dotted-line formula was run in a scratch cell on the
+  live Sheet (then cleared). The look needs checking in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-26 — Wider Financial Summary and Spending tabs
 - Why (the owner): some text in the boxes was cut off, and the tabs used
   only part of the screen.

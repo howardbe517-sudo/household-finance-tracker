@@ -53,8 +53,8 @@ function buildSpending_() {
   ensureSheetSize_(sh, SPEND.LAST_ROW, 9);
   sh.setHiddenGridlines(true);
   // wider, to use more of the screen (the owner, 2026-11-26)
-  [270, 135, 135, 135, 135, 105, 190, 140, 140].forEach((w, i) => sh.setColumnWidth(i + 1, w));
-  sh.getRange(1, 1, SPEND.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(10).setVerticalAlignment('middle');
+  [240, 120, 120, 120, 120, 95, 170, 125, 125].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  sh.getRange(1, 1, SPEND.LAST_ROW, 9).setFontColor(COLORS.TEXT).setFontSize(11).setVerticalAlignment('middle');
   const put = (a1, v) => { const r = sh.getRange(a1); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const mergePut = (a1, v) => { const r = sh.getRange(a1).merge(); if (typeof v === 'string' && v.charAt(0) === '=') r.setFormula(v); else r.setValue(v); return r; };
   const header = (a1, values) => { const r = sh.getRange(a1); r.setValues([values]); styleHeader_(r); r.setHorizontalAlignment('center'); };
@@ -136,7 +136,7 @@ function buildSpending_() {
 
   /* --- three tiles --- */
   const recLastRow = SPEND.REC_FIRST + SPEND.REC_ROWS - 1;
-  const soFar = '"spent so far in "&TEXT(' + M + ',"mmmm")';
+  const soFar = '"~spent so far in "&TEXT(' + M + ',"mmmm")';
   const money0 = (e) => 'TEXT(' + e + ',"$#,##0")';
   // the regular bills by group, largest first: the same list (and order) in both cells
   const recGroups = (each) => 'IFERROR(LET(g,UNIQUE(FILTER([RECUR.group],[RECUR.active]=TRUE,[RECUR.group]<>"")),m,MAP(g,LAMBDA(x,SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],x))),s,SORT(FILTER({g,m},m>0),2,FALSE),TEXTJOIN(CHAR(10),TRUE,' + each + ')&CHAR(10)),"")';
@@ -175,7 +175,7 @@ function buildSpending_() {
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Amount Available This Month', f: F('=IFERROR(INDEX([PLAN.available],' + planMatch + '),"No plan row")'),
       // how the flexible figure is reached, one step per line (it was a line of its own under the cards); when the target is set by
       // hand, the automatic one the steps give is shown first, then the hand-set target, so the lines still add up
-      namesF: F('=IFERROR(LET(pm,' + planMatch + ',adj,N(INDEX([PLAN.incomeAdjustment],pm)),hand,N(INDEX([PLAN.target],pm))>0,"Take-home (expected"&IF(adj<>0,", incl. adjustment","")&")"&CHAR(10)&"− Bills"&CHAR(10)&"− Debt payments"&CHAR(10)&"− Planned savings"&CHAR(10)&IF(hand,"= Automatic target"&CHAR(10)&"Target set by hand instead","= Flexible target")&CHAR(10)&"− Flexible spent so far"),"Add a row for this month on Monthly Plan")'),
+      namesF: F('=IFERROR(LET(pm,' + planMatch + ',adj,N(INDEX([PLAN.incomeAdjustment],pm)),hand,N(INDEX([PLAN.target],pm))>0,"Take-home (expected"&IF(adj<>0,", incl. adjustment","")&")"&CHAR(10)&"− Bills"&CHAR(10)&"− Debt payments"&CHAR(10)&"− Planned savings"&CHAR(10)&IF(hand,"= Automatic target"&CHAR(10)&"Target set by hand instead","= Flexible target")&CHAR(10)&"− Flexible spent so far"),"~Add a row for this month on Monthly Plan")'),
       amountsF: F('=IFERROR(LET(pm,' + planMatch + ',ei,INDEX([PLAN.expectedIncome],pm)+N(INDEX([PLAN.incomeAdjustment],pm)),b,INDEX([PLAN.bills],pm),dp,INDEX([PLAN.debtPayments],pm),ps,INDEX([PLAN.plannedSavings],pm),hand,N(INDEX([PLAN.target],pm))>0,TEXT(ei,"$#,##0")&CHAR(10)&TEXT(b,"$#,##0")&CHAR(10)&TEXT(dp,"$#,##0")&CHAR(10)&TEXT(ps,"$#,##0")&CHAR(10)&IF(hand,TEXT(ei-b-dp-ps,"$#,##0")&CHAR(10),"")&TEXT(INDEX([PLAN.effectiveTarget],pm),"$#,##0")&CHAR(10)&TEXT(INDEX([PLAN.flexSpent],pm),"$#,##0")),"")') },
     { cols: ['C', 'E'], names: 'C:D', amounts: 'E:E', label: 'Suggested This Week', f: F('=IFERROR(INDEX([PLAN.suggestedWeek],' + planMatch + '),"No plan row")'),
       namesF: '="Week"&CHAR(10)&"Counts"', amountsF: '=TEXT(' + monday + ',"mmm d")&" – "&TEXT(' + weekEnd + ',"mmm d")&CHAR(10)&"Flexible only"' },
