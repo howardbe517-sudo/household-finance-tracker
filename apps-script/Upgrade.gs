@@ -80,6 +80,8 @@ function upgradeWorkbookLocked_() {
   if (exp && exp.skipped && exp.skipped.length) report.push('Expected Income: one-off pay not counted as a regular paycheck: ' + exp.skipped.map(x => x.person + ' · ' + x.employer + ' (' + x.incomeType + ')').join('; ') + '. If one of these is regular, add its row on Expected Income by hand.');
   const fsMonths = (ss.getRangeByName('FINSUM_MONTHS') || { getValue: () => '' }).getValue();
   withRetry_('Financial Summary', () => { buildFinancialSummary_(); if (Number(fsMonths) >= 1) ss.getRangeByName('FINSUM_MONTHS').setValue(Number(fsMonths)); });
+  if (!ss.getSheetByName(SHEETS.HOUSE)) report.push('Added tab: ' + SHEETS.HOUSE);
+  withRetry_('House Plan', () => buildHousePlan_()); // the inputs are kept by buildHousePlan_ itself
   withRetry_('Goals', () => { buildGoals_(); restoreGoals_(goals); });
   if (!ss.getSheetByName(SHEETS.PASTE)) { withRetry_('Paste Import', () => buildPasteImport_()); report.push('Added tab: ' + SHEETS.PASTE); }
   if (!ss.getSheetByName(SHEETS.SPEND)) report.push('Added tab: ' + SHEETS.SPEND);
@@ -109,7 +111,7 @@ function upgradeWorkbookLocked_() {
   withRetry_('Reminders', () => buildReminders_());
   withRetry_('Start Here', () => buildStartHere_(settings.samplePresent));
   withRetry_('Sources', () => buildSources_());
-  report.push('Refreshed App Setup, Financial Summary, Spending, Utilities, Groceries, Grocery Charts, Start Here and Sources (settings and inputs kept).');
+  report.push('Refreshed App Setup, Financial Summary, House Plan, Spending, Utilities, Groceries, Grocery Charts, Start Here and Sources (settings and inputs kept).');
 
   // 5. tab order
   // a hidden tab is shown while it is moved into place; the background tabs are hidden again right after (unless Show all tabs is on)

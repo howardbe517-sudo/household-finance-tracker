@@ -217,6 +217,32 @@ function qaReport_() {
     info('Savings Journal: estimated ' + money(tot.perYear) + ' a year and ' + money(tot.oneTime) + ' one-time from ' + tot.count + ' change(s)' + (tot.stopped ? '; ' + tot.stopped + ' stopped, not counted' : ''));
   }
 
+  /* 6d. House Plan: every figure against the same arithmetic in JavaScript */
+  if (ss.getSheetByName(SHEETS.HOUSE) && ss.getRangeByName('HOUSE_PRICE')) {
+    const hsh = ss.getSheetByName(SHEETS.HOUSE), val = (k) => ss.getRangeByName('HOUSE_' + k).getValue();
+    const inp = {}; HOUSE.INPUTS.forEach(x => { inp[x.key.toLowerCase()] = val(x.key); });
+    const debtsH = readTable_(tdef_('DEBTS')), fundsH = readTable_(tdef_('FUNDS')), recurH = readTable_(tdef_('RECUR')), expH = readTable_(tdef_('EXPECT'));
+    const sumN = (rows, f) => rows.reduce((t, x) => t + (typeof x[f] === 'number' ? x[f] : 0), 0);
+    const hf = inp.fund ? fundsH.filter(f => f.id === inp.fund)[0] : null;
+    const t0 = new Date();
+    const e = housePlan_(inp, sumN(debtsH.filter(d => d.debtType === 'Credit Card'), 'latestBalance'), sumN(fundsH.filter(f => f.fundType === 'Emergency Fund'), 'amountNeeded'),
+      hf && typeof hf.current === 'number' ? hf.current : 0, sumN(recurH.filter(x => x.subcategory === 'Mortgage or Rent' && x.active === true), 'monthlyEq'),
+      sumN(expH.filter(x => x.active === true), 'monthlyGross'), sumN(expH.filter(x => x.active === true), 'monthlyTakeHome'), new Date(t0.getFullYear(), t0.getMonth() + 1, 1));
+    const B = (row) => hsh.getRange(row, 2).getValue();
+    const cost = [e.loan, e.mortgage, e.tax, e.insurance, e.pmi, e.housing, e.repairs, e.allIn, e.rent, e.overRent];
+    const cash = [e.cash.down, e.cash.closing, e.cash.moving, e.cash.total];
+    const bad = [];
+    cost.forEach((x, k) => { if (!near(B(HOUSE.COST_FIRST + k), x, 0.011)) bad.push(hsh.getRange(HOUSE.COST_FIRST + k, 1).getValue()); });
+    cash.forEach((x, k) => { if (!near(B(HOUSE.CASH_FIRST + k), x, 0.011)) bad.push(hsh.getRange(HOUSE.CASH_FIRST + k, 1).getValue()); });
+    e.steps.forEach((st, k) => {
+      const row = HOUSE.PLAN_FIRST + k, d = hsh.getRange(row, 4).getValue();
+      const doneOk = st.done instanceof Date ? (d instanceof Date && d.getFullYear() === st.done.getFullYear() && d.getMonth() === st.done.getMonth()) : (st.done === 'Done' ? d === 'Done' : !(d instanceof Date));
+      if (!near(B(row), st.left, 0.011) || !doneOk) bad.push(hsh.getRange(row, 1).getValue());
+    });
+    if (bad.length) fail('House Plan: ' + bad.slice(0, 4).join('; ') + ' differ' + (bad.length === 1 ? 's' : '') + ' from the same sums worked out from Debts, Savings & Reserves, Recurring Payments and Expected Income');
+    else pass('House Plan: the monthly cost, the cash to save and the plan\'s steps match the tracker\'s numbers');
+  }
+
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
   const qdr = readTable_(tdef_('QDR')).filter(q => q.quarterEnd instanceof Date);
   const accById = {};

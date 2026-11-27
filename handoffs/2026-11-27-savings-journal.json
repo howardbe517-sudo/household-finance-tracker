@@ -1,13 +1,14 @@
 {
-  "title": "Savings Journal on the To-Do Tab",
+  "title": "Savings Journal and House Plan",
   "key": "household-finance-tracker-2026-11-27-savings-journal",
-  "subtitle": "Your money-saving strategies, estimated savings by category (biggest first), and a journal of each change you made.",
+  "subtitle": "Your money-saving strategies, estimated savings by category, a journal of each change, and a House Plan tab that counts down to a down payment.",
   "intro": [
     "The code reaches your Sheet on its own once it is merged. One upgrade adds three sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab. (This page replaces the earlier version of these steps; if you have not run the upgrade yet, these are the steps to follow.)",
     "**Our Money-Saving Strategies** is a short typed list (8 rows) of the main ways you save, with how you do each one.",
     "**Estimated Savings by Category** fills itself in from the journal: one row per category (Food, Household Supplies, Subscriptions and so on), biggest estimated saver first, with yearly, monthly and one-time figures.",
     "The **Savings Journal** has one row for each change. You type what you changed, the old cost, the new cost, how often you pay it and a category. The estimated saving works itself out. A green total line under the category table shows the estimated total a year and a month. Tick **Stopped?** if you go back to the old way: the row stays, greyed out, and is no longer counted.",
     "**The checklist now holds 15 to-dos** (rows 5 to 19). Your current to-dos all fit. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
+    "**A new House Plan tab** (after Goals & Progress) works out what a house would cost each month and how much cash to have ready, then lays out the plan in order: pay off the credit cards, finish the emergency fund, then save for the house, each with the month it is likely done. The card balance and the emergency fund come straight from your tracker, so the dates move as you pay things down. You type the price and the monthly amount in the yellow cells.",
     "**What does not change:** your to-dos, the reminders strip, dragging rows to reorder, and every other tab. Rows on this tab are no longer frozen at the top, so you can scroll down to the journal."
   ],
   "sections": [
@@ -23,12 +24,12 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.43.0` (or later). If it shows an older number, wait a minute and reload again.",
-          "done": "It reads 1.43.0. Do not run the upgrade on 1.42.0: that was the first version of this layout."
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.44.0` (or later). If it shows an older number, wait a minute and reload again.",
+          "done": "It reads 1.44.0. Do not run the upgrade on an older number: those were earlier versions of these changes."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
-          "done": "The report finishes without errors and includes **Added to To-Do & Reminders: Our Money-Saving Strategies** and **Added to To-Do & Reminders: Savings Journal**."
+          "done": "The report finishes without errors and includes **Added to To-Do & Reminders: Our Money-Saving Strategies**, **Added to To-Do & Reminders: Savings Journal** and **Added tab: House Plan**."
         }
       ]
     },
@@ -42,6 +43,27 @@
         {
           "text": "Tell Claude the upgrade is done.",
           "done": "Claude adds your first strategies and the subscription changes you have already made, then asks what the Tide Pods and Ziploc changes cost."
+        }
+      ]
+    },
+    {
+      "heading": "Set up the House Plan",
+      "steps": [
+        {
+          "text": "Open the new **House Plan** tab (after Goals & Progress).",
+          "done": "Four sections: **Your numbers** (yellow cells), **Monthly cost of that house**, **Cash to have ready** and **The plan, in order**. Step 1 shows the credit-card balance from Debts; step 2 shows what the emergency fund still needs."
+        },
+        {
+          "text": "In the yellow cell **House price to plan for**, type the price from your House Down Payment Plan report. In **Put toward this plan each month**, type what you can set aside each month.",
+          "done": "The monthly cost, the cash to save and a **Done About** month for each step fill in, with **Ready to buy about** at the bottom."
+        },
+        {
+          "text": "Change any other yellow cell if you know better numbers, such as today's mortgage rate or the property tax rate where you are looking. Hover over a label to see what it means.",
+          "done": "Everything below updates."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "Among the results: **House Plan: the monthly cost, the cash to save and the plan's steps match the tracker's numbers**, plus a Savings Journal line."
         }
       ]
     },

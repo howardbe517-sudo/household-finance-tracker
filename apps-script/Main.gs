@@ -36,6 +36,7 @@ function buildWorkbook(options) {
   ensureExpectedIncome_();
   ensureFunds_();
   buildFinancialSummary_();
+  buildHousePlan_();
   buildPasteImport_();
   buildSpending_();
   buildUtilities_();

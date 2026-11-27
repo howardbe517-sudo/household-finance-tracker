@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-11-27 — House Plan tab
+- Why (the owner): the house down payment plan on a tab of its own, taking
+  the credit card payoff and the emergency fund into account.
+- `HousePlan.gs` (new file): the House Plan tab. Yellow inputs (house price,
+  down payment, closing costs, moving cash, rate, property tax, insurance,
+  mortgage insurance, repairs, the monthly amount toward the plan, an
+  optional house fund), named `HOUSE_<KEY>` and kept on rebuild. The
+  monthly cost of that house (30-year mortgage, taxes, insurance, mortgage
+  insurance under 20% down, repairs, against rent, as a share of gross and
+  take-home pay from Expected Income), the cash to have ready, and the plan
+  in order (credit cards from Debts, the emergency fund's Amount Needed,
+  then the house money), each with an estimated month it is done.
+  `housePlan_` is the same arithmetic for QA (6d) and the tests. The
+  defaults are general assumptions; no household figures are in the code.
+- `Config.gs`: `SHEETS.HOUSE`, after Goals & Progress in the tab order.
+  `Main.gs`, `Upgrade.gs`: built and refreshed with the other summary tabs.
+- `BUILD_VERSION` 1.44.0 (no schema change). Files changed in
+  `apps-script/`: `HousePlan.gs` (new), `Config.gs`, `Main.gs`,
+  `Upgrade.gs`, `QA.gs`. **Run Upgrade workbook** (one run covers this and
+  the Savings Journal). Handoff: `handoffs/2026-11-27-savings-journal.json`.
+- Tested: Node mock (layout, inputs kept through an upgrade, the arithmetic
+  on fictional figures). The formulas and Run QA still need checking in
+  the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Savings by category, estimated totals, Stopped? (schema 3.28)
 - Why (the owner, before running the 3.27 upgrade): call the totals
   estimated; group savings by category (food, house supplies,
