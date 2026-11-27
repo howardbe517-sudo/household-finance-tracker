@@ -31,7 +31,8 @@
   Upgrade workbook.** Handoff: `handoffs/2026-11-27-money-plan.json`.
 - Data review: two must-fix items (planned extra debt payments were left
   out; paused interest never restarted) and five should-fix items done;
-  second review: see the pull request.
+  second review: one should-fix done (a debt with no balance entered keeps
+  its payment instead of adding it to the plan).
 - Tested: Node mock (the plan on fictional figures: interest, spill-over,
   freed payments, a leave draw and refill, car extra, a fund that runs out,
   loans after cards, paused interest, a fund's own savings); the page

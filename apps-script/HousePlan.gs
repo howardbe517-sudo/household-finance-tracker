@@ -275,7 +275,10 @@ function houseContext_() {
   let extraAll = 0;
   try { const nr = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL'); extraAll = nr ? num(nr.getValue()) : 0; } catch (e) { extraAll = 0; }
   const loanBills = recur.filter(x => x.active === true && x.group === 'Loans').reduce((t, x) => t + num(x.monthlyEq), 0);
-  const costed = Math.max(debts.reduce((t, d) => t + num(d.minPayment), 0), loanBills) + debts.reduce((t, d) => t + num(d.plannedExtra), 0) + extraAll;
+  // a debt with no balance entered yet keeps its payment (it goes to that debt, not to the plan)
+  const noBalance = (d) => d.latestBalance === '' || d.latestBalance === null || (num(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date) && !d.linkedAccount);
+  const known = debts.filter(d => d.name && !noBalance(d));
+  const costed = Math.max(known.reduce((t, d) => t + num(d.minPayment), 0), loanBills) + known.reduce((t, d) => t + num(d.plannedExtra), 0) + extraAll;
   const modeled = live.reduce((t, d) => t + num(d.minPayment) + num(d.plannedExtra), 0);
   const today = new Date();
   return {
@@ -290,7 +293,7 @@ function houseContext_() {
     debtAddBack: Math.max(0, costed - modeled), // budgeted for debts but paying none of the modeled ones (goes to the plan)
     efPlanned: ef.reduce((t, f) => t + num(f.plannedMonthly), 0), housePlanned: hf ? num(hf.plannedMonthly) : 0,
     // debts the plan cannot count yet: a balance never entered (a loan whose details are still to come)
-    unknownDebts: debts.filter(d => d.name && (d.latestBalance === '' || d.latestBalance === null || (num(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date) && !d.linkedAccount))).map(d => String(d.name)),
+    unknownDebts: debts.filter(d => d.name && noBalance(d)).map(d => String(d.name)),
     asOf: Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM d, yyyy'),
     start: new Date(today.getFullYear(), today.getMonth() + 1, 1),
   };
