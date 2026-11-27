@@ -190,6 +190,11 @@ const c1 = R(`classifyRow_({ importId:'T1', accountId:'ACC-001', rawDescription:
 if (c1.ruleId === 'RULE-001' && c1.status === 'Ready' && c1.autoImport && c1.suggestedCategory === 'Housing' && c1.suggestedSubcategory === 'Electric') ok('rule match: utility bill → Housing/Electric, auto-import'); else bad('classifyRow_ utility: ' + JSON.stringify(c1));
 const c2 = R(`classifyRow_({ importId:'T2', accountId:'ACC-003', rawDescription:'SOMETHING NEW', merchantName:'', amount:-12 }, importContext_())`);
 if (!c2.ruleId && c2.status === 'Needs Review' && c2.suggestedType === 'Refund' && !c2.suggestedCategory) ok('no rule: card credit → Refund, Needs Review, category left blank'); else bad('classifyRow_ unknown: ' + JSON.stringify(c2));
+const cSnack = R(`classifyRow_({ importId:'T6', accountId:'ACC-001', rawDescription:'SAMPLE FUEL STATION 22', merchantName:'', amount:4.29 }, importContext_())`);
+if (cSnack.ruleId === 'RULE-004' && cSnack.suggestedCategory === 'Food' && cSnack.suggestedSubcategory === 'Snacks' && cSnack.suggestedSpendingType === 'Flexible') ok('gas station under $20 → Food / Snacks'); else bad('classifyRow_ fuel snack: ' + JSON.stringify(cSnack));
+const cHold = R(`classifyRow_({ importId:'T7', accountId:'ACC-001', rawDescription:'SAMPLE FUEL STATION 22', merchantName:'', amount:1 }, importContext_())`);
+const cGas = R(`classifyRow_({ importId:'T8', accountId:'ACC-001', rawDescription:'SAMPLE FUEL STATION 22', merchantName:'', amount:20 }, importContext_())`);
+if (cHold.suggestedSubcategory === 'Fuel' && cGas.suggestedSubcategory === 'Fuel') ok('the $1 pump hold and $20 or more stay Fuel'); else bad('classifyRow_ fuel hold/gas: ' + JSON.stringify([cHold, cGas]));
 const c3 = R(`classifyRow_({ importId:'T3', accountId:'ACC-002', rawDescription:'SAMPLE EMPLOYER A PAYROLL', merchantName:'', amount:-2070.2 }, importContext_())`);
 if (!c3.ruleId && c3.suggestedType === 'Income') ok('account-scoped paycheck rule does not fire on another account'); else bad('classifyRow_ scope: ' + JSON.stringify(c3));
 const cLoan = R(`(function(){ var ctx = importContext_(); ctx.accountsById['ACC-LOAN'] = { id:'ACC-LOAN', accountType:'Loan' }; return classifyRow_({ importId:'T5', accountId:'ACC-LOAN', rawDescription:'Payment Received', merchantName:'', amount:-286.47 }, ctx); })()`);
