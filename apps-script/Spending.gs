@@ -329,6 +329,9 @@ function buildSpending_() {
     cfRule_(sh.getRange(av + ':B' + SPEND.FLEX_VALUE), '=AND(ISNUMBER(' + av + '),' + av + '>=0)', COLORS.UNDER_FILL, COLORS.UNDER_FONT),
     cfRule_(sh.getRange('A' + SPEND.REVIEW_LINE + ':I' + SPEND.REVIEW_LINE), '=ISNUMBER(SEARCH("waiting for your review",$A$' + SPEND.REVIEW_LINE + '))', COLORS.WARN_FILL, COLORS.WARN_FONT, { bold: true }),
   ]);
+  // every other row a shade darker in the tables (the owner, 2026-11-27); the totals row is left as it is
+  [[catFirst, catLast], [recFirst, recLast], [SPEND.HIST_FIRST, SPEND.HIST_FIRST + SPEND.HIST_COUNT - 1], [SPEND.AVG_FIRST, SPEND.AVG_FIRST + SPEND.AVG_ROWS - 1],
+    [SPEND.CHECK_FIRST, SPEND.CHECK_FIRST + SPEND.CHECK_COUNT - 1]].forEach(b => addBandRule_(sh, sh.getRange('A' + b[0] + ':I' + b[1])));
 
   /* --- protection: warning-only, except the three inputs --- */
   const prot = sh.protect().setDescription('The Spending tab is calculated. Change the Month (B3) or Compare with (E3), or tick the checklist; edit data on Transactions, Monthly Budget and Recurring Payments.');

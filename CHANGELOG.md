@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 2026-11-27 — Every other row a shade darker
+- Why (the owner): alternate rows in a slightly different shade, to tell
+  rows apart more easily.
+- `Helpers.gs` (`addBandRule_`), `Tables.gs` (`applyTableFormats_`, used
+  wherever a table's conditional formats are applied: build, upgrade, sample
+  clean-up, table growth): every data table gets every other row in
+  `COLORS.BAND`, added as the last conditional format so a row colored for
+  a reason (over budget, deleted, needs review) keeps its color. Rows with
+  an empty first column stay plain; running it again adds nothing.
+- `FinancialSummary.gs`, `Spending.gs`: the same shading on the tables there
+  (month by month, savings funds, debts, payroll, fees; categories,
+  recurring payments, six months, averages, checklist); totals and
+  person-colored rows are left as they are.
+- Layout only. `BUILD_VERSION` 1.37.0. Files changed in `apps-script/`:
+  `Helpers.gs`, `Tables.gs`, `Main.gs`, `Upgrade.gs`, `FinancialSummary.gs`,
+  `Spending.gs`, `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock (the rule is last, and added once). The look needs
+  checking in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Utilities in Fixed Costs from the same month last year
 - Why (the owner): gas and electric change with the season, so Fixed Costs
   should use the same month a year back, not the 12-month average.

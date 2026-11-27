@@ -264,6 +264,26 @@ function buildTableSheet_(def) {
 
 /* ---------- conditional formatting helpers ---------- */
 
+/**
+ * Every other row a shade darker (the owner, 2026-11-27: easier to tell rows apart), as the last conditional format on the sheet so
+ * a rule that colors a row for a reason (over budget, deleted, needs review) still wins. Rows with nothing in the range's first
+ * column stay plain. A band rule already there for the same range is replaced, so running it again adds nothing.
+ */
+function addBandRule_(sh, range) {
+  const top = range.getRow(), col = colLetter_(range.getColumn()), a1 = range.getA1Notation();
+  const isBand = (r) => {
+    try {
+      const c = r.getBooleanCondition ? r.getBooleanCondition() : null;
+      const f = c ? String(c.getCriteriaValues()[0]) : String(r.formula || '');
+      const rs = r.getRanges ? r.getRanges().map(x => x.getA1Notation()) : (r.ranges || []).map(x => x.getA1Notation ? x.getA1Notation() : String(x));
+      return /ISEVEN\(ROW\(\)\)/.test(f) && rs.indexOf(a1) >= 0;
+    } catch (e) { return false; }
+  };
+  const rules = sh.getConditionalFormatRules().filter(r => !isBand(r));
+  rules.push(cfRule_(range, '=AND(ISEVEN(ROW()),$' + col + top + '<>"")', COLORS.BAND));
+  sh.setConditionalFormatRules(rules);
+}
+
 function cfRule_(range, formula, bg, fg, opts) {
   const b = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(formula).setRanges([range]);
   if (bg) b.setBackground(bg);
@@ -424,7 +444,7 @@ function extendTable_(def, newLastRow) {
   applyColumnRules_(def, def.lastRow + 1, newLastRow);
   def.lastRow = newLastRow;
   setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, def.columns.length));
-  if (typeof CF_BUILDERS !== 'undefined' && CF_BUILDERS[def.key]) CF_BUILDERS[def.key](sh, def);
+  applyTableFormats_(sh, def);
   if (def.key === 'FUNDS' && typeof buildFundsGuide_ === 'function') buildFundsGuide_(sh, def);
 }
 
