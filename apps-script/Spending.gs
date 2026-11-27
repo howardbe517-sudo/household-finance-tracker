@@ -230,7 +230,8 @@ function buildSpending_() {
   styleSectionBar_(sh.getRange('A' + SPEND.REC_BAR + ':E' + SPEND.REC_BAR), 'Recurring payments — every regular bill in one place');
   header('A' + SPEND.REC_HEADER + ':E' + SPEND.REC_HEADER, ['Name', 'Group', 'Monthly', 'Next Payment', 'Paid This Month?']);
   const recFirst = SPEND.REC_FIRST, recLast = recLastRow;
-  put('A' + recFirst, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[RECUR.name],[RECUR.group],[RECUR.monthlyEq],[RECUR.nextPayment]},[RECUR.active]=TRUE,[RECUR.name]<>""),4,TRUE),' + SPEND.REC_ROWS + ',4),"")'));
+  // Next Payment steps forward past dates by the bill's frequency (recurNextDueExpr_), so a weekly bill never shows a date gone by
+  put('A' + recFirst, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[RECUR.name],[RECUR.group],[RECUR.monthlyEq],' + recurNextDueExpr_(k => '[RECUR.' + k + ']') + '},[RECUR.active]=TRUE,[RECUR.name]<>""),4,TRUE),' + SPEND.REC_ROWS + ',4),"")'));
   for (let r = recFirst; r <= recLast; r++) {
     put('E' + r, F('=IF($A' + r + '="","",IFERROR(LET(i,MATCH($A' + r + ',[RECUR.name],0),cat,INDEX([RECUR.category],i),sub,INDEX([RECUR.subcategory],i),a,N(INDEX([RECUR.amount],i)),' +
       // paid = real payments this month (an entry recorded automatically is not a payment) reach 90% of the bill; several part payments count together

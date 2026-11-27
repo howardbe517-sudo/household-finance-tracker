@@ -248,7 +248,8 @@ function buildRecurringTop_(sh, def) {
   styleSectionBar_(sh.getRange(7, 6, 1, 4), 'Due in the next 14 days (active)');
   sh.getRange(8, 6, 1, 4).setValues([['Name', 'Next Payment', 'Amount', 'Group']]);
   styleHeader_(sh.getRange(8, 6, 1, 4));
-  sh.getRange(9, 6).setFormula(R('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER({[@@name],[@@nextPayment],[@@amount],[@@group]},[@@active]=TRUE,[@@nextPayment]>=TODAY(),[@@nextPayment]<=TODAY()+14),2,TRUE),20,4),"Nothing due in the next 14 days")'));
+  // the next date steps forward past dates by the bill's frequency (recurNextDueExpr_), so a weekly bill keeps showing up
+  sh.getRange(9, 6).setFormula(R('=IFERROR(LET(nd,' + recurNextDueExpr_(k => '[@@' + k + ']') + ',ARRAY_CONSTRAIN(SORT(FILTER({[@@name],nd,[@@amount],[@@group]},[@@active]=TRUE,nd<>"",nd>=TODAY(),nd<=TODAY()+14),2,TRUE),20,4)),"Nothing due in the next 14 days")'));
   sh.getRange(9, 7, 20, 1).setNumberFormat(FORMATS.date);
   sh.getRange(9, 8, 20, 1).setNumberFormat(FORMATS.currency);
 

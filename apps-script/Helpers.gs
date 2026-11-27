@@ -284,6 +284,23 @@ function addBandRule_(sh, range) {
   sh.setConditionalFormatRules(rules);
 }
 
+/**
+ * A recurring bill's next payment date, as an array expression over Recurring Payments (the owner, 2026-11-27: the nanny still said
+ * Nov 20 a week later). Next Payment Date is typed once; a date that has passed steps forward by the bill's frequency (a week, two
+ * weeks, or 1, 3, 6 or 12 months) until it is today or later. With no date, the next time the Due Day comes round.
+ * ref(key) gives the column reference for 'nextPayment', 'frequency' and 'dueDay' ([RECUR.x] or [@@x]).
+ */
+function recurNextDueExpr_(ref) {
+  const np = ref('nextPayment'), f = ref('frequency'), dd = ref('dueDay');
+  const days = 'IF(' + f + '="Weekly",7,14)';
+  const isDays = '(' + f + '="Weekly")+(' + f + '="Biweekly")';
+  const months = 'IF(' + f + '="Quarterly",3,IF(' + f + '="Semiannual",6,IF(' + f + '="Annual",12,1)))';
+  const k = 'CEILING(((YEAR(TODAY())-YEAR(' + np + '))*12+MONTH(TODAY())-MONTH(' + np + '))/' + months + ')*' + months;
+  const byMonths = 'EDATE(' + np + ',' + k + '+IF(EDATE(' + np + ',' + k + ')<TODAY(),' + months + ',0))';
+  const fromDay = 'IF(DAY(TODAY())<=' + dd + ',DATE(YEAR(TODAY()),MONTH(TODAY()),IF(' + dd + '>DAY(EOMONTH(TODAY(),0)),DAY(EOMONTH(TODAY(),0)),' + dd + ')),DATE(YEAR(TODAY()),MONTH(TODAY())+1,IF(' + dd + '>DAY(EOMONTH(TODAY(),1)),DAY(EOMONTH(TODAY(),1)),' + dd + ')))';
+  return 'ARRAYFORMULA(IF(N(+' + np + ')=0,IF(N(+' + dd + ')>0,' + fromDay + ',""),IF(' + np + '>=TODAY(),' + np + ',IF(' + isDays + '>0,' + np + '+' + days + '*CEILING((TODAY()-' + np + ')/' + days + '),' + byMonths + '))))';
+}
+
 function cfRule_(range, formula, bg, fg, opts) {
   const b = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(formula).setRanges([range]);
   if (bg) b.setBackground(bg);
