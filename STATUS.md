@@ -1,5 +1,11 @@
 # STATUS
 
+2026-11-27 (build 1.45.0): the owner ran the upgrade. The Savings Journal
+holds the five subscription changes and the first strategy. A House plan
+summary page (menu) opens inside the Sheet with live figures and what-ifs;
+the owner still has to pick a house price and monthly amount (and save
+them from the page).
+
 2026-11-27 (build 1.44.0): a House Plan tab (the down payment plan, live
 from Debts, Savings & Reserves, Recurring Payments and Expected Income).
 One upgrade covers it and the Savings Journal; the owner types the house

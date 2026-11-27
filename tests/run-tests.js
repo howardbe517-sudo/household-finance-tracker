@@ -1961,6 +1961,21 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   if (JSON.stringify(carry) === JSON.stringify([[1, '2026-12'], [0, '2026-12'], [20, '2028-8']])) ok('House Plan: money left in one step\'s last month carries on ($500 of card debt and $500 of emergency fund at $1,000 a month are both done in the first month)'); else bad('housePlan_ carry-over: ' + JSON.stringify(carry));
 })();
 
+/* 11e. House plan summary (the pop-up page) */
+(function () {
+  const page = fs.readFileSync(path.join(SRC_DIR, 'HouseDialog.html'), 'utf8');
+  let threw = '';
+  try { R(`showHousePlan()`); } catch (e) { threw = String(e.message || e); }
+  const ctxH = R(`(function () { var c = houseContext_(); return [typeof c.cardDebt, typeof c.efNeeded, Array.isArray(c.cards), Array.isArray(c.unknownDebts), c.start instanceof Date]; })()`);
+  if (!threw && JSON.stringify(ctxH) === '["number","number",true,true,true]' && /const D = <\?!= dataJson \?>;/.test(page) && /const housePlan_ = <\?!= planSrc \?>;/.test(page) && /google\.script\.run[\s\S]*\.saveHousePlanInputs\(inp\.price, inp\.monthly, inp\.down, inp\.rate\)/.test(page) && !/https?:\/\/(?!fonts\.googleapis\.com)/.test(page.replace(/https:\/\/fonts\.googleapis\.com[^"]*/g, ''))) ok('House plan summary: opens from the menu with the tracker\'s figures, works out what-ifs with the same housePlan_ arithmetic, and saves through saveHousePlanInputs; it loads nothing but its fonts'); else bad('house summary: ' + JSON.stringify([threw, ctxH]));
+  const H = vm.runInContext('HOUSE', ctx), row = (k) => H.INPUT_FIRST + H.INPUTS.findIndex(x => x.key === k), hsh = g.__ss.getSheetByName(SHEETS.HOUSE);
+  R(`saveHousePlanInputs(250000, 1500, 0.2, 0.06)`);
+  let bad2 = '';
+  try { R(`saveHousePlanInputs(250000, 1500, 10, 0.06)`); } catch (e) { bad2 = String(e.message || e); }
+  if (hsh.getRange(row('PRICE'), 2).getValue() === 250000 && hsh.getRange(row('MONTHLY'), 2).getValue() === 1500 && hsh.getRange(row('DOWN'), 2).getValue() === 0.2 && hsh.getRange(row('RATE'), 2).getValue() === 0.06 && /out of range/.test(bad2)) ok('Save these to the tracker writes the price, monthly amount, down payment and rate to the House Plan tab, and refuses a down payment typed as 10 instead of 10%'); else bad('saveHousePlanInputs: ' + bad2);
+  ['PRICE', 'MONTHLY'].forEach(k => hsh.getRange(row(k), 2).setValue('')); hsh.getRange(row('DOWN'), 2).setValue(0.1); hsh.getRange(row('RATE'), 2).setValue(0.065); // test-only: back to the defaults
+})();
+
 /* 11b. formula comparison ignores Google's quote normalization */
 if (R(`sameFormula_("=SUMIFS(Income!$G$5:$G,Income!$C$5:$C,$B$3)", "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$3)")`) === true && R(`sameFormula_("=SUMIFS('Import Staging'!$Q$5:$Q,1)", "=SUMIFS('Import Staging'!$Q$5:$Q,1)")`) === true && R(`sameFormula_("=A1+1", "=A1+2")`) === false) ok('upgrade treats Income!A1 and \'Income\'!A1 as the same formula, keeps multi-word quotes, still detects real changes'); else bad('sameFormula_ comparison wrong');
 
