@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.22-paydays-2026-11-25',
-  BUILD_VERSION: '1.37.1',
+  BUILD_VERSION: '1.37.2',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -1168,3 +1168,12 @@ const APP_RULES = [
   'Current Flexible Spending always follows today\'s calendar month and Monday–Sunday week.',
   'Derived sheets (Monthly Summary, Spending, Financial Summary) are read-only; the app never writes to them.',
 ];
+
+/**
+ * Small charges at a gas station (the owner, 2026-11-27): a charge under FUEL_SNACK_UNDER at a station whose
+ * Import Rule files it as Transportation / Fuel is snacks from inside, so the import suggests Food / Snacks.
+ * A charge of exactly FUEL_PREAUTH is the hold a pump places before fuelling and is left as Fuel (the bank
+ * removes it, or it pairs with its refund).
+ */
+const FUEL_SNACK_UNDER = 20;
+const FUEL_PREAUTH = 1;

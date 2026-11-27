@@ -1,5 +1,16 @@
 # STATUS
 
+2026-11-27 (build 1.37.2): a charge under $20 at a gas station (a station
+whose Import Rule files it as Fuel) now comes in as Food / Snacks; the $1
+hold a pump places stays Fuel. The owner went through every uncategorized
+Import Staging row with Claude; the reviewed rows import at the next Sync.
+New rules for Comcast (internet, also a Recurring Payments row), Home Depot
+and several shops. Left for the owner: a Meijer charge, a PayPal charge
+(check PayPal activity) and a Target charge were skipped for now.
+**Reminder for the next conversation:** go over the flagged American Express
+Pay Over Time interest row on Import Staging (how to file it) and whether to
+untick Interest Paused? on the Amex row of the Debts tab.
+
 2026-11-26 (build 1.35.0): summary boxes on Financial Summary and Spending
 list what makes up each number, one item per line (option A from the
 mockups). One-off pay (Side Income etc.) no longer becomes a regular

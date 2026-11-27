@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026-11-27 — Small gas-station charges count as snacks
+- Why (the owner): a purchase under $20 at a gas station is almost always
+  snacks from inside, not gas.
+- `Import.gs` (new `isFuelSnack_`, used by `classifyRow_`): when an Import
+  Rule files a charge as Transportation / Fuel and the charge is over $1 and
+  under $20, the suggestion becomes Food / Snacks (Flexible). A charge of
+  exactly $1 is the hold a pump places and stays Fuel. Limits are
+  `FUEL_SNACK_UNDER` and `FUEL_PREAUTH` in `Config.gs`.
+- Affects only rows staged from now on; nothing already imported changes.
+  No schema change, nothing to run in the Sheet.
+- `BUILD_VERSION` 1.37.2. Files changed in `apps-script/`: `Import.gs`,
+  `Config.gs`.
+- Tested: Node mock (a $4.29 station charge becomes Snacks; $1 and $20 stay
+  Fuel).
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Next Payment steps forward on its own
 - Why (the owner): the nanny's next payment still read Nov 20 a week later;
   Next Payment Date on Recurring Payments is typed once and nothing moved it.

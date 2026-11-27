@@ -53,6 +53,12 @@ function findRule_(rules, row) {
   return best;
 }
 
+/** A gas-station charge (a rule filed it as Fuel) small enough to be snacks: over the pump's $1 hold, under $20. */
+function isFuelSnack_(sugg, amount) {
+  return sugg.suggestedType === 'Expense' && sugg.suggestedCategory === 'Transportation' && sugg.suggestedSubcategory === 'Fuel'
+    && amount > FUEL_PREAUTH + 0.005 && amount < FUEL_SNACK_UNDER - 0.005;
+}
+
 /**
  * Suggestions for a staged row. ctx = { rules, accountsById }.
  * Amount convention (Plaid's): positive = money leaving the account, negative = money arriving.
@@ -90,6 +96,10 @@ function classifyRow_(row, ctx) {
     out.suggestedFundId = rule.fundId || '';
     out.suggestedDebtId = rule.debtId || '';
     out.ruleId = rule.id;
+    if (isFuelSnack_(out, amount)) {
+      // under $20 at a gas station is snacks, not gas (the owner, 2026-11-27); see FUEL_SNACK_UNDER in Config.gs
+      out.suggestedCategory = 'Food'; out.suggestedSubcategory = 'Snacks'; out.suggestedSpendingType = 'Flexible';
+    }
     if (rule.splitRequired === true) out.status = IMPORT_STATUS.SPLIT;
     else if (rule.autoImport === true) { out.status = IMPORT_STATUS.READY; out.autoImport = true; }
     return out;
