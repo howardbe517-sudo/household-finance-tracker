@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.24-grocery-names-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.25-todo-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -8,6 +8,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
+| TODO | To-Do & Reminders | 4 | 5 | 204 | (none) | 5 | no |
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
@@ -34,6 +35,20 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | NW | Net Worth Snapshots | 4 | 5 | 124 | NW-202611 | 11 | yes |
 
 Non-table tabs: Start Here, Dashboard, App Setup, Sources.
+
+## To-Do & Reminders (`TODO`)
+
+Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. The automatic reminders on the right clear themselves when you update the value they ask for.
+
+Named range `TBL_TODO` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | To-Do | `task` | text | input | Added in 3.25 (the owner, 2026-11-27). |
+| B | Done? | `done` | text | checkbox |  |
+| C | Date | `date` | date | input (date) |  |
+| D | For | `person` | text | dropdown: LIST_OWNERS |  |
+| E | Notes | `notes` | text | input |  |
 
 ## Categories (`CATS`)
 

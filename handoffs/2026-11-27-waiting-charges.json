@@ -7,7 +7,8 @@
     "**Run the upgrade today.** Until it runs, the nightly bank sync pauses (it checks that Import Staging has the columns the code expects) and nothing is lost; the upgrade lets it continue.",
     "**What changes in the numbers:** spending, flexible spent, Amount Available, Spent This Week and the Financial Summary's flexible figure now include the charges still waiting on Import Staging, as flexible spending under \"Not categorized yet\". When you review a charge and the next sync imports it, it moves into its real category; the total stays the same.",
     "**Never counted:** money coming in, $0 or $1 card holds, card and loan payments, moves between your own accounts, a charge already on Transactions, and a bill that records itself. **What does not change:** your transactions and how you review.",
-    "**Also in this upgrade:** on the Groceries tab, an item whose name was written two ways (\"Blackberries\" and \"BLACKBERRIES\") now shows once."
+    "**Also in this upgrade:** on the Groceries tab, an item whose name was written two ways (\"Blackberries\" and \"BLACKBERRIES\") now shows once.",
+    "**Also in this upgrade:** a new first tab, **To-Do & Reminders**: your own checklist on the left and the automatic reminders on the right. The old Reminders tab is hidden; nothing in it is lost."
   ],
   "sections": [
     {
@@ -22,7 +23,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.38.1` (or later). If it shows an older number, wait a minute and reload again."
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.39.0` (or later). If it shows an older number, wait a minute and reload again."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
@@ -52,6 +53,10 @@
         {
           "text": "Open the **Groceries** tab with the month set to November and look at **What you bought**.",
           "done": "**Blackberries** and **Broccoli** each show once."
+        },
+        {
+          "text": "Open the new first tab, **To-Do & Reminders**.",
+          "done": "The checklist columns (To-Do, Done?, Date, For, Notes) are on the left and the **Automatic reminders** box on the right. Tell Claude, and Claude adds your first to-dos."
         }
       ]
     }

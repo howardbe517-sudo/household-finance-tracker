@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-27 — To-Do & Reminders, the first tab
+- Why (the owner): a checklist of to-dos on the first tab, the place he goes
+  to see what needs doing, with the automatic reminders on the same tab.
+- Schema 3.25: new table `TODO` on the new first tab **To-Do & Reminders**
+  (To-Do, Done?, Date, For, Notes; a finished row turns grey and struck
+  through; dates are for reference only). Beside it (`buildTodoTop_`,
+  `Tables.gs`) the automatic reminders box, read from the Reminders tab.
+- The Reminders tab is now hidden (no longer in `TAB_ORDER`); it still feeds
+  the monthly email and Finance Tracker → Show reminders. No tab renamed.
+- `BUILD_VERSION` 1.39.0. Files changed in `apps-script/`: `Config.gs`,
+  `Tables.gs`, `Upgrade.gs`, `Dashboard.gs`, `Reference.gs`. Run Upgrade
+  workbook (it adds the tab).
+- No displayed number changes, so no data review. Tested: Node mock (tab
+  order, the table, the strike-through rule, the reminders box beside it,
+  the upgrade path adding the tab). The look needs checking in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — A second check on every change to the money records
 - Why (the owner): whenever something about money coming in or going out
   changes, an independent agent should double-check it: miscategorized
