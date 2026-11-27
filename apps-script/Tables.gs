@@ -237,7 +237,7 @@ CF_BUILDERS.REVIEW = (sh, def) => {
 
 /* ---------- presentation sections ---------- */
 
-/* To-Do & Reminders: beside the checklist (columns A:E), the automatic reminders from the hidden Reminders tab (REMINDERS_BOX),
+/* To-Do & Reminders: beside the checklist (columns A:E), the automatic reminders from the hidden Reminders tab (its box, by cell reference),
    so everything to do is on the first tab (the owner, 2026-11-27). Holds no entered data: redrawn by build and upgrade. */
 const TODO_SIDE = { FIRST_COL: 7, WIDTH: 6, BOX_ROWS: 16 };
 function buildTodoTop_(sh, def) {
@@ -255,7 +255,9 @@ function buildTodoTop_(sh, def) {
   head.setValue('Automatic reminders');
   styleHeader_(head);
   const box = sh.getRange(def.firstRow, c1, TODO_SIDE.BOX_ROWS, w).merge();
-  box.setFormula('=IFERROR(INDEX(REMINDERS_BOX,1,1),"")');
+  // the cell itself, not the REMINDERS_BOX name: the name is removed and set again each time the Reminders tab is rebuilt, and a
+  // formula that used it was left with #REF! (an empty box) after the first upgrade (fixed 2026-11-27)
+  box.setFormula('=IFERROR(\'' + SHEETS.REMINDERS + '\'!$A$' + REMINDERS.BOX_FIRST + ',"")');
   box.setWrap(true).setVerticalAlignment('top').setFontSize(11).setBackground(COLORS.WARN_FILL).setFontColor(COLORS.WARN_FONT)
     .setBorder(true, true, true, true, false, false, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange(def.firstRow + TODO_SIDE.BOX_ROWS, c1, 1, w).merge()

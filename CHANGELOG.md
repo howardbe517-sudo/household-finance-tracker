@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-11-27 — The reminders box on the To-Do tab stays filled
+- Why: after the owner's upgrade the Automatic reminders box on To-Do &
+  Reminders was empty. It read the reminders through the name
+  `REMINDERS_BOX`; rebuilding the Reminders tab removes and re-adds that
+  name, which left the formula with `#REF!`. Found by the ledger checker.
+- `Tables.gs` (`buildTodoTop_`): the box now reads the Reminders tab's cell
+  directly. The owner's Sheet was corrected by hand the same day; nothing to
+  run. `BUILD_VERSION` 1.40.1. Files changed in `apps-script/`: `Tables.gs`,
+  `Config.gs`.
+- Tested: Node mock (the formula). The mock does not break formulas when a
+  name is removed, which is why this was not caught before the upgrade.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — After the review: fewer tabs, full-month averages, goals with progress
 - Why (the owner, after a review of the whole tracker): fewer tabs to look
   at; averages that were pulled down by a part month; no rows of zeros; goals
