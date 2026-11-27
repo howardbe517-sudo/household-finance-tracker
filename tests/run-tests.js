@@ -1482,6 +1482,14 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     if (t3.months === 2 && near(t3.total, 180) && /2026 – .*2026/.test(t3.label) && t6.months === 3 && near(t6.total, 320) && ly.months === 1 && near(ly.total, 240) && /2025 – .*2025/.test(ly.label) && none.months === 0 && none.total === 0) ok('typical month: months with no spending are skipped (two of three counted), refunds come off, deleted rows and transfers are ignored, the current month is never in the window; same three months last year works'); else bad('typicalMonth_: ' + JSON.stringify([t3, t6, ly, none]));
   })();
 })();
+/* 2026-11-27: a recurring bill's Next Payment steps forward past dates by its frequency on the Spending list and Recurring Payments */
+(function () {
+  const sp = g.__ss.getSheetByName(SHEETS.SPEND), rc = g.__ss.getSheetByName(SHEETS.RECUR);
+  const a = sp.getRange('A' + SPEND.REC_FIRST).getFormula(), b = rc.getRange(9, 6).getFormula();
+  const steps = (f) => /CEILING\(\(TODAY\(\)-/.test(f) && /"Weekly"/.test(f) && /"Quarterly"/.test(f) && /EDATE\(/.test(f) && /EOMONTH\(TODAY\(\),1\)/.test(f);
+  if (steps(a) && steps(b) && /^=IFERROR\(LET\(nd,/.test(b) && /nd>=TODAY\(\),nd<=TODAY\(\)\+14/.test(b)) ok('a recurring bill whose Next Payment Date has passed shows its next date stepped forward by its frequency (weekly, biweekly, monthly, quarterly, semiannual, annual), or the next Due Day when there is no date, on the Spending list and in Due in the next 14 days');
+  else bad('recurring next date: ' + JSON.stringify([a.slice(0, 120), b.slice(0, 120)]));
+})();
 /* 2026-11-27: every other row a shade darker on the data tabs and the summary tables, as the last rule so meaningful colors win */
 (function () {
   const band = (sh) => (sh.cfRules || []).filter(r => /ISEVEN\(ROW\(\)\)/.test(String(r.formula || '')));

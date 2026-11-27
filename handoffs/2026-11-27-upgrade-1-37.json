@@ -10,30 +10,59 @@
     {
       "heading": "Restore point",
       "steps": [
-        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before upgrade 1.37 2026-11-27`." }
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before upgrade 1.37 2026-11-27`."
+        }
       ]
     },
     {
       "heading": "Run the upgrade",
       "steps": [
-        { "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.37.0`. If it shows an older number, wait a minute and reload again." },
-        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors. It can take a little longer than usual because every table gets its shading." }
+        {
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.37.1`. If it shows an older number, wait a minute and reload again."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report finishes without errors. It can take a little longer than usual because every table gets its shading."
+        }
       ]
     },
     {
       "heading": "Check the Financial Summary",
       "steps": [
-        { "text": "Look at the four boxes.", "done": "A dotted line runs from each name to its amount, and the amounts sit a little in from the edge. **Fixed Costs** lists Bills, Debt payments, Utilities (with last year's month) and Planned savings." },
-        { "text": "Look at the credit card table at the top.", "done": "It sits right beside the accounts table, with no empty column between them." },
-        { "text": "Scroll to the tables (Month by month, Savings & Reserves, Debts).", "done": "Every other row is a slightly darker shade. Next Due shows a date for the car loan and the tax debt." }
+        {
+          "text": "Look at the four boxes.",
+          "done": "A dotted line runs from each name to its amount, and the amounts sit a little in from the edge. **Fixed Costs** lists Bills, Debt payments, Utilities (with last year's month) and Planned savings."
+        },
+        {
+          "text": "Look at the credit card table at the top.",
+          "done": "It sits right beside the accounts table, with no empty column between them."
+        },
+        {
+          "text": "Scroll to the tables (Month by month, Savings & Reserves, Debts).",
+          "done": "Every other row is a slightly darker shade. Next Due shows a date for the car loan and the tax debt."
+        }
       ]
     },
     {
       "heading": "Check the other tabs",
       "steps": [
-        { "text": "Open the **Spending** tab.", "done": "The boxes have dotted lines, and the tables below have every other row shaded. Fixed spending includes the full rent." },
-        { "text": "Open **Transactions**.", "done": "Every other row is shaded. Rows colored for a reason (deleted, missing a category) keep their color." },
-        { "text": "Open **Finance Tracker → Run QA checks**.", "done": "The Financial Summary cards line passes." }
+        {
+          "text": "Open the **Spending** tab.",
+          "done": "The boxes have dotted lines, and the tables below have every other row shaded. Fixed spending includes the full rent."
+        },
+        {
+          "text": "On the **Spending** tab, find **Nanny (childcare)** in the recurring payments list.",
+          "done": "Next Payment shows this week's Friday, not Nov 20. Past dates now step forward by how often the bill is paid. The date typed on the Recurring Payments tab stays as you typed it; the lists show the next one."
+        },
+        {
+          "text": "Open **Transactions**.",
+          "done": "Every other row is shaded. Rows colored for a reason (deleted, missing a category) keep their color."
+        },
+        {
+          "text": "Open **Finance Tracker → Run QA checks**.",
+          "done": "The Financial Summary cards line passes."
+        }
       ]
     }
   ]

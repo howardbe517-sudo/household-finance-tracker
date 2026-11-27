@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-27 — Next Payment steps forward on its own
+- Why (the owner): the nanny's next payment still read Nov 20 a week later;
+  Next Payment Date on Recurring Payments is typed once and nothing moved it.
+- `Helpers.gs` (new `recurNextDueExpr_`): a date that has passed steps forward
+  by the bill's frequency (a week, two weeks, or 1, 3, 6 or 12 months) until
+  it is today or later; with no date, the next Due Day. Used by the Spending
+  tab's recurring list (`Spending.gs`) and Due in the next 14 days on
+  Recurring Payments (`Tables.gs`). The typed dates are not changed.
+- `BUILD_VERSION` 1.37.1. Files changed in `apps-script/`: `Helpers.gs`,
+  `Spending.gs`, `Tables.gs`, `Config.gs`. Run Upgrade workbook.
+- Tested: Node mock; the formula run in a scratch cell on the live Sheet
+  (then cleared): the weekly bill moves to this week's day, a monthly bill
+  past its date to next month.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Every other row a shade darker
 - Why (the owner): alternate rows in a slightly different shade, to tell
   rows apart more easily.
