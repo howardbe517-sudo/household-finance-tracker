@@ -179,7 +179,7 @@ function qaReport_() {
   if (ss.getSheetByName(SHEETS.GOALPLAN)) {
     const goalRows = readTable_(tdef_('GOALPLAN'));
     const debtBal = {}, fundCur = {};
-    readTable_(tdef_('DEBTS')).forEach(d => { if (d.id) debtBal[d.id] = d.latestBalance; });
+    readTable_(tdef_('DEBTS')).forEach(d => { if (d.id) debtBal[d.id] = goalDebtBalance_(d); });
     fundRows.forEach(f => { fundCur[f.id] = f.current; });
     const same = (a, b) => (a === '' || b === '') ? a === b : near(a, b, 0.011);
     const goalBad = goalRows.filter(g => {
@@ -353,7 +353,7 @@ function qaReport_() {
     const extraAll = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL');
     const debtPay = Math.max(debtRows.reduce((s, d) => s + Number(d.minPayment || 0), 0), loans) + debtRows.reduce((s, d) => s + Number(d.plannedExtra || 0), 0) + (extraAll ? Number(extraAll.getValue()) || 0 : 0);
     const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? utilitiesFixed_(readTable_(tdef_('UTIL')), today).amount : 0; // same month last year, else the 12-month average
-    const flexT = typicalFlexible_(tx, today, waitTx);
+    const flexT = typicalFlexible_(tx, today, waitTx, win.firstFull);
     const fsProblems = [];
     const plannedSave = readTable_(tdef_('FUNDS')).reduce((s, f) => s + (typeof f.plannedMonthly === 'number' ? f.plannedMonthly : 0), 0);
     if (!near(shown.take, expTake)) fsProblems.push('coming in ' + money(shown.take) + ' ≠ ' + money(expTake) + ' from Expected Income');

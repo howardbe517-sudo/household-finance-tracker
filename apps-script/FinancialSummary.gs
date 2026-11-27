@@ -54,7 +54,7 @@ function buildFinancialSummary_() {
   // number of months in it. Until one full month exists, the window is this month so far (provisional), divisor 1.
   // Helper cells on the window row: B = last month of the window, C = first, D = months in it, H = first full month.
   const PEND = '$B$' + W, PSTART = '$C$' + W, DIV = '$D$' + W, FIRSTFULL = '$H$' + W;
-  const PROV = '(EDATE(' + CUR + ',-1)<' + FIRSTFULL + ')'; // TRUE while no full month is on record
+  const PROV = 'OR(' + FIRSTFULL + '=0,EDATE(' + CUR + ',-1)<' + FIRSTFULL + ')'; // TRUE while no full month is on record (or nothing is recorded at all)
   const inPeriod = (tbl) => '[' + tbl + '.month],">="&' + PSTART + ',[' + tbl + '.month],"<="&' + PEND;
   const avg = (tbl, col, extra) => 'IFERROR(SUMIFS([' + tbl + '.' + col + '],' + inPeriod(tbl) + (extra || '') + ')/' + DIV + ',0)';
 
@@ -84,7 +84,9 @@ function buildFinancialSummary_() {
   // months, among the last FLEX_MONTHS full ones, that have any spending recorded: the divisor of the flexible average
   const FLEXK = '$F$' + W;
   const TXE = ',[TX.type],"Expense",[TX.isDeleted],"<>TRUE")', TXR = ',[TX.type],"Refund",[TX.isDeleted],"<>TRUE")';
-  const FWS = 'EDATE(' + CUR + ',-' + FINSUM.FLEX_MONTHS + ')', FWE = 'EDATE(' + CUR + ',-1)';
+  // the flexible average's months also start no earlier than the first full month, so a month the records began partway
+  // through never counts as a month of spending
+  const FWS = 'MAX(EDATE(' + CUR + ',-' + FINSUM.FLEX_MONTHS + '),' + FIRSTFULL + ')', FWE = 'EDATE(' + CUR + ',-1)';
   put('E' + W, 'Spending months (of ' + FINSUM.FLEX_MONTHS + ')').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
   // ROWS(UNIQUE(FILTER())) and not COUNTUNIQUE: COUNTUNIQUE counts FILTER's "nothing found" error as one month (fixed 2026-11-13)
   put('F' + W, F('=IFERROR(ROWS(UNIQUE(FILTER([TX.month],[TX.month]>=' + FWS + ',[TX.month]<=' + FWE + ',[TX.isDeleted]<>TRUE,(([TX.type]="Expense")+([TX.type]="Refund"))>0))),0)')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
@@ -153,7 +155,7 @@ function buildFinancialSummary_() {
   const rounded = ' Each line under the box is rounded to the dollar, so a list can be $1 off its total.';
   hoverNote_(sh, 'A' + FINSUM.CARD_LABEL, 'A typical month of take-home pay: each active paycheck on Expected Income × its paychecks per month on average.' + rounded);
   hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), for each utility (gas, electric, water…), the bill due in the same month last year, or its own 12-month average when it had no bill that month, and planned savings (the Planned Monthly amounts on Savings & Reserves), since that transfer goes out every month like a bill. Not the same as Fixed on the Spending tab, which counts only spending marked Fixed so far this month.' + rounded);
-  hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one). Bank charges still waiting on Import Staging count here as Everyday (Flexible) until they are reviewed.' + rounded);
+  hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one). A month the records began partway through is not counted; a later month with no spending recorded at all is skipped rather than counted as zero. Bank charges still waiting on Import Staging count here as Everyday (Flexible) until they are reviewed.' + rounded);
   hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs (which include planned savings) − flexible spending: money that is truly free. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
 
 
@@ -392,10 +394,11 @@ function buildFinancialSummary_() {
  * Staging (waitTx, the stand-ins from waitingAsTransactions_, optional) count as flexible spending in their month.
  * Returns { months, average, provisional }.
  */
-function typicalFlexible_(txRows, today, waitTx) {
+function typicalFlexible_(txRows, today, waitTx, firstFull) {
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
   const key = (d) => d.getFullYear() * 12 + d.getMonth();
-  const lo = key(cur) - FINSUM.FLEX_MONTHS, hi = key(cur) - 1;
+  // firstFull (optional, summaryWindow_().firstFull): the first month the records cover from its start; earlier months are left out
+  const lo = Math.max(key(cur) - FINSUM.FLEX_MONTHS, firstFull instanceof Date ? key(firstFull) : -Infinity), hi = key(cur) - 1;
   const seen = {};
   let win = 0, now = 0;
   // bank charges still waiting on Import Staging (waitTx: waitingAsTransactions_, optional) are flexible spending, but never make a month "a month with spending"
@@ -449,7 +452,7 @@ function averageUtilities_(utilRows, today) {
  * Full months only: the first full month is the month of the earliest paycheck (pay date) and of the earliest live
  * transaction when that falls within the month's first FINSUM.FULL_MONTH_DAY days, otherwise the month after,
  * whichever is later. The window is the last n full months before this one, not reaching back before the first
- * full month; with no full month yet it is this month so far.
+ * full month; with no full month yet (or nothing recorded at all) it is this month so far.
  * Returns { start, end, months, provisional, firstFull } (first-of-month dates; firstFull null with no records).
  */
 function summaryWindow_(incomeRows, txRows, today, n) {
@@ -459,9 +462,9 @@ function summaryWindow_(incomeRows, txRows, today, n) {
   const ff = (d) => d === null ? null : new Date(d.getFullYear(), d.getMonth() + (d.getDate() <= FINSUM.FULL_MONTH_DAY ? 0 : 1), 1);
   const a = ff(earliest(incomeRows, 'payDate')), b = ff(earliest(txRows, 'date', t => t.isDeleted !== true));
   const firstFull = a === null ? b : b === null ? a : (a > b ? a : b);
-  if (firstFull !== null && prev < firstFull) return { start: cur, end: cur, months: 1, provisional: true, firstFull };
+  if (firstFull === null || prev < firstFull) return { start: cur, end: cur, months: 1, provisional: true, firstFull };
   let start = new Date(prev.getFullYear(), prev.getMonth() - (Math.max(1, Number(n) || 1) - 1), 1);
-  if (firstFull !== null && start < firstFull) start = firstFull;
+  if (start < firstFull) start = firstFull;
   const months = (prev.getFullYear() - start.getFullYear()) * 12 + prev.getMonth() - start.getMonth() + 1;
   return { start, end: prev, months, provisional: false, firstFull };
 }

@@ -25,6 +25,11 @@
 - `BUILD_VERSION` 1.40.0. Files changed in `apps-script/`: `Config.gs`,
   `Main.gs`, `Upgrade.gs`, `FinancialSummary.gs`, `Tables.gs`,
   `Dashboard.gs`, `QA.gs`, `Export.gs`, `Reference.gs`. Run Upgrade workbook.
+- Data review: no must-fix; five should-fix items done: an empty workbook
+  reads "no full month yet"; the flexible average also starts at the first
+  full month; Needed per Month counts the payments still to come and says
+  Past due after the date; a goal with no Kind shows no progress; a debt
+  with no balance entered reads blank rather than paid off.
 - Tested: Node mock (new tests for the window, goal progress, the formulas
   and tab visibility); on the live Sheet in scratch cells (then cleared):
   the first full month, the month list, and the debt and fund lookups.

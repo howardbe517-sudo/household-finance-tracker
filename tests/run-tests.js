@@ -474,7 +474,7 @@ if (/\$B\$15/.test(fsAvgF) && /\/\$D\$15/.test(fsAvgF) && /<\$H\$15\)/.test(fsB4
   const w = (y, m, d, n) => { const r = R(`summaryWindow_(${inc}, ${txr}, new Date(${y}, ${m}, ${d}), ${n})`); return [mk2(r.start), mk2(r.end), r.months, r.provisional, r.firstFull ? mk2(r.firstFull) : null].join(' '); };
   const none = R(`summaryWindow_([], [], new Date(2026, 10, 27), 3)`);
   if (w(2026, 10, 27, 3) === '2026-11 2026-11 1 true 2026-11' && w(2026, 11, 5, 3) === '2026-11 2026-11 1 false 2026-11' && w(2027, 1, 10, 3) === '2026-11 2027-1 3 false 2026-11' && w(2027, 5, 10, 3) === '2027-3 2027-5 3 false 2026-11' && w(2027, 5, 10, 1) === '2027-5 2027-5 1 false 2026-11'
-    && none.provisional === false && none.months === 3 && none.firstFull === null) ok('the averages window: paychecks from Oct 30 and transactions from Nov 2 make November the first full month; during November it is the month so far (provisional), in December it is November alone, later the last N full months, never before the first full month; deleted rows ignored');
+    && none.provisional === true && none.months === 1 && none.firstFull === null) ok('the averages window: paychecks from Oct 30 and transactions from Nov 2 make November the first full month; during November it is the month so far (provisional), in December it is November alone, later the last N full months, never before the first full month; deleted rows ignored; with nothing recorded it is the month so far');
   else bad('summaryWindow_: ' + JSON.stringify([w(2026, 10, 27, 3), w(2026, 11, 5, 3), w(2027, 1, 10, 3), w(2027, 5, 10, 3), w(2027, 5, 10, 1), none]));
 })();
 const gf = (ds) => R(`guessPayFrequency_(${JSON.stringify(ds)}.map(function(s){ return new Date(s + 'T00:00:00'); })).frequency`);
@@ -1974,6 +1974,12 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
   const saveStart = gp({ goal: 'Fund', kind: 'Save up', fundId: 'FUND-1', target: 18000, start: 10000 }, null, 12000);
   const over = gp({ goal: 'Fund', kind: 'Save up', fundId: 'FUND-1', target: 1000 }, null, 1500);
   const unlinked = gp({ goal: 'House', kind: 'Save up', target: 40000 }, null, null);
+  const noKind = gp({ goal: 'Card', debtId: 'DEBT-1', start: 2000 }, 500, null);
+  const gdb = (d) => R(`goalDebtBalance_(${d})`);
+  const tfPart = R(`typicalFlexible_([{ date: new Date(2026, 9, 20), amount: 400, type: 'Expense', spendingType: 'Flexible' }, { date: new Date(2026, 10, 5), amount: 90, type: 'Expense', spendingType: 'Flexible' }], new Date(2026, 10, 12), [], new Date(2026, 10, 1))`);
+  if (!(noKind.current === 500 && noKind.left === '' && noKind.progress === '' && gdb(`{ latestBalance: '' }`) === null && gdb(`{ latestBalance: 0, balanceAsOf: 'No review yet' }`) === null && gdb(`{ latestBalance: 0, balanceAsOf: new Date(2026, 10, 1) }`) === 0 && gdb(`{ latestBalance: 3150.35, balanceAsOf: 'No review yet' }`) === 3150.35
+    && tfPart.months === 0 && tfPart.provisional === true && near(tfPart.average, 90))) bad('goal blanks / part-month flexible: ' + JSON.stringify([noKind, tfPart]));
+  else ok('a goal with no Kind shows no progress; a debt with no balance entered yet reads blank, not paid off; the flexible average leaves out a month the records began partway through');
   if (debt.left === 500 && near(debt.progress, 0.75) && debtNoStart.left === 500 && debtNoStart.progress === '' && debtDown.left === 1000 && near(debtDown.progress, 0.75)
     && save.left === 6000 && near(save.progress, 2 / 3) && near(saveStart.progress, 0.25) && over.left === 0 && over.progress === 1 && unlinked.current === '' && unlinked.progress === '')
     ok('goal progress: a debt from its starting balance down to the target (no starting balance, no percentage), a fund up to its target (from the starting amount when given), never past 100%, blank with no debt or fund named');

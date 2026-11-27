@@ -149,7 +149,7 @@ function buildSnapshotText_(d) {
     return ks.length ? Math.max(1, cur - Math.min.apply(null, ks)) : 0;
   })();
   const utilLabel = utilN ? 'over the ' + utilN + ' full month(s) since the first bill (up to 12)' : 'no bills in the last 12 full months';
-  const flex = typicalFlexible_(tx, today, waitTx);
+  const flex = typicalFlexible_(tx, today, waitTx, summaryWindow_(income, tx, today, 1).firstFull);
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
   const plannedSavings = sum(funds, f => f.plannedMonthly);
@@ -169,7 +169,7 @@ function buildSnapshotText_(d) {
     L.push('## Goals (in priority order, from Goals & Progress)');
     goalRows.forEach((g, i) => {
       const debt = g.debtId ? debts.filter(x => x.id === g.debtId)[0] : null, fund = g.fundId ? funds.filter(x => x.id === g.fundId)[0] : null;
-      const p = goalProgress_(g, debt ? debt.latestBalance : null, fund ? fund.current : null);
+      const p = goalProgress_(g, debt ? goalDebtBalance_(debt) : null, fund ? fund.current : null);
       const parts = [g.kind || 'kind not set'];
       if (p.current !== '') parts.push(g.kind === 'Pay off debt' ? 'balance now ' + money(p.current) + (isNum(g.start) && num(g.start) > 0 ? ' (started at ' + money(g.start) + ')' : '') : 'saved so far ' + money(p.current) + (num(g.target) > 0 ? ' of ' + money(g.target) : ''));
       else parts.push('no debt or fund named yet, so no progress figure');
