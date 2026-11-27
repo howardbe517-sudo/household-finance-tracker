@@ -42,7 +42,7 @@ const names = ss.getSheets().map(s => s.getName());
 if (names.length === 35 && JSON.stringify(names) === JSON.stringify(TAB_ORDER) && names.indexOf('Dashboard') < 0) ok('35 tabs in the owner\'s order (Start Here, Financial Summary, Spending, Utilities, Groceries, Grocery Charts first; no Dashboard tab; Import Staging after Transactions; Bill Changes after Recurring Payments; Receipts after Grocery Item Names; Reminders last)'); else bad('tab order/count: ' + names.join(' | '));
 
 /* 2. schema expectations from the handoff (3.1 adds columns only at the end of a table) */
-const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 27, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 19, FUNDS: 16 };
+const expectCols = { TX: 32, INCOME: 19, CATS: 8, ACCOUNTS: 19, STAGING: 28, LOG: 10, BUDGET: 8, PLAN: 15, SUMMARY: 15, FUNDS: 16, RECUR: 20, RULES: 17, CONN: 13, DEBTS: 29, EXPECT: 19, FUNDS: 16 };
 const handoffFirst = { ACCOUNTS: ['Account ID', 'Account Name', 'Institution', 'Account Type', 'Owner', 'Include in Net Worth?', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'],
   STAGING: ['Import ID', 'Provider', 'External Transaction ID', 'Account ID', 'Date', 'Raw Description', 'Amount', 'Pending?', 'Suggested Category', 'Suggested Subcategory', 'Suggested Spending Type', 'Fingerprint', 'Reviewed?', 'Duplicate?', 'Imported Transaction ID', 'Notes'] };
 Object.keys(handoffFirst).forEach(k => { const hs = TABLES[k].columns.map(c => c.h); handoffFirst[k].forEach((h, i) => { if (hs[i] !== h) bad(`${TABLES[k].sheet} column ${colLetter(i + 1)} should still be "${h}" (handoff order), got "${hs[i]}"`); }); });
@@ -1748,7 +1748,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const txCount = R(`readTable_(TABLES.TX).length`);
   ssx.deleteSheet(ssx.getSheetByName('Import Rules')); // SAFETY-APPROVED: test only, mock workbook
   ssx.deleteSheet(ssx.getSheetByName('Connections')); // SAFETY-APPROVED: test only, mock workbook
-  del('Accounts', 11, 9); del('Import Staging', 17, 11); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
+  del('Accounts', 11, 9); del('Import Staging', 17, 12); del('Monthly Summary', 15, 1); del('Monthly Review', 18, 1); del('Debts', 17, 13); del('Quarterly Debt Review', 11, 1); del('Monthly Plan', 9, 7);
   ssx.deleteSheet(ssx.getSheetByName('Expected Income')); // SAFETY-APPROVED: test only, mock workbook, simulating a pre-3.4 workbook
   ssx.getSheetByName('Monthly Summary').getRange(4, 8).setValue('Reviewed Debt Balance');
   ssx.getSheetByName('Monthly Review').getRange(4, 11).setValue('Total Debt Balance');
@@ -1916,6 +1916,55 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
     tx:[{ id:'TX-1', date:${day(-1, 10)}, type:'Expense', amount:300, category:'Housing', subcategory:'Mortgage or Rent', spendingType:'Fixed' }] })`);
   if (/the average of the 1 month\(s\) among the last 3 full months/.test(ds) && /\| Housing \| \$0\.00 \| \$300\.00 \| \$300\.00 \| 100\.0% \|/.test(ds) && /\| \$1,000\.00 \| no transactions recorded \|/.test(ds) && /Fixed \$300\.00/.test(ds)) ok('snapshot typical month divides by the months that have spending ($300, not $100) and marks a month with paychecks but no transactions');
   else bad('typical-month divisor: ' + ds.split('\n').filter(l => /Housing|average of|no transactions|Fixed \$/.test(l)).join(' | '));
+})();
+
+// bank charges still waiting on Import Staging count as flexible spending (1.38.0)
+(function () {
+  const WAITING_LABEL_ = R('WAITING_LABEL');
+  const st = `[
+    { importId:'W1', date:new Date(2026, 10, 3), amount:19.12, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'W2', date:new Date(2026, 10, 4), amount:50.88, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'' },
+    { importId:'W3', date:new Date(2026, 10, 5), amount:8, status:'Ready', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X1', date:new Date(2026, 10, 5), amount:1, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X2', date:new Date(2026, 10, 5), amount:0, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X3', date:new Date(2026, 10, 5), amount:-34.34, status:'Needs Review', duplicate:false, importedTxId:'', suggestedType:'Refund' },
+    { importId:'X4', date:new Date(2026, 10, 5), amount:40, status:'Imported', duplicate:false, importedTxId:'TX-1', suggestedType:'Expense' },
+    { importId:'X5', date:new Date(2026, 10, 5), amount:40, status:'Removed', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X6', accountId:'ACC-9', date:new Date(2026, 10, 5), amount:40, status:'Needs Review', duplicate:true, importedTxId:'', suggestedType:'Expense' },
+    { importId:'X9', date:new Date(2026, 10, 6), amount:900, status:'Needs Review', importedTxId:'', suggestedType:'', bankCategory:'LOAN_PAYMENTS / LOAN_PAYMENTS_CREDIT_CARD_PAYMENT' },
+    { importId:'XA', date:new Date(2026, 10, 6), amount:300, status:'Needs Review', importedTxId:'', suggestedType:'', bankCategory:'TRANSFER_OUT / TRANSFER_OUT_SAVINGS' },
+    { importId:'W5', date:new Date(2026, 9, 21), amount:30, status:'Needs Review', importedTxId:'', suggestedType:'', bankCategory:'TRANSFER_OUT / TRANSFER_OUT_TRANSFER_OUT_FROM_APPS' },
+    { importId:'XB', date:new Date(2026, 10, 1), amount:1500, status:'Needs Review', importedTxId:'', suggestedType:'Expense', suggestedCategory:'Housing', suggestedSubcategory:'Mortgage or Rent' },
+    { importId:'X7', date:new Date(2026, 10, 5), amount:40, status:'Ready', duplicate:false, importedTxId:'', suggestedType:'Transfer' },
+    { importId:'X8', date:new Date(2026, 10, 5), amount:40, status:'Ignored', duplicate:false, importedTxId:'', suggestedType:'Expense' },
+    { importId:'W4', date:new Date(2026, 9, 20), amount:25, status:'Needs Split', duplicate:false, importedTxId:'', suggestedType:'Expense' }]`;
+  // the X6 charge is already on Transactions (same account, day and amount); rent records itself automatically
+  const wc = `waitingContext_([{ accountId:'ACC-9', date:new Date(2026, 10, 5), amount:40, type:'Expense' }], [{ autoRecord:true, active:true, category:'Housing', subcategory:'Mortgage or Rent' }])`;
+  const nov = R(`waitingSpend_(${st}, new Date(2026, 10, 1), new Date(2026, 10, 30), ${wc})`), oct = R(`waitingSpend_(${st}, new Date(2026, 9, 1), new Date(2026, 9, 31), ${wc})`);
+  const day4 = R(`waitingSpend_(${st}, new Date(2026, 10, 4), new Date(2026, 10, 4), ${wc})`);
+  const wt = R(`waitingAsTransactions_(${st}, ${wc})`);
+  const novNoCtx = R(`waitingSpend_(${st}, new Date(2026, 10, 1), new Date(2026, 10, 30))`);
+  if (near(nov, 78) && near(oct, 55) && near(day4, 50.88) && near(novNoCtx, 78 + 40 + 1500) && wt.length === 5 && wt.every(t => t.type === 'Expense' && t.spendingType === 'Flexible' && t.category === WAITING_LABEL_ && t._waiting === true))
+    ok('waiting charges: money going out on open rows counts (Needs Review, Needs Split, Ready), by date, a Venmo payment too; $0 and $1 holds, money coming in, imported, removed, ignored and transfer rows, card payments and moves to savings by the bank\'s category, charges already on Transactions and bills that record themselves are left out');
+  else bad('waiting charges: ' + JSON.stringify([nov, oct, day4, wt.length]));
+  // the flexible average and the typical month add them in, but a month with only waiting charges is never "a month with spending"
+  const tx = `[{ date:new Date(2026, 9, 3), amount:300, type:'Expense', spendingType:'Flexible' }]`;
+  const tfW = R(`typicalFlexible_(${tx}, new Date(2026, 10, 12), waitingAsTransactions_(${st}, ${wc}))`), tfN = R(`typicalFlexible_([], new Date(2026, 10, 12), waitingAsTransactions_(${st}, ${wc}))`);
+  const tmW = R(`typicalMonth_(${tx}.concat(waitingAsTransactions_(${st}, ${wc})), new Date(2026, 11, 1), 'Last 3 full months')`);
+  if (tfW.months === 1 && near(tfW.average, 355) && tfN.months === 0 && tfN.provisional === true && near(tfN.average, 78) && tmW.months === 1 && near(tmW.total, 433))
+    ok('waiting charges join the Financial Summary flexible average and the Spending tab typical month without adding a month to count');
+  else bad('waiting in averages: ' + JSON.stringify([tfW, tfN, tmW]));
+  // the Sheet formulas read Import Staging the same way
+  const sumF = g.__ss.getSheetByName(SHEETS.SUMMARY).getRange(TABLES.SUMMARY.firstRow, TABLES.SUMMARY.columns.findIndex(c => c.key === 'spending') + 1).getFormula();
+  const planF = g.__ss.getSheetByName(SHEETS.PLAN).getRange(TABLES.PLAN.firstRow, TABLES.PLAN.columns.findIndex(c => c.key === 'flexSpent') + 1).getFormula();
+  const spSh = g.__ss.getSheetByName(SHEETS.SPEND), catF = spSh.getRange('A' + SPEND.CAT_FIRST).getFormula();
+  const stagingRef = /SUMIFS\('Import Staging'!\$G\$5:\$G(\$1004)?,'Import Staging'!\$AB\$5:\$AB(\$1004)?,TRUE,'Import Staging'!\$E\$5:\$E(\$1004)?,">="&/;
+  const cntCol = TABLES.STAGING.columns.findIndex(c => c.key === 'countsAsSpending') + 1;
+  const cntF = g.__ss.getSheetByName(SHEETS.STAGING).getRange(TABLES.STAGING.firstRow, cntCol).getFormula();
+  if (cntCol === 28 && /"Needs Split"/.test(cntF) && /ROUND\(N\(\$G5\),2\)<>1/.test(cntF) && /REGEXMATCH\(\$X5&"","\^LOAN_PAYMENTS/.test(cntF) && /'Recurring Payments'/.test(cntF)
+    && stagingRef.test(sumF) && stagingRef.test(planF) && catF.indexOf('"' + WAITING_LABEL_ + '"') >= 0 && stagingRef.test(catF))
+    ok('Monthly Summary spending, Monthly Plan flexible spent and the Spending tab categories add the waiting charges from Import Staging');
+  else bad('waiting formulas: ' + JSON.stringify([cntCol, cntF.slice(0, 400), sumF.slice(0, 300)]));
 })();
 
 vm.runInContext('clearSampleData()', ctx);

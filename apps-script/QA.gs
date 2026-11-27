@@ -68,11 +68,23 @@ function qaReport_() {
   const deletedCount = tx.length - live.length;
   info(tx.length + ' transactions read (' + deletedCount + ' soft-deleted, excluded from every total below)');
 
+  // bank charges still waiting on Import Staging count as (flexible) spending, as in the Sheet (the owner, 2026-11-27)
+  const stagedW = readTable_(tdef_('STAGING'));
+  const waitCtx = waitingContext_(tx, readTable_(tdef_('RECUR')));
+  const waitIn = (from, to) => waitingSpend_(stagedW, from, to, waitCtx);
+  const monthEnd = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const waitTx = waitingAsTransactions_(stagedW, waitCtx);
+  const waitNow = waitTx.reduce((s, t) => s + t.amount, 0);
+  if (waitTx.length) info(waitTx.length + ' bank charge(s) still waiting on Import Staging, ' + money(waitNow) + ', counted as flexible spending (' + WAITING_LABEL + ') until reviewed');
+  // the Counts as Spending? column against the same test done here
+  const cntBad = stagedW.filter(r => r.importId && (r.countsAsSpending === true) !== isWaitingCharge_(r, waitCtx));
+  if (cntBad.length) fail('Import Staging: Counts as Spending? differs from the recomputed test on ' + cntBad.length + ' row(s) (' + cntBad.slice(0, 5).map(r => r.importId).join(', ') + ')');
+  else if (stagedW.some(r => r.importId)) pass('Import Staging: Counts as Spending? matches the recomputed test on every row');
   const summary = readTable_(tdef_('SUMMARY')).filter(r => r.month instanceof Date);
   if (!summary.length) { if (!live.length && !inc.length) info('Monthly Summary has no month rows yet: it fills in as soon as Income or Transactions have rows.'); else fail('Monthly Summary has no month rows'); } else pass('Monthly Summary lists ' + summary.length + ' month(s)');
   summary.forEach(s => {
     const m = mk(s.month);
-    const expSpend = sumWhere(live, t => mk(t.month) === m && t.type === 'Expense', 'amount') - sumWhere(live, t => mk(t.month) === m && t.type === 'Refund', 'amount');
+    const expSpend = sumWhere(live, t => mk(t.month) === m && t.type === 'Expense', 'amount') - sumWhere(live, t => mk(t.month) === m && t.type === 'Refund', 'amount') + waitIn(s.month, monthEnd(s.month));
     const expSav = sumWhere(live, t => mk(t.month) === m && t.type === 'Savings', 'amount');
     const expDebt = sumWhere(live, t => mk(t.month) === m && t.type === 'Debt Payment', 'amount');
     const expInc = sumWhere(inc, i => mk(i.month) === m, 'takeHome');
@@ -122,7 +134,7 @@ function qaReport_() {
     const m = mk(p.month);
     const isFlexExp = t => mk(t.month) === m && t.spendingType === 'Flexible' && t.type === 'Expense';
     const isFlexRef = t => mk(t.month) === m && t.spendingType === 'Flexible' && t.type === 'Refund';
-    const exp = sumWhere(live, isFlexExp, 'amount') - sumWhere(live, isFlexRef, 'amount');
+    const exp = sumWhere(live, isFlexExp, 'amount') - sumWhere(live, isFlexRef, 'amount') + waitIn(p.month, monthEnd(p.month));
     if (!near(p.flexSpent, exp)) fail('Monthly Plan ' + m + ': Flexible Spent ' + money(p.flexSpent) + ' ≠ ' + money(exp));
     else pass('Monthly Plan ' + m + ': flexible spent ' + money(exp) + ', available ' + money(p.available));
     const autoExp = Number(p.expectedIncome || 0) + Number(p.incomeAdjustment || 0) - Number(p.bills || 0) - Number(p.debtPayments || 0) - Number(p.plannedSavings || 0);
@@ -138,12 +150,12 @@ function qaReport_() {
       const we = new Date(Math.min(ws.getTime() + 6 * 86400000, me.getTime()));
       const inRange = (t, a, b) => t.date instanceof Date && t.date >= a && t.date <= b;
       const dayBefore = new Date(ws.getTime() - 86400000);
-      const before = sumWhere(live, t => isFlexExp(t) && inRange(t, ms, dayBefore), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ms, dayBefore), 'amount');
+      const before = sumWhere(live, t => isFlexExp(t) && inRange(t, ms, dayBefore), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ms, dayBefore), 'amount') + (ws > ms ? waitIn(ms, dayBefore) : 0);
       const effective = Number(p.target || 0) > 0 ? Number(p.target) : Number(p.autoTarget || 0);
       const remaining = Math.max(effective - before, 0);
       const days = (d1, d2) => Math.round((d2 - d1) / 86400000) + 1;
       const expSuggested = remaining * days(ws, we) / days(ws, me);
-      const expSpentWeek = sumWhere(live, t => isFlexExp(t) && inRange(t, ws, today), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ws, today), 'amount');
+      const expSpentWeek = sumWhere(live, t => isFlexExp(t) && inRange(t, ws, today), 'amount') - sumWhere(live, t => isFlexRef(t) && inRange(t, ws, today), 'amount') + waitIn(ws, today);
       if (!near(p.suggestedWeek, expSuggested, 0.05)) fail('Monthly Plan (current month): Suggested This Week ' + money(p.suggestedWeek) + ' ≠ ' + money(expSuggested));
       else pass('Monthly Plan (current month): weekly guidance ' + money(expSuggested) + ' for Mon–Sun week, spent this week ' + money(expSpentWeek));
       if (!near(p.spentWeek, expSpentWeek)) fail('Monthly Plan (current month): Spent This Week ' + money(p.spentWeek) + ' ≠ ' + money(expSpentWeek));
@@ -242,7 +254,7 @@ function qaReport_() {
     if (problems.length) fail('Spending tab cards (' + selKey + '): ' + problems.join('; ')); else pass('Spending tab cards match Monthly Plan and Monthly Summary for ' + selKey + ' (gross ' + money(gross) + ' and take-home ' + money(take) + ' landed so far)');
 
     // the typical month: recompute the Compare with window from Transactions and compare with the total row
-    const typ = typicalMonth_(tx, sel, sp.getRange(SPEND.COMPARE_CELL).getValue());
+    const typ = typicalMonth_(tx.concat(waitTx), sel, sp.getRange(SPEND.COMPARE_CELL).getValue());
     const typShown = sp.getRange('E' + (SPEND.CAT_FIRST + SPEND.CAT_ROWS)).getValue();
     const kShown = sp.getRange('D' + SPEND.HELP_ROW).getValue();
     if (sel instanceof Date) {
@@ -314,7 +326,7 @@ function qaReport_() {
     const extraAll = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL');
     const debtPay = Math.max(debtRows.reduce((s, d) => s + Number(d.minPayment || 0), 0), loans) + debtRows.reduce((s, d) => s + Number(d.plannedExtra || 0), 0) + (extraAll ? Number(extraAll.getValue()) || 0 : 0);
     const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? utilitiesFixed_(readTable_(tdef_('UTIL')), today).amount : 0; // same month last year, else the 12-month average
-    const flexT = typicalFlexible_(tx, today);
+    const flexT = typicalFlexible_(tx, today, waitTx);
     const fsProblems = [];
     const plannedSave = readTable_(tdef_('FUNDS')).reduce((s, f) => s + (typeof f.plannedMonthly === 'number' ? f.plannedMonthly : 0), 0);
     if (!near(shown.take, expTake)) fsProblems.push('coming in ' + money(shown.take) + ' ≠ ' + money(expTake) + ' from Expected Income');
@@ -371,7 +383,7 @@ function typicalMonth_(txRows, selected, compare) {
     if (t.isDeleted === true || !(t.date instanceof Date) || (t.type !== 'Expense' && t.type !== 'Refund')) return;
     const k = key(t.date);
     if (k < key(ws) || k > key(we)) return;
-    seen[k] = true;
+    if (!t._waiting) seen[k] = true; // a charge still waiting on Import Staging adds to the total but never makes a month count
     sum += (t.type === 'Expense' ? 1 : -1) * Number(t.amount || 0);
   });
   const months = Object.keys(seen).length;

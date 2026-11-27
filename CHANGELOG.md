@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 2026-11-27 — Charges waiting for review count as spending right away
+- Why (the owner): spending read low until every bank charge was reviewed;
+  charges should count at once and be categorized after review (option 1:
+  counted as "Not categorized yet" while you keep reviewing on Import Staging).
+- Schema 3.23: Import Staging gains **Counts as Spending?** (last column),
+  TRUE for an open row (Needs Review, Needs Split, Ready) not imported yet,
+  an expense or no type, money going out other than a $0 or $1 hold, not
+  already on Transactions (account, date, amount), not a card or loan
+  payment or a move between own accounts (by the bank's category), and not a
+  bill that records itself. `WAITING_SUM_TPL` (Config.gs) adds up those rows.
+- Counted as flexible spending under "Not categorized yet" in: Monthly
+  Summary Spending (so Cash Remaining, Monthly Review, the Financial
+  Summary month table and Spent So Far), Monthly Plan Flexible Spent, Spent
+  This Week and the weekly guidance, the Spending tab (totals, Fixed vs
+  flexible, a "Not categorized yet" row in the category table and in Where
+  the flexible money went, lines in Spent So Far, Amount Available and Spent
+  This Week, the hover lists) and the Financial Summary's flexible figure.
+  Months with only waiting charges never count as "months with spending".
+- QA and the AI snapshot recompute the same (`isWaitingCharge_`,
+  `waitingContext_`, `waitingAsTransactions_` in Helpers.gs); QA also checks
+  the new column row by row.
+- `BUILD_VERSION` 1.38.0. Files changed in `apps-script/`: `Config.gs`,
+  `Helpers.gs`, `Spending.gs`, `FinancialSummary.gs`, `QA.gs`, `Export.gs`,
+  `Reference.gs`. Run Upgrade workbook (the bank sync waits until it runs).
+- Reviewed by the data reviewer (two passes): fixed a bill that records
+  itself being counted twice, a near-copy row dropping out of spending, and
+  card payments counting until paired.
+- Tested: Node mock (new checks for the rule, the averages and the formulas);
+  on the live Sheet in scratch cells (then cleared): the sum for November and
+  this week, and the new column on waiting, imported and ignored rows.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Small gas-station charges count as snacks
 - Why (the owner): a purchase under $20 at a gas station is almost always
   snacks from inside, not gas.
