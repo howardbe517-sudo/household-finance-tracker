@@ -35,10 +35,15 @@ month's is there, use it for comparisons and to follow up on what was
 decided. If not, say once that this is the first month on file; the months
 inside the snapshot itself are then the only comparison.
 
-**Which month to review.** The review is about one month. If the snapshot's
-"As of" date falls in the first ten days of a month, review the month that
-just ended (it is complete). Otherwise review the current month and mark
-every figure for it "to date". Say which you chose on the first slide.
+**Which month to review.** Always the last full calendar month: the
+snapshot's "Month in review" section. That is the month the household just
+lived through, and it is complete, so the numbers will not move. Do not
+review the month in progress, however far along it is.
+
+The one exception is a tracker too new to have a full month: when "Month in
+review" says nothing is recorded (or that its records began partway through),
+use "This month so far" instead, say so on the first slide, and mark every
+figure "to date".
 
 **Sample data.** If the snapshot says the workbook still contains sample
 data, say so on the first slide and in your summary: the figures are not all
@@ -53,24 +58,34 @@ block per slide, and say that this is the fallback.
 Aim for 8 to 10 slides. One idea per slide, large numbers, few words. The
 deck is read on a couch, not in a boardroom.
 
-1. **The month at a glance.** This is also the title slide: month, "as of"
-   date, and four numbers from that month's row in "Monthly cash flow": came
-   in (take-home), spent, saved (cash savings; mention retirement saved from
-   paychecks in small print if given), and left over (cash remaining). Show
-   the subtraction underneath. One sentence that says how the month went.
-2. **Where the money went.** Spending by category against a typical month.
-   Chart the top categories; name the two or three that moved most.
-3. **Fixed and flexible.** Fixed costs, flexible spending against the month's
-   flexible target, and how much of the target was used.
-4. **What stood out.** Three to five items worth a look: an unusual charge, a
-   new or changed subscription, fees and interest paid, a category well above
-   typical. Skip this slide if nothing stands out; do not pad it.
-5. **Debts.** Each debt: balance, rate, minimum payment, estimated monthly
-   interest. Total interest cost per month. Change since last month if known.
+**The deck reports what happened in the review month.** Every headline number
+is that month's actual figure. Averages ("typical month") and the month
+before are there only as a small comparison beside an actual, never as the
+number the slide is about. The household asked for this: a deck of averages
+tells them nothing about the month they just had.
+
+1. **The month at a glance.** This is also the title slide: the month, and
+   four numbers from "Month in review": came in, spent, saved, left over.
+   Show the subtraction underneath. Beside "spent", the month before in small
+   print. One sentence that says how the month went.
+2. **Where the money went.** The month's spending by category, from the
+   category table in "Month in review", charted against the month before.
+   Name the two or three categories that changed most, with the dollar change.
+3. **Fixed and flexible.** From the month's "By Spending Type" line: what went
+   to fixed bills and what was flexible; then the month's flexible target,
+   what was spent against it, and how far over or under.
+4. **What stood out.** Three to five items worth a look, from that month: the
+   largest purchases, a category that jumped, fees and interest paid, a new
+   or changed subscription. Skip this slide if nothing stands out; do not pad
+   it.
+5. **Debts.** What was paid toward debt in the month, then each debt as it
+   stands now: balance, rate, minimum payment, estimated monthly interest.
+   Balances are "as of" the snapshot date; say so. Change since last month's
+   snapshot if one is on file.
 6. **Goals.** Each goal in the household's priority order with its progress.
    Say plainly which goal is the current focus.
-7. **Savings and safety.** Emergency fund against its target and in months of
-   costs; net worth and its change. Other funds only if they matter this
+7. **Savings and safety.** What was saved in the month; the emergency fund
+   against its target and in months of costs; net worth and its change. Other funds only if they matter this
    month (one that is due soon, or behind).
 8. **Loose ends.** Anything that makes the numbers incomplete: charges still
    waiting for review, accounts with no balance, a missing loan balance, a
@@ -84,9 +99,13 @@ Rules for the deck, and why:
 - **Every number comes from the snapshot.** Their trust in the review depends
   on it matching their tracker. Never estimate a figure the snapshot does not
   give; say it is missing and put it under Loose ends.
-- **Carry the snapshot's caveats.** If a figure is marked provisional, "to
-  date" or "this month so far", say so on the slide. A partial month
-  presented as a full one leads to wrong decisions.
+- **Carry the snapshot's caveats.** If a figure is marked provisional or "to
+  date", or the month's records began partway through, say so on the slide.
+  A partial month presented as a full one leads to wrong decisions.
+- **Balances are a different kind of number.** Spending, income and savings
+  belong to the review month. Account, debt and fund balances are as of the
+  snapshot's date, a few days later. Label them that way and do not mix the
+  two in one sum.
 - **Do the arithmetic visibly** when you derive something (months of
   emergency fund = fund ÷ monthly costs), so they can check it.
 - **Plain words.** "Money left over" rather than "net cash flow". No jargon,
