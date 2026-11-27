@@ -1482,6 +1482,17 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     if (t3.months === 2 && near(t3.total, 180) && /2026 – .*2026/.test(t3.label) && t6.months === 3 && near(t6.total, 320) && ly.months === 1 && near(ly.total, 240) && /2025 – .*2025/.test(ly.label) && none.months === 0 && none.total === 0) ok('typical month: months with no spending are skipped (two of three counted), refunds come off, deleted rows and transfers are ignored, the current month is never in the window; same three months last year works'); else bad('typicalMonth_: ' + JSON.stringify([t3, t6, ly, none]));
   })();
 })();
+/* 2026-11-27: every other row a shade darker on the data tabs and the summary tables, as the last rule so meaningful colors win */
+(function () {
+  const band = (sh) => (sh.cfRules || []).filter(r => /ISEVEN\(ROW\(\)\)/.test(String(r.formula || '')));
+  const tx = g.__ss.getSheetByName(SHEETS.TX), fs = g.__ss.getSheetByName(SHEETS.FINSUM), sp = g.__ss.getSheetByName(SHEETS.SPEND);
+  const txLast = tx.cfRules[tx.cfRules.length - 1];
+  const okTx = band(tx).length === 1 && /ISEVEN\(ROW\(\)\)/.test(String(txLast.formula)) && txLast.bg === R('COLORS.BAND') && tx.cfRules.length > 1;
+  R(`addBandRule_(ss_().getSheetByName(SHEETS.TX), ss_().getSheetByName(SHEETS.TX).getRange(TABLES.TX.firstRow, 1, TABLES.TX.lastRow - TABLES.TX.firstRow + 1, TABLES.TX.columns.length))`);
+  const again = band(tx).length === 1;
+  if (okTx && again && band(fs).length === 5 && band(sp).length === 5) ok('every other row is a shade darker on the data tabs (Transactions shown) and in the Financial Summary and Spending tables, as the last conditional format so over-budget, deleted and review colors still win; running it again adds nothing');
+  else bad('row banding: ' + JSON.stringify([okTx, again, band(fs).length, band(sp).length]));
+})();
 /* 2026-11-27: the utilities in Fixed Costs are the bills due in the same month last year, else the 12-month average (fictional bills) */
 (function () {
   const v = R(`(function () {

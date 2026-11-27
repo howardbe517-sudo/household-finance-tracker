@@ -348,6 +348,12 @@ function buildNetWorthHelper_(sh, def) {
 
 /* ---------- orchestration for phases 2–4 ---------- */
 
+/** A table's conditional formats (its CF_BUILDERS entry, if any), then every other row a shade darker. */
+function applyTableFormats_(sh, def) {
+  if (typeof CF_BUILDERS !== 'undefined' && CF_BUILDERS[def.key]) CF_BUILDERS[def.key](sh, def);
+  if (def.lastRow >= def.firstRow) addBandRule_(sh, sh.getRange(def.firstRow, 1, def.lastRow - def.firstRow + 1, def.columns.length));
+}
+
 function buildCoreTables_() {
   ['INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT'].forEach(key => {
     const def = tdef_(key);
@@ -355,7 +361,7 @@ function buildCoreTables_() {
     if (key === 'RECUR') buildRecurringTop_(sh, def);
     if (key === 'DEBTS') buildDebtsTop_(sh, def);
     if (key === 'FUNDS') buildFundsGuide_(sh, def);
-    CF_BUILDERS[key](sh, def);
+    applyTableFormats_(sh, def);
   });
 }
 
@@ -363,7 +369,7 @@ function buildInfrastructureTables_() {
   ['STAGING', 'RULES', 'CONN', 'LOG'].forEach(key => {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
-    if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
+    applyTableFormats_(sh, def);
   });
 }
 
@@ -372,7 +378,7 @@ function buildDerivedTables_() {
     const def = tdef_(key);
     const sh = buildTableSheet_(def);
     if (key === 'NW') buildNetWorthHelper_(sh, def);
-    CF_BUILDERS[key](sh, def);
+    applyTableFormats_(sh, def);
   });
 }
 

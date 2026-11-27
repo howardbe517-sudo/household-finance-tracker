@@ -354,6 +354,10 @@ function buildFinancialSummary_() {
     cfRule_(sh.getRange('G' + FINSUM.HIST_FIRST + ':G' + histLast), '=AND(ISNUMBER(G' + FINSUM.HIST_FIRST + '),G' + FINSUM.HIST_FIRST + '<0)', null, COLORS.OVER_FONT),
     cfRule_(sh.getRange('G' + FINSUM.CARD_VALUE + ':I' + FINSUM.CARD_VALUE), '=AND(ISNUMBER($G$' + FINSUM.CARD_VALUE + '),$G$' + FINSUM.CARD_VALUE + '<0)', COLORS.OVER_FILL, COLORS.OVER_FONT),
   ]);
+  // every other row a shade darker in the tables (the owner, 2026-11-27); total rows and person-colored rows are left as they are
+  [['A', FINSUM.HIST_FIRST, 'G', FINSUM.HIST_FIRST + FINSUM.HIST_COUNT - 1], ['A', FINSUM.FUNDS_FIRST, 'G', fundsLast],
+    ['A', FINSUM.DEBT_LIST_FIRST, 'F', FINSUM.DEBT_LIST_FIRST + FINSUM.DEBT_LIST_ROWS - 1], ['A', FINSUM.PAYROLL_FIRST, 'I', FINSUM.PAYROLL_TOTAL - 1],
+    ['A', FINSUM.FEES_CARD, 'C', FINSUM.FEES_BANK]].forEach(b => addBandRule_(sh, sh.getRange(b[0] + b[1] + ':' + b[2] + b[3])));
   const prot = sh.protect().setDescription('The Financial Summary is calculated. Change the number of months in ' + FINSUM.MONTHS_CELL + '; edit data on the raw tabs.');
   prot.setWarningOnly(true);
   setNamedRange_('FINSUM_MONTHS', sh.getRange(FINSUM.MONTHS_CELL));

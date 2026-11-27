@@ -142,7 +142,7 @@ function upgradeTable_(key, report) {
     if (sh && sh.getRange(def.headerRow, 1).getValue() === '' && sh.getLastRow() === 0) { sh = null; }
     if (!sh) {
       sh = buildTableSheet_(def); // getOrCreateSheet_ reuses an existing tab of that name; it never duplicates
-      if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
+      applyTableFormats_(sh, def);
       report.push('Added tab: ' + def.sheet);
       return;
     }
@@ -164,7 +164,7 @@ function upgradeTable_(key, report) {
     const changedFormulas = upgradeColumnRules_(def, sh, hdr);
     if (changedFormulas.length) report.push(def.sheet + ': updated formula(s) ' + changedFormulas.join(', '));
     setNamedRange_('TBL_' + def.key, sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, needCols));
-    if (CF_BUILDERS[key]) CF_BUILDERS[key](sh, def);
+    applyTableFormats_(sh, def);
     if (addedCols.length) report.push(def.sheet + ': added column(s) ' + addedCols.join(', '));
     // Presentation strips hold no entered data, so they are simply redrawn to the current design.
     if (key === 'DEBTS') buildDebtsTop_(sh, def);

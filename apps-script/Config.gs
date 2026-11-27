@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.22-paydays-2026-11-25',
-  BUILD_VERSION: '1.36.4',
+  BUILD_VERSION: '1.37.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -102,6 +102,7 @@ const COLORS = {
   FADED_TEXT: '#8A97A6',   // the Dashboard's faded gross card
   FADED_FILL: '#F1F4F7',
   BORDER: '#C9D2DC',
+  BAND: '#EEF2F6',        // every other row of a table, a shade darker so rows are easier to tell apart (the owner, 2026-11-27)
   BOX_LINES: '#3B4754',   // the breakdown lines under a summary box: darker than MUTED_TEXT so they read easily (the owner, 2026-11-26)
 };
 
