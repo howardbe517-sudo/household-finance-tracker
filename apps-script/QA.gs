@@ -232,12 +232,14 @@ function qaReport_() {
     const cost = [e.loan, e.mortgage, e.tax, e.insurance, e.pmi, e.housing, e.repairs, e.allIn, e.rent, e.overRent];
     const cash = [e.cash.down, e.cash.closing, e.cash.moving, e.cash.total];
     const bad = [];
-    cost.forEach((x, k) => { if (!near(B(HOUSE.COST_FIRST + k), x, 0.011)) bad.push(hsh.getRange(HOUSE.COST_FIRST + k, 1).getValue()); });
-    cash.forEach((x, k) => { if (!near(B(HOUSE.CASH_FIRST + k), x, 0.011)) bad.push(hsh.getRange(HOUSE.CASH_FIRST + k, 1).getValue()); });
+    const agree = (cellV, x) => x === '' ? typeof cellV !== 'number' : near(cellV, x, 0.011); // '' = the Sheet shows a blank or a message
+    cost.forEach((x, k) => { if (!agree(B(HOUSE.COST_FIRST + k), x)) bad.push(hsh.getRange(HOUSE.COST_FIRST + k, 1).getValue()); });
+    cash.forEach((x, k) => { if (!agree(B(HOUSE.CASH_FIRST + k), x)) bad.push(hsh.getRange(HOUSE.CASH_FIRST + k, 1).getValue()); });
     e.steps.forEach((st, k) => {
       const row = HOUSE.PLAN_FIRST + k, d = hsh.getRange(row, 4).getValue();
-      const doneOk = st.done instanceof Date ? (d instanceof Date && d.getFullYear() === st.done.getFullYear() && d.getMonth() === st.done.getMonth()) : (st.done === 'Done' ? d === 'Done' : !(d instanceof Date));
-      if (!near(B(row), st.left, 0.011) || !doneOk) bad.push(hsh.getRange(row, 1).getValue());
+      const doneOk = st.done instanceof Date ? (d instanceof Date && d.getFullYear() === st.done.getFullYear() && d.getMonth() === st.done.getMonth()) : (st.done === '' ? !(d instanceof Date) : d === st.done);
+      const m = hsh.getRange(row, 3).getValue();
+      if (!agree(B(row), st.left) || !doneOk || (st.months === '' ? m !== '' : Number(m) !== st.months)) bad.push(hsh.getRange(row, 1).getValue());
     });
     if (bad.length) fail('House Plan: ' + bad.slice(0, 4).join('; ') + ' differ' + (bad.length === 1 ? 's' : '') + ' from the same sums worked out from Debts, Savings & Reserves, Recurring Payments and Expected Income');
     else pass('House Plan: the monthly cost, the cash to save and the plan\'s steps match the tracker\'s numbers');

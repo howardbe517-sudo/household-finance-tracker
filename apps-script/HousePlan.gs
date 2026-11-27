@@ -11,17 +11,18 @@ const HOUSE = {
   WIDTH: 5,
   INPUT_BAR: 4, INPUT_FIRST: 5,
   // the inputs, in order from INPUT_FIRST (one per row); def: the value a new tab starts with ('' = left for the owner)
+  // lo/hi: the range a cell accepts (percent cells take 10% or 0.10, never 10)
   INPUTS: [
-    { key: 'PRICE', label: 'House price to plan for', fmt: 'currency', def: '', note: 'The price you are aiming for. Type a number, for example 300000.' },
-    { key: 'DOWN', label: 'Down payment', fmt: 'percent', def: 0.10, note: 'Share of the price paid up front. 20% or more avoids mortgage insurance; 3–5% is the usual minimum.' },
-    { key: 'CLOSING', label: 'Closing costs', fmt: 'percent', def: 0.03, note: 'Lender, title and other fees at purchase, as a share of the price (usually 2–5%).' },
-    { key: 'MOVING', label: 'Moving and first repairs', fmt: 'currency', def: 4000, note: 'Cash for the move and the first fixes after you buy.' },
-    { key: 'RATE', label: 'Mortgage interest rate', fmt: 'percent2', def: 0.065, note: 'A yearly rate for a 30-year fixed mortgage. Check current rates; each half-point changes the payment noticeably.' },
-    { key: 'TAX', label: 'Property tax (a year, share of price)', fmt: 'percent2', def: 0.015, note: 'Michigan homestead rates are often around 1.2–2% of the price a year; check the area you are looking in.' },
-    { key: 'INSURANCE', label: 'Home insurance (a month)', fmt: 'currency', def: 125, note: 'Homeowners insurance per month.' },
-    { key: 'PMI', label: 'Mortgage insurance (a year, share of loan)', fmt: 'percent2', def: 0.005, note: 'Charged only with less than 20% down, until you reach 20% equity. Often 0.3–1% of the loan a year.' },
-    { key: 'REPAIR', label: 'Repairs to set aside (a year, share of price)', fmt: 'percent', def: 0.01, note: 'A common rule of thumb: about 1% of the price a year for upkeep and repairs.' },
-    { key: 'MONTHLY', label: 'Put toward this plan each month', fmt: 'currency', def: '', note: 'What goes to the plan each month: first the credit cards, then the emergency fund, then the house. Likely Left Over on the Financial Summary is a guide; leave some room for the unexpected.' },
+    { key: 'PRICE', lo: 0, hi: 100000000, label: 'House price to plan for', fmt: 'currency', def: '', note: 'The price you are aiming for. Type a number, for example 300000.' },
+    { key: 'DOWN', lo: 0, hi: 1, label: 'Down payment', fmt: 'percent', def: 0.10, note: 'Share of the price paid up front. 20% or more avoids mortgage insurance; 3–5% is the usual minimum.' },
+    { key: 'CLOSING', lo: 0, hi: 1, label: 'Closing costs', fmt: 'percent', def: 0.03, note: 'Lender, title and other fees at purchase, as a share of the price (usually 2–5%).' },
+    { key: 'MOVING', lo: 0, hi: 10000000, label: 'Moving and first repairs', fmt: 'currency', def: 4000, note: 'Cash for the move and the first fixes after you buy.' },
+    { key: 'RATE', lo: 0, hi: 0.2, label: 'Mortgage interest rate', fmt: 'percent2', def: 0.065, note: 'A yearly rate for a 30-year fixed mortgage. Check current rates; each half-point changes the payment noticeably.' },
+    { key: 'TAX', lo: 0, hi: 0.2, label: 'Property tax (a year, share of price)', fmt: 'percent2', def: 0.015, note: 'Michigan homestead rates are often around 1.2–2% of the price a year; check the area you are looking in.' },
+    { key: 'INSURANCE', lo: 0, hi: 100000, label: 'Home insurance (a month)', fmt: 'currency', def: 125, note: 'Homeowners insurance per month.' },
+    { key: 'PMI', lo: 0, hi: 0.2, label: 'Mortgage insurance (a year, share of loan)', fmt: 'percent2', def: 0.005, note: 'Charged only with less than 20% down, until you reach 20% equity. Often 0.3–1% of the loan a year.' },
+    { key: 'REPAIR', lo: 0, hi: 1, label: 'Repairs to set aside (a year, share of price)', fmt: 'percent', def: 0.01, note: 'A common rule of thumb: about 1% of the price a year for upkeep and repairs.' },
+    { key: 'MONTHLY', lo: 0, hi: 1000000, label: 'Put toward this plan each month', fmt: 'currency', def: '', note: 'What goes to the plan each month on top of the regular bills and minimum payments (they are already in your monthly costs): first the credit cards, then the emergency fund, then the house. Likely Left Over on the Financial Summary is a guide; leave some room for the unexpected.' },
     { key: 'FUND', label: 'House fund on Savings & Reserves (optional)', fmt: 'text', def: '', note: 'Pick the Fund ID of a house savings fund once you have one; its Current Amount counts as saved for the house.' },
   ],
   COST_BAR: 17, COST_FIRST: 18,   // rows 18–29
@@ -80,6 +81,8 @@ function buildHousePlan_() {
     c.setValue(v === null || v === undefined ? '' : v).setBackground(COLORS.INPUT);
     if (x.fmt === 'percent2') c.setNumberFormat('0.00%'); else if (x.fmt !== 'text') setFormat_(c, x.fmt);
     if (x.key === 'FUND') c.setDataValidation(buildValidation_({ idsOf: 'FUNDS' }));
+    else if (x.hi !== undefined) c.setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(x.lo, x.hi).setAllowInvalid(false)
+      .setHelpText(/percent/.test(x.fmt) ? 'Type a percentage with the % sign, for example 10%, or as a decimal (0.10).' : 'Type an amount of 0 or more.').build());
     setNamedRange_('HOUSE_' + x.key, c);
   });
 
@@ -97,7 +100,7 @@ function buildHousePlan_() {
   line(r(6), 'Repairs to set aside', '=' + P + '*N(' + I('REPAIR') + ')/12', 'currency');
   line(r(7), 'All in, each month', '=$B$' + r(5) + '+$B$' + r(6), 'currency');
   line(r(8), 'Rent now', '=SUMIFS([RECUR.monthlyEq],[RECUR.subcategory],"Mortgage or Rent",[RECUR.active],TRUE)', 'currency', 'Active Recurring Payments in Housing / Mortgage or Rent.');
-  line(r(9), 'More than rent, each month', '=$B$' + r(7) + '-$B$' + r(8), 'currency');
+  line(r(9), 'More than rent, each month', '=IF($B$' + r(8) + '<=0,"No rent on Recurring Payments",$B$' + r(7) + '-$B$' + r(8) + ')', 'currency', 'All in (with the repairs set aside) less rent now. Rent has no repairs to set aside, so this leans a little against buying.');
   line(r(10), 'Housing payment as a share of gross pay', '=IFERROR($B$' + r(5) + '/SUMIFS([EXPECT.monthlyGross],[EXPECT.active],TRUE),"")', 'percent', 'Gross pay is the typical month on Expected Income (side income included; a lender may not count it until it has two years of history). Lenders usually want 28% or less.');
   line(r(11), 'Housing payment as a share of take-home', '=IFERROR($B$' + r(5) + '/SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.active],TRUE),"")', 'percent', 'Take-home is the typical month on Expected Income. Around 25–30% leaves room for everything else.');
   [r(5), r(7)].forEach(x => sh.getRange(x, 1, 1, 2).setFontWeight('bold'));
@@ -114,9 +117,9 @@ function buildHousePlan_() {
 
   // 4. the plan, in order
   const p = (k) => HOUSE.PLAN_FIRST + k;
-  bar(HOUSE.PLAN_BAR, 'The plan, in order', 'All of the monthly amount goes to one step at a time, starting next month: the credit cards (highest interest), then the emergency fund, then the house. Months are rounded up.');
+  bar(HOUSE.PLAN_BAR, 'The plan, in order', 'All of the monthly amount goes to one step at a time, starting next month: the credit cards (highest interest), then the emergency fund, then the house; money left in one step\'s last month carries on to the next. Assumes the same amount every month; card interest is not included.');
   const hdr = sh.getRange(HOUSE.PLAN_HEADER, 1, 1, W);
-  hdr.setValues([['Step', 'Left to Go', 'Months', 'Done About', 'From']]);
+  hdr.setValues([['Step', 'Left to Go', 'Months for This Step', 'Done About', 'From']]);
   styleHeader_(hdr);
   const M = 'N(' + I('MONTHLY') + ')';
   const START = 'DATE(YEAR(TODAY()),MONTH(TODAY())+1,1)';
@@ -127,13 +130,16 @@ function buildHousePlan_() {
   ];
   const labels = ['1. Pay off the credit cards', '2. Finish the emergency fund', '3. Save for the house'];
   const from = ['Debts: Latest Balance of every credit card', 'Savings & Reserves: Amount Needed of the emergency fund', 'Total to save, less the house fund (if one is picked above)'];
+  // months: the running total of Left to Go divided by the monthly amount, rounded up once (so money left over in one step's last
+  // month carries on to the next); ROUND(…,9) keeps a tiny rounding error from adding a month. Step 3 waits for a price.
+  const RU = (sum) => 'ROUNDUP(ROUND(' + sum + '/' + M + ',9),0)';
+  const upTo = (k) => k < 0 ? '0' : 'SUM($B$' + p(0) + ':$B$' + p(k) + ')';
   labels.forEach((lab, k) => {
-    const row = p(k);
+    const row = p(k), noPrice = k === 2 ? P + '<=0' : 'FALSE';
     sh.getRange(row, 1).setValue(lab);
-    sh.getRange(row, 2).setFormula(F(left[k]));
-    sh.getRange(row, 3).setFormula('=IF($B$' + row + '<=0,0,IF(' + M + '<=0,"",ROUNDUP($B$' + row + '/' + M + ',0)))');
-    const cum = 'SUM($C$' + p(0) + ':$C$' + row + ')';
-    sh.getRange(row, 4).setFormula('=IF($B$' + row + '<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + cum + '-1)))');
+    sh.getRange(row, 2).setFormula(k === 2 ? '=IF(' + P + '<=0,"",' + F(left[k]).slice(1) + ')' : F(left[k]));
+    sh.getRange(row, 3).setFormula('=IF(' + noPrice + ',"",IF(N($B$' + row + ')<=0,0,IF(' + M + '<=0,"",' + RU(upTo(k)) + '-' + (k === 0 ? '0' : RU(upTo(k - 1))) + ')))');
+    sh.getRange(row, 4).setFormula('=IF(' + noPrice + ',"Type a house price",IF(N($B$' + row + ')<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + RU(upTo(k)) + '-1))))');
     sh.getRange(row, 5).setValue(from[k]).setFontColor(COLORS.MUTED_TEXT).setFontSize(10);
   });
   setFormat_(sh.getRange(p(0), 2, 3, 1), 'currency');
@@ -168,15 +174,19 @@ function housePlan_(inp, cardDebt, efNeeded, houseSaved, rent, gross, takeHome, 
   cash.total = cash.down + cash.closing + cash.moving;
   const monthly = n(inp.monthly);
   const lefts = [n(cardDebt), n(efNeeded), Math.max(0, cash.total - n(houseSaved))];
-  let cum = 0;
-  const steps = lefts.map(left => {
-    const months = left <= 0 ? 0 : monthly <= 0 ? '' : Math.ceil(left / monthly - 1e-9);
-    if (typeof months === 'number') cum += months;
-    const done = left <= 0 ? 'Done' : monthly <= 0 ? '' : new Date(start.getFullYear(), start.getMonth() + cum - 1, 1);
-    return { left, months, done };
+  const ru = (x) => Math.ceil(Math.round(x / monthly * 1e9) / 1e9);
+  let cumLeft = 0, prevMonths = 0;
+  const steps = lefts.map((left, k) => {
+    if (k === 2 && price <= 0) return { left: '', months: '', done: 'Type a house price' };
+    cumLeft += Math.max(0, left);
+    if (left <= 0) return { left, months: 0, done: 'Done' };
+    if (monthly <= 0) return { left, months: '', done: '' };
+    const upTo = ru(cumLeft), months = upTo - prevMonths;
+    prevMonths = upTo;
+    return { left, months, done: new Date(start.getFullYear(), start.getMonth() + upTo - 1, 1) };
   });
   return {
-    loan, mortgage, tax, insurance, pmi, housing, repairs, allIn, rent: n(rent), overRent: allIn - n(rent),
+    loan, mortgage, tax, insurance, pmi, housing, repairs, allIn, rent: n(rent), overRent: n(rent) > 0 ? allIn - n(rent) : '',
     shareGross: n(gross) > 0 ? housing / gross : '', shareTakeHome: n(takeHome) > 0 ? housing / takeHome : '',
     cash, steps, ready: price <= 0 ? '' : steps[2].done,
   };

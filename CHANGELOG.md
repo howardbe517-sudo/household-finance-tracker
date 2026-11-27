@@ -20,9 +20,14 @@
   `apps-script/`: `HousePlan.gs` (new), `Config.gs`, `Main.gs`,
   `Upgrade.gs`, `QA.gs`. **Run Upgrade workbook** (one run covers this and
   the Savings Journal). Handoff: `handoffs/2026-11-27-savings-journal.json`.
+- Data review: no must-fix; six should-fix items done (step 3 waits for a
+  price instead of showing Done; months count the running total once, so
+  money left in one step's last month carries on; "more than rent" needs a
+  rent; the inputs refuse out-of-range values such as 10 in a percent cell;
+  the monthly amount is on top of the minimum payments; a rounding guard).
 - Tested: Node mock (layout, inputs kept through an upgrade, the arithmetic
-  on fictional figures). The formulas and Run QA still need checking in
-  the Sheet.
+  on fictional figures, carry-over between steps). The formulas and Run QA
+  still need checking in the Sheet.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 
 ## 2026-11-27 — Savings by category, estimated totals, Stopped? (schema 3.28)
