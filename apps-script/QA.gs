@@ -193,6 +193,22 @@ function qaReport_() {
     if (unlinked) info('Goals & Progress: ' + unlinked + ' goal(s) name no debt or fund yet, so they show no progress');
   }
 
+  /* 6c. Savings Journal: Saved per Year on each entry, and each strategy's Changes and Saved per Year */
+  if (ss.getSheetByName(SHEETS.TODO) && ss.getSheetByName(SHEETS.TODO).getRange(TABLES.SAVEJ.headerRow, 1).getValue() === TABLES.SAVEJ.columns[0].h) {
+    const jr = readTable_(tdef_('SAVEJ')), strats = readTable_(tdef_('STRAT'));
+    const same = (a, b) => (a === '' || b === '') ? a === b : near(a, b, 0.011);
+    const jBad = jr.filter(r => !same(r.yearly, savingsPerYear_(r)));
+    if (jBad.length) fail('Savings Journal: Saved per Year differs from (Old Cost − New Cost) × times a year on ' + jBad.length + ' row(s) (' + jBad.slice(0, 3).map(r => 'row ' + r.__row).join(', ') + ')');
+    else if (jr.length) pass('Savings Journal: ' + jr.length + ' entr' + (jr.length === 1 ? 'y' : 'ies') + '; Saved per Year matches on every row');
+    else info('Savings Journal has no entries yet');
+    const tot = savingsTotals_(jr, strats);
+    const sBad = strats.filter(st => { const e = tot.byStrategy.filter(b => b.strategy === st.strategy)[0]; return !e || Number(st.changes) !== e.changes || !near(Number(st.yearly), e.perYear, 0.011); });
+    if (sBad.length) fail('Our Money-Saving Strategies: Changes or Saved per Year differs from the journal for ' + sBad.slice(0, 3).map(st => st.strategy).join('; '));
+    else if (strats.length) pass('Our Money-Saving Strategies: ' + strats.length + ' strateg' + (strats.length === 1 ? 'y' : 'ies') + '; Changes and Saved per Year match the journal');
+    const orphan = jr.filter(r => r.strategy && !strats.some(st => String(st.strategy).toLowerCase() === String(r.strategy).toLowerCase())).length;
+    if (orphan) info('Savings Journal: ' + orphan + ' entr' + (orphan === 1 ? 'y names a strategy' : 'ies name a strategy') + ' that is not on the strategies list, so ' + (orphan === 1 ? 'it is' : 'they are') + ' in the total but under no strategy');
+  }
+
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
   const qdr = readTable_(tdef_('QDR')).filter(q => q.quarterEnd instanceof Date);
   const accById = {};

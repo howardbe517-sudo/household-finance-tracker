@@ -1,0 +1,64 @@
+{
+  "title": "Savings Journal on the To-Do Tab",
+  "key": "household-finance-tracker-2026-11-27-savings-journal",
+  "subtitle": "A list of your money-saving strategies and a journal of each change you made, with the yearly saving worked out for you.",
+  "intro": [
+    "The code reaches your Sheet on its own once it is merged. One upgrade adds two new sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab.",
+    "**Our Money-Saving Strategies** is a short list (10 rows) of the main ways you save, such as cutting subscriptions or cheaper swaps. Each strategy counts its journal entries and adds up what they save.",
+    "The **Savings Journal** has one row for each change you made. You type what you changed, the old cost, the new cost and how often you pay it. **Saved per Year** works itself out. A line above the journal shows the total saved a year and a month.",
+    "**The checklist now holds 15 to-dos** (rows 5 to 19), so the new sections can sit below it. Your current to-dos are all inside those rows. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
+    "**What does not change:** your to-dos, the reminders strip, dragging rows to reorder, and every other tab. Rows on this tab are no longer frozen at the top, so you can scroll down to the journal."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before savings journal 2026-11-27`."
+        }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        {
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.42.0` (or later). If it shows an older number, wait a minute and reload again."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report finishes without errors and includes **Added to To-Do & Reminders: Our Money-Saving Strategies** and **Added to To-Do & Reminders: Savings Journal**."
+        }
+      ]
+    },
+    {
+      "heading": "Check the To-Do tab",
+      "steps": [
+        {
+          "text": "Open **To-Do & Reminders**.",
+          "done": "Your to-dos are unchanged at the top, with the reminders strip above them. Under row 19 is a dark bar titled **Our Money-Saving Strategies**, with its table below it."
+        },
+        {
+          "text": "Scroll down past the strategies.",
+          "done": "A second dark bar titled **Savings Journal**, a green line that reads **Saving about $0 a year**, and the journal's columns: What We Changed, Old Cost, New Cost, How Often, Strategy, Saved per Year, Date, Notes."
+        },
+        {
+          "text": "Tell Claude the upgrade is done.",
+          "done": "Claude fills in your first strategies and the subscription changes you have already made. Claude then asks you what the Tide Pods and Ziploc changes cost, before and after."
+        }
+      ]
+    },
+    {
+      "heading": "Adding your own entries later",
+      "steps": [
+        {
+          "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it. For something you cancelled, the new cost is 0. Pick **How Often** and a **Strategy** from the dropdowns.",
+          "done": "**Saved per Year** fills itself in, and the green total line and the strategy's row go up."
+        },
+        {
+          "text": "For a saving that happens only once, such as a discount for a few months, pick **One time** under How Often and type the total before and after.",
+          "done": "It shows in the green line as a one-time saving, kept apart from the yearly total."
+        }
+      ]
+    }
+  ]
+}

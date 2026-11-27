@@ -1862,6 +1862,55 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   ssx.getSheetByName('Transactions').getRange(4, 2).setValue('Date');
 })();
 
+/* 11a. To-Do & Reminders holds three tables: the 15-row checklist, Our Money-Saving Strategies, the Savings Journal (3.27) */
+(function () {
+  const ssx = g.__ss, T = SHEETS.TODO, sh = ssx.getSheetByName(T);
+  const todoDef = vm.runInContext('TABLES.TODO', ctx), stDef = vm.runInContext('TABLES.STRAT', ctx), jDef = vm.runInContext('TABLES.SAVEJ', ctx);
+  if (todoDef.lastRow === 19 && todoDef.lastRow - todoDef.firstRow + 1 === 15 && stDef.headerRow > todoDef.lastRow + 1 && jDef.headerRow > stDef.lastRow + 2) ok('the checklist has 15 rows; the strategies and the Savings Journal sit below it with a bar row between each'); else bad('To-Do layout rows: ' + JSON.stringify([todoDef.lastRow, stDef.headerRow, jDef.headerRow]));
+  const bar1 = sh.getRange(stDef.headerRow - 1, 1).getValue(), bar2 = sh.getRange(jDef.headerRow - 2, 1).getValue(), sumF = sh.getRange(jDef.headerRow - 1, 1).getFormula();
+  if (sh.getRange(stDef.headerRow, 1).getValue() === 'Strategy' && sh.getRange(jDef.headerRow, 1).getValue() === 'What We Changed' && /^Our Money-Saving Strategies/.test(bar1) && /^Savings Journal/.test(bar2)
+    && /SUMIFS\('To-Do & Reminders'!\$F\$37:\$F,'To-Do & Reminders'!\$D\$37:\$D,"<>One time"\)/.test(sumF) && sh.frozenRows === 0) ok('To-Do & Reminders: section bars, headers and the journal summary line are in place; no rows are frozen'); else bad('To-Do sections: ' + JSON.stringify([bar1, bar2, sumF, sh.frozenRows]));
+  if (!sh.getRange(1, 1, jDef.lastRow, 8).getMergedRanges().filter(m => m.getA1Notation() !== 'A3').length) ok('nothing is merged below the reminders strip, so every row can be dragged'); else bad('merged cells on the To-Do tab');
+  const yF = sh.getRange(jDef.firstRow, 6).getFormula(), cF = sh.getRange(stDef.firstRow, 2).getFormula();
+  if (/SWITCH\(\$D37,"Daily",365,"Weekly",52,"Every 2 weeks",26,"Monthly",12/.test(yF) && /"One time",1,0\)/.test(yF) && /COUNTIFS\('To-Do & Reminders'!\$E\$37:\$E,\$A23,'To-Do & Reminders'!\$A\$37:\$A,"<>"\)/.test(cF)) ok('Saved per Year multiplies the saving by the times a year; Changes counts the journal rows naming the strategy'); else bad('savings formulas: ' + yF + ' | ' + cF);
+  const stratDv = sh.getRange(jDef.firstRow, 5).getDataValidation();
+  if (stratDv && sh.getRange(jDef.firstRow, 4).getDataValidation()) ok('the journal\'s How Often and Strategy columns have dropdowns'); else bad('journal dropdowns missing');
+  // the three tables read separately
+  sh.getRange(5, 1).setValue('TEST to-do'); sh.getRange(stDef.firstRow, 1).setValue('Cut subscriptions'); sh.getRange(jDef.firstRow, 1, 1, 5).setValues([['Cancelled a streaming plan', 9.99, 0, 'Monthly', 'Cut subscriptions']]);
+  const todos = R(`readTable_(TABLES.TODO)`), strats = R(`readTable_(TABLES.STRAT)`), jr = R(`readTable_(TABLES.SAVEJ)`);
+  if (todos.every(t => t.__row <= 19) && todos.some(t => t.task === 'TEST to-do') && strats.length === 1 && strats[0].strategy === 'Cut subscriptions' && jr.length === 1 && jr[0].change === 'Cancelled a streaming plan') ok('reading the checklist stops at row 19 and reading the strategies stops at their last row: each table reads only its own rows'); else bad('shared-tab reads: ' + JSON.stringify([todos.length, strats.length, jr.length]));
+  if (R(`syncLastRow_(TABLES.TODO)`) === 19 && R(`syncLastRow_(TABLES.STRAT)`) === stDef.lastRow) ok('the checklist and the strategies keep their set number of rows'); else bad('fixed rows grew');
+  // upgrading again keeps every entry and the tables below the checklist (the To-Do tab is never trimmed)
+  R(`upgradeWorkbook()`);
+  if (sh.getRange(5, 1).getValue() === 'TEST to-do' && sh.getRange(stDef.firstRow, 1).getValue() === 'Cut subscriptions' && sh.getRange(jDef.firstRow, 1).getValue() === 'Cancelled a streaming plan' && sh.getMaxRows() >= jDef.lastRow && sh.getRange(jDef.firstRow, 6).getFormula()) ok('Upgrade workbook keeps the to-dos, the strategies and the journal entries, and never trims the tab'); else bad('upgrade lost shared-tab rows: ' + JSON.stringify([sh.getMaxRows(), sh.getRange(jDef.firstRow, 1).getValue()]));
+  if (sh.cfRules.some(r => /\$B5=TRUE/.test(r.formula)) && sh.cfRules.filter(r => /ISEVEN/.test(r.formula)).length === 3) ok('each table on the tab keeps its own row shading, and the checklist its strike-through'); else bad('To-Do formats: ' + JSON.stringify(sh.cfRules.map(r => r.formula + ' @ ' + r.ranges.map(x => x.getA1Notation()).join(','))));
+  // an older workbook: the checklist ran to row 204 with an unticked box on every row, and no strategies or journal yet
+  for (let r = 20; r <= jDef.lastRow; r++) sh.getRange(r, 1, 1, 8).setValues([['', false, '', '', '', '', '', '']]);
+  sh.getRange(20, 1, jDef.lastRow - 19, 8).clearDataValidations();
+  sh.getRange(20, 2, 185, 1).setValues(Array(185).fill([false]));
+  sh.getRange(25, 1).setValue('A to-do typed below row 19');
+  let threw = '';
+  try { R(`upgradeWorkbook_()`); } catch (e) { threw = String(e.message || e); }
+  if (/row\(s\) 25 below it have entries/.test(threw) && sh.getRange(stDef.headerRow, 1).getValue() === '') ok('a to-do below row 19 stops the upgrade before any change and says which row to move up'); else bad('overflow not caught: ' + threw);
+  sh.getRange(25, 1).setValue('');
+  const rep = R(`upgradeWorkbook()`).join('\n');
+  if (sh.getRange(5, 1).getValue() === 'TEST to-do' && sh.getRange(20, 2).getValue() === '' && sh.getRange(30, 2).getValue() === '' && !sh.getRange(200, 2).getDataValidation() && sh.getRange(stDef.headerRow, 1).getValue() === 'Strategy' && sh.getRange(jDef.headerRow, 1).getValue() === 'What We Changed' && sh.getRange(jDef.firstRow, 6).getFormula()
+    && /Added to To-Do & Reminders: Our Money-Saving Strategies/.test(rep) && /Added to To-Do & Reminders: Savings Journal/.test(rep)) ok('upgrading the 200-row checklist empties the old unticked rows below row 19 and adds the strategies and the Savings Journal, keeping the to-dos'); else bad('old To-Do upgrade: ' + JSON.stringify([sh.getRange(20, 2).getValue(), sh.getRange(stDef.headerRow, 1).getValue(), rep.slice(0, 300)]));
+  sh.getRange(5, 1).setValue(''); // test-only: empty the mock row again
+})();
+
+/* 11c. Savings Journal arithmetic (savingsPerYear_, savingsTotals_) */
+{
+  const spy = (r) => R(`savingsPerYear_(${JSON.stringify(r)})`);
+  const near2 = (a, b) => Math.abs(a - b) < 0.005;
+  if (near2(spy({ change: 'x', oldCost: 9.99, newCost: 0, often: 'Monthly' }), 119.88) && spy({ change: 'x', oldCost: 25.98, newCost: 18.99, often: 'Every 2 weeks' }) === (25.98 - 18.99) * 26 && near2(spy({ change: 'x', oldCost: 26.97, newCost: 3, often: 'One time' }), 23.97) && spy({ change: 'x', oldCost: 2, newCost: 1, often: 'Daily' }) === 365) ok('Saved per Year: a monthly $9.99 cancelled saves $119.88; every-2-weeks, daily and one-time savings work out'); else bad('savingsPerYear_ values');
+  if (spy({ change: '', oldCost: 5, newCost: 1, often: 'Monthly' }) === '' && spy({ change: 'x', oldCost: 5, newCost: '', often: 'Monthly' }) === '' && spy({ change: 'x', oldCost: 5, newCost: 1, often: '' }) === '' && spy({ change: 'x', oldCost: 'about 5', newCost: 1, often: 'Yearly' }) === -1 && spy({ change: 'x', oldCost: 1, newCost: 3, often: 'Yearly' }) === -2) ok('Saved per Year stays blank until both costs and How Often are filled in; text counts as 0 as N() does; a change that costs more shows as negative'); else bad('savingsPerYear_ blanks');
+  const tot = R(`savingsTotals_([{ change:'a', oldCost:10, newCost:0, often:'Monthly', strategy:'Subscriptions' }, { change:'b', oldCost:30, newCost:3, often:'One time', strategy:'subscriptions' }, { change:'c', oldCost:5, newCost:4, often:'Weekly', strategy:'Groceries' }, { change:'d', oldCost:'', newCost:'', often:'', strategy:'Groceries' }, { change:'', oldCost:9, newCost:0, often:'Monthly', strategy:'Groceries' }], [{ strategy:'Subscriptions' }, { strategy:'Groceries' }, { strategy:'' }])`);
+  const sv = R(`buildSnapshotText_({ asOf:new Date(), tz:'UTC', persons:['Ben'], samplePresent:false, income:[], tx:[], accounts:[], debts:[], qdr:[], funds:[], budgets:[], plans:[], recurring:[], credit:[], nw:[], staging:[], reviews:[], strategies:[{ strategy:'Cut subscriptions' }], savings:[{ change:'Cancelled a streaming plan', oldCost:9.99, newCost:0, often:'Monthly', strategy:'Cut subscriptions' }, { change:'Laundry powder', oldCost:'', newCost:'', often:'', strategy:'' }] })`);
+  if (/## Money-saving changes \(from the Savings Journal\)/.test(sv) && /Saving about \$119\.88 a year \(\$9\.99 a month\) from 2 change\(s\)/.test(sv) && /Strategy: Cut subscriptions — 1 change\(s\), \$119\.88 a year/.test(sv) && /Laundry powder — saving not worked out yet/.test(sv)) ok('the AI snapshot lists the money-saving changes, the yearly total and each strategy'); else bad('snapshot savings section: ' + sv.slice(sv.indexOf('## Money'), sv.indexOf('## Money') + 400));
+  if (tot.perYear === 172 && tot.oneTime === 27 && tot.count === 4 && tot.byStrategy.length === 2 && tot.byStrategy[0].changes === 2 && tot.byStrategy[0].perYear === 120 && tot.byStrategy[1].changes === 2 && tot.byStrategy[1].perYear === 52) ok('Savings totals: yearly savings ($172) are kept apart from one-time ones ($27); each strategy counts its entries and adds up its yearly savings'); else bad('savingsTotals_: ' + JSON.stringify(tot));
+}
+
 /* 11b. formula comparison ignores Google's quote normalization */
 if (R(`sameFormula_("=SUMIFS(Income!$G$5:$G,Income!$C$5:$C,$B$3)", "=SUMIFS('Income'!$G$5:$G,'Income'!$C$5:$C,$B$3)")`) === true && R(`sameFormula_("=SUMIFS('Import Staging'!$Q$5:$Q,1)", "=SUMIFS('Import Staging'!$Q$5:$Q,1)")`) === true && R(`sameFormula_("=A1+1", "=A1+2")`) === false) ok('upgrade treats Income!A1 and \'Income\'!A1 as the same formula, keeps multi-word quotes, still detects real changes'); else bad('sameFormula_ comparison wrong');
 

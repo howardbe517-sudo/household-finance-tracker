@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.26-goals-2026-11-27',
-  BUILD_VERSION: '1.41.1',
+  SCHEMA_VERSION: '3.27-savings-journal-2026-11-27',
+  BUILD_VERSION: '1.42.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -143,6 +143,7 @@ const LISTS = [
   { key: 'PERSONS', header: 'Persons', values: ['Ben', 'Valerie'] },
   { key: 'OWNERS', header: 'Owners', values: ['Ben', 'Valerie', 'Household'] },
   { key: 'GOAL_KINDS', header: 'Goal Kinds', values: ['Pay off debt', 'Save up'] },
+  { key: 'SAVING_FREQ', header: 'Saving Frequencies', values: ['Daily', 'Weekly', 'Every 2 weeks', 'Monthly', 'Every 2 months', 'Every 3 months', 'Every 6 months', 'Yearly', 'One time'] },
   { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other', 'Pension'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
   { key: 'FUND_TYPES', header: 'Fund Types', values: ['Emergency Fund', 'Sinking Fund', 'Short-Term Goal', 'Retirement', 'Education', 'Other'] },
@@ -788,16 +789,72 @@ TABLES.GROCNAMES = {
   ],
 };
 
+/*
+ * The To-Do & Reminders tab holds three tables, one under the other (the owner, 2026-11-27: "I already have too many tabs";
+ * the checklist "should never have more than 15 things on there"):
+ *   rows 4–19   TODO   the checklist (15 rows, fixed)
+ *   rows 22–32  STRAT  Our Money-Saving Strategies (10 rows, fixed)
+ *   rows 36–    SAVEJ  Savings Journal (the last table on the tab, so it can grow)
+ * fixedRows: the table never grows past lastRow, and reading it stops there (the next table starts below it).
+ * sharesSheet: the table sits on a tab another table built; building it leaves the rest of the tab alone.
+ * Columns A–E have the checklist's widths; buildSavingsSection_ (Tables.gs) draws the section bars and the journal's summary line.
+ */
 TABLES.TODO = {
-  key: 'TODO', sheet: SHEETS.TODO, headerRow: 4, firstRow: 5, lastRow: 204, extraCols: 8,
+  key: 'TODO', sheet: SHEETS.TODO, headerRow: 4, firstRow: 5, lastRow: 19, extraCols: 8, fixedRows: true, frozenRows: 0,
   title: 'To-Do & Reminders',
-  note: 'Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. To change the order, drag a row by its number on the left. The automatic reminders are in the strip just below.',
+  note: 'Your own checklist (15 rows): type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. To change the order, drag a row by its number on the left. The automatic reminders are in the strip just below; your money-saving strategies and the Savings Journal are further down.',
   idPrefix: '', idPattern: '(none)', logChanges: false,
   columns: [
     { key: 'task', h: 'To-Do', w: 340, note: 'Added in 3.25 (the owner, 2026-11-27).' },
-    { key: 'done', h: 'Done?', w: 70, v: { checkbox: true } },
+    { key: 'done', h: 'Done?', w: 90, v: { checkbox: true } },
     { key: 'date', h: 'Date', w: 100, fmt: C.date, v: { date: true } },
-    { key: 'person', h: 'For', w: 95, v: { list: 'OWNERS' } },
+    { key: 'person', h: 'For', w: 115, v: { list: 'OWNERS' } },
+    { key: 'notes', h: 'Notes', w: 300 },
+  ],
+};
+
+/** Our Money-Saving Strategies (the owner, 2026-11-27): the household's main ways of saving; each one totals its Savings Journal entries. */
+TABLES.STRAT = {
+  key: 'STRAT', sheet: SHEETS.TODO, headerRow: 22, firstRow: 23, lastRow: 32, fixedRows: true, sharesSheet: true,
+  title: 'Our Money-Saving Strategies',
+  note: 'The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in.',
+  idPrefix: '', idPattern: '(none)', logChanges: false,
+  columns: [
+    { key: 'strategy', h: 'Strategy', note: 'Added in 3.27 (the owner, 2026-11-27).' },
+    { key: 'changes', h: 'Changes', fmt: C.int,
+      f: '=IF([@strategy]="","",COUNTIFS([SAVEJ.strategy],[@strategy],[SAVEJ.change],"<>"))',
+      note: 'How many Savings Journal entries name this strategy.' },
+    { key: 'yearly', h: 'Saved per Year', fmt: C.cur,
+      f: '=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"<>One time"))',
+      note: 'The Saved per Year of this strategy\'s journal entries. One-time savings are left out (they are not repeated each year).' },
+    { key: 'monthly', h: 'Saved per Month', fmt: C.cur,
+      f: '=IF([@strategy]="","",[@yearly]/12)' },
+    { key: 'how', h: 'How We Do It' },
+  ],
+};
+
+/**
+ * Savings Journal (the owner, 2026-11-27): one row per change that saves money, with what it cost before and after and how often
+ * that cost comes round. Saved per Year = (Old Cost − New Cost) × times a year; a one-time saving is counted once.
+ * savingsPerYear_ (Tables.gs) is the same arithmetic in JavaScript, for the QA checks and the AI snapshot.
+ */
+const SAVING_TIMES_A_YEAR = { 'Daily': 365, 'Weekly': 52, 'Every 2 weeks': 26, 'Monthly': 12, 'Every 2 months': 6, 'Every 3 months': 4, 'Every 6 months': 2, 'Yearly': 1, 'One time': 1 };
+TABLES.SAVEJ = {
+  key: 'SAVEJ', sheet: SHEETS.TODO, headerRow: 36, firstRow: 37, lastRow: 136, sharesSheet: true,
+  title: 'Savings Journal',
+  note: 'Each change we made to save money: what it cost before, what it costs now, and how often. Saved per Year works itself out.',
+  idPrefix: '', idPattern: '(none)', logChanges: false,
+  columns: [
+    { key: 'change', h: 'What We Changed', note: 'Added in 3.27 (the owner, 2026-11-27).' },
+    { key: 'oldCost', h: 'Old Cost', fmt: C.cur, note: 'What it cost each time before the change (for a subscription, the monthly price).' },
+    { key: 'newCost', h: 'New Cost', fmt: C.cur, note: 'What it costs each time now; 0 when it was cancelled.' },
+    { key: 'often', h: 'How Often', v: { list: 'SAVING_FREQ' }, note: 'How often that cost comes round. One time: a saving that happens once (counted once, not every year).' },
+    { key: 'strategy', h: 'Strategy', v: { idsOf: 'STRAT' }, note: 'Which of our money-saving strategies this belongs to (the list above the journal).' },
+    { key: 'yearly', h: 'Saved per Year', w: 115, fmt: C.cur,
+      f: '=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*' +
+        'SWITCH([@often],' + Object.keys(SAVING_TIMES_A_YEAR).map(k => '"' + k + '",' + SAVING_TIMES_A_YEAR[k]).join(',') + ',0)))',
+      note: '(Old Cost − New Cost) × how many times a year. Blank until Old Cost, New Cost and How Often are filled in.' },
+    { key: 'date', h: 'Date', w: 100, fmt: C.date, v: { date: true }, note: 'When the change started.' },
     { key: 'notes', h: 'Notes', w: 300 },
   ],
 };
@@ -1188,7 +1245,7 @@ TABLES.NW = {
 };
 
 /** Order in which tables are built (reference tables first). */
-const BUILD_ORDER = ['TODO', 'GOALPLAN', 'CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
+const BUILD_ORDER = ['TODO', 'STRAT', 'SAVEJ', 'GOALPLAN', 'CATS', 'ACCOUNTS', 'INCOME', 'EXPECT', 'TX', 'RECUR', 'BILLCHG', 'UTIL', 'GROCNAMES', 'GROC', 'RECEIPTS', 'FUNDS', 'DEBTS', 'QDR', 'CREDIT', 'STAGING', 'RULES', 'CONN', 'LOG', 'BUDGET', 'PLAN', 'SUMMARY', 'REVIEW', 'NW'];
 
 /** Script Properties used by the bank feed (values are set by hand or by the connect flow; never in code). */
 /**

@@ -39,6 +39,8 @@ function collectSnapshotData_() {
     accounts: readTable_(tdef_('ACCOUNTS')),
     debts: readTable_(tdef_('DEBTS')),
     goals: readTable_(tdef_('GOALPLAN')),
+    strategies: readTable_(tdef_('STRAT')),
+    savings: readTable_(tdef_('SAVEJ')),
     qdr: readTable_(tdef_('QDR')),
     funds: readTable_(tdef_('FUNDS')),
     budgets: readTable_(tdef_('BUDGET')),
@@ -235,6 +237,20 @@ function buildSnapshotText_(d) {
       if (p.left !== '' && p.left > 0) parts.push(money(p.left) + ' to go');
       if (isDate(g.targetDate)) parts.push('target date ' + dateStr(g.targetDate));
       L.push((i + 1) + '. ' + cell(g.goal) + ' — ' + parts.join(' · ') + (g.notes ? ' · ' + cell(g.notes) : ''));
+    });
+    L.push('');
+  }
+
+  /* Savings Journal: what the household has changed to save money (the owner, 2026-11-27) */
+  const saveRows = arr(d.savings).filter(r => r.change);
+  if (saveRows.length || arr(d.strategies).some(st => st.strategy)) {
+    const st = savingsTotals_(saveRows, arr(d.strategies));
+    L.push('## Money-saving changes (from the Savings Journal)');
+    L.push('- Saving about ' + money(st.perYear) + ' a year (' + money(st.perYear / 12) + ' a month) from ' + st.count + ' change(s)' + (st.oneTime ? '; plus ' + money(st.oneTime) + ' saved once' : '') + '.');
+    st.byStrategy.forEach(b => L.push('- Strategy: ' + cell(b.strategy) + ' — ' + b.changes + ' change(s), ' + money(b.perYear) + ' a year'));
+    saveRows.forEach(r => {
+      const y = savingsPerYear_(r);
+      L.push('- ' + cell(r.change) + (y === '' ? ' — saving not worked out yet (costs or how often missing)' : ' — ' + money(y) + (r.often === 'One time' ? ' once' : ' a year')) + (isDate(r.date) ? ' · since ' + dateStr(r.date) : ''));
     });
     L.push('');
   }

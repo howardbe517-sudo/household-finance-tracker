@@ -44,11 +44,14 @@ function upgradeWorkbookLocked_() {
     if (!sh) return;
     const width = Math.min(def.columns.length, sh.getMaxColumns());
     const hdr = sh.getRange(def.headerRow, 1, 1, width).getValues()[0];
+    if (def.sharesSheet && hdr[0] === '') return; // not built yet: its rows are checked by todoOverflowConflict_
     def.columns.forEach((c, i) => {
       if (i >= width) return;
       if (hdr[i] !== '' && hdr[i] !== c.h && hdr[i] !== c.renamedFrom) conflicts.push(def.sheet + ' column ' + colLetter_(i + 1) + ': expected "' + c.h + '", found "' + hdr[i] + '"');
     });
   });
+  const todoOverflow = todoOverflowConflict_(ss);
+  if (todoOverflow) conflicts.push(todoOverflow);
   if (conflicts.length) throw new Error('Upgrade stopped before changing anything. These headers differ from the schema:\n' + conflicts.join('\n') + '\nRestore the header text (or tell me which change was intended) and run the upgrade again.');
 
   // 2. reference lists first (dropdowns depend on them)
@@ -141,11 +144,20 @@ function upgradeTable_(key, report) {
   {
     const def = tdef_(key);
     let sh = ss.getSheetByName(def.sheet);
+    // A table that shares a tab (the strategies and the Savings Journal under the To-Do checklist) and is not there yet: built on its own rows.
+    if (sh && def.sharesSheet && sh.getRange(def.headerRow, 1).getValue() === '') {
+      buildTableSheet_(def);
+      if (key === 'SAVEJ') buildSavingsSection_(sh);
+      applyTableFormats_(sh, def);
+      report.push('Added to ' + def.sheet + ': ' + def.title);
+      return;
+    }
     // A sheet created empty by a dropdown reference (idsRange_) counts as new.
     if (sh && sh.getRange(def.headerRow, 1).getValue() === '' && sh.getLastRow() === 0) { sh = null; }
     if (!sh) {
       sh = buildTableSheet_(def); // getOrCreateSheet_ reuses an existing tab of that name; it never duplicates
       if (key === 'TODO') buildTodoTop_(sh, def);
+      if (key === 'SAVEJ') buildSavingsSection_(sh);
       applyTableFormats_(sh, def);
       report.push('Added tab: ' + def.sheet);
       return;
@@ -176,7 +188,26 @@ function upgradeTable_(key, report) {
     if (key === 'NW') buildNetWorthHelper_(sh, def);
     if (key === 'FUNDS') buildFundsGuide_(sh, def);
     if (key === 'TODO') buildTodoTop_(sh, def);
+    if (key === 'SAVEJ') buildSavingsSection_(sh);
   }
+}
+
+/**
+ * Upgrade to 3.27: the checklist becomes 15 rows (5–19) so the strategies and the Savings Journal can sit below it. If a to-do
+ * was typed below row 19, the upgrade stops before changing anything and says which rows to move up. '' when all is well.
+ */
+function todoOverflowConflict_(ss) {
+  const def = tdef_('TODO'), strat = tdef_('STRAT');
+  const sh = ss.getSheetByName(def.sheet);
+  if (!sh || sh.getRange(strat.headerRow, 1).getValue() !== '') return '';
+  const last = sh.getLastRow();
+  if (last <= def.lastRow) return '';
+  const vals = sh.getRange(def.lastRow + 1, 1, last - def.lastRow, def.columns.length).getValues();
+  const rows = [];
+  vals.forEach((row, i) => { if (row.some(v => v !== '' && v !== false && v !== null)) rows.push(def.lastRow + 1 + i); });
+  if (!rows.length) return '';
+  return def.sheet + ': the checklist now has 15 rows (' + def.firstRow + ' to ' + def.lastRow + '), and row(s) ' + rows.slice(0, 8).join(', ') + (rows.length > 8 ? '…' : '')
+    + ' below it have entries. Drag those to-dos up into empty rows between ' + def.firstRow + ' and ' + def.lastRow + ' (or delete finished ones)';
 }
 
 /**

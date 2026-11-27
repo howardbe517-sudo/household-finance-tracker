@@ -265,6 +265,7 @@ function stampTx_(def, sh, r, e, now, who) {
 
 /** Detect how far formulas currently extend (the sheet may have grown/shrunk since the build). */
 function syncLastRow_(def) {
+  if (def.fixedRows) return def.lastRow; // another table sits below it on the same tab: its size is set in Config.gs
   const sh = getOrCreateSheet_(def.sheet);
   const fcol = def.columns.findIndex(c => c.f);
   if (fcol < 0) { def.lastRow = Math.max(def.lastRow, sh.getLastRow()); return def.lastRow; }
@@ -280,6 +281,7 @@ function extendFormulaRows() {
   let n = 0;
   BUILD_ORDER.forEach(key => {
     const def = tdef_(key);
+    if (def.fixedRows) return; // a set number of rows, with another table below it
     syncLastRow_(def);
     extendTable_(def, def.lastRow + 500);
     n++;
