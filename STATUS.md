@@ -1,5 +1,12 @@
 # STATUS
 
+2026-11-27 (build 1.44.0): a House Plan tab (the down payment plan, live
+from Debts, Savings & Reserves, Recurring Payments and Expected Income).
+One upgrade covers it and the Savings Journal; the owner types the house
+price and the monthly amount. The earlier house report gave "early 2029"
+assuming everything left over goes to the house; corrected to early to
+late 2029 depending on the monthly amount.
+
 2026-11-27 (build 1.43.0, schema 3.28): the Savings Journal reworked
 before the owner upgraded: estimated totals, savings by category (biggest
 first), a Stopped? box, rough yearly estimates, and Sort Savings Journal.

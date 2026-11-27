@@ -16,7 +16,7 @@
 const HFT = {
   TITLE: 'Household Finance Tracker',
   SCHEMA_VERSION: '3.28-savings-categories-2026-11-27',
-  BUILD_VERSION: '1.43.0',
+  BUILD_VERSION: '1.44.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -31,6 +31,7 @@ const SHEETS = {
   REMINDERS: 'Reminders',
   TODO: 'To-Do & Reminders',
   GOALPLAN: 'Goals & Progress',
+  HOUSE: 'House Plan',
   INCOME: 'Income',
   EXPECT: 'Expected Income',
   TX: 'Transactions',
@@ -78,7 +79,7 @@ const TAB_ORDER = [
   // boxes; the Goals tab stays, hidden, with whatever was written in it.
   // 2026-11-27 (the owner): the to-do checklist first, since it is where he looks for what needs doing; the automatic
   // reminders show beside it, and the Reminders tab itself is hidden (it still feeds the monthly email and Show reminders).
-  SHEETS.TODO, SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALPLAN,
+  SHEETS.TODO, SHEETS.START, SHEETS.FINSUM, SHEETS.SPEND, SHEETS.UTILITIES, SHEETS.GROCERY, SHEETS.GROCHARTS, SHEETS.FUNDS, SHEETS.DEBTS, SHEETS.GOALPLAN, SHEETS.HOUSE,
   SHEETS.INCOME, SHEETS.EXPECT, SHEETS.TX, SHEETS.STAGING, SHEETS.RECUR, SHEETS.BILLCHG, SHEETS.UTIL, SHEETS.GROC, SHEETS.GROCNAMES, SHEETS.RECEIPTS, SHEETS.BUDGET, SHEETS.PLAN, SHEETS.SUMMARY,
   SHEETS.QDR, SHEETS.NW, SHEETS.REVIEW, SHEETS.CREDIT, SHEETS.CATS,
   SHEETS.SETUP, SHEETS.SOURCES, SHEETS.RULES, SHEETS.CONN,
