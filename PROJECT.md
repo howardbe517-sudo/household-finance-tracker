@@ -24,7 +24,7 @@ the App Setup tab; both are generated from `Config.gs`.
 
 | Tab | Purpose | Header row | Notes |
 | --- | --- | --- | --- |
-| To-Do & Reminders | First tab. Three tables, one under the other: the checklist (rows 4–19, 15 rows), Our Money-Saving Strategies (rows 22–32), the Savings Journal (from row 36, the only one that can grow); the automatic reminders strip in row 3 | 4, 22, 36 | `fixedRows` / `sharesSheet` in `Config.gs`; `buildTodoTop_`, `buildSavingsSection_` (Tables.gs); nothing merged below row 3 so rows can be dragged |
+| To-Do & Reminders | First tab, top to bottom: the reminders strip (row 3), the checklist (rows 4–19, 15 rows), Our Money-Saving Strategies (rows 22–30, a typed list), Estimated Savings by Category (rows 33–45, one formula, biggest first; total line row 46), the Savings Journal (table from row 49, the only part that can grow) | 4, 22, 49 | `fixedRows` / `sharesSheet` in `Config.gs`; `buildTodoTop_`, `buildSavingsSection_` (Tables.gs); nothing merged below row 3 so rows can be dragged |
 | Start Here | Instructions, review cadence, getting-started checklist | — | Presentation tab |
 | Financial Summary | Where the household stands: tonight's balances (the accounts block, rows 3–8), then four cards for a typical month (coming in, fixed costs, average flexible spending, likely left over), the months control for the lower sections (B14), month by month, Savings & Reserves, Debts, Income by Person (averages), Payroll Deductions (averages), Credit Scores, Children, Fees, Net worth | — | Columns A:I; accounts block A:D / F:I; `FinancialSummary.gs`, constants in `FINSUM` |
 | Spending | How this month is going: Month (B3) and Compare with (E3) inputs, review banner, Expected Take-Home and Spent So Far, the flexible line, three tiles, Current Flexible Spending (follows today), categories beside a typical month, recurring payments, flexible subcategories, six months, average spending by category (bars), Monthly Review Checklist | — | Columns A:I; `Spending.gs`, constants in `SPEND`. The Dashboard tab was retired on 2026-11-12 (build 1.13.0); an existing one is emptied and hidden by the upgrade |
@@ -172,10 +172,14 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   touches only its own rows, never clears or trims the tab, and its
   conditional formats keep the other tables' (`rulesOutsideRows_`). Never
   use `ensureSheetSize_` on such a tab (it trims rows); use `growSheet_`.
-- Savings Journal: Saving = (Old Cost − New Cost) × times a year
+- Savings Journal: Est. Saving = (Old Cost − New Cost) × times a year
   (`SAVING_TIMES_A_YEAR`); One time counts once and is kept out of every
-  yearly figure. `savingsPerYear_` / `savingsTotals_` mirror it for QA and
-  the AI snapshot.
+  yearly figure; a row ticked Stopped? is kept but left out of every total.
+  The category block groups by Category (letter case and spaces ignored,
+  blank = "Not grouped"), biggest yearly saving first. `savingsPerYear_`,
+  `savingsTotals_`, `savingsByCategory_` and `savingsSortOrder_` mirror it
+  for QA, the AI snapshot and Sort Savings Journal. In a single-cell
+  formula, LET over whole columns needs ARRAYFORMULA in Google Sheets.
 - Background tabs (`BACKGROUND_TABS`) are hidden, never removed; the menu
   shows them. Reminders and the old Goals tab are hidden and kept.
 - The Spending tab follows the Selected Month (Spending!B3, named

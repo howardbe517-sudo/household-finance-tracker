@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.27-savings-journal-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.28-savings-categories-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -9,8 +9,8 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | TODO | To-Do & Reminders | 4 | 5 | 19 | (none) | 5 | no |
-| STRAT | To-Do & Reminders | 22 | 23 | 32 | (none) | 6 | no |
-| SAVEJ | To-Do & Reminders | 36 | 37 | 136 | (none) | 8 | no |
+| STRAT | To-Do & Reminders | 22 | 23 | 30 | (none) | 2 | no |
+| SAVEJ | To-Do & Reminders | 49 | 50 | 149 | (none) | 9 | no |
 | GOALPLAN | Goals & Progress | 4 | 5 | 34 | (none) | 14 | no |
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
@@ -55,35 +55,32 @@ Named range `TBL_TODO` covers the header row through the last formula row.
 
 ## To-Do & Reminders (`STRAT`)
 
-The main ways we save money. Pick one of these in the Strategy column of the Savings Journal; Changes and the savings fill themselves in. (Leave ? * and ~ out of the names: the Sheet reads them as wildcards.)
+The main ways we save money, in a few words each, with how we do it. A reminder list: the figures are in the category table and the journal below.
 
 Named range `TBL_STRAT` covers the header row through the last formula row.
 
 | Col | Header | Key | Type | Source | Formula / notes |
 |---|---|---|---|---|---|
 | A | Strategy | `strategy` | text | input | Added in 3.27 (the owner, 2026-11-27). |
-| B | Changes | `changes` | integer | calculated | `=IF([@strategy]="","",COUNTIFS([SAVEJ.strategy],[@strategy],[SAVEJ.change],"<>"))` — How many Savings Journal entries name this strategy. |
-| C | Saved per Year | `yearly` | currency | calculated | `=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"<>One time"))` — The Saved per Year of this strategy's journal entries. One-time savings are left out (they are not repeated each year). |
-| D | Saved per Month | `monthly` | currency | calculated | `=IF([@strategy]="","",[@yearly]/12)` |
-| E | How We Do It | `how` | text | input |  |
-| F | Saved Once | `once` | currency | calculated | `=IF([@strategy]="","",SUMIFS([SAVEJ.yearly],[SAVEJ.strategy],[@strategy],[SAVEJ.often],"One time"))` — One-time savings of this strategy's journal entries (a discount for a few months, a one-off purchase avoided), kept apart from the yearly figure. |
+| B | How We Do It | `how` | text | input |  |
 
 ## To-Do & Reminders (`SAVEJ`)
 
-Each change we made to save money: what it cost before, what it costs now, and how often. Saved per Year works itself out.
+Each change we made to save money: what it cost before, what it costs now, and how often. The estimated saving works itself out. For a rough estimate, type what it costs in a year before and after and pick Yearly (Ziploc bags washed and reused 2–3 times: about half the yearly cost). Tick Stopped? if you go back to the old way; the row stays but is no longer counted.
 
 Named range `TBL_SAVEJ` covers the header row through the last formula row.
 
 | Col | Header | Key | Type | Source | Formula / notes |
 |---|---|---|---|---|---|
 | A | What We Changed | `change` | text | input | Added in 3.27 (the owner, 2026-11-27). |
-| B | Old Cost | `oldCost` | currency | input | What it cost each time before the change (for a subscription, the monthly price). |
+| B | Old Cost | `oldCost` | currency | input | What it cost each time before the change (for a subscription, the monthly price; for a rough estimate, a year's cost). |
 | C | New Cost | `newCost` | currency | input | What it costs each time now; 0 when it was cancelled. |
 | D | How Often | `often` | text | dropdown: LIST_SAVING_FREQ | How often that cost comes round. One time: a saving that happens once (counted once, not every year). |
-| E | Strategy | `strategy` | text | dropdown: To-Do & Reminders IDs | Which of our money-saving strategies this belongs to (the list above the journal). |
-| F | Saving (per Year, or Once) | `yearly` | currency | calculated | `=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*SWITCH([@often],"Daily",365,"Weekly",52,"Every 2 weeks",2…` — (Old Cost − New Cost) × how many times a year; for One time, the saving once. Blank until Old Cost, New Cost and How Often are filled in. Shown in red when negative: the change costs more now. |
+| E | Category | `category` | text | dropdown: LIST_SAVING_CATEGORIES | What the saving is on (Food, Household Supplies, Subscriptions…); the category table above adds them up. Only names on the list are accepted, so a typo never becomes a category of its own; add a new one below the Saving Categories list on the Categories tab. Was Strategy in 3.27. |
+| F | Est. Saving (per Year, or Once) | `yearly` | currency | calculated | `=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*SWITCH([@often],"Daily",365,"Weekly",52,"Every 2 weeks",2…` — (Old Cost − New Cost) × how many times a year; for One time, the saving once. Blank until Old Cost, New Cost and How Often are filled in. Red when negative: the change costs more now. Still worked out on a stopped row, but not counted in any total. |
 | G | Date | `date` | date | input (date) | When the change started. |
-| H | Notes | `notes` | text | input |  |
+| H | Notes | `notes` | text | input | How the estimate was worked out, or anything else worth remembering. |
+| I | Stopped? | `stopped` | text | checkbox | Ticked when we went back to the old way: the row stays, greyed out, and is left out of every total. |
 
 ## Goals & Progress (`GOALPLAN`)
 
@@ -738,6 +735,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | PERSONS | Persons | Ben, Valerie |
 | OWNERS | Owners | Ben, Valerie, Household |
 | GOAL_KINDS | Goal Kinds | Pay off debt, Save up |
+| SAVING_CATEGORIES | Saving Categories | Food, Household Supplies, Subscriptions, Utilities, Transportation, Kids, Personal Care, Entertainment, Other |
 | SAVING_FREQ | Saving Frequencies | Daily, Weekly, Every 2 weeks, Monthly, Every 2 months, Every 3 months, Every 6 months, Yearly, One time |
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |

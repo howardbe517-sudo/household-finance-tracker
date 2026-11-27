@@ -193,22 +193,28 @@ function qaReport_() {
     if (unlinked) info('Goals & Progress: ' + unlinked + ' goal(s) name no debt or fund yet, so they show no progress');
   }
 
-  /* 6c. Savings Journal: Saved per Year on each entry, and each strategy's Changes and Saved per Year */
+  /* 6c. Savings Journal: each entry's estimated saving, the category table and the summary line's figures */
   if (ss.getSheetByName(SHEETS.TODO) && ss.getSheetByName(SHEETS.TODO).getRange(TABLES.SAVEJ.headerRow, 1).getValue() === TABLES.SAVEJ.columns[0].h) {
-    const jr = readTable_(tdef_('SAVEJ')), strats = readTable_(tdef_('STRAT'));
+    const tsh = ss.getSheetByName(SHEETS.TODO), jr = readTable_(tdef_('SAVEJ'));
     const same = (a, b) => (a === '' || b === '') ? a === b : near(a, b, 0.011);
     const jBad = jr.filter(r => !same(r.yearly, savingsPerYear_(r)));
-    if (jBad.length) fail('Savings Journal: Saved per Year differs from (Old Cost − New Cost) × times a year on ' + jBad.length + ' row(s) (' + jBad.slice(0, 3).map(r => 'row ' + r.__row).join(', ') + ')');
-    else if (jr.length) pass('Savings Journal: ' + jr.length + ' entr' + (jr.length === 1 ? 'y' : 'ies') + '; Saved per Year matches on every row');
+    if (jBad.length) fail('Savings Journal: the estimated saving differs from (Old Cost − New Cost) × times a year on ' + jBad.length + ' row(s) (' + jBad.slice(0, 3).map(r => 'row ' + r.__row).join(', ') + ')');
+    else if (jr.length) pass('Savings Journal: ' + jr.length + ' entr' + (jr.length === 1 ? 'y' : 'ies') + '; the estimated saving matches on every row');
     else info('Savings Journal has no entries yet');
-    const tot = savingsTotals_(jr, strats);
-    const sBad = strats.filter(st => { const e = tot.byStrategy.filter(b => b.strategy === st.strategy)[0]; return !e || Number(st.changes) !== e.changes || !near(Number(st.yearly), e.perYear, 0.011) || !near(Number(st.once), e.once, 0.011); });
-    if (sBad.length) fail('Our Money-Saving Strategies: Changes, Saved per Year or Saved Once differs from the journal for ' + sBad.slice(0, 3).map(st => st.strategy).join('; '));
-    else if (strats.length) pass('Our Money-Saving Strategies: ' + strats.length + ' strateg' + (strats.length === 1 ? 'y' : 'ies') + '; Changes, Saved per Year and Saved Once match the journal');
-    const orphan = jr.filter(r => !strats.some(st => String(st.strategy).toLowerCase() === String(r.strategy).toLowerCase()));
-    if (orphan.length) info('Savings Journal: ' + orphan.length + ' entr' + (orphan.length === 1 ? 'y has' : 'ies have') + ' a blank Strategy or one not on the strategies list (' + orphan.slice(0, 3).map(r => 'row ' + r.__row).join(', ') + '); ' + money(savingsUnassigned_(tot)) + ' a year is in the total but under no strategy');
-    const names = strats.map(st => String(st.strategy).toLowerCase()), dup = names.filter((nm, i) => names.indexOf(nm) !== i);
-    if (dup.length) info('Our Money-Saving Strategies: a name appears more than once (' + dup.slice(0, 3).join('; ') + '), so its journal entries count in each of those rows');
+    const K = SAVINGS_BY_CAT, exp = savingsByCategory_(jr);
+    const shown = tsh.getRange(K.FIRST_ROW, 1, K.ROWS, 5).getValues().filter(r => r[0] !== '' && r[0] !== K.EMPTY);
+    const catBad = exp.slice(0, K.ROWS).filter(e => {
+      const row = shown.filter(r => String(r[0]).toLowerCase() === e.category.toLowerCase())[0];
+      return !row || Number(row[1]) !== e.changes || !near(row[2], e.perYear, 0.011) || !near(row[4], e.once, 0.011);
+    });
+    const sortedOk = shown.every((r, i) => exp[i] && String(r[0]).toLowerCase() === exp[i].category.toLowerCase()); // same order: biggest first, ties A to Z
+    if (catBad.length || shown.length !== Math.min(exp.length, K.ROWS) || !sortedOk) fail('Estimated Savings by Category differs from the journal' + (catBad.length ? ' for ' + catBad.slice(0, 3).map(e => e.category).join('; ') : '') + (sortedOk ? '' : ' (order differs: biggest first, ties A to Z)'));
+    else if (exp.length) pass('Estimated Savings by Category: ' + exp.length + ' categor' + (exp.length === 1 ? 'y' : 'ies') + ', biggest first; changes and savings match the journal');
+    if (exp.length > K.ROWS) info('Estimated Savings by Category shows the biggest ' + K.ROWS + ' of ' + exp.length + ' categories');
+    const tot = savingsTotals_(jr), line = String(tsh.getRange(K.TOTAL_ROW, 1).getValue());
+    if (line !== savingsSummaryText_(tot)) fail('Savings total line reads "' + line + '"; the journal gives "' + savingsSummaryText_(tot) + '"');
+    else pass('Savings total line matches the journal');
+    info('Savings Journal: estimated ' + money(tot.perYear) + ' a year and ' + money(tot.oneTime) + ' one-time from ' + tot.count + ' change(s)' + (tot.stopped ? '; ' + tot.stopped + ' stopped, not counted' : ''));
   }
 
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
