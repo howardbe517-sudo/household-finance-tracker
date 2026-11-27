@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-11-27 — Planned savings shown inside Fixed Costs
+- Why (the owner): planned savings should be listed with fixed or flexible;
+  the transfer goes out every month like a bill.
+- `FinancialSummary.gs`: Fixed Costs = bills + debt payments + utilities
+  (average) + planned savings (Planned Monthly on Savings & Reserves), with
+  its own line; Likely Left Over = coming in − fixed costs − flexible (the
+  same amount as in 1.36.0, savings now counted inside fixed). `QA.gs` and
+  the AI snapshot (`Export.gs`) follow.
+- `BUILD_VERSION` 1.36.3. Files changed in `apps-script/`:
+  `FinancialSummary.gs`, `QA.gs`, `Export.gs`, `Config.gs`. Run Upgrade
+  workbook.
+- Tested: Node mock. Data review: see the pull request.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Dotted lines in the boxes; bigger text; cards beside the accounts
 - Why (the owner): match each name to its amount more easily; the amounts
   sat against the box edge and looked cut off; the tabs had grown a bit too

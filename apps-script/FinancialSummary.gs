@@ -103,19 +103,20 @@ function buildFinancialSummary_() {
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Coming In (typical month)', color: COLORS.CARD_TAKEHOME, f: F('=' + TAKE),
       namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"~from Expected Income")'),
       amountsF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,TEXT(SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.person],p),"$#,##0")))),"")') },
-    { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG),
-      namesF: '="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&"Utilities (avg)"',
-      amountsF: F('=' + m0(BILLS) + '&CHAR(10)&' + m0(DEBTPAY) + '&CHAR(10)&' + m0(UTILAVG)) },
+    // planned savings count here: the transfer goes out every month like a bill (the owner, 2026-11-27)
+    { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG + '+' + SAVE),
+      namesF: '="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&"Utilities (avg)"&CHAR(10)&"Planned savings"',
+      amountsF: F('=' + m0(BILLS) + '&CHAR(10)&' + m0(DEBTPAY) + '&CHAR(10)&' + m0(UTILAVG) + '&CHAR(10)&' + m0(SAVE)) },
     { cols: ['E', 'F'], names: 'E:E', amounts: 'F:F', label: 'Flexible Spending (average)', color: COLORS.CARD_SPENDING, f: F('=' + FLEXAVG),
       // everything not marked Fixed: Flexible as marked, the two named kinds, and spending not marked yet (the rest), so the lines add up to the number
       namesF: '="Everyday (Flexible)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Averaged over"',
       amountsF: F('=' + m0(typeAvg('Flexible')) + '&CHAR(10)&' + m0(typeAvg('Planned Irregular')) + '&CHAR(10)&' + m0(typeAvg('Unexpected')) + '&CHAR(10)&' + m0('ROUND((' + FLEXAVG + ')-(' + typeAvg('Flexible') + ')-(' + typeAvg('Planned Irregular') + ')-(' + typeAvg('Unexpected') + '),2)') +
         '&CHAR(10)&IF(' + FLEXK + '=0,"this month so far",' + FLEXK + '&" month"&IF(' + FLEXK + '=1,"","s"))') },
-    { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: F('=N($A$' + V + ')-N($C$' + V + ')-' + SAVE + '-N($E$' + V + ')'),
-      // planned savings are taken out, as the Monthly Plan does (the owner, 2026-11-26: left over is money that is truly free);
+    { cols: ['G', 'I'], names: 'G:H', amounts: 'I:I', label: 'Likely Left Over', color: COLORS.CARD_SAVINGS, f: '=N($A$' + V + ')-N($C$' + V + ')-N($E$' + V + ')',
+      // planned savings are taken out inside Fixed Costs (the owner, 2026-11-26/27: left over is money that is truly free);
       // "provisional" while the flexible figure is only this month so far (no full month yet)
-      namesF: '="Coming in"&CHAR(10)&"− Fixed costs"&CHAR(10)&"− Planned savings"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (so far, provisional)","− Flexible (average)")',
-      amountsF: F('=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0(SAVE) + '&CHAR(10)&' + m0('N($E$' + V + ')')) },
+      namesF: '="Coming in"&CHAR(10)&"− Fixed costs (with savings)"&CHAR(10)&IF(' + FLEXK + '=0,"− Flexible (so far, provisional)","− Flexible (average)")',
+      amountsF: '=' + m0('N($A$' + V + ')') + '&CHAR(10)&' + m0('N($C$' + V + ')') + '&CHAR(10)&' + m0('N($E$' + V + ')') },
   ];
   let earners = 2;
   try { earners = readTable_(tdef_('EXPECT')).filter(x => x.id && x.active === true).map(x => x.person).filter((p, i, a) => p && a.indexOf(p) === i).length; } catch (e) { /* a new workbook */ }
@@ -130,9 +131,9 @@ function buildFinancialSummary_() {
   // what each box adds up, as hover notes on the box titles (the owner, 2026-11-26: the breakdown under each box says it already)
   const rounded = ' Each line under the box is rounded to the dollar, so a list can be $1 off its total.';
   hoverNote_(sh, 'A' + FINSUM.CARD_LABEL, 'A typical month of take-home pay: each active paycheck on Expected Income × its paychecks per month on average.' + rounded);
-  hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), and the average gas, electric and water bill over the last 12 months.' + rounded);
+  hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), the average gas, electric and water bill over the last 12 months, and planned savings (the Planned Monthly amounts on Savings & Reserves), since that transfer goes out every month like a bill.' + rounded);
   hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one).' + rounded);
-  hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs − planned savings − flexible spending. Planned savings are the Planned Monthly amounts on Savings & Reserves; they are taken out because that money is spoken for. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
+  hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs (which include planned savings) − flexible spending: money that is truly free. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
 
 
   /* --- month by month --- */
