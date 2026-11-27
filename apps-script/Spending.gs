@@ -144,7 +144,7 @@ function buildSpending_() {
   const tiles = [
     { cols: ['A', 'B'], names: 'A:A', amounts: 'B:B', label: 'Fixed vs flexible', f: F('=TEXT(' + spendBy('spendingType', 'Fixed', M) + ',"$#,##0")&" / "&TEXT(' + spendBy('spendingType', 'Flexible', M) + ',"$#,##0")'), fmt: '@',
       // says what it adds up (the owner, 2026-11-26: easy to mix up with Fixed Costs on the Financial Summary, a typical month)
-      namesF: F('="Fixed (bills, subscriptions)"&CHAR(10)&"Flexible (everyday)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Typical fixed / flexible"&CHAR(10)&' + soFar),
+      namesF: F('="Fixed spending (bills, subscriptions)"&CHAR(10)&"Flexible (everyday)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Typical fixed / flexible"&CHAR(10)&' + soFar),
       amountsF: F('=' + money0(spendBy('spendingType', 'Fixed', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Flexible', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Planned Irregular', M)) + '&CHAR(10)&' + money0(spendBy('spendingType', 'Unexpected', M)) +
         '&CHAR(10)&' + money0('ROUND(' + spendAll(M) + '-' + spendBy('spendingType', 'Fixed', M) + '-' + spendBy('spendingType', 'Flexible', M) + '-' + spendBy('spendingType', 'Planned Irregular', M) + '-' + spendBy('spendingType', 'Unexpected', M) + ',2)') +
         '&CHAR(10)&IF(' + K + '=0,"—",' + money0(typ(winBy('spendingType', '"Fixed"'))) + '&" / "&' + money0(typ(winBy('spendingType', '"Flexible"'))) + ')&CHAR(10)&""') },
