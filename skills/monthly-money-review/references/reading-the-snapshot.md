@@ -9,10 +9,10 @@ This file explains the parts that are most often misread.
 | Section | What it holds | Used for |
 |---|---|---|
 | How to read this | The tracker's definitions for this export | Everything |
-| Typical month | Coming in, fixed costs, flexible spending (average), likely left over | Slides 1, 3 |
+| Typical month | Coming in, fixed costs, flexible spending (average), likely left over | Slide 3, advice about spare money |
 | Goals | The household's goals in priority order, with progress | Slide 6, all advice |
 | Income (paychecks) | Paychecks by person and employer | Slide 1 |
-| Monthly cash flow | Per month: take-home, spending, savings, debt payments, cash remaining | Slides 1, 7 |
+| Monthly cash flow | Per month: take-home, spending, savings, debt payments, cash remaining | Slide 1 (the review month's row) |
 | Spending by category | This month to date, last full month, typical month | Slide 2 |
 | This month's plan | Flexible target, spent so far, available; budgets if any | Slide 3 |
 | Groceries, Utilities | Detail for those two areas | Slide 4 when notable |
@@ -21,10 +21,17 @@ This file explains the parts that are most often misread.
 | Debts | Each debt: balance, rate, minimum, estimated interest | Slide 5 |
 | Accounts and net worth | Balances, what is and is not counted | Slide 7 |
 | Credit scores | Latest entered per person | Mention if changed |
+| Recent monthly review notes | What the household wrote at earlier reviews | Following up on past decisions |
 | Data quality notes | What is missing or waiting | Slide 8 |
 
 A section can be absent when the tracker has nothing for it. Leave the slide
 out or say the data is not there; do not fill the gap.
+
+If two sections disagree (a count of unreviewed charges, a fund's figure
+against a goal's), do not pick silently: use the figure from the section the
+slide is about and note the difference under Loose ends. If a figure is
+plainly unusable (a typical month showing nothing coming in while paychecks
+are listed), leave it off the slides and say so under Loose ends.
 
 ## Conventions that matter
 
@@ -79,4 +86,6 @@ The snapshot may not state this. Derive it and show the arithmetic:
 
     months = emergency fund ÷ (fixed costs + flexible spending − planned savings)
 
-Planned savings come out because they would pause in an emergency.
+Use the three figures from the "Typical month" section (its flexible figure
+is everything not marked Fixed). Planned savings come out because they would
+pause in an emergency.

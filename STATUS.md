@@ -1,5 +1,16 @@
 # STATUS
 
+2026-11-27 (build 1.40.1, no schema change): the owner ran the upgrade; the
+goals and first to-dos are entered. The To-Do tab's reminders box was empty
+after the upgrade (a broken name reference) and is fixed in the Sheet and in
+the code. The monthly review now lives outside the Sheet: the
+`monthly-money-review` skill for a Claude project (deck first, then advisor
+questions), tested on sample data only; the owner still has to save the
+skill and set up the project. Open from the owner: the size of the
+emergency fund, the house down payment amount and date, Valerie's student
+loan details and November paychecks, whether the nanny's holiday-week pay
+came from checking, and whether to ask a tax preparer about nanny pay.
+
 2026-11-27 (build 1.40.0, schema 3.26): after a review of the whole tracker
 the owner chose: 16 background tabs hidden (menu to show them), Financial
 Summary averages over full months only, Month by month without empty or

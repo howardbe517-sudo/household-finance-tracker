@@ -29,9 +29,20 @@ explains what each section means and the handful of conventions that are easy
 to misread (what counts as spending, what "provisional" means, why funds must
 not be added to account balances).
 
-Look in the project's files for earlier snapshots or decks. If last month's
-is there, use it for comparisons and to follow up on what was decided. If
-not, say once that this is the first month on file and skip comparisons.
+Look in the project's knowledge files for earlier snapshots or decks, and at
+the snapshot's "Recent monthly review notes" section if it has one. If last
+month's is there, use it for comparisons and to follow up on what was
+decided. If not, say once that this is the first month on file; the months
+inside the snapshot itself are then the only comparison.
+
+**Which month to review.** The review is about one month. If the snapshot's
+"As of" date falls in the first ten days of a month, review the month that
+just ended (it is complete). Otherwise review the current month and mark
+every figure for it "to date". Say which you chose on the first slide.
+
+**Sample data.** If the snapshot says the workbook still contains sample
+data, say so on the first slide and in your summary: the figures are not all
+real. Carry on with the review.
 
 ## Part 1: the deck
 
@@ -42,8 +53,11 @@ block per slide, and say that this is the fallback.
 Aim for 8 to 10 slides. One idea per slide, large numbers, few words. The
 deck is read on a couch, not in a boardroom.
 
-1. **The month at a glance.** Month and "as of" date. Four numbers: came in,
-   spent, saved, left over. One sentence that says how the month went.
+1. **The month at a glance.** This is also the title slide: month, "as of"
+   date, and four numbers from that month's row in "Monthly cash flow": came
+   in (take-home), spent, saved (cash savings; mention retirement saved from
+   paychecks in small print if given), and left over (cash remaining). Show
+   the subtraction underneath. One sentence that says how the month went.
 2. **Where the money went.** Spending by category against a typical month.
    Chart the top categories; name the two or three that moved most.
 3. **Fixed and flexible.** Fixed costs, flexible spending against the month's
@@ -51,17 +65,18 @@ deck is read on a couch, not in a boardroom.
 4. **What stood out.** Three to five items worth a look: an unusual charge, a
    new or changed subscription, fees and interest paid, a category well above
    typical. Skip this slide if nothing stands out; do not pad it.
-5. **Debts.** Each debt: balance, rate, payment, estimated monthly interest.
-   Total interest cost per month. Change since last month if known.
+5. **Debts.** Each debt: balance, rate, minimum payment, estimated monthly
+   interest. Total interest cost per month. Change since last month if known.
 6. **Goals.** Each goal in the household's priority order with its progress.
    Say plainly which goal is the current focus.
 7. **Savings and safety.** Emergency fund against its target and in months of
-   costs, other funds, net worth and its change.
+   costs; net worth and its change. Other funds only if they matter this
+   month (one that is due soon, or behind).
 8. **Loose ends.** Anything that makes the numbers incomplete: charges still
    waiting for review, accounts with no balance, a missing loan balance, a
    month that is only partly recorded. Short.
 9. **Decisions for this month.** At most three questions the two of them
-   should settle, each with your recommendation in one line.
+   should settle, each with your recommendation in a line or two.
 10. **Next month.** Two or three concrete to-dos.
 
 Rules for the deck, and why:
@@ -76,6 +91,9 @@ Rules for the deck, and why:
   emergency fund = fund ÷ monthly costs), so they can check it.
 - **Plain words.** "Money left over" rather than "net cash flow". No jargon,
   no acronyms without spelling them out once.
+- **Whole dollars on slides.** $4,206, not $4,206.12; cents add clutter and
+  no information at this scale. Keep cents only in a line of arithmetic that
+  has to add up exactly.
 - **No account numbers** or other identifiers on slides.
 - **Charts stay simple:** bars for comparisons, one line for a trend. Label
   values directly. A chart with one month of data is just a number; show the

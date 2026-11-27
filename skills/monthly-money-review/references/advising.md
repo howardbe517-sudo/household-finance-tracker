@@ -40,8 +40,10 @@ differ and what the difference costs.
   more interest but some people stick with it better.
 - Say which one their own order matches. If their order costs meaningfully
   more, show the dollar difference once and then respect their choice.
-- A payoff estimate: months ≈ balance ÷ (monthly payment − monthly interest),
-  when the payment is well above the interest. Show the inputs.
+- For a payoff date, work it month by month: add the month's interest
+  (balance × rate ÷ 12), subtract the payment, repeat. Show the first two
+  months and the result. A one-line shortcut misleads when the payment is
+  close to the interest.
 - Federal student loans have their own rules (income-driven plans,
   forgiveness for public service). Extra payments on a loan headed for
   forgiveness can be wasted money. Ask which program applies before advising

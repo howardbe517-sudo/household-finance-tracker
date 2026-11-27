@@ -1,0 +1,32 @@
+{
+  "title": "Monthly Money Review Setup",
+  "key": "household-finance-tracker-2026-11-27-monthly-review-project",
+  "subtitle": "Set up a Claude project once. Then each month: paste the tracker's snapshot, review the slide deck together, and ask it anything, as you would a financial advisor.",
+  "intro": [
+    "**How it works:** the tracker makes a text summary of your finances (the snapshot). In the project, a skill turns it into a short slide deck, then answers your questions using your own numbers.",
+    "**Privacy:** the snapshot holds your real amounts but no account numbers. It goes only into your own Claude project.",
+    "**Best time:** the first week of a month, so the deck covers the whole month that just ended."
+  ],
+  "sections": [
+    {
+      "heading": "One-time setup",
+      "steps": [
+        { "text": "Save the skill. In the Claude Code chat, find the file **monthly-money-review.skill** and click **Save skill**. If there is no button, download the file and add it the same way you added your other skills.", "done": "**monthly-money-review** appears in your list of skills and is switched on." },
+        { "text": "In Claude, create a new project and name it **Monthly Money Review**." },
+        { "text": "Open the project's **instructions** and paste in the text below.", "file": "skills/monthly-money-review-project-instructions.txt", "done": "The project's instructions show the pasted text." }
+      ]
+    },
+    {
+      "heading": "Each month",
+      "steps": [
+        { "text": "In the Sheet, run **Finance Tracker → Bank feed → Sync now**, then review anything waiting on **Import Staging**, so the month is complete." },
+        { "text": "Run **Finance Tracker → Copy financial snapshot for AI…** and copy the text it shows." },
+        { "text": "Open a **new chat in the project**, paste the snapshot, and send it.", "done": "Claude builds a slide deck of about 10 slides and gives a three-line summary." },
+        { "text": "Open the deck and go through it together. The last slides list decisions to make and next month's to-dos." },
+        { "text": "Ask anything: \"Can we afford…?\", \"Should we pay the card or save?\", \"How long until the car is paid off?\"", "done": "Each answer starts from your numbers, gives a recommendation and shows the arithmetic." },
+        { "text": "When you are done, say **wrap up**.", "done": "Claude lists the decisions you made and the to-dos. Put the to-dos on the tracker's **To-Do & Reminders** tab." },
+        { "text": "Add this month's snapshot (and the deck, if you like) to the **project's files**.", "done": "Next month's review can compare against it." }
+      ]
+    }
+  ]
+}
