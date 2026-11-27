@@ -795,8 +795,9 @@ TABLES.GROCNAMES = {
  * more than 15 things on there"; savings grouped by category, biggest saver first; totals called estimated; a Stopped? box):
  *   rows 4–19   TODO   the checklist (15 rows, fixed)
  *   rows 22–30  STRAT  Our Money-Saving Strategies: a short typed list, no figures (8 rows, fixed)
- *   rows 33–45  Estimated Savings by Category: calculated, one formula, biggest first (SAVINGS_BY_CAT; not a table)
- *   rows 49–    SAVEJ  Savings Journal (the last table on the tab, so it can grow); its summary line is row 48
+ *   rows 33–46  Estimated Savings by Category: calculated, one formula, biggest first, and the total line in row 46
+ *               (SAVINGS_BY_CAT; not a table)
+ *   rows 49–    SAVEJ  Savings Journal (the last table on the tab, so it can grow)
  * fixedRows: the table never grows past lastRow, and reading it stops there (the next section starts below it).
  * sharesSheet: the table sits on a tab another table built; building it leaves the rest of the tab alone.
  * Columns A–E have the checklist's widths; buildSavingsSection_ (Tables.gs) draws the bars, the category block and the summary line.
@@ -845,7 +846,7 @@ TABLES.SAVEJ = {
     { key: 'oldCost', h: 'Old Cost', fmt: C.cur, note: 'What it cost each time before the change (for a subscription, the monthly price; for a rough estimate, a year\'s cost).' },
     { key: 'newCost', h: 'New Cost', fmt: C.cur, note: 'What it costs each time now; 0 when it was cancelled.' },
     { key: 'often', h: 'How Often', v: { list: 'SAVING_FREQ' }, note: 'How often that cost comes round. One time: a saving that happens once (counted once, not every year).' },
-    { key: 'category', h: 'Category', v: { list: 'SAVING_CATEGORIES' }, renamedFrom: 'Strategy', note: 'What the saving is on (Food, Household Supplies, Subscriptions…); the category table above adds them up. Was Strategy in 3.27.' },
+    { key: 'category', h: 'Category', v: { list: 'SAVING_CATEGORIES', strict: true }, renamedFrom: 'Strategy', note: 'What the saving is on (Food, Household Supplies, Subscriptions…); the category table above adds them up. Only names on the list are accepted, so a typo never becomes a category of its own; add a new one below the Saving Categories list on the Categories tab. Was Strategy in 3.27.' },
     { key: 'yearly', h: 'Est. Saving (per Year, or Once)', w: 125, fmt: C.cur,
       f: '=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*' +
         'SWITCH([@often],' + Object.keys(SAVING_TIMES_A_YEAR).map(k => '"' + k + '",' + SAVING_TIMES_A_YEAR[k]).join(',') + ',0)))',
@@ -857,7 +858,7 @@ TABLES.SAVEJ = {
 };
 
 /** Estimated Savings by Category: a calculated block between the strategies and the journal (rows on the To-Do tab). */
-const SAVINGS_BY_CAT = { BAR_ROW: 32, HEADER_ROW: 33, FIRST_ROW: 34, ROWS: 12, NOT_GROUPED: 'Not grouped' };
+const SAVINGS_BY_CAT = { BAR_ROW: 32, HEADER_ROW: 33, FIRST_ROW: 34, ROWS: 12, TOTAL_ROW: 46, NOT_GROUPED: 'Not grouped', EMPTY: 'No savings logged yet' }; // TOTAL_ROW: the summary line, right under the block
 
 /**
  * Goals & Progress (the owner, 2026-11-27): one row per goal, in priority order. A goal that names a debt (Debt ID) reads

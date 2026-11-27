@@ -6,7 +6,7 @@
     "The code reaches your Sheet on its own once it is merged. One upgrade adds three sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab. (This page replaces the earlier version of these steps; if you have not run the upgrade yet, these are the steps to follow.)",
     "**Our Money-Saving Strategies** is a short typed list (8 rows) of the main ways you save, with how you do each one.",
     "**Estimated Savings by Category** fills itself in from the journal: one row per category (Food, Household Supplies, Subscriptions and so on), biggest estimated saver first, with yearly, monthly and one-time figures.",
-    "The **Savings Journal** has one row for each change. You type what you changed, the old cost, the new cost, how often you pay it and a category. The estimated saving works itself out. A green line above it shows the estimated total a year and a month. Tick **Stopped?** if you go back to the old way: the row stays, greyed out, and is no longer counted.",
+    "The **Savings Journal** has one row for each change. You type what you changed, the old cost, the new cost, how often you pay it and a category. The estimated saving works itself out. A green total line under the category table shows the estimated total a year and a month. Tick **Stopped?** if you go back to the old way: the row stays, greyed out, and is no longer counted.",
     "**The checklist now holds 15 to-dos** (rows 5 to 19). Your current to-dos all fit. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
     "**What does not change:** your to-dos, the reminders strip, dragging rows to reorder, and every other tab. Rows on this tab are no longer frozen at the top, so you can scroll down to the journal."
   ],
@@ -37,7 +37,7 @@
       "steps": [
         {
           "text": "Open **To-Do & Reminders** and scroll below your to-dos.",
-          "done": "Three dark bars: **Our Money-Saving Strategies**, **Estimated Savings by Category (biggest first)** (reading **No savings logged yet**), and **Savings Journal** with a green line that reads **Estimated savings: about $0 a year**. Hover over a bar's title for a short explanation."
+          "done": "Three dark bars: **Our Money-Saving Strategies**, **Estimated Savings by Category (biggest first)** (reading **No savings logged yet**, with a green total line under it: **Estimated savings: about $0 a year**), and **Savings Journal**. Hover over a bar's title for a short explanation."
         },
         {
           "text": "Tell Claude the upgrade is done.",
@@ -49,7 +49,7 @@
       "heading": "Adding your own entries later",
       "steps": [
         {
-          "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it (0 for something cancelled). Pick **How Often** and a **Category**.",
+          "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it (0 for something cancelled). Pick **How Often** and a **Category** (only names on the list are accepted; add new ones below the Saving Categories list on the Categories tab).",
           "done": "The estimated saving fills itself in, and the category table and the green line go up. A change that costs more now shows in red."
         },
         {

@@ -261,7 +261,14 @@ function savingsByCategory_(journal) {
     by[k].changes++;
     if (r.often === 'One time') by[k].once += v; else by[k].perYear += v;
   });
-  return order.map(k => Object.assign(by[k], { perMonth: by[k].perYear / 12 })).sort((a, b) => b.perYear - a.perYear || b.once - a.once);
+  // ties go by name, A to Z (the formula's last SORT key), so the Sheet and this always agree
+  return order.map(k => Object.assign(by[k], { perMonth: by[k].perYear / 12 })).sort((a, b) => (b.perYear - a.perYear) || (b.once - a.once) || (a.category.toLowerCase() < b.category.toLowerCase() ? -1 : a.category.toLowerCase() > b.category.toLowerCase() ? 1 : 0));
+}
+
+/** The summary line under the category table, as its formula writes it (TEXT(x,"$#,##0")). Pure; QA compares the two. */
+function savingsSummaryText_(t) {
+  const usd = (x) => { const r = Math.round(Math.abs(x)); return (r !== 0 && x < 0 ? '-' : '') + '$' + String(r).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+  return 'Estimated savings: about ' + usd(t.perYear) + ' a year (about ' + usd(t.perYear / 12) + ' a month)   ·   one-time ' + usd(t.oneTime) + '   ·   ' + t.count + ' change(s) counted' + (t.stopped ? '   ·   ' + t.stopped + ' stopped (not counted)' : '');
 }
 
 /**
@@ -292,8 +299,16 @@ function sortSavingsJournal() {
   if (!sh || sh.getRange(def.headerRow, 1).getValue() !== def.columns[0].h) { alert_('Sort Savings Journal', 'The Savings Journal is not on the To-Do & Reminders tab yet. Run Upgrade workbook first.'); return; }
   const rows = readTable_(def);
   if (rows.length < 2) { alert_('Sort Savings Journal', 'There is nothing to sort yet.'); return; }
+  // a row with something typed but no What We Changed is not read as an entry: sorting would write over it, so stop and say where
+  const fcol0 = colIndex_(def, 'yearly'), last = Math.min(Math.max(sh.getLastRow(), def.firstRow), def.lastRow);
+  const unfinished = [];
+  sh.getRange(def.firstRow, 1, last - def.firstRow + 1, def.columns.length).getValues().forEach((row, i) => {
+    if (row[0] !== '' && row[0] !== null) return;
+    if (row.some((v, j) => j !== fcol0 - 1 && v !== '' && v !== null && v !== false)) unfinished.push(def.firstRow + i);
+  });
+  if (unfinished.length) { alert_('Sort Savings Journal', 'Nothing was changed. Row(s) ' + unfinished.slice(0, 8).join(', ') + ' have costs or notes but no What We Changed. Fill it in (or empty the row), then sort again.'); return; }
   const ui = ui_();
-  if (ui && ui.alert('Sort Savings Journal', 'Put the ' + rows.length + ' journal entries in order: by category, biggest estimated saver first, with stopped changes at the bottom? Only the order changes; nothing is added or removed.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  if (ui && ui.alert('Sort Savings Journal', 'Put the ' + rows.length + ' journal entries in order: by category, biggest estimated saver first, with stopped changes at the bottom? Only the order changes; nothing is added or removed. (Edit → Undo puts it back.)', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
   const sorted = savingsSortOrder_(rows);
   const span = rows[rows.length - 1].__row - def.firstRow + 1; // every row from the first entry row to the last one, gaps included
   const fcol = colIndex_(def, 'yearly');
@@ -401,7 +416,7 @@ function emptyOldTodoRows_(sh, def) {
 
 /**
  * The To-Do & Reminders tab below the checklist (the owner, 2026-11-27): a bar over Our Money-Saving Strategies; Estimated Savings
- * by Category (one formula, biggest first); a bar over the Savings Journal and its summary line. Holds no entered data (titles,
+ * by Category (one formula, biggest first) with the total line under it; a bar over the Savings Journal. Holds no entered data (titles,
  * hover notes and two formulas), so build and upgrade simply redraw it. Nothing is merged, so every row can still be dragged.
  * savingsByCategory_ and savingsTotals_ are the same arithmetic in JavaScript (QA 6c checks them against these formulas).
  */
@@ -433,20 +448,22 @@ function buildSavingsSection_(sh) {
   setFormat_(sh.getRange(K.FIRST_ROW, 2, K.ROWS, 1), C.int);
   setFormat_(sh.getRange(K.FIRST_ROW, 3, K.ROWS, 3), C.cur);
   const ng = K.NOT_GROUPED.toLowerCase();
-  sh.getRange(K.FIRST_ROW, 1).setFormula('=IFERROR(ARRAY_CONSTRAIN(ARRAYFORMULA(LET(chg,' + ref('change') + ',freq,' + ref('often') + ',cat,' + ref('category') + ',est,' + ref('yearly') + ',stp,' + ref('stopped')
+  sh.getRange(K.FIRST_ROW, 1).setFormula('=IF(COUNTIFS(' + ref('change') + ',"<>",' + ref('stopped') + ',"<>TRUE")=0,"' + K.EMPTY + '",ARRAY_CONSTRAIN(ARRAYFORMULA(LET(chg,' + ref('change') + ',freq,' + ref('often') + ',cat,' + ref('category') + ',est,' + ref('yearly') + ',stp,' + ref('stopped')
     + ',live,(chg<>"")*(stp<>TRUE),ckey,IF(TRIM(cat)="","' + ng + '",LOWER(TRIM(cat))),amt,IF(ISNUMBER(est),est,0),cats,UNIQUE(FILTER(ckey,live=1)),'
     + 'cnt,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)))),peryr,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)*(freq<>"One time")*amt))),onetime,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)*(freq="One time")*amt))),'
-    + 'SORT(HSTACK(IF(cats="' + ng + '","' + K.NOT_GROUPED + '",PROPER(cats)),cnt,peryr,peryr/12,onetime),3,FALSE,5,FALSE))),' + K.ROWS + ',5),"No savings logged yet")'); // ARRAYFORMULA: without it Google works the LET out for one cell only (#VALUE!), tested 2026-11-27
+    + 'SORT(HSTACK(IF(cats="' + ng + '","' + K.NOT_GROUPED + '",PROPER(cats)),cnt,peryr,peryr/12,onetime),3,FALSE,5,FALSE,1,TRUE))),' + K.ROWS + ',5))'); // ARRAYFORMULA: without it Google works the LET out for one cell only (#VALUE!), tested 2026-11-27
 
-  // the journal's summary line
+  // the total line, right under the category table (it counts every entry, so it is the table's total too)
   const yr = ref('yearly'), often = ref('often'), what = ref('change'), stp = ref('stopped');
   const counted = (crit) => 'SUMIFS(' + yr + ',' + often + ',' + crit + ',' + stp + ',"<>TRUE")';
-  const sum = sh.getRange(jr.headerRow - 1, 1, 1, W);
+  sh.getRange(jr.headerRow - 1, 1, 1, W).setValues([Array(W).fill('')]).setBackground(null); // a small gap above the journal's header
+  sh.setRowHeight(jr.headerRow - 1, 8);
+  const sum = sh.getRange(K.TOTAL_ROW, 1, 1, W);
   sum.setValues([Array(W).fill('')]);
   sum.setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT).setFontSize(11).setFontWeight('bold').setWrap(false).setVerticalAlignment('middle');
-  sh.getRange(jr.headerRow - 1, 1).setFormula('="Estimated savings: about "&TEXT(' + counted('"<>One time"') + ',"$#,##0")&" a year (about "&TEXT(' + counted('"<>One time"') + '/12,"$#,##0")&" a month)   ·   one-time "&TEXT(' + counted('"One time"') + ',"$#,##0")'
+  sh.getRange(K.TOTAL_ROW, 1).setFormula('="Estimated savings: about "&TEXT(' + counted('"<>One time"') + ',"$#,##0")&" a year (about "&TEXT(' + counted('"<>One time"') + '/12,"$#,##0")&" a month)   ·   one-time "&TEXT(' + counted('"One time"') + ',"$#,##0")'
     + '&"   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',"<>TRUE")&" change(s) counted"&IF(COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)=0,"","   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)&" stopped (not counted)")');
-  sh.setRowHeight(jr.headerRow - 1, 28);
+  sh.setRowHeight(K.TOTAL_ROW, 28);
 }
 
 /** Recurring Payments rows 1–38: KPIs, group summary, upcoming lists. */

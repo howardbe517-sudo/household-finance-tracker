@@ -76,7 +76,7 @@ Named range `TBL_SAVEJ` covers the header row through the last formula row.
 | B | Old Cost | `oldCost` | currency | input | What it cost each time before the change (for a subscription, the monthly price; for a rough estimate, a year's cost). |
 | C | New Cost | `newCost` | currency | input | What it costs each time now; 0 when it was cancelled. |
 | D | How Often | `often` | text | dropdown: LIST_SAVING_FREQ | How often that cost comes round. One time: a saving that happens once (counted once, not every year). |
-| E | Category | `category` | text | dropdown: LIST_SAVING_CATEGORIES | What the saving is on (Food, Household Supplies, Subscriptions…); the category table above adds them up. Was Strategy in 3.27. |
+| E | Category | `category` | text | dropdown: LIST_SAVING_CATEGORIES | What the saving is on (Food, Household Supplies, Subscriptions…); the category table above adds them up. Only names on the list are accepted, so a typo never becomes a category of its own; add a new one below the Saving Categories list on the Categories tab. Was Strategy in 3.27. |
 | F | Est. Saving (per Year, or Once) | `yearly` | currency | calculated | `=IF([@change]="","",IF(OR([@often]="",[@oldCost]="",[@newCost]=""),"",(N([@oldCost])-N([@newCost]))*SWITCH([@often],"Daily",365,"Weekly",52,"Every 2 weeks",2…` — (Old Cost − New Cost) × how many times a year; for One time, the saving once. Blank until Old Cost, New Cost and How Often are filled in. Red when negative: the change costs more now. Still worked out on a stopped row, but not counted in any total. |
 | G | Date | `date` | date | input (date) | When the change started. |
 | H | Notes | `notes` | text | input | How the estimate was worked out, or anything else worth remembering. |

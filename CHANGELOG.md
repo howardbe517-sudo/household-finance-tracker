@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 2026-11-27 — Savings by category, estimated totals, Stopped? (schema 3.28)
+- Why (the owner, before running the 3.27 upgrade): call the totals
+  estimated; group savings by category (food, house supplies,
+  subscriptions…) with the biggest saver first; a Stopped? box; allow rough
+  estimates (Ziploc bags reused 2–3 times: about half the yearly cost).
+- `Config.gs`: Our Money-Saving Strategies becomes a typed list (Strategy,
+  How We Do It; rows 23–30). Savings Journal moves to row 49: column E is
+  now Category (renamed from Strategy; list Saving Categories, only listed
+  names accepted), F is Est. Saving (per Year, or Once), new I Stopped?.
+  `SAVINGS_BY_CAT`: the calculated category block (rows 33–45) and the
+  total line (row 46).
+- `Tables.gs`: `buildSavingsSection_` draws the bars (explanations as hover
+  notes), the category block (one formula, biggest yearly saving first,
+  ties A to Z, stopped changes left out) and the total line.
+  `savingsCounted_`, `savingsTotals_`, `savingsByCategory_`,
+  `savingsSortOrder_`, `savingsSummaryText_`; `sortSavingsJournal` (menu
+  Finance Tracker → Sort Savings Journal: asks first, refuses while a row
+  has costs but no What We Changed, leaves the formula column alone).
+  Stopped rows grey and struck through. `Helpers.gs`: a strict list
+  dropdown (`v.strict`). `Main.gs`: the menu item.
+- `QA.gs` 6c: each entry, the category block (figures and order) and the
+  total line against the JavaScript. `Export.gs`: the snapshot lists the
+  strategies, the totals by category and each change.
+- `BUILD_VERSION` 1.43.0, `SCHEMA_VERSION` 3.28. Files changed in
+  `apps-script/`: `Config.gs`, `Tables.gs`, `Helpers.gs`, `QA.gs`,
+  `Export.gs`, `Main.gs`. **Run Upgrade workbook** (the owner had not run
+  the 1.42.0 one). Handoff: `handoffs/2026-11-27-savings-journal.json`
+  (same page, updated).
+- Data review: one must-fix (the sort could write over a half-typed row),
+  fixed; five should-fix items done (tie order, QA checks the total line,
+  strict categories, the total line under the table, real formula errors
+  no longer hidden). Second review: nothing to fix.
+- Tested: Node mock. In Google (scratch cells, made-up rows): the category
+  formula (grouping, stopped rows, ties, empty journal; it needs
+  ARRAYFORMULA around the LET, found here) and the total line's figures.
+  The upgrade, the sort and Run QA still need running in the Sheet.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Savings Journal and money-saving strategies (schema 3.27)
 - Why (the owner): a place on the To-Do tab (not a new tab) to keep a
   journal of money-saving changes with their estimated savings, and a list of

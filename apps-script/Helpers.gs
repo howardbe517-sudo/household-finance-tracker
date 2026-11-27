@@ -199,7 +199,7 @@ function buildValidation_(spec) {
   const b = SpreadsheetApp.newDataValidation();
   if (spec.checkbox) return b.requireCheckbox().setAllowInvalid(false).build();
   if (spec.date) return b.requireDate().setAllowInvalid(true).setHelpText('Enter a date (yyyy-mm-dd). Months are stored as the first of the month.').build();
-  if (spec.list) return b.requireValueInRange(listRange_(spec.list), true).setAllowInvalid(true).setHelpText('Pick a value from the list on the Categories tab.').build();
+  if (spec.list) return b.requireValueInRange(listRange_(spec.list), true).setAllowInvalid(!spec.strict).setHelpText(spec.strict ? 'Pick a value from the list (add new ones below the list on the Categories tab).' : 'Pick a value from the list on the Categories tab.').build();
   if (spec.derived) return b.requireValueInRange(listRange_(spec.derived), true).setAllowInvalid(true).setHelpText('Pick a value from the Categories taxonomy.').build();
   if (spec.idsOf) return b.requireValueInRange(idsRange_(spec.idsOf), true).setAllowInvalid(true).setHelpText('Must match an ID on the ' + tdef_(spec.idsOf).sheet + ' tab.').build();
   if (spec.values) return b.requireValueInList(spec.values, true).setAllowInvalid(true).build();

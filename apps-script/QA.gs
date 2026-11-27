@@ -202,16 +202,18 @@ function qaReport_() {
     else if (jr.length) pass('Savings Journal: ' + jr.length + ' entr' + (jr.length === 1 ? 'y' : 'ies') + '; the estimated saving matches on every row');
     else info('Savings Journal has no entries yet');
     const K = SAVINGS_BY_CAT, exp = savingsByCategory_(jr);
-    const shown = tsh.getRange(K.FIRST_ROW, 1, K.ROWS, 5).getValues().filter(r => r[0] !== '' && r[0] !== 'No savings logged yet');
+    const shown = tsh.getRange(K.FIRST_ROW, 1, K.ROWS, 5).getValues().filter(r => r[0] !== '' && r[0] !== K.EMPTY);
     const catBad = exp.slice(0, K.ROWS).filter(e => {
       const row = shown.filter(r => String(r[0]).toLowerCase() === e.category.toLowerCase())[0];
       return !row || Number(row[1]) !== e.changes || !near(row[2], e.perYear, 0.011) || !near(row[4], e.once, 0.011);
     });
-    const sortedOk = shown.every((r, i) => i === 0 || Number(shown[i - 1][2]) >= Number(r[2]) - 0.005);
-    if (catBad.length || shown.length !== Math.min(exp.length, K.ROWS) || !sortedOk) fail('Estimated Savings by Category differs from the journal' + (catBad.length ? ' for ' + catBad.slice(0, 3).map(e => e.category).join('; ') : '') + (sortedOk ? '' : ' (not biggest first)'));
+    const sortedOk = shown.every((r, i) => exp[i] && String(r[0]).toLowerCase() === exp[i].category.toLowerCase()); // same order: biggest first, ties A to Z
+    if (catBad.length || shown.length !== Math.min(exp.length, K.ROWS) || !sortedOk) fail('Estimated Savings by Category differs from the journal' + (catBad.length ? ' for ' + catBad.slice(0, 3).map(e => e.category).join('; ') : '') + (sortedOk ? '' : ' (order differs: biggest first, ties A to Z)'));
     else if (exp.length) pass('Estimated Savings by Category: ' + exp.length + ' categor' + (exp.length === 1 ? 'y' : 'ies') + ', biggest first; changes and savings match the journal');
     if (exp.length > K.ROWS) info('Estimated Savings by Category shows the biggest ' + K.ROWS + ' of ' + exp.length + ' categories');
-    const tot = savingsTotals_(jr);
+    const tot = savingsTotals_(jr), line = String(tsh.getRange(K.TOTAL_ROW, 1).getValue());
+    if (line !== savingsSummaryText_(tot)) fail('Savings total line reads "' + line + '"; the journal gives "' + savingsSummaryText_(tot) + '"');
+    else pass('Savings total line matches the journal');
     info('Savings Journal: estimated ' + money(tot.perYear) + ' a year and ' + money(tot.oneTime) + ' one-time from ' + tot.count + ' change(s)' + (tot.stopped ? '; ' + tot.stopped + ' stopped, not counted' : ''));
   }
 
