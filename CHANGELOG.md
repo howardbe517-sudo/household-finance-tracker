@@ -3,9 +3,10 @@
 ## 2026-11-27 — Utilities in Fixed Costs from the same month last year
 - Why (the owner): gas and electric change with the season, so Fixed Costs
   should use the same month a year back, not the 12-month average.
-- `FinancialSummary.gs` (new `utilitiesFixed_`): the utilities line is the
-  bills due in the same month last year, named with that month; the
-  12-month average only when there is no bill from a year back. `QA.gs` and
+- `FinancialSummary.gs` (new `utilitiesFixed_`): each utility counts its
+  bill due in the same month last year; a utility with no bill that month
+  (water billed every few months, a bill that moved) counts its own 12-month
+  average. The line is named with that month. `QA.gs` and
   the AI snapshot (`Export.gs`) follow.
 - In the Sheet (done by Claude, with the owner): a rent share sent between
   the two of them was changed to a Transfer and the full month's rent,

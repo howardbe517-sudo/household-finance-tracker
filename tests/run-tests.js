@@ -1486,11 +1486,13 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
 (function () {
   const v = R(`(function () {
     const D = (y, m, d) => new Date(y, m - 1, d);
-    const bills = [{ dueDate: D(2029, 11, 3), amount: 150 }, { dueDate: D(2029, 11, 5), amount: 30 }, { dueDate: D(2030, 6, 3), amount: 90 }, { dueDate: D(2030, 9, 2), amount: 120 }];
+    const bills = [{ utility: 'Electric', dueDate: D(2029, 11, 3), amount: 150 }, { utility: 'Gas', dueDate: D(2029, 11, 5), amount: 30 }, { utility: 'Electric', dueDate: D(2030, 6, 3), amount: 90 },
+      { utility: 'Water', dueDate: D(2030, 1, 10), amount: 60 }, { utility: 'Water', dueDate: D(2030, 7, 10), amount: 60 }];
     const a = utilitiesFixed_(bills, D(2030, 11, 20)), b = utilitiesFixed_(bills, D(2030, 12, 20));
-    return [a.amount, a.lastYear, b.lastYear, b.amount === averageUtilities_(bills, D(2030, 12, 20))];
+    const water = averageUtilities_(bills.filter(x => x.utility === 'Water'), D(2030, 11, 20));
+    return [a.amount === Math.round((150 + 30 + water) * 100) / 100, a.some, a.lastYear, b.some, b.amount > 0];
   })()`);
-  if (JSON.stringify(v) === JSON.stringify([180, true, false, true])) ok('utilities in Fixed Costs: the bills due in the same month last year (gas and electric change with the season), the 12-month average when there is none');
+  if (JSON.stringify(v) === JSON.stringify([true, true, false, false, true])) ok('utilities in Fixed Costs: each utility counts its bill due in the same month last year (gas and electric change with the season), or its own 12-month average when it had none that month (water every other month)');
   else bad('utilities same month last year: ' + JSON.stringify(v));
 })();
 /* 2026-11-26 (option A): under each summary box, the names and the amounts are two cells with the same lines, so each amount sits beside its name */
