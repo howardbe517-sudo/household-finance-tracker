@@ -1942,7 +1942,7 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const row = (k) => H.INPUT_FIRST + H.INPUTS.findIndex(x => x.key === k);
   if (hsh && hsh.getRange(1, 1).getValue() === 'House Plan' && hsh.getRange(row('RATE'), 2).getValue() === 0.065 && hsh.getRange(row('PRICE'), 2).getValue() === '' && hsh.getRange(row('MONTHLY'), 2).getValue() === '' && ssx.namedRanges.has('HOUSE_PRICE') && hsh.getRange(row('FUND'), 2).getDataValidation()
     && /PMT\(N\(\$B\$9\)\/12,360,-\$B\$18\)/.test(hsh.getRange(H.COST_FIRST + 1, 2).getFormula()) && /SUMIFS\('Debts'!\$J\$8:\$J,'Debts'!\$C\$8:\$C,"Credit Card"\)/.test(hsh.getRange(H.PLAN_FIRST, 2).getFormula()) && /SUMIFS\('Savings & Reserves'!\$K\$5:\$K,'Savings & Reserves'!\$C\$5:\$C,"Emergency Fund"\)/.test(hsh.getRange(H.PLAN_FIRST + 1, 2).getFormula())
-    && /EDATE\(DATE\(YEAR\(TODAY\(\)\),MONTH\(TODAY\(\)\)\+1,1\),ROUNDUP\(ROUND\(SUM\(\$B\$39:\$B\$41\)\/N\(\$B\$14\),9\),0\)-1\)/.test(hsh.getRange(H.PLAN_FIRST + 2, 4).getFormula()) && /^=IF\(N\(\$B\$5\)<=0,"Type a house price"/.test(hsh.getRange(H.PLAN_FIRST + 2, 4).getFormula())
+    && /EDATE\(DATE\(YEAR\(TODAY\(\)\),MONTH\(TODAY\(\)\)\+1,1\),ROUNDUP\(ROUND\(SUM\(\$B\$39:\$B\$41\)\/N\(\$B\$14\),9\),0\)-1\)/.test(hsh.getRange(H.PLAN_FIRST + 2, 4).getFormula()) && /^=IF\(N\(\$B\$5\)<=0,"Type a house price",IF\(SUM\(\$B\$39:\$B\$41\)<=0,"Done"/.test(hsh.getRange(H.PLAN_FIRST + 2, 4).getFormula())
     && hsh.getRange(row('DOWN'), 2).getDataValidation().allowInvalid === false && hsh.getRange(row('DOWN'), 2).getDataValidation().hi === 1 && /No rent on Recurring Payments/.test(hsh.getRange(H.COST_FIRST + 9, 2).getFormula())) ok('House Plan: the inputs start with general assumptions, leave the price and monthly amount for the owner, and refuse out-of-range values (10 in a percent cell); the mortgage, credit-card and emergency-fund figures come from the tracker; each step\'s month counts the running total once; step 3 waits for a price'); else bad('House Plan layout: ' + JSON.stringify([hsh && hsh.getRange(H.COST_FIRST + 1, 2).getFormula(), hsh && hsh.getRange(H.PLAN_FIRST + 2, 4).getFormula()]));
   hsh.getRange(row('PRICE'), 2).setValue(250000); hsh.getRange(row('MONTHLY'), 2).setValue(1000); hsh.getRange(row('RATE'), 2).setValue(0.06);
   R(`upgradeWorkbook()`);
@@ -1958,7 +1958,24 @@ R(`PropertiesService.getScriptProperties().deleteProperty('PLAID_PENDING_LINK')`
   const hp0b = R(`(function () { var p = housePlan_({ price: '', down: 0.1, closing: 0.03, moving: 4000, rate: 0.065, tax: 0.015, insurance: 125, pmi: 0.005, repair: 0.01, monthly: '', fund: '' }, 0, 500, 0, 0, 0, 0, new Date(2026, 11, 1)); return [p.steps[2].done, p.steps[2].left, p.overRent]; })()`);
   if (JSON.stringify(hp0) === JSON.stringify([0, 0, 'Done', '', '', '', '']) && JSON.stringify(hp0b) === JSON.stringify(['Type a house price', '', ''])) ok('House Plan with no price or monthly amount yet: no costs, a paid-off card shows Done, the other steps wait for a monthly amount, step 3 asks for a price; with no rent on Recurring Payments there is no "more than rent"'); else bad('housePlan_ blanks: ' + JSON.stringify([hp0, hp0b]));
   const carry = R(`(function () { var p = housePlan_({ price: 100000, down: 0.2, closing: 0, moving: 0, rate: 0.065, tax: 0, insurance: 0, pmi: 0, repair: 0, monthly: 1000, fund: '' }, 500, 500, 0, 1000, 0, 0, new Date(2026, 11, 1)); return p.steps.map(function (s) { return [s.months, s.done.getFullYear() + '-' + (s.done.getMonth() + 1)]; }); })()`);
+  const ahead = R(`(function () { var p = housePlan_({ price: 100000, down: 0.1, closing: 0, moving: 0, rate: 0.065, tax: 0, insurance: 0, pmi: 0, repair: 0, monthly: 1000, fund: '' }, 4000, 0, 30000, 1000, 0, 0, new Date(2026, 11, 1)); return p.steps.map(function (s) { return s.done instanceof Date ? s.done.getFullYear() + '-' + (s.done.getMonth() + 1) : s.done; }).concat([p.ready instanceof Date]); })()`);
+  if (JSON.stringify(ahead) === JSON.stringify(['2027-3', '2027-3', '2027-3', true])) ok('House Plan: a step already covered (the house fund holds enough) still waits for the steps before it, so Ready to buy is the card payoff month, not Now'); else bad('housePlan_ covered step: ' + JSON.stringify(ahead));
   if (JSON.stringify(carry) === JSON.stringify([[1, '2026-12'], [0, '2026-12'], [20, '2028-8']])) ok('House Plan: money left in one step\'s last month carries on ($500 of card debt and $500 of emergency fund at $1,000 a month are both done in the first month)'); else bad('housePlan_ carry-over: ' + JSON.stringify(carry));
+})();
+
+/* 11e. House plan summary (the pop-up page) */
+(function () {
+  const page = fs.readFileSync(path.join(SRC_DIR, 'HouseDialog.html'), 'utf8');
+  let threw = '';
+  try { R(`showHousePlan()`); } catch (e) { threw = String(e.message || e); }
+  const ctxH = R(`(function () { var c = houseContext_(); return [typeof c.cardDebt, typeof c.efNeeded, Array.isArray(c.cards), Array.isArray(c.unknownDebts), c.start instanceof Date]; })()`);
+  if (!threw && JSON.stringify(ctxH) === '["number","number",true,true,true]' && /const D = <\?!= dataJson \?>;/.test(page) && /const housePlan_ = <\?!= planSrc \?>;/.test(page) && /google\.script\.run[\s\S]*\.saveHousePlanInputs\(inp\.price, inp\.monthly, inp\.down, inp\.rate\)/.test(page) && !/https?:\/\/(?!fonts\.googleapis\.com)/.test(page.replace(/https:\/\/fonts\.googleapis\.com[^"]*/g, ''))) ok('House plan summary: opens from the menu with the tracker\'s figures, works out what-ifs with the same housePlan_ arithmetic, and saves through saveHousePlanInputs; it loads nothing but its fonts'); else bad('house summary: ' + JSON.stringify([threw, ctxH]));
+  const H = vm.runInContext('HOUSE', ctx), row = (k) => H.INPUT_FIRST + H.INPUTS.findIndex(x => x.key === k), hsh = g.__ss.getSheetByName(SHEETS.HOUSE);
+  R(`saveHousePlanInputs(250000, 1500, 0.2, 0.06)`);
+  let bad2 = '';
+  try { R(`saveHousePlanInputs(250000, 1500, 10, 0.06)`); } catch (e) { bad2 = String(e.message || e); }
+  if (hsh.getRange(row('PRICE'), 2).getValue() === 250000 && hsh.getRange(row('MONTHLY'), 2).getValue() === 1500 && hsh.getRange(row('DOWN'), 2).getValue() === 0.2 && hsh.getRange(row('RATE'), 2).getValue() === 0.06 && /out of range/.test(bad2)) ok('Save these to the tracker writes the price, monthly amount, down payment and rate to the House Plan tab, and refuses a down payment typed as 10 instead of 10%'); else bad('saveHousePlanInputs: ' + bad2);
+  ['PRICE', 'MONTHLY'].forEach(k => hsh.getRange(row(k), 2).setValue('')); hsh.getRange(row('DOWN'), 2).setValue(0.1); hsh.getRange(row('RATE'), 2).setValue(0.065); // test-only: back to the defaults
 })();
 
 /* 11b. formula comparison ignores Google's quote normalization */

@@ -219,15 +219,8 @@ function qaReport_() {
 
   /* 6d. House Plan: every figure against the same arithmetic in JavaScript */
   if (ss.getSheetByName(SHEETS.HOUSE) && ss.getRangeByName('HOUSE_PRICE')) {
-    const hsh = ss.getSheetByName(SHEETS.HOUSE), val = (k) => ss.getRangeByName('HOUSE_' + k).getValue();
-    const inp = {}; HOUSE.INPUTS.forEach(x => { inp[x.key.toLowerCase()] = val(x.key); });
-    const debtsH = readTable_(tdef_('DEBTS')), fundsH = readTable_(tdef_('FUNDS')), recurH = readTable_(tdef_('RECUR')), expH = readTable_(tdef_('EXPECT'));
-    const sumN = (rows, f) => rows.reduce((t, x) => t + (typeof x[f] === 'number' ? x[f] : 0), 0);
-    const hf = inp.fund ? fundsH.filter(f => f.id === inp.fund)[0] : null;
-    const t0 = new Date();
-    const e = housePlan_(inp, sumN(debtsH.filter(d => d.debtType === 'Credit Card'), 'latestBalance'), sumN(fundsH.filter(f => f.fundType === 'Emergency Fund'), 'amountNeeded'),
-      hf && typeof hf.current === 'number' ? hf.current : 0, sumN(recurH.filter(x => x.subcategory === 'Mortgage or Rent' && x.active === true), 'monthlyEq'),
-      sumN(expH.filter(x => x.active === true), 'monthlyGross'), sumN(expH.filter(x => x.active === true), 'monthlyTakeHome'), new Date(t0.getFullYear(), t0.getMonth() + 1, 1));
+    const hsh = ss.getSheetByName(SHEETS.HOUSE);
+    const e = housePlanFromContext_(houseContext_());
     const B = (row) => hsh.getRange(row, 2).getValue();
     const cost = [e.loan, e.mortgage, e.tax, e.insurance, e.pmi, e.housing, e.repairs, e.allIn, e.rent, e.overRent];
     const cash = [e.cash.down, e.cash.closing, e.cash.moving, e.cash.total];

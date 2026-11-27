@@ -54,7 +54,7 @@ function buildHousePlan_() {
   [330, 140, 110, 130, 380].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   sh.getRange(1, 1, HOUSE.LAST_ROW, W).setFontColor(COLORS.TEXT).setFontSize(11).setVerticalAlignment('middle');
   styleTitleRow_(sh, 1, 'House Plan', W);
-  styleNoteRow_(sh, 2, 'Estimates from your own numbers: change the yellow cells. Everything else works itself out, and the dates move as the card is paid down and the funds grow.', W);
+  styleNoteRow_(sh, 2, 'The full summary, with charts and what-ifs: Finance Tracker → 🏠 House plan summary. This tab holds the numbers behind it: change the yellow cells; everything else works itself out.', W);
   const F = (t) => resolveFormula_(t, null, null);
   const bar = (row, title, note) => {
     sh.getRange(row, 1, 1, W).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold');
@@ -138,8 +138,9 @@ function buildHousePlan_() {
     const row = p(k), noPrice = k === 2 ? P + '<=0' : 'FALSE';
     sh.getRange(row, 1).setValue(lab);
     sh.getRange(row, 2).setFormula(k === 2 ? '=IF(' + P + '<=0,"",' + F(left[k]).slice(1) + ')' : F(left[k]));
+    // a step is Done only when it and every step before it are done; a finished step after an unfinished one shares its date
     sh.getRange(row, 3).setFormula('=IF(' + noPrice + ',"",IF(N($B$' + row + ')<=0,0,IF(' + M + '<=0,"",' + RU(upTo(k)) + '-' + (k === 0 ? '0' : RU(upTo(k - 1))) + ')))');
-    sh.getRange(row, 4).setFormula('=IF(' + noPrice + ',"Type a house price",IF(N($B$' + row + ')<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + RU(upTo(k)) + '-1))))');
+    sh.getRange(row, 4).setFormula('=IF(' + noPrice + ',"Type a house price",IF(' + upTo(k) + '<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + RU(upTo(k)) + '-1))))');
     sh.getRange(row, 5).setValue(from[k]).setFontColor(COLORS.MUTED_TEXT).setFontSize(10);
   });
   setFormat_(sh.getRange(p(0), 2, 3, 1), 'currency');
@@ -179,8 +180,8 @@ function housePlan_(inp, cardDebt, efNeeded, houseSaved, rent, gross, takeHome, 
   const steps = lefts.map((left, k) => {
     if (k === 2 && price <= 0) return { left: '', months: '', done: 'Type a house price' };
     cumLeft += Math.max(0, left);
-    if (left <= 0) return { left, months: 0, done: 'Done' };
-    if (monthly <= 0) return { left, months: '', done: '' };
+    if (cumLeft <= 0) return { left, months: 0, done: 'Done' };
+    if (monthly <= 0) return { left, months: left <= 0 ? 0 : '', done: '' };
     const upTo = ru(cumLeft), months = upTo - prevMonths;
     prevMonths = upTo;
     return { left, months, done: new Date(start.getFullYear(), start.getMonth() + upTo - 1, 1) };
@@ -190,4 +191,68 @@ function housePlan_(inp, cardDebt, efNeeded, houseSaved, rent, gross, takeHome, 
     shareGross: n(gross) > 0 ? housing / gross : '', shareTakeHome: n(takeHome) > 0 ? housing / takeHome : '',
     cash, steps, ready: price <= 0 ? '' : steps[2].done,
   };
+}
+
+/**
+ * Everything the House Plan works from, read from the tracker now: the inputs on the House Plan tab and the figures the plan
+ * steps use. QA 6d and the House plan summary both start here, so they see the same numbers.
+ */
+function houseContext_() {
+  const ss = ss_();
+  const inp = {};
+  HOUSE.INPUTS.forEach(x => { const nr = ss.getRangeByName('HOUSE_' + x.key); inp[x.key.toLowerCase()] = nr ? nr.getValue() : ''; });
+  const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
+  const debts = readTable_(tdef_('DEBTS')), funds = readTable_(tdef_('FUNDS')), recur = readTable_(tdef_('RECUR')), expect = readTable_(tdef_('EXPECT'));
+  const cards = debts.filter(d => d.debtType === 'Credit Card' && num(d.latestBalance) !== 0).map(d => ({ name: String(d.name), balance: num(d.latestBalance), apr: num(d.apr), interest: num(d.estMonthlyInterest), paused: d.interestPaused === true }));
+  const ef = funds.filter(f => f.fundType === 'Emergency Fund');
+  const hf = inp.fund ? funds.filter(f => f.id === inp.fund)[0] : null;
+  const active = expect.filter(x => x.active === true);
+  const fs = ss.getSheetByName(SHEETS.FINSUM);
+  const leftOver = fs && typeof FINSUM !== 'undefined' ? fs.getRange(FINSUM.CARD_VALUE, 7).getValue() : '';
+  const today = new Date();
+  return {
+    inp,
+    cards, cardDebt: cards.reduce((t, c) => t + c.balance, 0),
+    efNeeded: ef.reduce((t, f) => t + num(f.amountNeeded), 0), efTarget: ef.reduce((t, f) => t + num(f.target), 0), efCurrent: ef.reduce((t, f) => t + num(f.current), 0),
+    houseSaved: hf ? num(hf.current) : 0, houseFund: hf ? String(hf.name) : '',
+    rent: recur.filter(x => x.subcategory === 'Mortgage or Rent' && x.active === true).reduce((t, x) => t + num(x.monthlyEq), 0),
+    gross: active.reduce((t, x) => t + num(x.monthlyGross), 0), takeHome: active.reduce((t, x) => t + num(x.monthlyTakeHome), 0),
+    leftOver: typeof leftOver === 'number' ? leftOver : '',
+    // debts the plan cannot count yet: a balance never entered (a loan whose details are still to come)
+    unknownDebts: debts.filter(d => d.name && (d.latestBalance === '' || d.latestBalance === null || (num(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date) && !d.linkedAccount))).map(d => String(d.name)),
+    otherDebt: debts.filter(d => d.debtType !== 'Credit Card').reduce((t, d) => t + num(d.latestBalance), 0),
+    otherMinimums: debts.filter(d => d.debtType !== 'Credit Card' && num(d.latestBalance) > 0).reduce((t, d) => t + num(d.minPayment), 0),
+    asOf: Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM d, yyyy'),
+    start: new Date(today.getFullYear(), today.getMonth() + 1, 1),
+  };
+}
+
+/** The House Plan's figures from houseContext_ (the arithmetic the House Plan tab's formulas use). */
+function housePlanFromContext_(c) {
+  return housePlan_(c.inp, c.cardDebt, c.efNeeded, c.houseSaved, c.rent, c.gross, c.takeHome, c.start);
+}
+
+/** Menu: Finance Tracker → House plan summary. A designed page of the plan, with the tracker's numbers as they are now. */
+function showHousePlan() {
+  toast_('Opening the house plan…', 'House plan');
+  const c = houseContext_();
+  const t = HtmlService.createTemplateFromFile('HouseDialog');
+  const data = Object.assign({}, c, { start: [c.start.getFullYear(), c.start.getMonth()], inputs: HOUSE.INPUTS.map(x => ({ key: x.key, label: x.label, fmt: x.fmt, note: x.note })) });
+  // "<" is escaped so no text in the data can close the page's script tag
+  t.dataJson = JSON.stringify(data).replace(/</g, '\\u003c');
+  t.planSrc = housePlan_.toString(); // the page works out what-ifs with the very same arithmetic
+  ui_().showModalDialog(t.evaluate().setWidth(1040).setHeight(800), 'House plan');
+}
+
+/** Called from the House plan summary: keep the price, monthly amount, down payment and rate the owner settled on (on the House Plan tab). */
+function saveHousePlanInputs(price, monthly, down, rate) {
+  const ok = (v, lo, hi) => typeof v === 'number' && isFinite(v) && v >= lo && v <= hi;
+  const ss = ss_();
+  if (!ss.getRangeByName('HOUSE_PRICE')) throw new Error('Nothing was saved: the House Plan tab is missing. Run Upgrade workbook first.');
+  if (!ok(price, 0, 1e8) || !ok(monthly, 0, 1e6) || !ok(down, 0, 1) || !ok(rate, 0, 0.2)) throw new Error('Nothing was saved: a number was out of range.');
+  ss.getRangeByName('HOUSE_PRICE').setValue(Math.round(price));
+  ss.getRangeByName('HOUSE_MONTHLY').setValue(Math.round(monthly));
+  ss.getRangeByName('HOUSE_DOWN').setValue(down);
+  ss.getRangeByName('HOUSE_RATE').setValue(rate);
+  return true;
 }

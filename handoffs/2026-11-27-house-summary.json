@@ -1,0 +1,55 @@
+{
+  "title": "House Plan Summary",
+  "key": "household-finance-tracker-2026-11-27-house-summary",
+  "subtitle": "A designed summary of your house plan that opens inside the Sheet, with live numbers and what-ifs.",
+  "intro": [
+    "The code reaches your Sheet on its own. A new menu item, **Finance Tracker → 🏠 House plan summary**, opens a page inside the Sheet (like the Calendar). One quick **Upgrade workbook** refreshes the House Plan tab to match.",
+    "**What it shows:** the cash to have ready, the monthly cost all in, and when you could be ready to buy. It also shows the plan as a timeline (credit cards, then the emergency fund, then the house), where you stand today, whether the payment fits your pay, the cost broken down, and what the plan leaves out.",
+    "**Live:** every time it opens, it reads your tracker as it is: card balances, the emergency fund, rent, pay and Likely Left Over.",
+    "**What-ifs:** change the price, the monthly amount, the down payment or the rate at the top and everything updates. **Save these to the tracker** keeps them on the House Plan tab. The House Plan tab stays as the place for the other assumptions (closing costs, taxes, insurance, repairs).",
+    "**What does not change:** your data and every other tab."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before house summary 2026-11-27`."
+        }
+      ]
+    },
+    {
+      "heading": "Open it",
+      "steps": [
+        {
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.45.0` (or later). If not, wait a minute and reload again."
+        },
+        {
+          "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
+          "done": "The report finishes without errors. Your Savings Journal entries and House Plan yellow cells are unchanged; the House Plan tab's top line now points to the summary."
+        },
+        {
+          "text": "Open **Finance Tracker → 🏠 House plan summary**.",
+          "done": "A page titled **House Plan** opens. If no price or monthly amount is saved yet, a yellow note says which starting values it used."
+        }
+      ]
+    },
+    {
+      "heading": "Try it and keep what you choose",
+      "steps": [
+        {
+          "text": "Drag the **House price** and **Put toward the plan each month** sliders, or type numbers, and try a different down payment or rate.",
+          "done": "The three summary boxes, the timeline and the tables update as you go."
+        },
+        {
+          "text": "When you settle on a price and a monthly amount, click **Save these to the tracker**.",
+          "done": "The page says **Saved to the House Plan tab**, and the yellow cells on the House Plan tab show the same numbers."
+        },
+        {
+          "text": "Optional: open **Finance Tracker → Run QA checks**.",
+          "done": "The **House Plan** line passes."
+        }
+      ]
+    }
+  ]
+}

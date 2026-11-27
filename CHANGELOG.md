@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-11-27 — House plan summary (a page inside the Sheet)
+- Why (the owner): the House Plan tab looked plain; he wanted an HTML
+  summary of the plan to refer to, inside the Sheet.
+- `HouseDialog.html` (new) and `HousePlan.gs` (`showHousePlan`,
+  `houseContext_`, `housePlanFromContext_`, `saveHousePlanInputs`): menu
+  Finance Tracker → 🏠 House plan summary opens a designed page with the
+  tracker's figures as they are now. It shows the summary band, the plan as
+  a timeline, where you stand, whether the payment fits your pay (with a
+  comfortable price and what a lender may approve), the cost broken down,
+  the cash to have ready, and what the plan leaves out. What-if controls
+  (price, monthly amount, down payment, rate) use the same `housePlan_`
+  arithmetic, and Save writes them to the House Plan tab. QA 6d now reads
+  through `houseContext_` too. `Main.gs`: the menu item. The House Plan
+  tab's note points to the summary.
+- `BUILD_VERSION` 1.45.0. Files changed in `apps-script/`:
+  `HouseDialog.html` (new), `HousePlan.gs`, `QA.gs`, `Main.gs`,
+  `Config.gs`. **Run Upgrade workbook** (refreshes the House Plan tab's
+  formulas and note). Handoff: `handoffs/2026-11-27-house-summary.json`.
+- Data review: no must-fix; should-fix items done (card interest follows a
+  paused card, a $0 price shows as a dash, a step already covered waits for
+  the steps before it on the page and the tab, a blank rate box keeps the
+  rate, an "example price" hint, no false "no balance" alarm for a linked
+  card).
+- Also today, in the Sheet (not code): the subscription savings entered in
+  the Savings Journal, and the first money-saving strategy.
+- Tested: Node mock (opens, saves, refuses out-of-range values); the page
+  rendered in Chromium with fictional figures (no errors). Opening it in
+  the Sheet still needs trying.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — House Plan tab
 - Why (the owner): the house down payment plan on a tab of its own, taking
   the credit card payoff and the emergency fund into account.
