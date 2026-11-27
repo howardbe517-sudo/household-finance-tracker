@@ -41,9 +41,10 @@ lived through, and it is complete, so the numbers will not move. Do not
 review the month in progress, however far along it is.
 
 The one exception is a tracker too new to have a full month: when "Month in
-review" says nothing is recorded (or that its records began partway through),
-use "This month so far" instead, say so on the first slide, and mark every
-figure "to date".
+review" says nothing is recorded, that spending is unknown, or that its
+records began partway through, use "This month so far" instead, say so on
+the first slide, and mark every figure "to date". In that case do not chart
+the month against the month before: a part month beside a full one misleads.
 
 **Sample data.** If the snapshot says the workbook still contains sample
 data, say so on the first slide and in your summary: the figures are not all

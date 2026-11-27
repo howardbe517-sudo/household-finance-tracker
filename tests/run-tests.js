@@ -1976,10 +1976,18 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
   const mrSec = mr.slice(mr.indexOf('## Month in review'), mr.indexOf('## This month so far'));
   if (/^## Month in review: [A-Z][a-z]+ \d{4} \(the last full month\)/.test(mrSec) && /Came in \(take-home\): \$3,000\.00 \(Ben \$3,000\.00 · Valerie \$0\.00\), from 1 paycheck/.test(mrSec) && /- Spent: \$1,575\.00 \([A-Z][a-z]+ \d{4}: \$300\.00\)\./.test(mrSec)
     && /Saved \(cash moved to savings\): \$200\.00\. Debt payments: \$300\.00\./.test(mrSec) && /Left over: \$925\.00/.test(mrSec) && /Fixed \$1,200\.00 · Flexible \$350\.00 · Planned Irregular \$0\.00 · Unexpected \$25\.00 · no type set \$0\.00/.test(mrSec)
-    && /Flexible target \$500\.00 \(set by hand\); flexible spent \$350\.00; \$150\.00 under\./.test(mrSec) && /Fees and card interest paid: \$25\.00/.test(mrSec) && /\| Food \| \$350\.00 \| \$300\.00 \| \$50\.00 \|/.test(mrSec) && /\| \*\*Total\*\* \| \$1,575\.00 \| \$300\.00 \| \$1,275\.00 \|/.test(mrSec)
-    && /Largest purchases that were not fixed bills: \d\d-09 Food \/ Groceries \$400\.00; \d\d-18 Miscellaneous \/ Late Fees \$25\.00\./.test(mrSec) && !/999/.test(mrSec)
+    && /Flexible target \$500\.00 \(set by hand\); flexible spent \$350\.00; \$150\.00 under\./.test(mrSec) && /Bank, card and late fees: \$25\.00/.test(mrSec) && /\| Food \| \$350\.00 \| \$300\.00 \| \$50\.00 \|/.test(mrSec) && /\| \*\*Total\*\* \| \$1,575\.00 \| \$300\.00 \| \$1,275\.00 \|/.test(mrSec)
+    && /Largest purchases that were not fixed bills: \d\d-09 Food \/ Groceries \$400\.00; \d\d-18 Miscellaneous \/ Late Fees \$25\.00\. \(A purchase split/.test(mrSec) && !/999/.test(mrSec)
     && /## This month so far: [A-Z][a-z]+ \d{4}\nNothing is recorded for/.test(mr) && mr.indexOf('## Month in review') < mr.indexOf('## Typical month')) ok('snapshot month in review: the last full month in detail (came in by person, spent against the month before, saved, debt payments, left over, by spending type, the flexible target, fees, categories with the change, largest purchases by category), then this month so far; deleted rows left out');
   else bad('month in review: ' + mrSec);
+  // paychecks but no bank records: spending is unknown, not zero, and the reviewer is pointed at the month so far; a month in progress gets no Change column
+  const mr2 = R(`buildSnapshotText_({ ${base}, accounts:[], funds:[], expected:[],
+    income:[{ id:'INC-1', payDate:${day(-1, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:3000, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE' }],
+    tx:[{ id:'TX-1', date:${day(0, 1)}, type:'Expense', amount:80, category:'Food', subcategory:'Groceries', spendingType:'Flexible' }] })`);
+  const mr2a = mr2.slice(mr2.indexOf('## Month in review'), mr2.indexOf('## This month so far')), mr2b = mr2.slice(mr2.indexOf('## This month so far'), mr2.indexOf('## Typical month'));
+  if (/Came in \(take-home\): \$3,000\.00/.test(mr2a) && /spending and what was left over are unknown/.test(mr2a) && !/Left over:/.test(mr2a) && !/- Spent:/.test(mr2a) && /review this month so far instead/.test(mr2a)
+    && /- Spent: \$80\.00/.test(mr2b) && /\(to date\) \|/.test(mr2b) && !/Change/.test(mr2b)) ok('snapshot month in review: a month with paychecks but no bank records says spending is unknown and points to the month so far; the month in progress is shown without a Change column');
+  else bad('month in review (income only): ' + mr2a + mr2b);
 })();
 
 // Goals & Progress (1.40.0)

@@ -15,7 +15,13 @@
 - `BUILD_VERSION` 1.41.0. Files changed in `apps-script/`: `Export.gs`,
   `Config.gs`. Nothing to run in the Sheet. The owner saves the new skill
   file over the old one.
-- Tested: Node mock (a new snapshot test); the skill was not re-run after
+- Data review: no must-fix; four should-fix items done: a month with
+  paychecks but no bank records says spending is unknown; the month in
+  progress is shown beside the full month before without a Change column,
+  and a month before that began partway is flagged; the largest-purchases
+  line says what it leaves out; fees are labelled as bank, card and late
+  fees and net of refunds.
+- Tested: Node mock (two new snapshot tests); the skill was not re-run after
   this change.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 
