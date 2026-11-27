@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.25-todo-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.26-goals-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -9,6 +9,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 | Key | Sheet | Header row | First data row | Formula rows to | ID pattern | Columns | Change-logged |
 |---|---|---:|---:|---:|---|---:|---|
 | TODO | To-Do & Reminders | 4 | 5 | 204 | (none) | 5 | no |
+| GOALPLAN | Goals & Progress | 4 | 5 | 34 | (none) | 14 | no |
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
 | INCOME | Income | 4 | 5 | 504 | INC-0001 | 19 | yes |
@@ -49,6 +50,29 @@ Named range `TBL_TODO` covers the header row through the last formula row.
 | C | Date | `date` | date | input (date) |  |
 | D | For | `person` | text | dropdown: LIST_OWNERS |  |
 | E | Notes | `notes` | text | input |  |
+
+## Goals & Progress (`GOALPLAN`)
+
+One row per goal, most important first. Pick the Kind, then the debt it pays off (Debt ID) or the fund it fills (Fund ID); the amounts on the right fill themselves in. Starting Amount is the balance on the day you set the goal, so progress can be measured. Dates and amounts are yours to set.
+
+Named range `TBL_GOALPLAN` covers the header row through the last formula row.
+
+| Col | Header | Key | Type | Source | Formula / notes |
+|---|---|---|---|---|---|
+| A | Goal | `goal` | text | input |  |
+| B | Priority | `priority` | text | input |  |
+| C | Kind | `kind` | text | dropdown: LIST_GOAL_KINDS |  |
+| D | Debt ID | `debtId` | text | dropdown: Debts IDs |  |
+| E | Fund ID | `fundId` | text | dropdown: Savings & Reserves IDs |  |
+| F | Target Amount | `target` | currency | input | Save up: the amount to reach. Pay off debt: the balance to get down to; leave blank to pay it off completely. |
+| G | Starting Amount | `start` | currency | input | Pay off debt: the balance when you set the goal (needed to show progress). Save up: what was already saved then; leave blank to count everything in the fund. |
+| H | Target Date | `targetDate` | date | input (date) |  |
+| I | Now | `current` | currency | calculated | `=IF([@goal]="","",IF([@debtId]<>"",IFERROR(N(INDEX([DEBTS.latestBalance],MATCH([@debtId],[DEBTS.id],0))),""),IF([@fundId]<>"",IFERROR(N(INDEX([FUNDS.current]…` — The debt's Latest Balance, or the fund's Current Amount. Blank until the goal names a debt or a fund. |
+| J | Left to Go | `left` | currency | calculated | `=IF(OR([@goal]="",[@current]=""),"",IF([@kind]="Pay off debt",MAX(0,[@current]-N([@target])),IF(N([@target])<=0,"",MAX(0,[@target]-[@current]))))` |
+| K | % Done | `progress` | percent | calculated | `=IF(OR([@goal]="",[@current]=""),"",IF([@kind]="Pay off debt",IF(N([@start])-N([@target])<=0,"",MIN(1,MAX(0,(N([@start])-[@current])/(N([@start])-N([@target]…` — Pay off debt: how much of the way from the Starting Amount down to the target. Save up: how much of the way from the Starting Amount (or zero) up to the target. |
+| L | Progress | `bar` | text | calculated | `=IF([@progress]="","",SPARKLINE([@progress],{"charttype","bar";"max",1;"color1","#17324D"}))` |
+| M | Needed per Month | `monthly` | currency | calculated | `=IF(OR([@left]="",[@targetDate]=""),"",IF([@left]=0,0,IF([@targetDate]<=TODAY(),[@left],[@left]/MAX(1,DATEDIF(TODAY(),[@targetDate],"M")))))` — Left to Go spread evenly over the months until the Target Date. For a debt this leaves out the interest that will be added along the way, so the real payment needs to be somewhat higher; the Payoff planner works that out. |
+| N | Notes | `notes` | text | input |  |
 
 ## Categories (`CATS`)
 
@@ -679,6 +703,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | HOUSEHOLD_PERSONAL | Household/Personal | Household, Personal |
 | PERSONS | Persons | Ben, Valerie |
 | OWNERS | Owners | Ben, Valerie, Household |
+| GOAL_KINDS | Goal Kinds | Pay off debt, Save up |
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
 | FUND_TYPES | Fund Types | Emergency Fund, Sinking Fund, Short-Term Goal, Retirement, Education, Other |

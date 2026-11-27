@@ -330,6 +330,7 @@ function buildStartHere_(withSample) {
   r++;
 
   section('The tabs, in the order they sit');
+  line('Only the tabs you work in are showing. The raw tables the bank feed and receipts fill, the calculated tables behind the summaries, and the setup tabs are hidden; nothing is removed. Finance Tracker → Show all tabs brings them back, and Show everyday tabs only hides them again.');
   [
     ['Start Here', 'This page: how the tracker works and what its words mean.'],
     ['Financial Summary', 'Where you stand: tonight\'s balances at the top (checking, savings, each card with what is owed and when it is due), then four numbers for a typical month (what comes in, the fixed costs, the average flexible spending, and what is likely left over), month by month, Children (childcare and other child costs), Fees (card, late and bank fees for the year), Savings & Reserves, Debts, income by person, payroll deductions per paycheck for each job, credit scores, net worth.'],
@@ -339,7 +340,7 @@ function buildStartHere_(withSample) {
     ['Grocery Charts', 'Graphs, one view each: Costco food each month and its 3-month average (24 months), then groceries at every store each month and its 3-month average (12 months), on a $100 scale, with the numbers behind them at the bottom.'],
     ['Savings & Reserves', 'Funds: the emergency fund and investment accounts fed by the bank feed, and sinking funds. At the bottom, About your accounts explains each savings, retirement and HSA account and the pension, and how each one stays current.'],
     ['Debts', 'Every debt with its rate, minimum, due day, live balance where the lender is connected, estimated interest, PSLF progress, interest pauses and the planned extra payment from the Payoff planner.'],
-    ['Goals', 'Five big text boxes for goals in your own words.'],
+    ['Goals & Progress', 'Your goals, one per row and most important first: pay off a debt or save up for something. Name the debt or the fund and the tab shows where it stands now, what is left, how far along it is, and what it takes each month to get there by your date.'],
     ['Income · Expected Income', 'Income is the paycheck database (gross, deductions, take-home). A paycheck that arrives in checking gets its row here on its own; Notes say "From bank deposit" and, without a stub, the gross and deductions on it are estimates. Expected Income holds the typical paycheck per employer and the pay frequency, which drive the expected monthly take-home and the automatic flexible target.'],
     ['Transactions · Import Staging', 'Transactions is the master ledger. Import Staging is where bank rows land first; reviewing a row is pick a Category, tick Reviewed?, and the next sync takes it in.'],
     ['Grocery Items · Grocery Item Names', 'Every line of every grocery receipt, from any store (Costco, Meijer, Walmart, Target): Costco\'s purchase export, or a photo of a receipt added by Claude or from a receipt block (a trip sent both ways counts once); and the readable name and category for each item number. Change a name or category on Grocery Item Names and every line follows.'],

@@ -13,6 +13,7 @@ const FINSUM = {
   CARD_LABEL: 10, CARD_VALUE: 11, CARD_SUB: 12, FLOW_LINE: 13,
   // rows 14–15: how many months the averages further down cover, and the calculated windows
   MONTHS_CELL: 'B14', MONTHS_DEFAULT: 3, WINDOW_ROW: 15, FLEX_MONTHS: 6,
+  FULL_MONTH_DAY: 3, // records that start by this day of a month cover that month in full
   HIST_BAR: 16, HIST_HEADER: 17, HIST_FIRST: 18, HIST_COUNT: 12,
   FUNDS_BAR: 31, FUNDS_HEADER: 32, FUNDS_FIRST: 33, FUNDS_COUNT: 8,
   // debts: three cards, then every debt with a balance or a payment listed underneath; everything after sits 12 rows lower than before
@@ -45,12 +46,15 @@ function buildFinancialSummary_() {
   const MR = Number(FINSUM.MONTHS_CELL.slice(1)), W = FINSUM.WINDOW_ROW;
   const N = '$B$' + MR;
   const CUR = 'DATE(YEAR(TODAY()),MONTH(TODAY()),1)';
-  // The window ends with the latest month that has a paycheck (so a new workbook averages what it
-  // has) and the divisor is the number of months in the window that have paychecks, never N when
-  // fewer months exist. Once N full months of data exist this is simply the last N months.
-  // Helper cells on the window row hold the window so every average stays short: B = last month with a
-  // paycheck, C = first month of the window, D = months in the window that have paychecks.
-  const PEND = '$B$' + W, PSTART = '$C$' + W, DIV = '$D$' + W;
+  // Averages count full months only (the owner, 2026-11-27: a month that began partway through, or is still in
+  // progress, pulled the averages down). A full month is one that is over and that the records cover from its
+  // start: the first full month (H on the window row) is the month of the earliest paycheck and of the earliest
+  // transaction when that falls in the month's first three days, otherwise the month after, whichever is later.
+  // The window is the last N full months, never reaching back before the first full month; the divisor is the
+  // number of months in it. Until one full month exists, the window is this month so far (provisional), divisor 1.
+  // Helper cells on the window row: B = last month of the window, C = first, D = months in it, H = first full month.
+  const PEND = '$B$' + W, PSTART = '$C$' + W, DIV = '$D$' + W, FIRSTFULL = '$H$' + W;
+  const PROV = '(EDATE(' + CUR + ',-1)<' + FIRSTFULL + ')'; // TRUE while no full month is on record
   const inPeriod = (tbl) => '[' + tbl + '.month],">="&' + PSTART + ',[' + tbl + '.month],"<="&' + PEND;
   const avg = (tbl, col, extra) => 'IFERROR(SUMIFS([' + tbl + '.' + col + '],' + inPeriod(tbl) + (extra || '') + ')/' + DIV + ',0)';
 
@@ -65,11 +69,14 @@ function buildFinancialSummary_() {
   put('B' + MR, FINSUM.MONTHS_DEFAULT).setBackground(COLORS.INPUT).setFontWeight('bold').setHorizontalAlignment('center')
     .setBorder(true, true, true, true, false, false, COLORS.NAVY, SpreadsheetApp.BorderStyle.SOLID)
     .setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(1, 24).setAllowInvalid(false).setHelpText('How many full months to average (1–24).').build());
-  mergePut('C' + MR + ':I' + MR, '="months: "&TEXT(' + PSTART + ',"mmm yyyy")&" – "&TEXT(' + PEND + ',"mmm yyyy")&" · "&' + DIV + '&" with paychecks counted"').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
+  mergePut('C' + MR + ':I' + MR, '=IF(' + PROV + ',"full months, and there is none on record yet: showing "&TEXT(' + CUR + ',"mmmm")&" so far","full months: "&TEXT(' + PSTART + ',"mmm yyyy")&IF(' + PSTART + '=' + PEND + ',""," – "&TEXT(' + PEND + ',"mmm yyyy"))&" ("&' + DIV + '&IF(' + DIV + '=1," month)"," months)"))').setFontColor(COLORS.MUTED_TEXT).setFontSize(9);
   put('A' + W, 'Window (calculated)').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('B' + W, F('=IFERROR(LET(e,MAX([INCOME.month]),IF(e=0,EDATE(' + CUR + ',-1),e)),EDATE(' + CUR + ',-1))')).setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('C' + W, '=EDATE(' + PEND + ',-(' + N + '-1))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
-  put('D' + W, F('=MAX(1,IFERROR(ROWS(UNIQUE(FILTER([INCOME.month],[INCOME.month]>=' + PSTART + ',[INCOME.month]<=' + PEND + '))),1))')).setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('B' + W, '=IF(' + PROV + ',' + CUR + ',EDATE(' + CUR + ',-1))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('C' + W, '=IF(' + PROV + ',' + CUR + ',MAX(EDATE(' + PEND + ',-(' + N + '-1)),' + FIRSTFULL + '))').setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('D' + W, '=DATEDIF(' + PSTART + ',' + PEND + ',"M")+1').setNumberFormat('0').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  const firstFullOf = (d) => 'IF(' + d + '=0,0,IF(DAY(' + d + ')<=' + FINSUM.FULL_MONTH_DAY + ',DATE(YEAR(' + d + '),MONTH(' + d + '),1),EDATE(DATE(YEAR(' + d + '),MONTH(' + d + '),1),1)))';
+  put('G' + W, 'First full month').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
+  put('H' + W, F('=LET(di,IFERROR(MINIFS([INCOME.payDate],[INCOME.payDate],">0"),0),dt,IFERROR(MINIFS([TX.date],[TX.date],">0",[TX.isDeleted],"<>TRUE"),0),MAX(' + firstFullOf('di') + ',' + firstFullOf('dt') + '))')).setNumberFormat('mmm yyyy').setFontSize(8).setFontColor(COLORS.MUTED_TEXT);
   sh.hideRows(W); // calculated helpers, out of sight (the owner, 2026-11-26)
   setNamedRange_('FINSUM_WINDOW_END', sh.getRange('B' + W));
   setNamedRange_('FINSUM_WINDOW_START', sh.getRange('C' + W));
@@ -153,21 +160,25 @@ function buildFinancialSummary_() {
   /* --- month by month --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.HIST_BAR + ':I' + FINSUM.HIST_BAR), 'Month by month — most recent first');
   header('A' + FINSUM.HIST_HEADER + ':G' + FINSUM.HIST_HEADER, ['Month', 'Gross', 'Take-Home', 'Spending', 'Savings', 'Debt Payments', 'Left Over']);
+  // only full months that have something recorded, most recent first (the owner, 2026-11-27: no rows of zeros, and
+  // not the month the records began partway through)
+  put('A' + FINSUM.HIST_FIRST, F('=IFERROR(ARRAY_CONSTRAIN(SORT(FILTER([SUMMARY.month],[SUMMARY.month]<' + CUR + ',[SUMMARY.month]>=EDATE(' + CUR + ',-' + FINSUM.HIST_COUNT + '),[SUMMARY.month]>=' + FIRSTFULL +
+    ',(([SUMMARY.income]<>0)+([SUMMARY.spending]<>0)+([SUMMARY.totalSavings]<>0)+([SUMMARY.debtPayments]<>0))>0),1,FALSE),' + FINSUM.HIST_COUNT + ',1),"No full month on record yet")'));
   for (let k = 0; k < FINSUM.HIST_COUNT; k++) {
     const r = FINSUM.HIST_FIRST + k;
-    const m = 'EDATE(' + CUR + ',-' + (k + 1) + ')';
-    put('A' + r, '=' + m).setNumberFormat('mmmm yyyy').setFontWeight('bold');
-    put('B' + r, F('=SUMIFS([INCOME.gross],[INCOME.month],$A' + r + ')'));
-    put('C' + r, F('=SUMIFS([INCOME.takeHome],[INCOME.month],$A' + r + ')'));
-    put('D' + r, F('=SUMIFS([SUMMARY.spending],[SUMMARY.month],$A' + r + ')'));
-    put('E' + r, F('=SUMIFS([SUMMARY.totalSavings],[SUMMARY.month],$A' + r + ')'));
-    put('F' + r, F('=SUMIFS([SUMMARY.debtPayments],[SUMMARY.month],$A' + r + ')'));
-    put('G' + r, F('=SUMIFS([SUMMARY.cashRemaining],[SUMMARY.month],$A' + r + ')'));
+    const has = 'ISNUMBER($A' + r + ')';
+    sh.getRange('A' + r).setNumberFormat('mmmm yyyy').setFontWeight('bold');
+    put('B' + r, F('=IF(' + has + ',SUMIFS([INCOME.gross],[INCOME.month],$A' + r + '),"")'));
+    put('C' + r, F('=IF(' + has + ',SUMIFS([INCOME.takeHome],[INCOME.month],$A' + r + '),"")'));
+    put('D' + r, F('=IF(' + has + ',SUMIFS([SUMMARY.spending],[SUMMARY.month],$A' + r + '),"")'));
+    put('E' + r, F('=IF(' + has + ',SUMIFS([SUMMARY.totalSavings],[SUMMARY.month],$A' + r + '),"")'));
+    put('F' + r, F('=IF(' + has + ',SUMIFS([SUMMARY.debtPayments],[SUMMARY.month],$A' + r + '),"")'));
+    put('G' + r, F('=IF(' + has + ',SUMIFS([SUMMARY.cashRemaining],[SUMMARY.month],$A' + r + '),"")'));
     sh.getRange('B' + r + ':G' + r).setNumberFormat(FORMATS.currency);
   }
   const histLast = FINSUM.HIST_FIRST + FINSUM.HIST_COUNT - 1;
   sh.getRange('A' + FINSUM.HIST_HEADER + ':G' + histLast).setBorder(true, true, true, true, true, true, COLORS.BORDER, SpreadsheetApp.BorderStyle.SOLID);
-  hoverNote_(sh, 'A' + FINSUM.HIST_BAR, 'Left Over = take-home − spending − cash savings − debt payments, from Monthly Summary. A month with no paychecks or transactions shows zeros.');
+  hoverNote_(sh, 'A' + FINSUM.HIST_BAR, 'Left Over = take-home − spending − cash savings − debt payments, from Monthly Summary. Only full months are listed: months that are over, from the first month the records cover from its start. A month with nothing recorded is left out.');
 
   /* --- Savings & Reserves --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.FUNDS_BAR + ':I' + FINSUM.FUNDS_BAR), 'Savings & Reserves');
@@ -218,8 +229,12 @@ function buildFinancialSummary_() {
     .setFontSize(9).setFontColor(COLORS.BOX_LINES);
 
   /* --- Income by Person: average per month over the period, and last month --- */
-  styleSectionBar_(sh.getRange('A' + FINSUM.INCOME_BAR + ':I' + FINSUM.INCOME_BAR), 'Income by Person — average per month over the period');
+  styleSectionBar_(sh.getRange('A' + FINSUM.INCOME_BAR + ':I' + FINSUM.INCOME_BAR), 'Income by Person');
+  // says what the averages cover: full months only, or this month so far while there is none
+  sh.getRange('A' + FINSUM.INCOME_BAR).setFormula('="Income by Person — "&IF(' + PROV + ',TEXT(' + CUR + ',"mmmm")&" so far (no full month on record yet)","average per month over "&' + DIV + '&IF(' + DIV + '=1," full month"," full months"))');
   header('A' + FINSUM.INCOME_HEADER + ':F' + FINSUM.INCOME_HEADER, ['Person', 'Avg Gross', 'Avg Take-Home', 'Avg Deductions', 'Take-Home %', 'Latest Month Take-Home']);
+  sh.getRange('F' + FINSUM.INCOME_HEADER).setFormula('=IF(' + PROV + ',"This Month So Far","Latest Full Month Take-Home")');
+  hoverNote_(sh, 'A' + FINSUM.INCOME_BAR, 'Paychecks on the Income tab, averaged over full months only: months that are over, starting with the first month the records cover from its start (a month that began partway through is left out, and so is the month still in progress). Until there is one full month, the figures are this month so far. Coming In at the top is different: it is the typical paycheck × paychecks per month from Expected Income.');
   [{ row: FINSUM.INCOME_BEN, name: 'Ben', color: COLORS.BEN }, { row: FINSUM.INCOME_VAL, name: 'Valerie', color: COLORS.VALERIE }].forEach(p => {
     put('A' + p.row, p.name).setFontWeight('bold');
     put('B' + p.row, F('=' + avg('INCOME', 'gross', ',[INCOME.person],$A' + p.row)));
@@ -293,6 +308,7 @@ function buildFinancialSummary_() {
   /* --- Children: childcare apart from the other child costs, and the two combined --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.CHILD_BAR + ':I' + FINSUM.CHILD_BAR), 'Children — childcare and other child costs');
   header('A' + FINSUM.CHILD_HEADER + ':D' + FINSUM.CHILD_HEADER, ['', 'This Month', 'Average per Month', 'Share of Spending']);
+  sh.getRange('C' + FINSUM.CHILD_HEADER).setFormula('=IF(' + PROV + ',"This Month So Far","Average per Full Month")');
   const catSpend = (cat, monthCrit) => 'SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Expense",[TX.isDeleted],"<>TRUE",' + monthCrit + ')-SUMIFS([TX.amount],[TX.category],"' + cat + '",[TX.type],"Refund",[TX.isDeleted],"<>TRUE",' + monthCrit + ')';
   const thisMonth = '[TX.month],' + CUR;
   [{ row: FINSUM.CHILD_CARE, label: 'Childcare (nanny)', cat: 'Childcare' }, { row: FINSUM.CHILD_OTHER, label: 'Other child expenses', cat: 'Child Expenses' }].forEach(c => {
@@ -426,4 +442,26 @@ function averageUtilities_(utilRows, today) {
     if (first === null || k < first) first = k;
   });
   return first === null ? 0 : Math.round(sum / Math.max(1, key(cur) - first) * 100) / 100;
+}
+
+/**
+ * The window the Financial Summary's averages cover, recomputed in plain JavaScript. Pure.
+ * Full months only: the first full month is the month of the earliest paycheck (pay date) and of the earliest live
+ * transaction when that falls within the month's first FINSUM.FULL_MONTH_DAY days, otherwise the month after,
+ * whichever is later. The window is the last n full months before this one, not reaching back before the first
+ * full month; with no full month yet it is this month so far.
+ * Returns { start, end, months, provisional, firstFull } (first-of-month dates; firstFull null with no records).
+ */
+function summaryWindow_(incomeRows, txRows, today, n) {
+  const cur = new Date(today.getFullYear(), today.getMonth(), 1);
+  const prev = new Date(cur.getFullYear(), cur.getMonth() - 1, 1);
+  const earliest = (rows, key, keep) => (rows || []).reduce((m, r) => (r[key] instanceof Date && (!keep || keep(r)) && (m === null || r[key] < m)) ? r[key] : m, null);
+  const ff = (d) => d === null ? null : new Date(d.getFullYear(), d.getMonth() + (d.getDate() <= FINSUM.FULL_MONTH_DAY ? 0 : 1), 1);
+  const a = ff(earliest(incomeRows, 'payDate')), b = ff(earliest(txRows, 'date', t => t.isDeleted !== true));
+  const firstFull = a === null ? b : b === null ? a : (a > b ? a : b);
+  if (firstFull !== null && prev < firstFull) return { start: cur, end: cur, months: 1, provisional: true, firstFull };
+  let start = new Date(prev.getFullYear(), prev.getMonth() - (Math.max(1, Number(n) || 1) - 1), 1);
+  if (firstFull !== null && start < firstFull) start = firstFull;
+  const months = (prev.getFullYear() - start.getFullYear()) * 12 + prev.getMonth() - start.getMonth() + 1;
+  return { start, end: prev, months, provisional: false, firstFull };
 }

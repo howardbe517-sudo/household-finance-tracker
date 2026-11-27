@@ -160,6 +160,13 @@ present, and *Bank feed: auto-import detected transfers and card payments*.
   snapshot. They never make a month count as "a month with spending".
 - A purchase paid from a sinking or emergency fund is still spending in the
   month it happens, and it reduces the fund.
+- Financial Summary averages (Income by Person, Children) cover full months
+  only: months that are over, from the first month the records cover from
+  its start (`summaryWindow_`); until there is one, this month so far.
+- Goals & Progress reads each goal's debt (Latest Balance) or fund (Current
+  Amount); `goalProgress_` is the same arithmetic for QA and the AI snapshot.
+- Background tabs (`BACKGROUND_TABS`) are hidden, never removed; the menu
+  shows them. Reminders and the old Goals tab are hidden and kept.
 - The Spending tab follows the Selected Month (Spending!B3, named
   `DASH_SELECTED_MONTH`; on the Dashboard before 1.13.0). Current Flexible
   Spending always follows today's month and Monday–Sunday week. Only

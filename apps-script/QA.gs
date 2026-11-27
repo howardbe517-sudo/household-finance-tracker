@@ -175,6 +175,24 @@ function qaReport_() {
     else pass('Fund ' + f.id + ' ' + f.name + ': current ' + money(exp) + ' (+' + money(contrib) + ' / −' + money(wd) + ')');
   });
 
+  /* 6b. goals: Now, Left to Go and % Done against the debt or fund each goal names */
+  if (ss.getSheetByName(SHEETS.GOALPLAN)) {
+    const goalRows = readTable_(tdef_('GOALPLAN'));
+    const debtBal = {}, fundCur = {};
+    readTable_(tdef_('DEBTS')).forEach(d => { if (d.id) debtBal[d.id] = d.latestBalance; });
+    fundRows.forEach(f => { fundCur[f.id] = f.current; });
+    const same = (a, b) => (a === '' || b === '') ? a === b : near(a, b, 0.011);
+    const goalBad = goalRows.filter(g => {
+      const e = goalProgress_(g, g.debtId in debtBal ? debtBal[g.debtId] : null, g.fundId in fundCur ? fundCur[g.fundId] : null);
+      return !same(g.current, e.current) || !same(g.left, e.left) || (e.progress === '' ? g.progress !== '' : (g.progress === '' || Math.abs(Number(g.progress) - e.progress) > 0.0005));
+    });
+    if (goalBad.length) fail('Goals & Progress: Now, Left to Go or % Done differs from the debt or fund on ' + goalBad.length + ' goal(s) (' + goalBad.slice(0, 3).map(g => g.goal).join('; ') + ')');
+    else if (goalRows.length) pass('Goals & Progress: ' + goalRows.length + ' goal(s); Now, Left to Go and % Done match the debts and funds they name');
+    else info('Goals & Progress has no goals yet');
+    const unlinked = goalRows.filter(g => !g.debtId && !g.fundId).length;
+    if (unlinked) info('Goals & Progress: ' + unlinked + ' goal(s) name no debt or fund yet, so they show no progress');
+  }
+
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
   const qdr = readTable_(tdef_('QDR')).filter(q => q.quarterEnd instanceof Date);
   const accById = {};
@@ -310,11 +328,20 @@ function qaReport_() {
   else {
     const nMonths = Number(fs.getRange(FINSUM.MONTHS_CELL).getValue()) || 3;
     const cur = monthStart_(today);
-    const incMonths = inc.filter(i => i.month instanceof Date).map(i => i.month.getTime());
-    const pEnd = incMonths.length ? new Date(Math.max.apply(null, incMonths)) : addMonths_(cur, -1);
-    const pStart = addMonths_(pEnd, -(nMonths - 1));
-    const inP = (r) => r.month instanceof Date && r.month >= pStart && r.month <= pEnd;
-    const counted = Math.max(1, Object.keys(inc.filter(inP).reduce((o, i) => { o[mk(i.month)] = true; return o; }, {})).length);
+    // the averages' window: full months only (summaryWindow_), against the helper cells and the per-person averages
+    const win = summaryWindow_(inc, tx, today, nMonths);
+    const inP = (r) => r.month instanceof Date && r.month >= win.start && r.month <= win.end;
+    const wShown = { end: fs.getRange('B' + FINSUM.WINDOW_ROW).getValue(), start: fs.getRange('C' + FINSUM.WINDOW_ROW).getValue(), months: fs.getRange('D' + FINSUM.WINDOW_ROW).getValue() };
+    const sameMonth = (a, b) => a instanceof Date && b instanceof Date && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+    const winProblems = [];
+    if (!sameMonth(wShown.start, win.start) || !sameMonth(wShown.end, win.end) || Number(wShown.months) !== win.months) winProblems.push('window shown ' + mk(wShown.start) + ' to ' + mk(wShown.end) + ' (' + wShown.months + ') ≠ ' + mk(win.start) + ' to ' + mk(win.end) + ' (' + win.months + ')');
+    [['Ben', FINSUM.INCOME_BEN], ['Valerie', FINSUM.INCOME_VAL]].forEach(p => {
+      const exp = sumWhere(inc, i => inP(i) && i.person === p[0], 'takeHome') / win.months;
+      const got = fs.getRange('C' + p[1]).getValue();
+      if (!near(got, exp, 0.02)) winProblems.push(p[0] + ' average take-home ' + money(got) + ' ≠ ' + money(exp));
+    });
+    if (winProblems.length) fail('Financial Summary averages: ' + winProblems.join('; '));
+    else pass('Financial Summary averages cover ' + (win.provisional ? 'this month so far (no full month on record yet)' : win.months + ' full month(s), ' + mk(win.start) + ' to ' + mk(win.end)) + '; income by person matches the Income tab');
     // the four cards: coming in, fixed costs, flexible (average), likely left over
     const V = FINSUM.CARD_VALUE;
     const shown = { take: fs.getRange('A' + V).getValue(), fixed: fs.getRange('C' + V).getValue(), flex: fs.getRange('E' + V).getValue(), left: fs.getRange('G' + V).getValue() };

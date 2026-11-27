@@ -1,14 +1,15 @@
 {
-  "title": "Unreviewed Charges Count Right Away",
+  "title": "One Upgrade for Today's Changes",
   "key": "household-finance-tracker-2026-11-27-waiting-charges",
-  "subtitle": "Bank charges you haven't reviewed yet now count toward spending at once, as flexible spending under \"Not categorized yet\".",
+  "subtitle": "Unreviewed charges count right away, a to-do checklist, goals with progress, fewer tabs, and averages that only count full months.",
   "intro": [
     "The code is already in your Sheet. The upgrade adds one column at the far right of **Import Staging**, **Counts as Spending?**, rewrites a few formulas, and redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
     "**Run the upgrade today.** Until it runs, the nightly bank sync pauses (it checks that Import Staging has the columns the code expects) and nothing is lost; the upgrade lets it continue.",
     "**What changes in the numbers:** spending, flexible spent, Amount Available, Spent This Week and the Financial Summary's flexible figure now include the charges still waiting on Import Staging, as flexible spending under \"Not categorized yet\". When you review a charge and the next sync imports it, it moves into its real category; the total stays the same.",
     "**Never counted:** money coming in, $0 or $1 card holds, card and loan payments, moves between your own accounts, a charge already on Transactions, and a bill that records itself. **What does not change:** your transactions and how you review.",
     "**Also in this upgrade:** on the Groceries tab, an item whose name was written two ways (\"Blackberries\" and \"BLACKBERRIES\") now shows once.",
-    "**Also in this upgrade:** a new first tab, **To-Do & Reminders**: your own checklist on the left and the automatic reminders on the right. The old Reminders tab is hidden; nothing in it is lost."
+    "**Also in this upgrade:** a new first tab, **To-Do & Reminders**: your own checklist on the left and the automatic reminders on the right. The old Reminders tab is hidden; nothing in it is lost.",
+    "**Also in this upgrade (from the review):** 16 background tabs are hidden (nothing is removed; **Finance Tracker → Show all tabs** brings them back). A new **Goals & Progress** tab replaces the old Goals boxes. On the Financial Summary, the averages count full months only and the month table no longer shows rows of zeros."
   ],
   "sections": [
     {
@@ -23,7 +24,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.39.0` (or later). If it shows an older number, wait a minute and reload again."
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.40.0` (or later). If it shows an older number, wait a minute and reload again."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
@@ -57,6 +58,18 @@
         {
           "text": "Open the new first tab, **To-Do & Reminders**.",
           "done": "The checklist columns (To-Do, Done?, Date, For, Notes) are on the left and the **Automatic reminders** box on the right. Tell Claude, and Claude adds your first to-dos."
+        },
+        {
+          "text": "Look along the tabs at the bottom.",
+          "done": "About 19 tabs show instead of 36. **Finance Tracker → Show all tabs** shows the rest; **Show everyday tabs only** hides them again."
+        },
+        {
+          "text": "Open **Financial Summary** and find **Income by Person** and **Month by month**.",
+          "done": "Until December, Income by Person reads **November so far (no full month on record yet)** and Month by month reads **No full month on record yet**. From December 1 both show November."
+        },
+        {
+          "text": "Open **Goals & Progress** (after Debts).",
+          "done": "An empty table with the columns Goal, Priority, Kind, Debt ID, Fund ID and the progress columns. Tell Claude the upgrade is done, and Claude fills in your goals and first to-dos."
         }
       ]
     }
