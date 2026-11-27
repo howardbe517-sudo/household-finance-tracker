@@ -39,7 +39,7 @@ Non-table tabs: Start Here, Dashboard, App Setup, Sources.
 
 ## To-Do & Reminders (`TODO`)
 
-Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. The automatic reminders on the right clear themselves when you update the value they ask for.
+Your own checklist: type a to-do, add a date and who it is for if you like (the date is for your reference only), and tick Done? when it is finished. To change the order, drag a row by its number on the left. The automatic reminders are in the strip just below.
 
 Named range `TBL_TODO` covers the header row through the last formula row.
 
