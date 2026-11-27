@@ -6,7 +6,8 @@
     "The code is already in your Sheet. The upgrade adds one column at the far right of **Import Staging**, **Counts as Spending?**, rewrites a few formulas, and redraws the Spending tab and the Financial Summary; your Month, Compare with and months settings stay as they are.",
     "**Run the upgrade today.** Until it runs, the nightly bank sync pauses (it checks that Import Staging has the columns the code expects) and nothing is lost; the upgrade lets it continue.",
     "**What changes in the numbers:** spending, flexible spent, Amount Available, Spent This Week and the Financial Summary's flexible figure now include the charges still waiting on Import Staging, as flexible spending under \"Not categorized yet\". When you review a charge and the next sync imports it, it moves into its real category; the total stays the same.",
-    "**Never counted:** money coming in, $0 or $1 card holds, card and loan payments, moves between your own accounts, a charge already on Transactions, and a bill that records itself. **What does not change:** your transactions and how you review."
+    "**Never counted:** money coming in, $0 or $1 card holds, card and loan payments, moves between your own accounts, a charge already on Transactions, and a bill that records itself. **What does not change:** your transactions and how you review.",
+    "**Also in this upgrade:** on the Groceries tab, an item whose name was written two ways (\"Blackberries\" and \"BLACKBERRIES\") now shows once."
   ],
   "sections": [
     {
@@ -21,7 +22,7 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.38.0`. If it shows an older number, wait a minute and reload again."
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.38.1` (or later). If it shows an older number, wait a minute and reload again."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
@@ -47,6 +48,10 @@
         {
           "text": "Open **Finance Tracker → Run QA checks**.",
           "done": "All checks pass, and one information line says how many bank charges are waiting and that they are counted as flexible spending."
+        },
+        {
+          "text": "Open the **Groceries** tab with the month set to November and look at **What you bought**.",
+          "done": "**Blackberries** and **Broccoli** each show once."
         }
       ]
     }

@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026-11-27 — One row per grocery item, whatever its capitals
+- Why (the owner): "Blackberries" and "BLACKBERRIES" were two rows on the
+  Groceries tab, each showing both together (UNIQUE tells capitals apart,
+  the sums do not).
+- `Groceries.gs`: What you bought and What you buy most group items by
+  their lower-case name and show the spelling that is not all capitals when
+  there is one. `Export.gs`: the AI snapshot's top items do the same.
+- Schema 3.24: Grocery Items' Item drops spaces at either end, so "Milk" and
+  "Milk " are one item too (data reviewer's suggestion).
+- No number changes except that the doubled rows become one. `BUILD_VERSION`
+  1.38.1. Files changed in `apps-script/`: `Groceries.gs`, `Export.gs`,
+  `Config.gs`. Run Upgrade workbook (it redraws the Groceries tab).
+- Data review: no must-fix; both should-fix items done (trim, tests).
+- Tested: Node mock; the What you bought formula run on the live Sheet in a
+  scratch cell (then cleared): Blackberries and Broccoli once each.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Charges waiting for review count as spending right away
 - Why (the owner): spending read low until every bank charge was reviewed;
   charges should count at once and be categorized after review (option 1:

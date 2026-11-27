@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.23-waiting-spend-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.24-grocery-names-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -295,7 +295,7 @@ Named range `TBL_GROC` covers the header row through the last formula row.
 | P | Is Deleted | `isDeleted` | text | checkbox |  |
 | Q | Deleted At | `deletedAt` | datetime | input |  |
 | R | Notes | `notes` | text | input |  |
-| S | Item | `item` | text | calculated | `=IF([@id]="","",IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName]))` |
+| S | Item | `item` | text | calculated | `=IF([@id]="","",TRIM(IFERROR(LET(n,INDEX([GROCNAMES.item],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(n="",[@receiptName],n)),[@receiptName])))` — Changed in 3.24: spaces at either end are dropped, so "Milk" and "Milk " are one item on the Groceries tab. |
 | T | Category | `category` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.category],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Food",c)),"Food"))` |
 | U | Subcategory | `subcategory` | text | calculated | `=IF([@id]="","",IFERROR(LET(c,INDEX([GROCNAMES.subcategory],MATCH([@itemNo],[GROCNAMES.itemNo],0)),IF(c="","Groceries",c)),"Groceries"))` |
 | V | Month | `month` | month (1st-of-month date) | calculated | `=IF([@date]="","",DATE(YEAR([@date]),MONTH([@date]),1))` |
