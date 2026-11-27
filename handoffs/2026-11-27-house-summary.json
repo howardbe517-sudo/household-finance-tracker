@@ -11,6 +11,14 @@
   ],
   "sections": [
     {
+      "heading": "Restore point",
+      "steps": [
+        {
+          "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before house summary 2026-11-27`."
+        }
+      ]
+    },
+    {
       "heading": "Open it",
       "steps": [
         {
