@@ -184,8 +184,9 @@ function buildFinancialSummary_() {
 
   /* --- Savings & Reserves --- */
   styleSectionBar_(sh.getRange('A' + FINSUM.FUNDS_BAR + ':I' + FINSUM.FUNDS_BAR), 'Savings & Reserves');
-  header('A' + FINSUM.FUNDS_HEADER + ':G' + FINSUM.FUNDS_HEADER, ['Fund Name', 'Target', 'Current', 'Amount Needed', '% Funded', 'Planned Monthly', 'Status']);
-  const fundCols = [['name', 'A'], ['target', 'B'], ['current', 'C'], ['amountNeeded', 'D'], ['pctFunded', 'E'], ['plannedMonthly', 'F'], ['status', 'G']];
+  // Current before Target, then what is still needed (the owner, 2026-11-27)
+  header('A' + FINSUM.FUNDS_HEADER + ':G' + FINSUM.FUNDS_HEADER, ['Fund Name', 'Current', 'Target', 'Amount Needed', '% Funded', 'Planned Monthly', 'Status']);
+  const fundCols = [['name', 'A'], ['current', 'B'], ['target', 'C'], ['amountNeeded', 'D'], ['pctFunded', 'E'], ['plannedMonthly', 'F'], ['status', 'G']];
   for (let k = 1; k <= FINSUM.FUNDS_COUNT; k++) {
     const r = FINSUM.FUNDS_FIRST + k - 1;
     // the k-th fund that has an ID, so an emptied row on Savings & Reserves leaves no blank line here

@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026-11-27 — Savings & Reserves: Current before Target
+- Why (the owner): read what is saved first, then the target, then what is
+  still needed; the HSA right under the savings account and the Roth IRA
+  beside the two retirement plans.
+- `FinancialSummary.gs`: the Savings & Reserves section's columns are now
+  Fund Name, Current, Target, Amount Needed (same figures, two columns
+  swapped). In the Sheet the same day: the section's two columns swapped
+  by hand, and the HSA row moved above the Roth IRA on Savings & Reserves
+  (a row move; checked by the ledger checker).
+- `BUILD_VERSION` 1.45.1. Files changed in `apps-script/`:
+  `FinancialSummary.gs`, `Config.gs`. Nothing to run. Layout only (no
+  figure changes), so no data review.
+- Tested: Node mock; the live section read back after the change.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — House plan summary (a page inside the Sheet)
 - Why (the owner): the House Plan tab looked plain; he wanted an HTML
   summary of the plan to refer to, inside the Sheet.
