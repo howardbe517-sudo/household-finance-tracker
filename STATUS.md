@@ -1,5 +1,10 @@
 # STATUS
 
+2026-11-27 (build 1.46.0): the House & money plan works the plan out month
+by month (the owner's order and wiggle room, a leave without pay). Waiting
+for the owner's upgrade; then Claude fills in the leave inputs in the
+Sheet. Still missing for correct dates: the student loan details.
+
 2026-11-27 (build 1.45.0): the owner ran the upgrade. The Savings Journal
 holds the five subscription changes and the first strategy. A House plan
 summary page (menu) opens inside the Sheet with live figures and what-ifs;

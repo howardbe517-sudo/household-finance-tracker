@@ -436,6 +436,19 @@ function buildSavingsSection_(sh) {
   bar(K.BAR_ROW, 'Estimated Savings by Category (biggest first)', 'Adds up the Savings Journal below by its Category, biggest estimated yearly saving first. Stopped changes are left out; one-time savings have their own column. These are our own estimates (old cost against new cost), not measured from spending.');
   bar(jr.headerRow - 2, jr.title, jr.note);
 
+  // every header on the tab runs the full width, like the bars (the owner, 2026-11-27)
+  [todo.headerRow, K.HEADER_ROW, jr.headerRow].forEach(r => sh.getRange(r, 1, 1, W).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold'));
+  // the strategies: How We Do It is one wide text cell per row (B:I), merged across only so every row can still be dragged
+  const MA = strat.mergeAcross, span = MA.toCol - MA.col + 1;
+  for (let r = strat.headerRow; r <= strat.lastRow; r++) {
+    const cell = sh.getRange(r, MA.col, 1, span);
+    if (!cell.getMergedRanges().length) cell.merge();
+    if (r > strat.headerRow) { cell.setWrap(true).setVerticalAlignment('top').setHorizontalAlignment('left'); sh.setRowHeight(r, 36); }
+  }
+  sh.getRange(strat.headerRow, 1, 1, W).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold');
+  sh.getRange(strat.headerRow, MA.col).setHorizontalAlignment('left');
+  sh.getRange(strat.firstRow, 1, strat.lastRow - strat.firstRow + 1, 1).setWrap(true).setVerticalAlignment('top');
+
   // the category block: header, then one formula that fills up to K.ROWS rows
   const ref = (key) => colRef_('SAVEJ', key);
   const hdr = sh.getRange(K.HEADER_ROW, 1, 1, 5);

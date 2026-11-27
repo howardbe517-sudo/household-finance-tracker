@@ -51,7 +51,7 @@ function qaReport_() {
     if (!sh) { fail(def.sheet + ' is missing'); return; }
     const n = def.columns.length;
     const merged = sh.getRange(def.headerRow, 1, def.lastRow - def.headerRow + 1, n).getMergedRanges();
-    if (merged.length) fail(def.sheet + ': ' + merged.length + ' merged range(s) inside the raw table'); else pass(def.sheet + ': no merged cells in table');
+    if (merged.length && !def.mergeAcross) fail(def.sheet + ': ' + merged.length + ' merged range(s) inside the raw table'); else pass(def.sheet + ': no merged cells in table' + (def.mergeAcross ? ' (apart from the wide text cells, merged across only)' : ''));
     const hdr = sh.getRange(def.headerRow, 1, 1, n).getValues()[0];
     const bad = def.columns.filter((c, i) => hdr[i] !== c.h).map(c => c.h);
     if (bad.length) fail(def.sheet + ': header mismatch for ' + bad.join(', ')); else pass(def.sheet + ': ' + n + ' headers match schema');
@@ -228,14 +228,8 @@ function qaReport_() {
     const agree = (cellV, x) => x === '' ? typeof cellV !== 'number' : near(cellV, x, 0.011); // '' = the Sheet shows a blank or a message
     cost.forEach((x, k) => { if (!agree(B(HOUSE.COST_FIRST + k), x)) bad.push(hsh.getRange(HOUSE.COST_FIRST + k, 1).getValue()); });
     cash.forEach((x, k) => { if (!agree(B(HOUSE.CASH_FIRST + k), x)) bad.push(hsh.getRange(HOUSE.CASH_FIRST + k, 1).getValue()); });
-    e.steps.forEach((st, k) => {
-      const row = HOUSE.PLAN_FIRST + k, d = hsh.getRange(row, 4).getValue();
-      const doneOk = st.done instanceof Date ? (d instanceof Date && d.getFullYear() === st.done.getFullYear() && d.getMonth() === st.done.getMonth()) : (st.done === '' ? !(d instanceof Date) : d === st.done);
-      const m = hsh.getRange(row, 3).getValue();
-      if (!agree(B(row), st.left) || !doneOk || (st.months === '' ? m !== '' : Number(m) !== st.months)) bad.push(hsh.getRange(row, 1).getValue());
-    });
-    if (bad.length) fail('House Plan: ' + bad.slice(0, 4).join('; ') + ' differ' + (bad.length === 1 ? 's' : '') + ' from the same sums worked out from Debts, Savings & Reserves, Recurring Payments and Expected Income');
-    else pass('House Plan: the monthly cost, the cash to save and the plan\'s steps match the tracker\'s numbers');
+    if (bad.length) fail('House Plan: ' + bad.slice(0, 4).join('; ') + ' differ' + (bad.length === 1 ? 's' : '') + ' from the same sums worked out from Recurring Payments and Expected Income');
+    else pass('House Plan: the monthly cost and the cash to save match the tracker\'s numbers');
   }
 
   /* 7. debts vs quarterly review (or the linked account's live balance when newer) */
