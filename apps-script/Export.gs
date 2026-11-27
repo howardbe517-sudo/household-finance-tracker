@@ -146,11 +146,12 @@ function buildSnapshotText_(d) {
   const exp = expected.filter(x => x.active === true);
   const comingIn = sum(exp, x => num(x.typicalTakeHome) * perMonth_(x.frequency));
   const plannedSavings = sum(funds, f => f.plannedMonthly);
-  const fixed = bills + debtPay + utilAvg + plannedSavings; // planned savings count as fixed (the owner, 2026-11-27)
+  const utilFix = utilitiesFixed_(util, today);
+  const fixed = bills + debtPay + utilFix.amount + plannedSavings; // planned savings count as fixed (the owner, 2026-11-27)
   const expPersons = exp.map(x => x.person).filter((p, i, a) => p && a.indexOf(p) === i);
   L.push('## Typical month (as on the Financial Summary)');
   L.push('- Coming in: ' + money(comingIn) + ' take-home' + (expPersons.length ? ' (' + expPersons.map(p => p + ' ' + money(sum(exp.filter(x => x.person === p), x => num(x.typicalTakeHome) * perMonth_(x.frequency)))).join(' · ') + ')' : '') + ', from Expected Income (typical paycheck × paychecks per month on average)' + (exp.length ? '.' : '. No active Expected Income row yet, so this is $0 and Likely left over is understated.'));
-  L.push('- Fixed costs: ' + money(fixed) + ' = bills ' + money(bills) + ' (active Recurring Payments, Loans group left out) + debt payments ' + money(debtPay) + ' (planned: the larger of the minimum payments and the Loans bills, plus planned extra) + utilities ' + money(utilAvg) + ' (average gas, electric and water bill ' + utilLabel + ') + planned savings ' + money(plannedSavings) + ' (Planned Monthly on Savings & Reserves).');
+  L.push('- Fixed costs: ' + money(fixed) + ' = bills ' + money(bills) + ' (active Recurring Payments, Loans group left out) + debt payments ' + money(debtPay) + ' (planned: the larger of the minimum payments and the Loans bills, plus planned extra) + utilities ' + money(utilFix.amount) + (utilFix.lastYear ? ' (gas, electric and water bills due in ' + Utilities.formatDate(utilFix.month, 'America/Detroit', 'MMMM yyyy') + ', the same month last year)' : ' (average gas, electric and water bill ' + utilLabel + '; no bill from the same month last year)') + ' + planned savings ' + money(plannedSavings) + ' (Planned Monthly on Savings & Reserves).');
   L.push('- Flexible spending (average): ' + money(flex.average) + ' — everything not marked Fixed, ' + (flex.provisional ? 'this month so far (no full month of spending yet, so provisional)' : 'averaged over ' + flex.months + ' month(s) with spending among the last ' + FINSUM.FLEX_MONTHS + ' full months') + '.');
   L.push('- Likely left over: ' + money(comingIn - fixed - flex.average) + ' = coming in − fixed (with planned savings) − flexible' + (flex.provisional ? ' (provisional)' : '') + '.');
   L.push('');

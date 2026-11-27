@@ -1482,6 +1482,17 @@ if (/Children/.test(fsSh.getRange('A' + FINSUM.CHILD_BAR).getValue()) && /"Child
     if (t3.months === 2 && near(t3.total, 180) && /2026 – .*2026/.test(t3.label) && t6.months === 3 && near(t6.total, 320) && ly.months === 1 && near(ly.total, 240) && /2025 – .*2025/.test(ly.label) && none.months === 0 && none.total === 0) ok('typical month: months with no spending are skipped (two of three counted), refunds come off, deleted rows and transfers are ignored, the current month is never in the window; same three months last year works'); else bad('typicalMonth_: ' + JSON.stringify([t3, t6, ly, none]));
   })();
 })();
+/* 2026-11-27: the utilities in Fixed Costs are the bills due in the same month last year, else the 12-month average (fictional bills) */
+(function () {
+  const v = R(`(function () {
+    const D = (y, m, d) => new Date(y, m - 1, d);
+    const bills = [{ dueDate: D(2029, 11, 3), amount: 150 }, { dueDate: D(2029, 11, 5), amount: 30 }, { dueDate: D(2030, 6, 3), amount: 90 }, { dueDate: D(2030, 9, 2), amount: 120 }];
+    const a = utilitiesFixed_(bills, D(2030, 11, 20)), b = utilitiesFixed_(bills, D(2030, 12, 20));
+    return [a.amount, a.lastYear, b.lastYear, b.amount === averageUtilities_(bills, D(2030, 12, 20))];
+  })()`);
+  if (JSON.stringify(v) === JSON.stringify([180, true, false, true])) ok('utilities in Fixed Costs: the bills due in the same month last year (gas and electric change with the season), the 12-month average when there is none');
+  else bad('utilities same month last year: ' + JSON.stringify(v));
+})();
 /* 2026-11-26 (option A): under each summary box, the names and the amounts are two cells with the same lines, so each amount sits beside its name */
 (function () {
   const lines = (f) => (String(f).match(/CHAR\(10\)/g) || []).length;

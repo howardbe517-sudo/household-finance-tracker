@@ -313,7 +313,7 @@ function qaReport_() {
     const debtRows = readTable_(tdef_('DEBTS'));
     const extraAll = ss.getRangeByName('SETTING_DEBT_EXTRA_ALL');
     const debtPay = Math.max(debtRows.reduce((s, d) => s + Number(d.minPayment || 0), 0), loans) + debtRows.reduce((s, d) => s + Number(d.plannedExtra || 0), 0) + (extraAll ? Number(extraAll.getValue()) || 0 : 0);
-    const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? averageUtilities_(readTable_(tdef_('UTIL')), today) : 0;
+    const utilAvg = ss.getSheetByName(SHEETS.UTIL) ? utilitiesFixed_(readTable_(tdef_('UTIL')), today).amount : 0; // same month last year, else the 12-month average
     const flexT = typicalFlexible_(tx, today);
     const fsProblems = [];
     const plannedSave = readTable_(tdef_('FUNDS')).reduce((s, f) => s + (typeof f.plannedMonthly === 'number' ? f.plannedMonthly : 0), 0);
