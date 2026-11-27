@@ -138,8 +138,9 @@ function buildHousePlan_() {
     const row = p(k), noPrice = k === 2 ? P + '<=0' : 'FALSE';
     sh.getRange(row, 1).setValue(lab);
     sh.getRange(row, 2).setFormula(k === 2 ? '=IF(' + P + '<=0,"",' + F(left[k]).slice(1) + ')' : F(left[k]));
+    // a step is Done only when it and every step before it are done; a finished step after an unfinished one shares its date
     sh.getRange(row, 3).setFormula('=IF(' + noPrice + ',"",IF(N($B$' + row + ')<=0,0,IF(' + M + '<=0,"",' + RU(upTo(k)) + '-' + (k === 0 ? '0' : RU(upTo(k - 1))) + ')))');
-    sh.getRange(row, 4).setFormula('=IF(' + noPrice + ',"Type a house price",IF(N($B$' + row + ')<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + RU(upTo(k)) + '-1))))');
+    sh.getRange(row, 4).setFormula('=IF(' + noPrice + ',"Type a house price",IF(' + upTo(k) + '<=0,"Done",IF(' + M + '<=0,"Type a monthly amount",EDATE(' + START + ',' + RU(upTo(k)) + '-1))))');
     sh.getRange(row, 5).setValue(from[k]).setFontColor(COLORS.MUTED_TEXT).setFontSize(10);
   });
   setFormat_(sh.getRange(p(0), 2, 3, 1), 'currency');
@@ -179,8 +180,8 @@ function housePlan_(inp, cardDebt, efNeeded, houseSaved, rent, gross, takeHome, 
   const steps = lefts.map((left, k) => {
     if (k === 2 && price <= 0) return { left: '', months: '', done: 'Type a house price' };
     cumLeft += Math.max(0, left);
-    if (left <= 0) return { left, months: 0, done: 'Done' };
-    if (monthly <= 0) return { left, months: '', done: '' };
+    if (cumLeft <= 0) return { left, months: 0, done: 'Done' };
+    if (monthly <= 0) return { left, months: left <= 0 ? 0 : '', done: '' };
     const upTo = ru(cumLeft), months = upTo - prevMonths;
     prevMonths = upTo;
     return { left, months, done: new Date(start.getFullYear(), start.getMonth() + upTo - 1, 1) };
@@ -202,7 +203,7 @@ function houseContext_() {
   HOUSE.INPUTS.forEach(x => { const nr = ss.getRangeByName('HOUSE_' + x.key); inp[x.key.toLowerCase()] = nr ? nr.getValue() : ''; });
   const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
   const debts = readTable_(tdef_('DEBTS')), funds = readTable_(tdef_('FUNDS')), recur = readTable_(tdef_('RECUR')), expect = readTable_(tdef_('EXPECT'));
-  const cards = debts.filter(d => d.debtType === 'Credit Card' && num(d.latestBalance) !== 0).map(d => ({ name: String(d.name), balance: num(d.latestBalance), apr: num(d.apr) }));
+  const cards = debts.filter(d => d.debtType === 'Credit Card' && num(d.latestBalance) !== 0).map(d => ({ name: String(d.name), balance: num(d.latestBalance), apr: num(d.apr), interest: num(d.estMonthlyInterest), paused: d.interestPaused === true }));
   const ef = funds.filter(f => f.fundType === 'Emergency Fund');
   const hf = inp.fund ? funds.filter(f => f.id === inp.fund)[0] : null;
   const active = expect.filter(x => x.active === true);
@@ -218,7 +219,7 @@ function houseContext_() {
     gross: active.reduce((t, x) => t + num(x.monthlyGross), 0), takeHome: active.reduce((t, x) => t + num(x.monthlyTakeHome), 0),
     leftOver: typeof leftOver === 'number' ? leftOver : '',
     // debts the plan cannot count yet: a balance never entered (a loan whose details are still to come)
-    unknownDebts: debts.filter(d => d.name && (d.latestBalance === '' || d.latestBalance === null || (num(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date)))).map(d => String(d.name)),
+    unknownDebts: debts.filter(d => d.name && (d.latestBalance === '' || d.latestBalance === null || (num(d.latestBalance) === 0 && !(d.balanceAsOf instanceof Date) && !d.linkedAccount))).map(d => String(d.name)),
     otherDebt: debts.filter(d => d.debtType !== 'Credit Card').reduce((t, d) => t + num(d.latestBalance), 0),
     otherMinimums: debts.filter(d => d.debtType !== 'Credit Card' && num(d.latestBalance) > 0).reduce((t, d) => t + num(d.minPayment), 0),
     asOf: Utilities.formatDate(today, Session.getScriptTimeZone(), 'MMMM d, yyyy'),

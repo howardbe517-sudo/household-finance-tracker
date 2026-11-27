@@ -16,8 +16,13 @@
   tab's note points to the summary.
 - `BUILD_VERSION` 1.45.0. Files changed in `apps-script/`:
   `HouseDialog.html` (new), `HousePlan.gs`, `QA.gs`, `Main.gs`,
-  `Config.gs`. Nothing to run: reload the Sheet. Handoff:
-  `handoffs/2026-11-27-house-summary.json`.
+  `Config.gs`. **Run Upgrade workbook** (refreshes the House Plan tab's
+  formulas and note). Handoff: `handoffs/2026-11-27-house-summary.json`.
+- Data review: no must-fix; should-fix items done (card interest follows a
+  paused card, a $0 price shows as a dash, a step already covered waits for
+  the steps before it on the page and the tab, a blank rate box keeps the
+  rate, an "example price" hint, no false "no balance" alarm for a linked
+  card).
 - Also today, in the Sheet (not code): the subscription savings entered in
   the Savings Journal, and the first money-saving strategy.
 - Tested: Node mock (opens, saves, refuses out-of-range values); the page

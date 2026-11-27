@@ -174,18 +174,18 @@ function priceFor(payment, inp) {
 
 function trackerInputs() { return Object.assign({}, D.inp); }
 let inp = trackerInputs();
-let suggested = { price: false, monthly: false };
+let suggested = { price: '', monthly: false };
 function fillDefaults() {
-  suggested = { price: false, monthly: false };
-  if (!(num(inp.price) > 0)) { inp.price = priceFor(0.25 * D.takeHome, inp) || 200000; suggested.price = D.takeHome > 0; }
-  if (!(num(inp.monthly) > 0)) { inp.monthly = D.leftOver > 0 ? Math.floor(D.leftOver / 50) * 50 : 0; suggested.monthly = D.leftOver > 0; }
+  suggested = { price: '', monthly: false };
+  if (!(num(inp.price) > 0)) { const c = priceFor(0.25 * D.takeHome, inp); inp.price = c || 200000; suggested.price = c ? 'comfortable' : 'example'; }
+  if (!(num(inp.monthly) > 0)) { inp.monthly = D.leftOver >= 50 ? Math.floor(D.leftOver / 50) * 50 : 0; suggested.monthly = D.leftOver >= 50; }
 }
 
 function readControls() {
   inp.price = Number($('price').value) || 0;
   inp.monthly = Number($('monthly').value) || 0;
   inp.down = Number($('down').value);
-  inp.rate = (Number($('rate').value) || 0) / 100;
+  if ($('rate').value !== '' && isFinite(Number($('rate').value))) inp.rate = Number($('rate').value) / 100; // a blank box keeps the last rate
 }
 function writeControls() {
   $('price').value = Math.round(num(inp.price)); $('priceR').value = Math.round(num(inp.price));
@@ -199,7 +199,8 @@ function writeControls() {
 function render() {
   const p = housePlan_(inp, D.cardDebt, D.efNeeded, D.houseSaved, D.rent, D.gross, D.takeHome, start);
   const hints = [];
-  if (suggested.price) hints.push('No house price is saved yet: this starts at the price where the housing payment is about 25% of your take-home.');
+  if (suggested.price === 'comfortable') hints.push('No house price is saved yet: this starts at the price where the housing payment is about 25% of your take-home.');
+  if (suggested.price === 'example') hints.push('No house price is saved yet, and there is no take-home pay to work one out from: this is only an example price.');
   if (suggested.monthly) hints.push('No monthly amount is saved yet: this starts at Likely Left Over from the Financial Summary.');
   $('hint').hidden = !hints.length; $('hint').textContent = hints.join(' ') + (hints.length ? ' Save to keep them.' : '');
 
@@ -209,7 +210,7 @@ function render() {
   $('tAll').textContent = usd(p.allIn);
   $('tAllS').textContent = p.overRent === '' ? 'housing payment ' + usd(p.housing) + ' plus repairs' : (p.overRent >= 0 ? usd(p.overRent) + ' more than rent now' : usd(-p.overRent) + ' less than rent now');
   const ready = p.steps[2].done;
-  $('tReady').textContent = ready instanceof Date ? month(ready) : (ready === 'Done' ? 'Now' : (num(inp.monthly) > 0 ? '—' : 'Set a monthly amount'));
+  $('tReady').textContent = ready instanceof Date ? month(ready) : (ready === 'Done' ? 'Now' : ready === 'Type a house price' ? 'Set a price' : (num(inp.monthly) > 0 ? '—' : 'Set a monthly amount'));
   $('tReadyS').textContent = num(inp.monthly) > 0 ? 'at ' + usd(inp.monthly) + ' a month, starting ' + month(start) : 'type what you can put toward the plan';
 
   // timeline
@@ -219,7 +220,7 @@ function render() {
   $('tStart').textContent = total ? 'Starting ' + month(start) : '';
   $('tEnd').textContent = total && ready instanceof Date ? 'Ready about ' + month(ready) : '';
   $('steps').innerHTML = p.steps.map((s, k) => '<tr><td><span class="dot" style="background:var(--' + ['card', 'ef', 'house'][k] + ')"></span>' + (k + 1) + '. ' + names[k] + '</td><td class="n">' + (s.left === '' ? '—' : usd(s.left)) + '</td><td class="n">' + (s.months === '' ? '—' : s.months) + '</td><td class="n">' + esc(s.done instanceof Date ? month(s.done) : (s.done || '—')) + '</td></tr>').join('');
-  const cardInt = D.cards.reduce((t, c) => t + c.balance * c.apr / 12, 0);
+  const cardInt = D.cards.reduce((t, c) => t + num(c.interest), 0); // the Debts tab's Estimated Monthly Interest (0 while interest is paused)
   $('planNote').textContent = 'All of the monthly amount goes to one step at a time, on top of your regular bills and minimum payments; money left in one step\'s last month carries on to the next. Card interest is not included'
     + (cardInt > 0 ? ' (about ' + usd(cardInt) + ' a month at today\'s balances, so step 1 may take a little longer).' : '.');
 
@@ -230,7 +231,7 @@ function render() {
     ['Rent now', D.rent > 0 ? usd(D.rent) + ' a month' : 'not on Recurring Payments', ''],
     ['Likely left over', D.leftOver === '' ? '—' : usd(D.leftOver) + ' a month', 'Financial Summary: what a typical month leaves'],
   ];
-  D.cards.forEach(c => stand.push(['Owed on ' + c.name, usd(c.balance, true), c.apr ? (c.apr * 100).toFixed(1) + '% APR' : '']));
+  D.cards.forEach(c => stand.push(['Owed on ' + c.name, usd(c.balance, true), c.paused ? 'interest paused' : (c.apr ? (c.apr * 100).toFixed(1) + '% APR' : '')]));
   if (!D.cards.length) stand.push(['Credit cards', 'nothing owed', '']);
   stand.push(['Emergency fund', usd(D.efCurrent) + ' of ' + usd(D.efTarget), D.efNeeded > 0 ? usd(D.efNeeded) + ' to go' : 'at its target']);
   stand.push(['Saved for the house', D.houseFund ? usd(D.houseSaved) : 'no house fund yet', D.houseFund ? D.houseFund : 'Pick one on the House Plan tab once you open it']);
@@ -245,8 +246,8 @@ function render() {
   $('afford').innerHTML = meter(p.shareGross, 0.28, 0.5, 'Housing payment ÷ gross pay', 'Lenders usually want 28% or less')
     + meter(p.shareTakeHome, 0.25, 0.5, 'Housing payment ÷ take-home', 'About 25% leaves room for everything else')
     + '<table><tbody>'
-    + '<tr><td>Comfortable price<div class="small">Housing payment about 25% of take-home</div></td><td class="n">' + usd(comfy) + '</td></tr>'
-    + '<tr><td>What a lender may approve<div class="small">Housing payment 28% of gross; other debts can lower it</div></td><td class="n">' + usd(lender) + '</td></tr>'
+    + '<tr><td>Comfortable price<div class="small">Housing payment about 25% of take-home</div></td><td class="n">' + (comfy > 0 ? usd(comfy) : '—') + '</td></tr>'
+    + '<tr><td>What a lender may approve<div class="small">Housing payment 28% of gross; other debts can lower it</div></td><td class="n">' + (lender > 0 ? usd(lender) : '—') + '</td></tr>'
     + '</tbody></table><p class="small" style="margin:8px 0 0">Both use the down payment and rate above. Gross pay includes any side income, which a lender may not count until it has two years of history.</p>';
 
   // monthly cost
@@ -276,7 +277,7 @@ function sync(fromRange) {
   if (fromRange) { $('price').value = $('priceR').value; $('monthly').value = $('monthlyR').value; }
   else { $('priceR').value = $('price').value; $('monthlyR').value = $('monthly').value; }
   readControls();
-  suggested = { price: false, monthly: false };
+  suggested = { price: '', monthly: false };
   render();
 }
 ['price', 'monthly', 'rate', 'down'].forEach(id => $(id).addEventListener('input', () => sync(false)));
@@ -286,7 +287,7 @@ $('save').addEventListener('click', () => {
   readControls();
   $('status').textContent = 'Saving…';
   google.script.run
-    .withSuccessHandler(() => { D.inp.price = inp.price; D.inp.monthly = inp.monthly; D.inp.down = inp.down; D.inp.rate = inp.rate; suggested = { price: false, monthly: false }; render(); $('status').textContent = 'Saved to the House Plan tab.'; })
+    .withSuccessHandler(() => { D.inp.price = inp.price; D.inp.monthly = inp.monthly; D.inp.down = inp.down; D.inp.rate = inp.rate; suggested = { price: '', monthly: false }; render(); $('status').textContent = 'Saved to the House Plan tab.'; })
     .withFailureHandler((e) => { $('status').textContent = String(e && e.message || e); })
     .saveHousePlanInputs(inp.price, inp.monthly, inp.down, inp.rate);
 });
