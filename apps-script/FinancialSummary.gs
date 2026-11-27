@@ -91,6 +91,15 @@ function buildFinancialSummary_() {
   const DEBTPAY = '(MAX(SUM([DEBTS.minPayment]),SUMIFS([RECUR.monthlyEq],[RECUR.active],TRUE,[RECUR.group],"Loans"))+SUM([DEBTS.plannedExtra])+N(IFERROR(SETTING_DEBT_EXTRA_ALL,0)))';
   // gas, electric and water vary, so they are not on Recurring Payments: their monthly average over the last 12 months of bills
   const UTILAVG = 'IFERROR(LET(us,EDATE(' + CUR + ',-12),uf,MINIFS([UTIL.month],[UTIL.month],">="&us,[UTIL.month],"<"&' + CUR + '),IF(uf=0,0,SUMIFS([UTIL.amount],[UTIL.month],">="&us,[UTIL.month],"<"&' + CUR + ')/MAX(1,DATEDIF(uf,' + CUR + ',"M")))),0)';
+  // utilities in Fixed Costs (the owner, 2026-11-27): gas and electric change with the season, so each utility counts the bill due in
+  // the same month last year; a utility with no bill that month (water billed every other month, a bill that moved) counts its own
+  // 12-month average instead. Utilities are those with a bill in the last 12 months.
+  const LYM = 'EDATE(' + CUR + ',-12)';
+  const UTYPES = 'UNIQUE(FILTER([UTIL.utility],[UTIL.month]>=' + LYM + ',[UTIL.month]<' + CUR + ',[UTIL.utility]<>""))';
+  const hasLY = (x) => 'COUNTIFS([UTIL.month],' + LYM + ',[UTIL.utility],' + x + ')>0';
+  const typeAvg12 = (x) => 'LET(f,MINIFS([UTIL.month],[UTIL.utility],' + x + ',[UTIL.month],">="&' + LYM + ',[UTIL.month],"<"&' + CUR + '),SUMIFS([UTIL.amount],[UTIL.utility],' + x + ',[UTIL.month],">="&' + LYM + ',[UTIL.month],"<"&' + CUR + ')/MAX(1,DATEDIF(f,' + CUR + ',"M")))';
+  const UTILLY = 'IFERROR(SUM(MAP(' + UTYPES + ',LAMBDA(x,IF(' + hasLY('x') + ',SUMIFS([UTIL.amount],[UTIL.month],' + LYM + ',[UTIL.utility],x),' + typeAvg12('x') + ')))),0)';
+  const UTILNAME = '=IFERROR(LET(n,ROWS(' + UTYPES + '),k,SUM(MAP(' + UTYPES + ',LAMBDA(x,IF(' + hasLY('x') + ',1,0)))),IF(k=0,"Utilities (avg)",IF(k=n,"Utilities ("&TEXT(' + LYM + ',"mmm yyyy")&")","Utilities ("&TEXT(' + LYM + ',"mmm yyyy")&" + avg)"))),"Utilities (avg)")';
   const FLEXAVG = 'IF(' + FLEXK + '=0,' + notFixed('[TX.month],' + CUR) + ',' + notFixed('[TX.month],">="&' + FWS + ',[TX.month],"<="&' + FWE) + '/' + FLEXK + ')';
   const V = FINSUM.CARD_VALUE;
   // Option A (the owner, 2026-11-26): the number, then what makes it up, one item per line: names on the left, amounts on the right
@@ -104,9 +113,9 @@ function buildFinancialSummary_() {
       namesF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,p&" (take-home)"))),"~from Expected Income")'),
       amountsF: F('=IFERROR(TEXTJOIN(CHAR(10),TRUE,MAP(' + people + ',LAMBDA(p,TEXT(SUMIFS([EXPECT.monthlyTakeHome],[EXPECT.person],p),"$#,##0")))),"")') },
     // planned savings count here: the transfer goes out every month like a bill (the owner, 2026-11-27)
-    { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILAVG + '+' + SAVE),
-      namesF: '="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&"Utilities (avg)"&CHAR(10)&"Planned savings"',
-      amountsF: F('=' + m0(BILLS) + '&CHAR(10)&' + m0(DEBTPAY) + '&CHAR(10)&' + m0(UTILAVG) + '&CHAR(10)&' + m0(SAVE)) },
+    { cols: ['C', 'D'], names: 'C:C', amounts: 'D:D', label: 'Fixed Costs', color: COLORS.CARD_SPENDING, f: F('=' + BILLS + '+' + DEBTPAY + '+' + UTILLY + '+' + SAVE),
+      namesF: F('="Bills"&CHAR(10)&"Debt payments"&CHAR(10)&' + UTILNAME.slice(1) + '&CHAR(10)&"Planned savings"'),
+      amountsF: F('=' + m0(BILLS) + '&CHAR(10)&' + m0(DEBTPAY) + '&CHAR(10)&' + m0(UTILLY) + '&CHAR(10)&' + m0(SAVE)) },
     { cols: ['E', 'F'], names: 'E:E', amounts: 'F:F', label: 'Flexible Spending (average)', color: COLORS.CARD_SPENDING, f: F('=' + FLEXAVG),
       // everything not marked Fixed: Flexible as marked, the two named kinds, and spending not marked yet (the rest), so the lines add up to the number
       namesF: '="Everyday (Flexible)"&CHAR(10)&"Planned irregular"&CHAR(10)&"Unexpected"&CHAR(10)&"Not marked yet"&CHAR(10)&"Averaged over"',
@@ -131,7 +140,7 @@ function buildFinancialSummary_() {
   // what each box adds up, as hover notes on the box titles (the owner, 2026-11-26: the breakdown under each box says it already)
   const rounded = ' Each line under the box is rounded to the dollar, so a list can be $1 off its total.';
   hoverNote_(sh, 'A' + FINSUM.CARD_LABEL, 'A typical month of take-home pay: each active paycheck on Expected Income × its paychecks per month on average.' + rounded);
-  hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), the average gas, electric and water bill over the last 12 months, and planned savings (the Planned Monthly amounts on Savings & Reserves), since that transfer goes out every month like a bill. Not the same as Fixed on the Spending tab, which counts only spending marked Fixed so far this month.' + rounded);
+  hoverNote_(sh, 'C' + FINSUM.CARD_LABEL, 'Every active bill on Recurring Payments (loan payments are counted under debt payments instead), the debt payments (the larger of the Debts minimums and the loan bills, plus any planned extra), for each utility (gas, electric, water…), the bill due in the same month last year, or its own 12-month average when it had no bill that month, and planned savings (the Planned Monthly amounts on Savings & Reserves), since that transfer goes out every month like a bill. Not the same as Fixed on the Spending tab, which counts only spending marked Fixed so far this month.' + rounded);
   hoverNote_(sh, 'E' + FINSUM.CARD_LABEL, 'The average per month of everything spent that is not marked Fixed, over the months with spending in the last 6 full months (this month so far until there is one).' + rounded);
   hoverNote_(sh, 'G' + FINSUM.CARD_LABEL, 'Coming in − fixed costs (which include planned savings) − flexible spending: money that is truly free. Provisional until the first full month, since flexible is then only this month so far.' + rounded, FINSUM.FLOW_LINE);
 
@@ -374,6 +383,25 @@ function typicalFlexible_(txRows, today) {
 }
 
 /** Average monthly utility bill over the last 12 months of Utility Bills (by due month), as the Financial Summary counts it. Pure. */
+/** The utilities in Fixed Costs: for each utility with a bill in the last 12 months, the bill(s) due in the same month last year, or,
+ * when it has none that month, its own 12-month average; added up. Pure.
+ * Returns { amount, lastYear: true when every utility used last year's bill, some: true when at least one did, month: that month }. */
+function utilitiesFixed_(utilRows, today) {
+  const cur = new Date(today.getFullYear(), today.getMonth(), 1);
+  const ly = new Date(today.getFullYear() - 1, today.getMonth(), 1);
+  const key = (d) => d.getFullYear() * 12 + d.getMonth();
+  const rows = (utilRows || []).filter(u => u.dueDate instanceof Date && u.utility && key(u.dueDate) >= key(ly) && key(u.dueDate) < key(cur));
+  const types = rows.map(u => String(u.utility)).filter((t, i, a) => a.indexOf(t) === i);
+  let amount = 0, hits = 0;
+  types.forEach(t => {
+    const mine = rows.filter(u => String(u.utility) === t);
+    const same = mine.filter(u => key(u.dueDate) === key(ly));
+    if (same.length) { hits++; amount += same.reduce((s, u) => s + Number(u.amount || 0), 0); }
+    else amount += averageUtilities_(mine, today);
+  });
+  return { amount: Math.round(amount * 100) / 100, lastYear: types.length > 0 && hits === types.length, some: hits > 0, month: ly };
+}
+
 function averageUtilities_(utilRows, today) {
   const cur = new Date(today.getFullYear(), today.getMonth(), 1);
   const key = (d) => d.getFullYear() * 12 + d.getMonth();

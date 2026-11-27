@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-27 — Utilities in Fixed Costs from the same month last year
+- Why (the owner): gas and electric change with the season, so Fixed Costs
+  should use the same month a year back, not the 12-month average.
+- `FinancialSummary.gs` (new `utilitiesFixed_`): each utility counts its
+  bill due in the same month last year; a utility with no bill that month
+  (water billed every few months, a bill that moved) counts its own 12-month
+  average. The line is named with that month. `QA.gs` and
+  the AI snapshot (`Export.gs`) follow.
+- In the Sheet (done by Claude, with the owner): a rent share sent between
+  the two of them was changed to a Transfer and the full month's rent,
+  paid from an unconnected account, entered by hand.
+- `BUILD_VERSION` 1.36.4. Files changed in `apps-script/`:
+  `FinancialSummary.gs`, `QA.gs`, `Export.gs`, `Config.gs`. Run Upgrade
+  workbook.
+- Tested: Node with fictional bills; the formula run in a scratch cell on the
+  live Sheet (then cleared). Data review: see the pull request.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — Planned savings shown inside Fixed Costs
 - Why (the owner): planned savings should be listed with fixed or flexible;
   the transfer goes out every month like a bill.
