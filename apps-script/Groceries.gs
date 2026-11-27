@@ -417,14 +417,17 @@ function buildGroceries_() {
   sh.setRowHeight(GROC.ITEM_NOTE, 30);
   header(GROC.ITEM_HEADER, ['Item', 'Kind', 'Times Bought', 'Quantity', 'Spent', 'Average Price', 'Saved']);
   put('A' + GROC.ITEM_FIRST, F('=ARRAYFORMULA(IFERROR(LET(g,' + live + '*([GROC.month]=' + M + '),n,' + net + ',q,' + qty + ',p,IF(ISNUMBER([GROC.amount]),[GROC.amount],0),d,IF(ISNUMBER([GROC.discount]),[GROC.discount],0),' +
-    'u,UNIQUE(FILTER([GROC.item],g<>0,[GROC.item]<>"")),' +
+    // one row per item whatever its capitals (the owner, 2026-11-27: "BLACKBERRIES" from one receipt and "Blackberries" from another were
+    // two rows, each showing both): the key is the lower-case name, shown as written on a receipt that is not all capitals when there is one
+    'u,UNIQUE(FILTER(LOWER([GROC.item]),g<>0,[GROC.item]<>"")),' +
+    'nm,MAP(u,LAMBDA(x,LET(v,FILTER([GROC.item],g<>0,LOWER([GROC.item])=x),m,IFERROR(FILTER(v,NOT(EXACT(v,UPPER(v)))),""),IF(INDEX(m,1)<>"",INDEX(m,1),PROPER(INDEX(v,1)))))),' +
     'kind,MAP(u,LAMBDA(x,INDEX(FILTER([GROC.subcategory],g<>0,[GROC.item]=x),1))),' +
     'cnt,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.item]=x)))),' +
     'qt,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.item]=x),q))),' +
     'sp,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.item]=x),n))),' +
     'avg,MAP(u,LAMBDA(x,LET(a,SUMPRODUCT(g*([GROC.item]=x),p),c,SUMPRODUCT(g*([GROC.item]=x),q),IF(c=0,"",a/c)))),' +
     'sv,MAP(u,LAMBDA(x,LET(v,-SUMPRODUCT(g*([GROC.item]=x),d),IF(v=0,"",v)))),' +
-    'ARRAY_CONSTRAIN(SORT({u,kind,cnt,qt,sp,avg,sv},5,FALSE),' + GROC.ITEM_ROWS + ',7)),""))'));
+    'ARRAY_CONSTRAIN(SORT({nm,kind,cnt,qt,sp,avg,sv},5,FALSE),' + GROC.ITEM_ROWS + ',7)),""))'));
   sh.getRange(GROC.ITEM_FIRST, 5, GROC.ITEM_ROWS, 3).setNumberFormat(FORMATS.currency);
   sh.getRange(GROC.ITEM_FIRST, 3, GROC.ITEM_ROWS, 2).setNumberFormat('0');
 
@@ -434,7 +437,10 @@ function buildGroceries_() {
   header(GROC.TOP_HEADER, ['Item', 'Kind', 'Times Bought', 'Spent', 'Per Month', 'Earlier Price', 'Latest Price', 'Change', 'Last Bought']);
   const s12 = 'EDATE(DATE(YEAR(TODAY()),MONTH(TODAY()),1),-11)';
   put('A' + GROC.TOP_FIRST, F('=ARRAYFORMULA(IFERROR(LET(g,' + live + '*([GROC.date]>=' + s12 + '),n,' + net + ',' +
-    'u,UNIQUE(FILTER([GROC.item],g<>0,[GROC.item]<>"")),' +
+    // one row per item whatever its capitals (the owner, 2026-11-27: "BLACKBERRIES" from one receipt and "Blackberries" from another were
+    // two rows, each showing both): the key is the lower-case name, shown as written on a receipt that is not all capitals when there is one
+    'u,UNIQUE(FILTER(LOWER([GROC.item]),g<>0,[GROC.item]<>"")),' +
+    'nm,MAP(u,LAMBDA(x,LET(v,FILTER([GROC.item],g<>0,LOWER([GROC.item])=x),m,IFERROR(FILTER(v,NOT(EXACT(v,UPPER(v)))),""),IF(INDEX(m,1)<>"",INDEX(m,1),PROPER(INDEX(v,1)))))),' +
     'kind,MAP(u,LAMBDA(x,INDEX(FILTER([GROC.subcategory],g<>0,[GROC.item]=x),1))),' +
     'cnt,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.item]=x)))),' +
     'sp,MAP(u,LAMBDA(x,SUMPRODUCT(g*([GROC.item]=x),n))),' +
@@ -443,7 +449,7 @@ function buildGroceries_() {
     'last,MAP(u,LAMBDA(x,INDEX(SORT(FILTER({[GROC.date],[GROC.unitPrice]},g<>0,[GROC.item]=x,ISNUMBER([GROC.unitPrice]),[GROC.unitPrice]>0),1,FALSE),1,2))),' +
     'lastd,MAP(u,LAMBDA(x,MAX(FILTER([GROC.date],g<>0,[GROC.item]=x)))),' +
     'chg,IFERROR(IF(last=first,"",last-first),""),' +
-    'ARRAY_CONSTRAIN(SORT({u,kind,cnt,sp,pm,IFERROR(first,""),IFERROR(last,""),chg,lastd},4,FALSE),' + GROC.TOP_ROWS + ',9)),""))'));
+    'ARRAY_CONSTRAIN(SORT({nm,kind,cnt,sp,pm,IFERROR(first,""),IFERROR(last,""),chg,lastd},4,FALSE),' + GROC.TOP_ROWS + ',9)),""))'));
   sh.getRange(GROC.TOP_FIRST, 3, GROC.TOP_ROWS, 1).setNumberFormat('0');
   sh.getRange(GROC.TOP_FIRST, 4, GROC.TOP_ROWS, 4).setNumberFormat(FORMATS.currency);
   sh.getRange(GROC.TOP_FIRST, 8, GROC.TOP_ROWS, 1).setNumberFormat('+$#,##0.00;-$#,##0.00;""');

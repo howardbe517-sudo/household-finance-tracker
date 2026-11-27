@@ -304,7 +304,10 @@ function buildSnapshotText_(d) {
     if (cm.length) L.push('Costco food from receipts, last 24 months (before sales tax; months with no receipt on file are left out, not zero): ' + cm.map(m => shortMonth(m) + ' ' + money(costcoFood[m])).join(' · ') + '. Average per month with receipts: ' + money(sum(cm, m => costcoFood[m]) / cm.length) + '.');
     const items = {};
     lines.filter(l => l.date >= start12 && l.item).forEach(l => {
-      const it = items[l.item] = items[l.item] || { item: l.item, kind: l.subcategory, n: 0, spent: 0, first: null, last: null };
+      // one item whatever its capitals, named as on a receipt that is not all capitals when there is one (as on the Groceries tab)
+      const key = l.item.toLowerCase();
+      const it = items[key] = items[key] || { item: l.item, kind: l.subcategory, n: 0, spent: 0, first: null, last: null };
+      if (it.item === it.item.toUpperCase() && l.item !== l.item.toUpperCase()) it.item = l.item;
       it.n++; it.spent += l.net;
       if (l.unitPrice > 0) {
         if (!it.first || l.date < it.first.date) it.first = { date: l.date, p: l.unitPrice };
