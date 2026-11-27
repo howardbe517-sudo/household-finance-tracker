@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-11-27 — The monthly review looks at last month itself
+- Why (the owner): the review deck read like averages; it should review the
+  last month every time it is made.
+- `Export.gs`: the AI snapshot now opens with **Month in review** (the last
+  full month in detail: came in by person, spent against the month before,
+  saved, debt payments, left over, by spending type, the month's flexible
+  target, fees, a category table with the change, the largest purchases by
+  category) and **This month so far** (the same for the month in progress).
+- `skills/monthly-money-review/`: the deck always reports the last full
+  month's actual figures; averages and the month before are small
+  comparisons only. A tracker with no full month yet falls back to the month
+  so far, labelled.
+- `BUILD_VERSION` 1.41.0. Files changed in `apps-script/`: `Export.gs`,
+  `Config.gs`. Nothing to run in the Sheet. The owner saves the new skill
+  file over the old one.
+- Data review: no must-fix; four should-fix items done: a month with
+  paychecks but no bank records says spending is unknown; the month in
+  progress is shown beside the full month before without a Change column,
+  and a month before that began partway is flagged; the largest-purchases
+  line says what it leaves out; fees are labelled as bank, card and late
+  fees and net of refunds.
+- Tested: Node mock (two new snapshot tests); the skill was not re-run after
+  this change.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — A monthly money review outside the Sheet
 - Why (the owner): the monthly review should not be a tab. It should be the
   tracker's snapshot taken into a Claude project: a slide deck to review

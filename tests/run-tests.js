@@ -1962,6 +1962,32 @@ if (/### Pensions/.test(pensionSnap) && /Sample Pension \(Sample Retirement Syst
     tx:[{ id:'TX-1', date:${day(-1, 10)}, type:'Expense', amount:300, category:'Housing', subcategory:'Mortgage or Rent', spendingType:'Fixed' }] })`);
   if (/the average of the 1 month\(s\) among the last 3 full months/.test(ds) && /\| Housing \| \$0\.00 \| \$300\.00 \| \$300\.00 \| 100\.0% \|/.test(ds) && /\| \$1,000\.00 \| no transactions recorded \|/.test(ds) && /Fixed \$300\.00/.test(ds)) ok('snapshot typical month divides by the months that have spending ($300, not $100) and marks a month with paychecks but no transactions');
   else bad('typical-month divisor: ' + ds.split('\n').filter(l => /Housing|average of|no transactions|Fixed \$/.test(l)).join(' | '));
+  // the month in review: last full month in detail, then this month so far (1.41.0)
+  const mr = R(`buildSnapshotText_({ ${base}, accounts:[], funds:[], expected:[],
+    plans:[{ month:${day(-1, 1)}, target:500, autoTarget:900 }],
+    income:[{ id:'INC-1', payDate:${day(-1, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:3000, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE' }],
+    tx:[{ id:'TX-1', date:${day(-1, 3)}, type:'Expense', amount:1200, category:'Housing', subcategory:'Mortgage or Rent', spendingType:'Fixed' },
+        { id:'TX-2', date:${day(-1, 9)}, type:'Expense', amount:400, category:'Food', subcategory:'Groceries', spendingType:'Flexible' },
+        { id:'TX-3', date:${day(-1, 12)}, type:'Refund', amount:50, category:'Food', subcategory:'Groceries', spendingType:'Flexible' },
+        { id:'TX-4', date:${day(-1, 15)}, type:'Savings', amount:200 }, { id:'TX-5', date:${day(-1, 16)}, type:'Debt Payment', amount:300 },
+        { id:'TX-6', date:${day(-1, 18)}, type:'Expense', amount:25, category:'Miscellaneous', subcategory:'Late Fees', spendingType:'Unexpected' },
+        { id:'TX-7', date:${day(-1, 20)}, type:'Expense', amount:999, category:'Food', subcategory:'Groceries', spendingType:'Flexible', isDeleted:true },
+        { id:'TX-8', date:${day(-2, 9)}, type:'Expense', amount:300, category:'Food', subcategory:'Groceries', spendingType:'Flexible' }] })`);
+  const mrSec = mr.slice(mr.indexOf('## Month in review'), mr.indexOf('## This month so far'));
+  if (/^## Month in review: [A-Z][a-z]+ \d{4} \(the last full month\)/.test(mrSec) && /Came in \(take-home\): \$3,000\.00 \(Ben \$3,000\.00 · Valerie \$0\.00\), from 1 paycheck/.test(mrSec) && /- Spent: \$1,575\.00 \([A-Z][a-z]+ \d{4}: \$300\.00\)\./.test(mrSec)
+    && /Saved \(cash moved to savings\): \$200\.00\. Debt payments: \$300\.00\./.test(mrSec) && /Left over: \$925\.00/.test(mrSec) && /Fixed \$1,200\.00 · Flexible \$350\.00 · Planned Irregular \$0\.00 · Unexpected \$25\.00 · no type set \$0\.00/.test(mrSec)
+    && /Flexible target \$500\.00 \(set by hand\); flexible spent \$350\.00; \$150\.00 under\./.test(mrSec) && /Bank, card and late fees: \$25\.00/.test(mrSec) && /\| Food \| \$350\.00 \| \$300\.00 \| \$50\.00 \|/.test(mrSec) && /\| \*\*Total\*\* \| \$1,575\.00 \| \$300\.00 \| \$1,275\.00 \|/.test(mrSec)
+    && /Largest purchases that were not fixed bills: \d\d-09 Food \/ Groceries \$400\.00; \d\d-18 Miscellaneous \/ Late Fees \$25\.00\. \(A purchase split/.test(mrSec) && !/999/.test(mrSec)
+    && /## This month so far: [A-Z][a-z]+ \d{4}\nNothing is recorded for/.test(mr) && mr.indexOf('## Month in review') < mr.indexOf('## Typical month')) ok('snapshot month in review: the last full month in detail (came in by person, spent against the month before, saved, debt payments, left over, by spending type, the flexible target, fees, categories with the change, largest purchases by category), then this month so far; deleted rows left out');
+  else bad('month in review: ' + mrSec);
+  // paychecks but no bank records: spending is unknown, not zero, and the reviewer is pointed at the month so far; a month in progress gets no Change column
+  const mr2 = R(`buildSnapshotText_({ ${base}, accounts:[], funds:[], expected:[],
+    income:[{ id:'INC-1', payDate:${day(-1, 5)}, person:'Ben', employer:'Sample Employer', incomeType:'Salary', gross:3000, fedTax:0, stateTax:0, ssMed:0, health:0, retirement:0, otherDed:0, notes:'SAMPLE' }],
+    tx:[{ id:'TX-1', date:${day(0, 1)}, type:'Expense', amount:80, category:'Food', subcategory:'Groceries', spendingType:'Flexible' }] })`);
+  const mr2a = mr2.slice(mr2.indexOf('## Month in review'), mr2.indexOf('## This month so far')), mr2b = mr2.slice(mr2.indexOf('## This month so far'), mr2.indexOf('## Typical month'));
+  if (/Came in \(take-home\): \$3,000\.00/.test(mr2a) && /spending and what was left over are unknown/.test(mr2a) && !/Left over:/.test(mr2a) && !/- Spent:/.test(mr2a) && /review this month so far instead/.test(mr2a)
+    && /- Spent: \$80\.00/.test(mr2b) && /\(to date\) \|/.test(mr2b) && !/Change/.test(mr2b)) ok('snapshot month in review: a month with paychecks but no bank records says spending is unknown and points to the month so far; the month in progress is shown without a Change column');
+  else bad('month in review (income only): ' + mr2a + mr2b);
 })();
 
 // Goals & Progress (1.40.0)

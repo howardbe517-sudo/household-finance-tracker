@@ -124,6 +124,7 @@ function buildSnapshotText_(d) {
   L.push('- Months are calendar months; "to date" means the current month so far. ' + (firstTx ? 'Bank transactions on record start ' + dateStr(firstTx) + '; there is no spending on record before that.' : 'No transactions are on record yet.'));
   L.push('- Spending = expenses − refunds, deleted rows left out. Transfers, savings, debt payments and the parent row of a split purchase are not spending; the pieces of a split are (a Costco charge is split by its receipt into groceries, household supplies, gas and so on).');
   L.push('- Bank charges not reviewed yet (still on Import Staging) count as flexible spending under "' + WAITING_LABEL + '" until they are reviewed and imported' + (waitTx.length ? ': ' + waitTx.length + ' now, ' + money(sum(waitTx, t => t.amount)) : ': none now') + '. Left out: money coming in, $0 or $1 card holds, card and loan payments and moves between own accounts (by the bank\'s category), charges already on Transactions, and bills that record themselves.');
+  L.push('- "Month in review" is the last full calendar month, in detail: that month is what a monthly review looks at. "This month so far" gives the same detail for the month in progress, which is partial.');
   L.push('- A typical month is the average of the months that have spending recorded; an empty month is never counted as zero.');
   L.push('- "Flexible" means two things in the workbook: Spending Type = Flexible (the Monthly Plan\'s target and weekly guidance), and everything not marked Fixed (the Financial Summary\'s flexible average). Each figure below says which.');
   L.push('- Income is take-home pay from the Income tab. A paycheck marked "from deposit" came from a bank deposit with no pay stub: its take-home is the real deposit; its gross pay and deductions are estimates.');
@@ -132,6 +133,63 @@ function buildSnapshotText_(d) {
   L.push('- Savings & reserves funds are labels on money that already sits in the account balances (a fund backed by an account is that whole account), not extra money: never add the funds to the accounts.');
   L.push('- Household Debt is every debt on the Debts tab, as on the Financial Summary; student loans are also shown on their own. A debt\'s balance is the linked account\'s live balance when there is one, else the latest Quarterly Debt Review, else the original balance.');
   L.push('');
+
+  /* The month in review: the last full calendar month in detail (the owner, 2026-11-27: the monthly review is about last
+     month itself, not averages), and the same detail for this month so far. */
+  const prevKey = (key) => { const [y, m] = key.split('-').map(Number); return mk(new Date(y, m - 2, 1)); };
+  const FEE_SUBS = ['Bank Fees', 'Card & Processing Fees', 'Late Fees'];
+  const monthBlock = (key, title, toDate) => {
+    const incRows = inMonth(income, key), sp = inMonth(spendRows, key), all = inMonth(live, key);
+    const before = inMonth(spendRows, prevKey(key));
+    L.push('## ' + title);
+    if (!incRows.length && !sp.length && !all.length) { L.push('Nothing is recorded for ' + monthName(key) + '.'); L.push(''); return false; }
+    const inc = sum(incRows, r => r._take), spent = net(sp);
+    const sav = sum(all.filter(t => t.type === 'Savings'), t => t.amount), debt = sum(all.filter(t => t.type === 'Debt Payment'), t => t.amount);
+    const waiting = sum(sp.filter(t => t._waiting), t => t.amount);
+    const startsPartway = (k) => !!firstTx && mk(firstTx) === k && firstTx.getDate() > 3;
+    if (toDate) L.push('To date, as of ' + dateStr(today) + ': the month is not over, so these are partial figures. ' + monthName(prevKey(key)) + ' is shown beside it as a full month, so the two are not like for like.');
+    if (startsPartway(key)) L.push('Bank transactions on record start ' + dateStr(firstTx) + ', partway through this month, so its spending is incomplete.');
+    if (startsPartway(prevKey(key))) L.push('Bank transactions on record start ' + dateStr(firstTx) + ', partway through ' + monthName(prevKey(key)) + ', so comparisons with that month are incomplete.');
+    L.push('- Came in (take-home): ' + money(inc) + (persons.length ? ' (' + persons.map(p => p + ' ' + money(sum(incRows.filter(r => r.person === p), r => r._take))).join(' · ') + ')' : '') + ', from ' + incRows.length + ' paycheck(s).');
+    if (!all.length && !sp.length) {
+      // paychecks but no bank records (the months before the bank feed began): spending is unknown, not zero
+      L.push('- No bank transactions are recorded for this month, so spending and what was left over are unknown.');
+      L.push('');
+      return false;
+    }
+    L.push('- Spent: ' + money(spent) + (before.length ? ' (' + monthName(prevKey(key)) + (toDate ? ', a full month' : '') + ': ' + money(net(before)) + ')' : '') + (waiting ? ', including ' + money(waiting) + ' not categorized yet' : '') + '.');
+    L.push('- Saved (cash moved to savings): ' + money(sav) + '. Debt payments: ' + money(debt) + '.');
+    L.push('- Left over: ' + money(inc - spent - sav - debt) + ' = came in − spent − saved − debt payments.');
+    L.push('- By Spending Type: ' + ['Fixed', 'Flexible', 'Planned Irregular', 'Unexpected'].map(stp => stp + ' ' + money(net(sp.filter(t => t.spendingType === stp)))).join(' · ') + ' · no type set ' + money(net(sp.filter(t => !t.spendingType))) + '.');
+    const pl = plans.filter(p => mk(p.month) === key)[0];
+    if (pl) {
+      const tgt = num(pl.target) > 0 ? num(pl.target) : num(pl.autoTarget), fl = net(sp.filter(t => t.spendingType === 'Flexible'));
+      L.push('- Flexible target ' + money(tgt) + (num(pl.target) > 0 ? ' (set by hand)' : ' (automatic)') + '; flexible spent ' + money(fl) + '; ' + (tgt - fl >= 0 ? money(tgt - fl) + ' under' : money(fl - tgt) + ' over') + (toDate ? ' so far.' : '.'));
+    }
+    const fees = net(all.filter(t => FEE_SUBS.indexOf(t.subcategory) >= 0));
+    if (fees) L.push('- Bank, card and late fees: ' + money(fees) + ' (card interest counts here when it was filed as a card fee).');
+    const cats = {};
+    sp.concat(before).forEach(t => { cats[catOf(t)] = true; });
+    const rows = Object.keys(cats).map(c => ({ c, v: net(sp.filter(t => catOf(t) === c)), b: net(before.filter(t => catOf(t) === c)) })).sort((a, b) => b.v - a.v);
+    if (rows.length) {
+      L.push('');
+      // a month in progress beside a full month is not like for like, so it gets no Change column
+      const cols = [['Category', 'l'], [monthName(key) + (toDate ? ' (to date)' : ''), 'r'], [monthName(prevKey(key)) + (toDate ? ' (full month)' : ''), 'r']].concat(toDate ? [] : [['Change', 'r']]);
+      table(cols, rows.map(r => [r.c, money(r.v), before.length ? money(r.b) : '—', before.length ? money(r.v - r.b) : '—']).concat([['**Total**', money(spent), before.length ? money(net(before)) : '—', before.length ? money(spent - net(before)) : '—']]));
+    }
+    // the largest purchases that were not fixed bills, by category only (no shop names or bank descriptions leave the Sheet)
+    const big = sp.filter(t => t.type === 'Expense' && t.spendingType !== 'Fixed' && !t._waiting).slice().sort((a, b) => num(b.amount) - num(a.amount)).slice(0, 8);
+    if (big.length) {
+      L.push('');
+      L.push('Largest purchases that were not fixed bills: ' + big.map(t => dateStr(t.date).slice(5) + ' ' + (t.category || 'uncategorized') + (t.subcategory ? ' / ' + t.subcategory : '') + ' ' + money(t.amount)).join('; ') + '. (A purchase split by its receipt appears as its pieces; charges not reviewed yet are left out.)');
+    }
+    L.push('');
+    return true;
+  };
+  const catOf = (t) => t.category || '(uncategorized)';
+  const reviewHas = monthBlock(lastFull, 'Month in review: ' + monthName(lastFull) + ' (the last full month)', false);
+  if (!reviewHas) L.push('The last full month has no spending on record, so review this month so far instead.', '');
+  monthBlock(curKey, 'This month so far: ' + monthName(curKey), true);
 
   /* Typical month (the Financial Summary's four cards) */
   const freqFactor = { Weekly: 52 / 12, Biweekly: 26 / 12, Monthly: 1, Quarterly: 1 / 3, Semiannual: 1 / 6, Annual: 1 / 12 };
@@ -243,7 +301,6 @@ function buildSnapshotText_(d) {
   const typRows = spendRows.filter(t => typMonths.indexOf(t._month) >= 0);
   const lastRows = inMonth(spendRows, lastFull);
   const lastHas = lastRows.length > 0;
-  const catOf = (t) => t.category || '(uncategorized)';
   L.push('## Spending by category');
   L.push(K ? 'This month to date, the last full month, and a typical month: the average of the ' + K + ' month(s) among the last 3 full months that have spending recorded (' + typMonths.map(shortMonth).join(', ') + '). Expenses minus refunds; deleted rows left out.'
     : 'There is no full month of spending on record yet, so no typical month: this month to date only. Expenses minus refunds; deleted rows left out.');

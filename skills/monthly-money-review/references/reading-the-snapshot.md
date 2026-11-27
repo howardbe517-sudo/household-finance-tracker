@@ -9,12 +9,14 @@ This file explains the parts that are most often misread.
 | Section | What it holds | Used for |
 |---|---|---|
 | How to read this | The tracker's definitions for this export | Everything |
+| Month in review | The last full month in detail: came in, spent, saved, debt payments, left over, by spending type, the flexible target, fees, a category table against the month before, the largest purchases | Slides 1 to 4: the heart of the deck |
+| This month so far | The same detail for the month in progress (partial) | Only when there is no full month yet; otherwise for questions about the current month |
 | Typical month | Coming in, fixed costs, flexible spending (average), likely left over | Slide 3, advice about spare money |
 | Goals | The household's goals in priority order, with progress | Slide 6, all advice |
 | Income (paychecks) | Paychecks by person and employer | Slide 1 |
-| Monthly cash flow | Per month: take-home, spending, savings, debt payments, cash remaining | Slide 1 (the review month's row) |
-| Spending by category | This month to date, last full month, typical month | Slide 2 |
-| This month's plan | Flexible target, spent so far, available; budgets if any | Slide 3 |
+| Monthly cash flow | Per month: take-home, spending, savings, debt payments, cash remaining | Trends over several months; a cross-check for slide 1 |
+| Spending by category | This month to date, last full month, typical month | The "typical month" comparison on slide 2 |
+| This month's plan | The current month's flexible target and budgets | Questions about the month in progress |
 | Groceries, Utilities | Detail for those two areas | Slide 4 when notable |
 | Recurring obligations | Every regular bill and subscription | Slides 3, 4 |
 | Savings & reserves | Funds with targets and progress | Slide 7 |
@@ -43,10 +45,14 @@ Do not add debt payments to spending to get "total outgo" without saying so.
 **"Not categorized yet"** is real spending the household has not reviewed
 yet. It counts in the totals. Mention the amount under Loose ends.
 
-**"To date" and "this month so far"** mean the current month is not over.
-If the snapshot was taken mid-month, the month's spending is partial. For a
-monthly review the cleanest picture is the last full month; if the current
-month is nearly complete, present it and say it is to date.
+**The review month is the last full month.** "Month in review" holds it.
+"This month so far" and anything marked "to date" describe the month in
+progress, which is partial; they are not what the deck reports, unless the
+tracker has no full month yet.
+
+**Largest purchases come without shop names.** The snapshot lists them by
+date and category only, on purpose. Describe them that way ("a $480 airfare
+purchase on the 10th"); do not guess the shop.
 
 **"Provisional"** means the tracker does not have a full month of history
 behind a figure yet. Carry the word onto the slide.
