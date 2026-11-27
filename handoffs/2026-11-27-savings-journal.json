@@ -1,12 +1,13 @@
 {
   "title": "Savings Journal on the To-Do Tab",
   "key": "household-finance-tracker-2026-11-27-savings-journal",
-  "subtitle": "A list of your money-saving strategies and a journal of each change you made, with the yearly saving worked out for you.",
+  "subtitle": "Your money-saving strategies, estimated savings by category (biggest first), and a journal of each change you made.",
   "intro": [
-    "The code reaches your Sheet on its own once it is merged. One upgrade adds two new sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab.",
-    "**Our Money-Saving Strategies** is a short list (10 rows) of the main ways you save, such as cutting subscriptions or cheaper swaps. Each strategy counts its journal entries and adds up what they save.",
-    "The **Savings Journal** has one row for each change you made. You type what you changed, the old cost, the new cost and how often you pay it. The **Saving** column works itself out (per year, or once for a one-time saving). A line above the journal shows the total saved a year and a month.",
-    "**The checklist now holds 15 to-dos** (rows 5 to 19), so the new sections can sit below it. Your current to-dos are all inside those rows. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
+    "The code reaches your Sheet on its own once it is merged. One upgrade adds three sections to the bottom of the **To-Do & Reminders** tab. You do not get a new tab. (This page replaces the earlier version of these steps; if you have not run the upgrade yet, these are the steps to follow.)",
+    "**Our Money-Saving Strategies** is a short typed list (8 rows) of the main ways you save, with how you do each one.",
+    "**Estimated Savings by Category** fills itself in from the journal: one row per category (Food, Household Supplies, Subscriptions and so on), biggest estimated saver first, with yearly, monthly and one-time figures.",
+    "The **Savings Journal** has one row for each change. You type what you changed, the old cost, the new cost, how often you pay it and a category. The estimated saving works itself out. A green line above it shows the estimated total a year and a month. Tick **Stopped?** if you go back to the old way: the row stays, greyed out, and is no longer counted.",
+    "**The checklist now holds 15 to-dos** (rows 5 to 19). Your current to-dos all fit. If one ever sits below row 19, the upgrade stops before changing anything and tells you which row to move up.",
     "**What does not change:** your to-dos, the reminders strip, dragging rows to reorder, and every other tab. Rows on this tab are no longer frozen at the top, so you can scroll down to the journal."
   ],
   "sections": [
@@ -22,7 +23,8 @@
       "heading": "Run the upgrade",
       "steps": [
         {
-          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.42.0` (or later). If it shows an older number, wait a minute and reload again."
+          "text": "Reload the Sheet. Open the **App Setup** tab and check that **Build Script Version** reads `1.43.0` (or later). If it shows an older number, wait a minute and reload again.",
+          "done": "It reads 1.43.0. Do not run the upgrade on 1.42.0: that was the first version of this layout."
         },
         {
           "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.",
@@ -34,16 +36,12 @@
       "heading": "Check the To-Do tab",
       "steps": [
         {
-          "text": "Open **To-Do & Reminders**.",
-          "done": "Your to-dos are unchanged at the top, with the reminders strip above them. Under row 19 is a dark bar titled **Our Money-Saving Strategies**, with its table below it."
-        },
-        {
-          "text": "Scroll down past the strategies.",
-          "done": "A second dark bar titled **Savings Journal**, a green line that reads **Saving about $0 a year**, and the journal's columns: What We Changed, Old Cost, New Cost, How Often, Strategy, Saving (per Year, or Once), Date, Notes."
+          "text": "Open **To-Do & Reminders** and scroll below your to-dos.",
+          "done": "Three dark bars: **Our Money-Saving Strategies**, **Estimated Savings by Category (biggest first)** (reading **No savings logged yet**), and **Savings Journal** with a green line that reads **Estimated savings: about $0 a year**. Hover over a bar's title for a short explanation."
         },
         {
           "text": "Tell Claude the upgrade is done.",
-          "done": "Claude fills in your first strategies and the subscription changes you have already made. Claude then asks you what the Tide Pods and Ziploc changes cost, before and after."
+          "done": "Claude adds your first strategies and the subscription changes you have already made, then asks what the Tide Pods and Ziploc changes cost."
         }
       ]
     },
@@ -51,12 +49,20 @@
       "heading": "Adding your own entries later",
       "steps": [
         {
-          "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it. For something you cancelled, the new cost is 0. Pick **How Often** and a **Strategy** from the dropdowns.",
-          "done": "**Saving** fills itself in, and the green total line and the strategy's row go up. A change that costs more now shows in red."
+          "text": "In the next empty journal row, type what you changed, then the **Old Cost** and **New Cost** each time you pay it (0 for something cancelled). Pick **How Often** and a **Category**.",
+          "done": "The estimated saving fills itself in, and the category table and the green line go up. A change that costs more now shows in red."
         },
         {
-          "text": "For a saving that happens only once, such as a discount for a few months, pick **One time** under How Often and type the total before and after.",
-          "done": "It shows in the green line as a one-time saving, kept apart from the yearly total, and in the strategy's **Saved Once** column."
+          "text": "For a rough estimate, type what it costs in a **year** before and after, and pick **Yearly**. Example: about $40 a year on Ziploc bags; washing and reusing each one 2–3 times roughly halves that, so Old Cost 40, New Cost 20. Say how you worked it out in **Notes**.",
+          "done": "It counts as $20 a year under Household Supplies."
+        },
+        {
+          "text": "For a saving that happens only once, such as a discount for a few months, pick **One time** and type the total before and after.",
+          "done": "It shows as a one-time saving, kept apart from the yearly figures."
+        },
+        {
+          "text": "To put the journal in order, open **Finance Tracker → Sort Savings Journal** and confirm.",
+          "done": "Entries are grouped by category, biggest saver first, with stopped changes at the bottom."
         }
       ]
     }

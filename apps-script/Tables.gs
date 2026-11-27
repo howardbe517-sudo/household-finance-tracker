@@ -196,18 +196,20 @@ CF_BUILDERS.TODO = (sh, def) => {
   ]));
 };
 
-// Savings Journal: a change that costs more now shows its (negative) saving in red. The checklist and the strategies keep their formats.
+// Savings Journal: a stopped change goes grey with a line through it; a change that costs more now shows its (negative) saving in
+// red. The checklist and the strategies keep their formats.
 CF_BUILDERS.SAVEJ = (sh, def) => {
   const y = cellRef_(def, 'yearly');
   sh.setConditionalFormatRules(rulesOutsideRows_(sh, def.firstRow, def.lastRow).concat([
+    cfRule_(rowRange_(sh, def), '=' + cellRef_(def, 'stopped') + '=TRUE', null, COLORS.DELETED_TEXT, { strike: true }),
     cfRule_(colRange_(sh, def, 'yearly'), '=AND(ISNUMBER(' + y + '),' + y + '<0)', null, COLORS.OVER_FONT),
   ]));
 };
 
 /**
- * A Savings Journal row's Saved per Year, as its formula works it out (TABLES.SAVEJ.yearly). Pure.
+ * A Savings Journal row's estimated saving, as its formula works it out (TABLES.SAVEJ.yearly). Pure.
  * (Old Cost − New Cost) × times a year; '' (shown blank) until What We Changed, Old Cost, New Cost and How Often are all filled in.
- * Like N() in the formula, a cost that is not a number counts as 0.
+ * Like N() in the formula, a cost that is not a number counts as 0. Worked out on a stopped row too (the totals leave it out).
  */
 function savingsPerYear_(r) {
   const blank = (v) => v === '' || v === null || v === undefined;
@@ -217,29 +219,95 @@ function savingsPerYear_(r) {
   return (n(r.oldCost) - n(r.newCost)) * (SAVING_TIMES_A_YEAR[r.often] || 0);
 }
 
+/** The journal rows that count: something typed in What We Changed, and not ticked Stopped?. Pure. */
+function savingsCounted_(journal) {
+  return (journal || []).filter(r => r.change !== '' && r.change !== null && r.change !== undefined && r.stopped !== true);
+}
+
 /**
- * Totals of the Savings Journal, as the summary line and Our Money-Saving Strategies show them. Pure.
- * journal: SAVEJ rows; strategies: STRAT rows. One-time savings are kept apart from the yearly figures.
- * Returns { perYear, oneTime, count, byStrategy: [{ strategy, changes, perYear }] }.
+ * Totals of the Savings Journal, as its summary line shows them. Pure. Stopped rows are left out; one-time savings are kept apart
+ * from the yearly figure. Returns { perYear, oneTime, count, stopped }.
  */
-function savingsTotals_(journal, strategies) {
-  const rows = (journal || []).filter(r => r.change !== '' && r.change !== null && r.change !== undefined);
-  const yearlyOf = (r) => { const y = savingsPerYear_(r); return y === '' ? 0 : y; };
-  const recurring = (r) => r.often !== 'One time';
+function savingsTotals_(journal) {
+  const rows = savingsCounted_(journal);
+  const val = (r) => { const y = savingsPerYear_(r); return y === '' ? 0 : y; };
   return {
-    perYear: rows.filter(recurring).reduce((s, r) => s + yearlyOf(r), 0),
-    oneTime: rows.filter(r => !recurring(r)).reduce((s, r) => s + yearlyOf(r), 0),
+    perYear: rows.filter(r => r.often !== 'One time').reduce((t, r) => t + val(r), 0),
+    oneTime: rows.filter(r => r.often === 'One time').reduce((t, r) => t + val(r), 0),
     count: rows.length,
-    byStrategy: (strategies || []).filter(st => st.strategy !== '' && st.strategy !== null && st.strategy !== undefined).map(st => {
-      const mine = rows.filter(r => String(r.strategy).toLowerCase() === String(st.strategy).toLowerCase());
-      return { strategy: st.strategy, changes: mine.length, perYear: mine.filter(recurring).reduce((s, r) => s + yearlyOf(r), 0), once: mine.filter(r => !recurring(r)).reduce((s, r) => s + yearlyOf(r), 0) };
-    }),
+    stopped: (journal || []).filter(r => r.change !== '' && r.change !== null && r.change !== undefined && r.stopped === true).length,
   };
 }
 
-/** Yearly savings that no strategy row picks up (a blank or mistyped Strategy), as the journal's summary line shows them: total minus the strategies' Saved per Year. Pure. */
-function savingsUnassigned_(totals) {
-  return totals.perYear - totals.byStrategy.reduce((s, b) => s + b.perYear, 0);
+/** A category's matching key and its name as the category table shows it (PROPER, as the formula does). Pure. */
+function savingsCategoryKey_(c) {
+  const t = String(c === null || c === undefined ? '' : c).trim();
+  return t === '' ? SAVINGS_BY_CAT.NOT_GROUPED.toLowerCase() : t.toLowerCase();
+}
+function savingsCategoryName_(key) {
+  return key === SAVINGS_BY_CAT.NOT_GROUPED.toLowerCase() ? SAVINGS_BY_CAT.NOT_GROUPED : key.replace(/[a-z]+/g, w => w.charAt(0).toUpperCase() + w.slice(1));
+}
+
+/**
+ * Estimated Savings by Category, as the calculated block on the To-Do tab shows it: one row per category with a counted entry,
+ * biggest yearly saving first (then biggest one-time). Pure. Returns [{ category, changes, perYear, perMonth, once }].
+ */
+function savingsByCategory_(journal) {
+  const rows = savingsCounted_(journal), by = {}, order = [];
+  rows.forEach(r => {
+    const k = savingsCategoryKey_(r.category);
+    if (!by[k]) { by[k] = { category: savingsCategoryName_(k), changes: 0, perYear: 0, once: 0 }; order.push(k); }
+    const y = savingsPerYear_(r), v = y === '' ? 0 : y;
+    by[k].changes++;
+    if (r.often === 'One time') by[k].once += v; else by[k].perYear += v;
+  });
+  return order.map(k => Object.assign(by[k], { perMonth: by[k].perYear / 12 })).sort((a, b) => b.perYear - a.perYear || b.once - a.once);
+}
+
+/**
+ * The order Finance Tracker → Sort Savings Journal puts the entries in: grouped by category, the category with the biggest
+ * estimated yearly saving first (as the category table), and within a category the biggest saving first; stopped changes last,
+ * grouped the same way. Pure; returns a new array.
+ */
+function savingsSortOrder_(journal) {
+  const rows = (journal || []).filter(r => r.change !== '' && r.change !== null && r.change !== undefined);
+  const rank = {};
+  savingsByCategory_(rows).forEach((c, i) => { rank[savingsCategoryKey_(c.category)] = i; });
+  const val = (r) => { const y = savingsPerYear_(r); return y === '' ? -Infinity : y; };
+  return rows.map((r, i) => ({ r, i })).sort((a, b) => {
+    const sa = a.r.stopped === true ? 1 : 0, sb = b.r.stopped === true ? 1 : 0;
+    if (sa !== sb) return sa - sb;
+    const ka = savingsCategoryKey_(a.r.category), kb = savingsCategoryKey_(b.r.category);
+    const ra = ka in rank ? rank[ka] : 1e6, rb = kb in rank ? rank[kb] : 1e6;
+    if (ra !== rb) return ra - rb;
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    return (val(b.r) - val(a.r)) || (a.i - b.i);
+  }).map(x => x.r);
+}
+
+/** Menu: Finance Tracker → Sort Savings Journal. Asks first, then rewrites only the order of the typed entries (the formula column stays). */
+function sortSavingsJournal() {
+  const def = tdef_('SAVEJ');
+  const sh = ss_().getSheetByName(def.sheet);
+  if (!sh || sh.getRange(def.headerRow, 1).getValue() !== def.columns[0].h) { alert_('Sort Savings Journal', 'The Savings Journal is not on the To-Do & Reminders tab yet. Run Upgrade workbook first.'); return; }
+  const rows = readTable_(def);
+  if (rows.length < 2) { alert_('Sort Savings Journal', 'There is nothing to sort yet.'); return; }
+  const ui = ui_();
+  if (ui && ui.alert('Sort Savings Journal', 'Put the ' + rows.length + ' journal entries in order: by category, biggest estimated saver first, with stopped changes at the bottom? Only the order changes; nothing is added or removed.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  const sorted = savingsSortOrder_(rows);
+  const span = rows[rows.length - 1].__row - def.firstRow + 1; // every row from the first entry row to the last one, gaps included
+  const fcol = colIndex_(def, 'yearly');
+  const blocks = [[1, fcol - 1], [fcol + 1, def.columns.length]]; // the typed columns either side of the formula
+  blocks.forEach(([c1, c2]) => {
+    const keys = def.columns.slice(c1 - 1, c2).map(c => c.key);
+    const out = [];
+    for (let i = 0; i < span; i++) {
+      const r = sorted[i];
+      out.push(keys.map(k => r ? (k === 'stopped' ? r[k] === true : r[k]) : (k === 'stopped' ? false : '')));
+    }
+    sh.getRange(def.firstRow, c1, span, c2 - c1 + 1).setValues(out);
+  });
+  alert_('Sort Savings Journal', 'Sorted ' + rows.length + ' entries by category, biggest estimated saver first.');
 }
 
 // a finished goal turns green
@@ -332,31 +400,52 @@ function emptyOldTodoRows_(sh, def) {
 }
 
 /**
- * The To-Do & Reminders tab below the checklist: a bar over Our Money-Saving Strategies, a bar over the Savings Journal and the
- * journal's summary line (the owner, 2026-11-27). Holds no entered data (only titles and one formula), so build and upgrade
- * simply redraw it. Nothing is merged, so every row can still be dragged.
+ * The To-Do & Reminders tab below the checklist (the owner, 2026-11-27): a bar over Our Money-Saving Strategies; Estimated Savings
+ * by Category (one formula, biggest first); a bar over the Savings Journal and its summary line. Holds no entered data (titles,
+ * hover notes and two formulas), so build and upgrade simply redraw it. Nothing is merged, so every row can still be dragged.
+ * savingsByCategory_ and savingsTotals_ are the same arithmetic in JavaScript (QA 6c checks them against these formulas).
  */
 function buildSavingsSection_(sh) {
-  const todo = TABLES.TODO, strat = TABLES.STRAT, jr = TABLES.SAVEJ;
+  const todo = TABLES.TODO, strat = TABLES.STRAT, jr = TABLES.SAVEJ, K = SAVINGS_BY_CAT;
   const W = jr.columns.length;
   todo.columns.forEach((c, i) => { if (c.w) sh.setColumnWidth(i + 1, c.w); });
   jr.columns.forEach((c, i) => { if (c.w && i >= todo.columns.length) sh.setColumnWidth(i + 1, c.w); });
-  const bar = (row, def) => {
+  const bar = (row, title, note) => {
     const r = sh.getRange(row, 1, 1, W);
-    r.setValues([[def.title + '   ·   ' + def.note].concat(Array(W - 1).fill(''))]);
-    r.setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(11).setFontWeight('normal').setWrap(false).setVerticalAlignment('middle');
-    sh.getRange(row, 1).setFontWeight('bold');
+    r.setValues([[title].concat(Array(W - 1).fill(''))]);
+    r.setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontSize(12).setFontWeight('bold').setWrap(false).setVerticalAlignment('middle');
+    hoverNote_(sh, 'A' + row, note);
     sh.setRowHeight(row, 30);
   };
-  bar(strat.headerRow - 1, strat);
-  bar(jr.headerRow - 2, jr);
-  const yr = colRef_('SAVEJ', 'yearly'), often = colRef_('SAVEJ', 'often'), what = colRef_('SAVEJ', 'change');
-  // the strategies' Saved per Year, bounded to their own rows (an open column would run on into the journal below)
-  const stYr = q_(strat.sheet) + '!$' + colLetterOf_(strat, 'yearly') + '$' + strat.firstRow + ':$' + colLetterOf_(strat, 'yearly') + '$' + strat.lastRow;
+  bar(strat.headerRow - 1, strat.title, strat.note);
+  bar(K.BAR_ROW, 'Estimated Savings by Category (biggest first)', 'Adds up the Savings Journal below by its Category, biggest estimated yearly saving first. Stopped changes are left out; one-time savings have their own column. These are our own estimates (old cost against new cost), not measured from spending.');
+  bar(jr.headerRow - 2, jr.title, jr.note);
+
+  // the category block: header, then one formula that fills up to K.ROWS rows
+  const ref = (key) => colRef_('SAVEJ', key);
+  const hdr = sh.getRange(K.HEADER_ROW, 1, 1, 5);
+  hdr.setValues([['Category', 'Changes', 'Est. per Year', 'Est. per Month', 'Est. Saved Once']]);
+  styleHeader_(hdr);
+  const block = sh.getRange(K.FIRST_ROW, 1, K.ROWS, 5);
+  block.clearDataValidations();
+  block.setValues(Array(K.ROWS).fill(['', '', '', '', '']));
+  block.setFontColor(COLORS.TEXT).setFontSize(10).setFontWeight('normal').setBackground(null).setFontLine('none');
+  setFormat_(sh.getRange(K.FIRST_ROW, 2, K.ROWS, 1), C.int);
+  setFormat_(sh.getRange(K.FIRST_ROW, 3, K.ROWS, 3), C.cur);
+  const ng = K.NOT_GROUPED.toLowerCase();
+  sh.getRange(K.FIRST_ROW, 1).setFormula('=IFERROR(ARRAY_CONSTRAIN(ARRAYFORMULA(LET(chg,' + ref('change') + ',freq,' + ref('often') + ',cat,' + ref('category') + ',est,' + ref('yearly') + ',stp,' + ref('stopped')
+    + ',live,(chg<>"")*(stp<>TRUE),ckey,IF(TRIM(cat)="","' + ng + '",LOWER(TRIM(cat))),amt,IF(ISNUMBER(est),est,0),cats,UNIQUE(FILTER(ckey,live=1)),'
+    + 'cnt,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)))),peryr,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)*(freq<>"One time")*amt))),onetime,MAP(cats,LAMBDA(k,SUM(live*(ckey=k)*(freq="One time")*amt))),'
+    + 'SORT(HSTACK(IF(cats="' + ng + '","' + K.NOT_GROUPED + '",PROPER(cats)),cnt,peryr,peryr/12,onetime),3,FALSE,5,FALSE))),' + K.ROWS + ',5),"No savings logged yet")'); // ARRAYFORMULA: without it Google works the LET out for one cell only (#VALUE!), tested 2026-11-27
+
+  // the journal's summary line
+  const yr = ref('yearly'), often = ref('often'), what = ref('change'), stp = ref('stopped');
+  const counted = (crit) => 'SUMIFS(' + yr + ',' + often + ',' + crit + ',' + stp + ',"<>TRUE")';
   const sum = sh.getRange(jr.headerRow - 1, 1, 1, W);
   sum.setValues([Array(W).fill('')]);
   sum.setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT).setFontSize(11).setFontWeight('bold').setWrap(false).setVerticalAlignment('middle');
-  sh.getRange(jr.headerRow - 1, 1).setFormula('="Saving about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time"),"$#,##0")&" a year (about "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time")/12,"$#,##0")&" a month)   ·   one-time savings "&TEXT(SUMIFS(' + yr + ',' + often + ',"One time"),"$#,##0")&"   ·   "&COUNTIF(' + what + ',"<>")&" change(s) logged"&IF(ROUND(SUMIFS(' + yr + ',' + often + ',"<>One time")-SUM(' + stYr + '),2)=0,"","   ·   "&TEXT(SUMIFS(' + yr + ',' + often + ',"<>One time")-SUM(' + stYr + '),"$#,##0")&" a year not under any strategy above")');
+  sh.getRange(jr.headerRow - 1, 1).setFormula('="Estimated savings: about "&TEXT(' + counted('"<>One time"') + ',"$#,##0")&" a year (about "&TEXT(' + counted('"<>One time"') + '/12,"$#,##0")&" a month)   ·   one-time "&TEXT(' + counted('"One time"') + ',"$#,##0")'
+    + '&"   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',"<>TRUE")&" change(s) counted"&IF(COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)=0,"","   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)&" stopped (not counted)")');
   sh.setRowHeight(jr.headerRow - 1, 28);
 }
 

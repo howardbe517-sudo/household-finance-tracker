@@ -135,6 +135,7 @@ function onOpen() {
     .addItem('Run QA checks', 'runQA')
     .addItem('Link income deposits to paychecks', 'linkIncomeDeposits')
     .addItem('Record net worth snapshot', 'recordNetWorthSnapshot')
+    .addItem('Sort Savings Journal', 'sortSavingsJournal')
     .addSeparator()
     .addItem('Show all tabs', 'showAllTabs')
     .addItem('Show everyday tabs only', 'showEverydayTabs')
