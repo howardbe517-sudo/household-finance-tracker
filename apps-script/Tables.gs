@@ -271,7 +271,7 @@ function savingsByCategory_(journal) {
 function savingsSummaryText_(t) {
   const n = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
   const usd = (x) => { const r = Math.round(Math.abs(x)); return (r !== 0 && x < 0 ? '-' : '') + '$' + String(r).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
-  return 'Estimated savings: about ' + usd(t.perYear) + ' a year (about ' + usd(t.perYear / 12) + ' a month; ' + usd(n(t.firm)) + ' firm, ' + usd(t.perYear - n(t.firm)) + ' rough)   ·   one-time ' + usd(t.oneTime) + '   ·   ' + t.count + ' change(s) counted' + (t.stopped ? '   ·   ' + t.stopped + ' stopped (not counted)' : '');
+  return 'Estimated savings: about ' + usd(t.perYear) + ' a year (about ' + usd(t.perYear / 12) + ' a month; ' + usd(n(t.firm)) + ' firm, ' + usd(Math.round((t.perYear - n(t.firm)) * 100) / 100) + ' rough)   ·   one-time ' + usd(t.oneTime) + '   ·   ' + t.count + ' change(s) counted' + (t.stopped ? '   ·   ' + t.stopped + ' stopped (not counted)' : '');
 }
 
 /**

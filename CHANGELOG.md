@@ -13,6 +13,8 @@
 - `BUILD_VERSION` 1.47.0. Files changed in `apps-script/`: `Config.gs`,
   `Tables.gs`, `Export.gs`. **Run Upgrade workbook**; then Claude marks the
   existing entries. Handoff: `handoffs/2026-11-28-savings-estimate.json`.
+- Data review: no must-fix; one should-fix done (the rough part is rounded
+  to cents before dollars, so the QA check never differs by $1).
 - Tested: Node mock.
 - Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
 
