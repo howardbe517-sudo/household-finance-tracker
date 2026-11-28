@@ -15,8 +15,8 @@
 
 const HFT = {
   TITLE: 'Household Finance Tracker',
-  SCHEMA_VERSION: '3.28-savings-categories-2026-11-27',
-  BUILD_VERSION: '1.46.0',
+  SCHEMA_VERSION: '3.29-savings-estimate-2026-11-28',
+  BUILD_VERSION: '1.47.0',
   REPO_URL: 'https://github.com/howardbe517-sudo/household-finance-tracker',
   PERSONS: ['Ben', 'Valerie'],
   SAMPLE_TAG: 'SAMPLE',
@@ -145,6 +145,7 @@ const LISTS = [
   { key: 'OWNERS', header: 'Owners', values: ['Ben', 'Valerie', 'Household'] },
   { key: 'GOAL_KINDS', header: 'Goal Kinds', values: ['Pay off debt', 'Save up'] },
   { key: 'SAVING_CATEGORIES', header: 'Saving Categories', values: ['Food', 'Household Supplies', 'Subscriptions', 'Utilities', 'Transportation', 'Kids', 'Personal Care', 'Entertainment', 'Other'] },
+  { key: 'SAVING_ESTIMATE', header: 'Saving Estimates', values: ['Firm', 'Rough'] },
   { key: 'SAVING_FREQ', header: 'Saving Frequencies', values: ['Daily', 'Weekly', 'Every 2 weeks', 'Monthly', 'Every 2 months', 'Every 3 months', 'Every 6 months', 'Yearly', 'One time'] },
   { key: 'ACCOUNT_TYPES', header: 'Account Types', values: ['Checking', 'Savings', 'Cash', 'Credit Card', 'Investment', 'Retirement', 'HSA', 'Loan', 'Property', 'Vehicle', 'Other', 'Pension'] },
   { key: 'INCOME_TYPES', header: 'Income Types', values: ['Salary', 'Hourly Wages', 'Bonus', 'Commission', 'Side Income', 'Reimbursement', 'Other'] },
@@ -820,7 +821,7 @@ TABLES.TODO = {
 /** Our Money-Saving Strategies (the owner, 2026-11-27): the household's main ways of saving, as a short list to keep in mind. */
 TABLES.STRAT = {
   key: 'STRAT', sheet: SHEETS.TODO, headerRow: 22, firstRow: 23, lastRow: 30, fixedRows: true, sharesSheet: true,
-  mergeAcross: { col: 2, toCol: 9 }, // How We Do It is one wide text cell per row, B:I, merged across only (rows can still be dragged)
+  mergeAcross: { col: 2, toCol: 10 }, // How We Do It is one wide text cell per row, B:J, merged across only (rows can still be dragged)
   title: 'Our Money-Saving Strategies',
   note: 'The main ways we save money, in a few words each, with how we do it. A reminder list: the figures are in the category table and the journal below.',
   idPrefix: '', idPattern: '(none)', logChanges: false,
@@ -856,6 +857,7 @@ TABLES.SAVEJ = {
     { key: 'date', h: 'Date', w: 100, fmt: C.date, v: { date: true }, note: 'When the change started.' },
     { key: 'notes', h: 'Notes', w: 300, note: 'How the estimate was worked out, or anything else worth remembering.' },
     { key: 'stopped', h: 'Stopped?', w: 80, v: { checkbox: true }, note: 'Ticked when we went back to the old way: the row stays, greyed out, and is left out of every total.' },
+    { key: 'estimate', h: 'Estimate', w: 80, v: { list: 'SAVING_ESTIMATE' }, note: 'Firm: real prices (a subscription that was cancelled). Rough: a guess (how many bags or loads a year, how often a bottle is bought). The total line splits the yearly saving into firm and rough; a blank counts as rough. Added in 3.29 (the owner, 2026-11-28).' },
   ],
 };
 

@@ -1,0 +1,34 @@
+{
+  "title": "Firm or Rough Savings",
+  "key": "household-finance-tracker-2026-11-28-savings-estimate",
+  "subtitle": "The Savings Journal now marks each saving as firm (real prices) or rough (a guess), and the total says how much of each.",
+  "intro": [
+    "The code reaches your Sheet on its own. One **Upgrade workbook** adds a column, **Estimate**, at the right end of the Savings Journal on the To-Do & Reminders tab.",
+    "**Firm** means real prices, like a subscription you cancelled. **Rough** means a guess, like how many bags or loads you use in a year. A row left blank counts as rough.",
+    "The green total line under the category table now reads, for example, **about $500 a year (about $42 a month; $300 firm, $200 rough)**.",
+    "If you already ran the House & money plan upgrade, this one covers it too. **What does not change:** your entries and every other tab."
+  ],
+  "sections": [
+    {
+      "heading": "Restore point",
+      "steps": [
+        { "text": "In the Sheet, open **File → Version history → Name current version** and name it `Before savings estimate 2026-11-28`." }
+      ]
+    },
+    {
+      "heading": "Run the upgrade",
+      "steps": [
+        { "text": "Reload the Sheet. Check that **Build Script Version** on the **App Setup** tab reads `1.47.0` (or later)." },
+        { "text": "Open **Finance Tracker → Upgrade workbook (keeps data)** and confirm.", "done": "The report finishes without errors and lists the added column **Estimate** on To-Do & Reminders." },
+        { "text": "Tell Claude the upgrade is done.", "done": "Claude marks your entries: the subscriptions Firm; the bags, detergent and hair oil Rough." }
+      ]
+    },
+    {
+      "heading": "Check it",
+      "steps": [
+        { "text": "Open **To-Do & Reminders** and look at the green total line under **Estimated Savings by Category**.", "done": "It shows the yearly total with how much is firm and how much is rough." },
+        { "text": "For a new entry, pick **Firm** or **Rough** in the Estimate column.", "done": "The split in the total line updates." }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # STATUS
 
+2026-11-28 (build 1.47.0, schema 3.29): the Savings Journal marks each
+saving Firm or Rough, and the total line splits the two. Waiting for the
+owner's upgrade; then Claude marks the existing entries.
+
 2026-11-27 (build 1.46.0): the House & money plan works the plan out month
 by month (the owner's order and wiggle room, a leave without pay). Waiting
 for the owner's upgrade; then Claude fills in the leave inputs in the

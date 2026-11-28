@@ -1,6 +1,6 @@
 # Data Dictionary — Household Finance Tracker
 
-Schema version **3.28-savings-categories-2026-11-27**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
+Schema version **3.29-savings-estimate-2026-11-28**. Generated from `apps-script/Config.gs` by `scripts/gen-schema.js` — do not edit by hand.
 
 Conventions: one record per row; stable IDs in column A; months stored as first-of-month dates; no merged cells inside raw tables; financial rows are soft-deleted (`Is Deleted`), never removed. Formula templates below use `[@key]` (same row), `[@@key]` (same column, open range) and `[TABLE.key]` (another table's column, open range) — see `Config.gs`.
 
@@ -10,7 +10,7 @@ Conventions: one record per row; stable IDs in column A; months stored as first-
 |---|---|---:|---:|---:|---|---:|---|
 | TODO | To-Do & Reminders | 4 | 5 | 19 | (none) | 5 | no |
 | STRAT | To-Do & Reminders | 22 | 23 | 30 | (none) | 2 | no |
-| SAVEJ | To-Do & Reminders | 49 | 50 | 149 | (none) | 9 | no |
+| SAVEJ | To-Do & Reminders | 49 | 50 | 149 | (none) | 10 | no |
 | GOALPLAN | Goals & Progress | 4 | 5 | 34 | (none) | 14 | no |
 | CATS | Categories | 4 | 5 | 204 | CAT-01 / SUB-0101 | 8 | no |
 | ACCOUNTS | Accounts | 4 | 5 | 104 | ACC-001 | 19 | yes |
@@ -81,6 +81,7 @@ Named range `TBL_SAVEJ` covers the header row through the last formula row.
 | G | Date | `date` | date | input (date) | When the change started. |
 | H | Notes | `notes` | text | input | How the estimate was worked out, or anything else worth remembering. |
 | I | Stopped? | `stopped` | text | checkbox | Ticked when we went back to the old way: the row stays, greyed out, and is left out of every total. |
+| J | Estimate | `estimate` | text | dropdown: LIST_SAVING_ESTIMATE | Firm: real prices (a subscription that was cancelled). Rough: a guess (how many bags or loads a year, how often a bottle is bought). The total line splits the yearly saving into firm and rough; a blank counts as rough. Added in 3.29 (the owner, 2026-11-28). |
 
 ## Goals & Progress (`GOALPLAN`)
 
@@ -736,6 +737,7 @@ One cell concatenates every applicable warning, separated by "; ". Template:
 | OWNERS | Owners | Ben, Valerie, Household |
 | GOAL_KINDS | Goal Kinds | Pay off debt, Save up |
 | SAVING_CATEGORIES | Saving Categories | Food, Household Supplies, Subscriptions, Utilities, Transportation, Kids, Personal Care, Entertainment, Other |
+| SAVING_ESTIMATE | Saving Estimates | Firm, Rough |
 | SAVING_FREQ | Saving Frequencies | Daily, Weekly, Every 2 weeks, Monthly, Every 2 months, Every 3 months, Every 6 months, Yearly, One time |
 | ACCOUNT_TYPES | Account Types | Checking, Savings, Cash, Credit Card, Investment, Retirement, HSA, Loan, Property, Vehicle, Other, Pension |
 | INCOME_TYPES | Income Types | Salary, Hourly Wages, Bonus, Commission, Side Income, Reimbursement, Other |
