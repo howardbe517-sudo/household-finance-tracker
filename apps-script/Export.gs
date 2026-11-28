@@ -247,7 +247,7 @@ function buildSnapshotText_(d) {
     const st = savingsTotals_(saveRows);
     L.push('## Money-saving changes (from the Savings Journal)');
     if (stratRows.length) L.push('- Our money-saving strategies: ' + stratRows.map(x => cell(x.strategy) + (x.how ? ' (' + cell(x.how) + ')' : '')).join('; ') + '.');
-    L.push('- Estimated savings: about ' + money(st.perYear) + ' a year (' + money(st.perYear / 12) + ' a month) from ' + st.count + ' change(s)' + (st.oneTime ? '; plus ' + money(st.oneTime) + ' saved once' : '') + (st.stopped ? '; ' + st.stopped + ' change(s) stopped and not counted' : '') + '. These are the household\'s own estimates (old cost against new cost), not measured from spending.');
+    L.push('- Estimated savings: about ' + money(st.perYear) + ' a year (' + money(st.perYear / 12) + ' a month; ' + money(st.firm) + ' from real prices, ' + money(Math.round((st.perYear - st.firm) * 100) / 100) + ' rough guesses) from ' + st.count + ' change(s)' + (st.oneTime ? '; plus ' + money(st.oneTime) + ' saved once' : '') + (st.stopped ? '; ' + st.stopped + ' change(s) stopped and not counted' : '') + '. These are the household\'s own estimates (old cost against new cost), not measured from spending.');
     savingsByCategory_(saveRows).forEach(c => L.push('- ' + cell(c.category) + ': ' + c.changes + ' change(s), about ' + money(c.perYear) + ' a year' + (c.once ? ' and ' + money(c.once) + ' once' : '')));
     savingsSortOrder_(saveRows).forEach(r => {
       const y = savingsPerYear_(r);

@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026-11-28 — Savings Journal: firm or rough estimates (schema 3.29)
+- Why (the owner): tell savings worked out from real prices apart from
+  rough guesses.
+- `Config.gs`: new Savings Journal column **Estimate** (Firm or Rough,
+  list Saving Estimates), appended after Stopped?. The strategies' wide
+  How We Do It cell now spans B:J.
+- `Tables.gs`: the total line under the category table splits the yearly
+  saving into firm and rough (a blank counts as rough); `savingsTotals_`
+  and `savingsSummaryText_` mirror it and QA 6c compares them.
+  `Export.gs`: the snapshot shows the split.
+- `BUILD_VERSION` 1.47.0. Files changed in `apps-script/`: `Config.gs`,
+  `Tables.gs`, `Export.gs`. **Run Upgrade workbook**; then Claude marks the
+  existing entries. Handoff: `handoffs/2026-11-28-savings-estimate.json`.
+- Data review: no must-fix; one should-fix done (the rough part is rounded
+  to cents before dollars, so the QA check never differs by $1).
+- Tested: Node mock.
+- Conversation: https://claude.ai/code/session_01XRPeQZr4LZj8gNZ59qZQ2V
+
 ## 2026-11-27 — House & money plan, month by month; To-Do headers
 - Why (the owner): correct timelines for the credit cards, student loans,
   the car and the emergency fund, with a parental leave without pay and

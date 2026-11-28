@@ -226,7 +226,7 @@ function savingsCounted_(journal) {
 
 /**
  * Totals of the Savings Journal, as its summary line shows them. Pure. Stopped rows are left out; one-time savings are kept apart
- * from the yearly figure. Returns { perYear, oneTime, count, stopped }.
+ * from the yearly figure. Returns { perYear, oneTime, firm, count, stopped }; the rough part of the yearly figure is perYear − firm.
  */
 function savingsTotals_(journal) {
   const rows = savingsCounted_(journal);
@@ -234,6 +234,8 @@ function savingsTotals_(journal) {
   return {
     perYear: rows.filter(r => r.often !== 'One time').reduce((t, r) => t + val(r), 0),
     oneTime: rows.filter(r => r.often === 'One time').reduce((t, r) => t + val(r), 0),
+    // firm: the yearly savings marked Firm (real prices); the rest of the yearly figure is rough (a guess, or not marked)
+    firm: rows.filter(r => r.often !== 'One time' && String(r.estimate || '').toLowerCase() === 'firm').reduce((t, r) => t + val(r), 0),
     count: rows.length,
     stopped: (journal || []).filter(r => r.change !== '' && r.change !== null && r.change !== undefined && r.stopped === true).length,
   };
@@ -267,8 +269,9 @@ function savingsByCategory_(journal) {
 
 /** The summary line under the category table, as its formula writes it (TEXT(x,"$#,##0")). Pure; QA compares the two. */
 function savingsSummaryText_(t) {
+  const n = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
   const usd = (x) => { const r = Math.round(Math.abs(x)); return (r !== 0 && x < 0 ? '-' : '') + '$' + String(r).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
-  return 'Estimated savings: about ' + usd(t.perYear) + ' a year (about ' + usd(t.perYear / 12) + ' a month)   ·   one-time ' + usd(t.oneTime) + '   ·   ' + t.count + ' change(s) counted' + (t.stopped ? '   ·   ' + t.stopped + ' stopped (not counted)' : '');
+  return 'Estimated savings: about ' + usd(t.perYear) + ' a year (about ' + usd(t.perYear / 12) + ' a month; ' + usd(n(t.firm)) + ' firm, ' + usd(Math.round((t.perYear - n(t.firm)) * 100) / 100) + ' rough)   ·   one-time ' + usd(t.oneTime) + '   ·   ' + t.count + ' change(s) counted' + (t.stopped ? '   ·   ' + t.stopped + ' stopped (not counted)' : '');
 }
 
 /**
@@ -442,7 +445,9 @@ function buildSavingsSection_(sh) {
   const MA = strat.mergeAcross, span = MA.toCol - MA.col + 1;
   for (let r = strat.headerRow; r <= strat.lastRow; r++) {
     const cell = sh.getRange(r, MA.col, 1, span);
-    if (!cell.getMergedRanges().length) cell.merge();
+    const had = cell.getMergedRanges();
+    if (!had.length) cell.merge();
+    else if (/:/.test(had[0].getA1Notation()) && had[0].getA1Notation() !== cell.getA1Notation()) { cell.breakApart(); cell.merge(); } // an older, narrower box (B:I before 3.29)
     if (r > strat.headerRow) { cell.setWrap(true).setVerticalAlignment('top').setHorizontalAlignment('left'); sh.setRowHeight(r, 36); }
   }
   sh.getRange(strat.headerRow, 1, 1, W).setBackground(COLORS.NAVY).setFontColor(COLORS.WHITE).setFontWeight('bold');
@@ -467,14 +472,15 @@ function buildSavingsSection_(sh) {
     + 'SORT(HSTACK(IF(cats="' + ng + '","' + K.NOT_GROUPED + '",PROPER(cats)),cnt,peryr,peryr/12,onetime),3,FALSE,5,FALSE,1,TRUE))),' + K.ROWS + ',5))'); // ARRAYFORMULA: without it Google works the LET out for one cell only (#VALUE!), tested 2026-11-27
 
   // the total line, right under the category table (it counts every entry, so it is the table's total too)
-  const yr = ref('yearly'), often = ref('often'), what = ref('change'), stp = ref('stopped');
+  const yr = ref('yearly'), often = ref('often'), what = ref('change'), stp = ref('stopped'), est = ref('estimate');
   const counted = (crit) => 'SUMIFS(' + yr + ',' + often + ',' + crit + ',' + stp + ',"<>TRUE")';
+  const firm = 'SUMIFS(' + yr + ',' + often + ',"<>One time",' + stp + ',"<>TRUE",' + est + ',"Firm")';
   sh.getRange(jr.headerRow - 1, 1, 1, W).setValues([Array(W).fill('')]).setBackground(null); // a small gap above the journal's header
   sh.setRowHeight(jr.headerRow - 1, 8);
   const sum = sh.getRange(K.TOTAL_ROW, 1, 1, W);
   sum.setValues([Array(W).fill('')]);
   sum.setBackground(COLORS.UNDER_FILL).setFontColor(COLORS.UNDER_FONT).setFontSize(11).setFontWeight('bold').setWrap(false).setVerticalAlignment('middle');
-  sh.getRange(K.TOTAL_ROW, 1).setFormula('="Estimated savings: about "&TEXT(' + counted('"<>One time"') + ',"$#,##0")&" a year (about "&TEXT(' + counted('"<>One time"') + '/12,"$#,##0")&" a month)   ·   one-time "&TEXT(' + counted('"One time"') + ',"$#,##0")'
+  sh.getRange(K.TOTAL_ROW, 1).setFormula('="Estimated savings: about "&TEXT(' + counted('"<>One time"') + ',"$#,##0")&" a year (about "&TEXT(' + counted('"<>One time"') + '/12,"$#,##0")&" a month; "&TEXT(' + firm + ',"$#,##0")&" firm, "&TEXT(' + counted('"<>One time"') + '-' + firm + ',"$#,##0")&" rough)   ·   one-time "&TEXT(' + counted('"One time"') + ',"$#,##0")'
     + '&"   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',"<>TRUE")&" change(s) counted"&IF(COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)=0,"","   ·   "&COUNTIFS(' + what + ',"<>",' + stp + ',TRUE)&" stopped (not counted)")');
   sh.setRowHeight(K.TOTAL_ROW, 28);
 }
